@@ -1,1028 +1,491 @@
-# CloudFront 캐시 사용 표준 -- AI 활용 극대화 + 멀티 베타 환경
+# CloudFront 캐시 사용 표준
 
 ## 목차
-
-1. [멀티 베타 환경 CDN 아키텍처](#1-멀티-베타-환경-cdn-아키텍처)
-2. [환경별 독립 캐시: 동적 S3 오리진 + CloudFront Behavior 자동 생성 (CDK)](#2-환경별-독립-캐시-동적-s3-오리진--cloudfront-behavior-자동-생성-cdk)
-3. [PR별 Preview 환경 CDN 자동 프로비저닝/정리 (GitHub Actions + CDK)](#3-pr별-preview-환경-cdn-자동-프로비저닝정리-github-actions--cdk)
-4. [환경별 캐시 키 네임스페이스 분리 패턴](#4-환경별-캐시-키-네임스페이스-분리-패턴)
-5. [AI 프롬프트 5선](#5-ai-프롬프트-5선)
-6. [CloudFront Functions: 멀티 베타 라우팅](#6-cloudfront-functions-멀티-베타-라우팅)
-7. [Origin Shield + 멀티 베타 최적화](#7-origin-shield--멀티-베타-최적화)
-8. [실시간 로그 분석 파이프라인](#8-실시간-로그-분석-파이프라인)
-9. [체크리스트](#9-체크리스트)
-10. [참고 자료](#10-참고-자료)
+1. [개요](#1-개요)
+2. [캐시 전략 기본 원칙](#2-캐시-전략-기본-원칙)
+3. [프론트엔드 개발자를 위한 캐시 정책](#3-프론트엔드-개발자를-위한-캐시-정책)
+4. [모니터링 및 성능 최적화](#4-모니터링-및-성능-최적화)
+5. [체크리스트](#5-체크리스트)
 
 ---
 
-## 1. 멀티 베타 환경 CDN 아키텍처
+## 1. 개요
 
-N개의 베타 환경과 PR별 Preview 환경이 공존하는 구조에서, 각 환경이 독립된 캐시 공간을 가지면서도 인프라 비용을 최소화하는 것이 핵심이다.
+### 1.1 문서 목적
 
-### 1.1 아키텍처 개요
+배포 시스템의 설정으로 대부분의 내용들이 자동으로 설정 되어있습니다만, 현재 배포시 Invalidate을 강제 하고 있는 배포 시스템의 환경에서는 대응하기 어려운 것이 현실입니다.
+
+이 문서는 프론트엔드 개발자들이 **배포 시스템과 AWS CloudFront를 연동**하여 최적의 사용자 경험을 제공하기 위한 표준 가이드라인입니다.
+
+### 1.2 CloudFront 캐시 계층 도면
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   CloudFront Distribution            │
-│                                                     │
-│  Behavior: /beta-1/*  → S3: app-beta-1/             │
-│  Behavior: /beta-2/*  → S3: app-beta-2/             │
-│  Behavior: /beta-N/*  → S3: app-beta-N/             │
-│  Behavior: /pr-123/*  → S3: app-preview/pr-123/     │
-│  Behavior: /pr-456/*  → S3: app-preview/pr-456/     │
-│  Behavior: /*         → S3: app-production/         │
-│                                                     │
-│  Cache Policy: 환경별 네임스페이스 분리               │
-│  CloudFront Function: 환경 라우팅 + 캐시 키 주입     │
-└─────────────────────────────────────────────────────┘
+[사용자] → [Edge Location (PoP)] → [Regional Edge Cache] → [Origin Shield] → [S3/Origin]
+           ↓
+        L1 Cache           →           L2 Cache          →     L3 Cache    →   Origin
 ```
 
-### 1.2 환경 구분 전략
+### 1.3 핵심 용어 정의
 
-| 환경 유형 | 경로 패턴 | S3 버킷/접두사 | 캐시 TTL | 생명주기 |
-|-----------|----------|---------------|---------|---------|
-| Production | `/*` | `app-production/` | 1년 (immutable assets) | 영구 |
-| Beta N | `/beta-{n}/*` | `app-beta-{n}/` | 1시간 | 반영구 |
-| PR Preview | `/pr-{number}/*` | `app-preview/pr-{number}/` | 5분 | PR 머지/종료 시 자동 삭제 |
+| 용어 | 설명 |
+|------|------|
+| **캐시 키** | 동일한 콘텐츠인지 판단하는 고유 식별자 |
+| **TTL (Time-to-Live)** | 캐시된 객체의 유효 기간 |
+| **Origin Shield** | 원본 서버 보호를 위한 중앙 집중식 캐시 계층, 원본 서버에 접근하는것을 최소화 하기위한 마지막 계층 |
+| **PoP (Point of Presence)** | 엣지 로케이션을 의미합니다. 일반적으로 사용자에게 지리적으로 가장 가까운 CDN으로 라우팅 됩니다 |
 
 ---
 
-## 2. 환경별 독립 캐시: 동적 S3 오리진 + CloudFront Behavior 자동 생성 (CDK)
+## 2. 캐시 전략 기본 원칙
 
-### 2.1 멀티 베타 CDK 스택
+### 2.1 불변성 원칙 (Immutability Principle)
 
-```typescript
-// infra/lib/multi-beta-cdn-stack.ts
-import * as cdk from "aws-cdk-lib";
-import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
-import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import type { Construct } from "constructs";
+**핵심 개념**: 파일 내용이 변경되면 파일명도 변경되어야 합니다. 이를 통해 영구 캐싱과 즉시 업데이트를 동시에 달성할 수 있습니다.
 
-interface BetaEnvironment {
-  name: string;
-  bucketName: string;
-  cacheTtlSeconds: number;
-}
+```javascript
+// ✅ 올바른 방식: 해시 기반 파일명
+main.a1b2c3d4.js;
+styles.e5f6g7h8.css;
+logo.i9j0k1l2.png;
 
-interface MultiBetaCdnStackProps extends cdk.StackProps {
-  productionBucketName: string;
-  previewBucketName: string;
-  betaEnvironments: BetaEnvironment[];
-  domainName: string;
-}
+// ❌ 잘못된 방식: 고정 파일명
+main.js;
+styles.css;
+logo.png;
 
-export class MultiBetaCdnStack extends cdk.Stack {
-  public readonly distribution: cloudfront.Distribution;
+// 예외: index.html 캐시TTL이 0이기 때문
+```
 
-  constructor(scope: Construct, id: string, props: MultiBetaCdnStackProps) {
-    super(scope, id, props);
+### 2.2 이중 캐시 전략 (Dual Cache Strategy)
 
-    // Production 오리진
-    const productionBucket = s3.Bucket.fromBucketName(
-      this, "ProductionBucket", props.productionBucketName,
-    );
-    const productionOrigin = origins.S3BucketOrigin.withOriginAccessControl(productionBucket);
+1. **정적 자산**: 장기 캐싱 (1년)
+2. **HTML 엔트리포인트**: 단기 캐싱 또는 무캐싱
 
-    // Preview 오리진 (PR별 접두사로 분리)
-    const previewBucket = s3.Bucket.fromBucketName(
-      this, "PreviewBucket", props.previewBucketName,
-    );
-    const previewOrigin = origins.S3BucketOrigin.withOriginAccessControl(previewBucket);
+이 전략을 통해 새로운 배포 시 사용자가 즉시 최신 버전을 받을 수 있으면서도, 정적 자산은 효율적으로 캐싱됩니다.
 
-    // 캐시 정책: 환경별
-    const betaCachePolicy = new cloudfront.CachePolicy(this, "BetaCachePolicy", {
-      cachePolicyName: "MultiBeta-CachePolicy",
-      defaultTtl: cdk.Duration.hours(1),
-      maxTtl: cdk.Duration.hours(24),
-      minTtl: cdk.Duration.minutes(1),
-      headerBehavior: cloudfront.CacheHeaderBehavior.allowList(
-        "X-Beta-Environment",
-      ),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
+### 2.3 최소 특정성 원칙 (Principle of Least Specificity)
 
-    const previewCachePolicy = new cloudfront.CachePolicy(this, "PreviewCachePolicy", {
-      cachePolicyName: "Preview-CachePolicy",
-      defaultTtl: cdk.Duration.minutes(5),
-      maxTtl: cdk.Duration.minutes(30),
-      minTtl: cdk.Duration.seconds(0),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
+캐시 키는 콘텐츠의 정확성을 보장하는 데 **필요한 최소한의 요소**만 포함해야 합니다.
 
-    const immutableCachePolicy = new cloudfront.CachePolicy(this, "ImmutableCachePolicy", {
-      cachePolicyName: "Immutable-CachePolicy",
-      defaultTtl: cdk.Duration.days(365),
-      maxTtl: cdk.Duration.days(365),
-      minTtl: cdk.Duration.days(365),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
+```javascript
+// ✅ 좋은 예: 필수 요소만 포함
+캐시 키: URL 경로(해시값) + Accept-Encoding
 
-    // 환경 라우팅 CloudFront Function
-    const routingFunction = new cloudfront.Function(this, "BetaRoutingFunction", {
-      code: cloudfront.FunctionCode.fromInline(buildRoutingFunctionCode()),
-      runtime: cloudfront.FunctionRuntime.JS_2_0,
-      comment: "멀티 베타 환경 라우팅 + 캐시 키 네임스페이스 주입",
-    });
+// ❌ 나쁜 예: 불필요한 요소 포함
+캐시 키: URL + 모든 헤더 + 쿠키 + User-Agent
+```
 
-    // Distribution 기본 behavior (Production)
-    this.distribution = new cloudfront.Distribution(this, "Distribution", {
-      defaultBehavior: {
-        origin: productionOrigin,
-        cachePolicy: immutableCachePolicy,
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        functionAssociations: [{
-          function: routingFunction,
-          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-        }],
+### 2.4 캐시 오염 방지 전략
+
+#### 1. 다중 오리진 서비스인 경우 CFF 대신 Lambda@Edge 사용
+
+**기본적으로 다중 오리진 서비스를 지양 해야합니다.**
+
+- CloudFront 함수(CFF)는 요청 URL을 바꾸면, 바뀐 URL을 캐시 키로 사용합니다.
+- 이 때문에 서로 다른 Origin에서 온 콘텐츠가 같은 캐시 키(예: `/index.html`)를 공유하면서 캐시가 오염될 수 있습니다.
+- 결과적으로 사용자는 엉뚱한 페이지를 보게 될 수 있습니다.
+
+**문제 상황 비유 (택배함 예시)**
+
+```
+CloudFront: 아파트 택배 시스템
+Origin 1 (기본 S3): 우리 집 (기본 배송지)
+Origin 2 (다른 S3): 아파트 내 헬스장 (특별 배송지)
+
+1. 첫 번째 방문: 헬스장으로 가는 택배
+   - /A/운동기구 요청 → CFF가 /index.html로 변경
+   - 헬스장에서 index.html 받아옴
+   - 캐시 키: index.html로 저장
+
+2. 두 번째 방문: 우리 집으로 와야 할 택배
+   - /B/내물건 요청 → 404 발생 → /index.html로 리다이렉트
+   - "어? 아까 index.html로 보관해 둔 게 있네?"
+   - 헬스장 콘텐츠가 잘못 제공됨!
+```
+
+**해결 방안**: Lambda@Edge를 사용하여 배송지(Origin) 자체를 동적으로 변경
+
+```javascript
+// Lambda@Edge (Origin Request)
+exports.handler = async (event) => {
+  const request = event.Records[0].cf.request;
+  const uri = request.uri;
+
+  // URI별로 다른 오리진 동적 선택 가능
+  if (uri.startsWith("/A/")) {
+    request.origin = {
+      custom: {
+        domainName: "origin2.example.com",
+        // ... 오리진2 설정
       },
-      domainNames: [props.domainName],
-      httpVersion: cloudfront.HttpVersion.HTTP3,
-      minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
-    });
-
-    // Beta 환경별 Behavior 동적 생성
-    for (const beta of props.betaEnvironments) {
-      const betaBucket = s3.Bucket.fromBucketName(
-        this, `BetaBucket-${beta.name}`, beta.bucketName,
-      );
-
-      this.distribution.addBehavior(`/beta-${beta.name}/*`,
-        origins.S3BucketOrigin.withOriginAccessControl(betaBucket), {
-          cachePolicy: betaCachePolicy,
-          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          functionAssociations: [{
-            function: routingFunction,
-            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-          }],
-        },
-      );
-    }
-
-    // Preview 환경 Behavior (와일드카드)
-    this.distribution.addBehavior("/pr-*/*", previewOrigin, {
-      cachePolicy: previewCachePolicy,
-      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      functionAssociations: [{
-        function: routingFunction,
-        eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-      }],
-    });
-
-    // Outputs
-    new cdk.CfnOutput(this, "DistributionId", {
-      value: this.distribution.distributionId,
-    });
-    new cdk.CfnOutput(this, "DistributionDomain", {
-      value: this.distribution.distributionDomainName,
-    });
+    };
+    // 원본 URI 유지하면서 오리진만 변경
   }
-}
 
-function buildRoutingFunctionCode(): string {
-  return `
+  return request;
+};
+```
+
+#### 2. Custom Error Page 대신 Origin Request 처리
+
+**기존 방식 (문제 있는 설정)**
+
+```yaml
+custom_error_response {
+  error_code         = 403
+  response_code      = 200
+  response_page_path = "/index.html"  # ⚠️ 모든 403이 동일한 캐시 키
+}
+custom_error_response {
+  error_code         = 404
+  response_code      = 200
+  response_page_path = "/index.html"  # ⚠️ 모든 404가 동일한 캐시 키
+}
+```
+
+**핵심 문제**: 모든 SPA 라우팅 요청이 `/index.html` 캐시 키를 공유하여 다중 오리진 환경에서 캐시 오염 발생
+
+**안전한 패턴**
+
+```javascript
+// CloudFront Function (Viewer Request)
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
 
-  // 환경 식별: /beta-{name}/... 또는 /pr-{number}/...
-  var envMatch = uri.match(/^\\/(beta-[a-z0-9-]+|pr-[0-9]+)\\//);
-  if (envMatch) {
-    var envName = envMatch[1];
-    // 캐시 키 네임스페이스 헤더 주입
-    request.headers['x-beta-environment'] = { value: envName };
-    // 오리진 경로에서 환경 접두사 제거
-    request.uri = uri.substring(envMatch[0].length - 1);
-  }
-
-  // SPA fallback: 확장자가 없으면 index.html
-  if (!uri.includes('.')) {
-    request.uri = '/index.html';
+  // 캐시 키 보존을 위해 쿼리 파라미터로 원본 경로 유지
+  if (!uri.includes(".") && uri !== "/") {
+    request.querystring = {
+      "original-path": { value: encodeURIComponent(uri) },
+    };
+    request.uri = "/index.html";
   }
 
   return request;
-}`;
 }
-```
-
-### 2.2 CDK 앱 엔트리포인트
-
-```typescript
-// infra/bin/app.ts
-import * as cdk from "aws-cdk-lib";
-import { MultiBetaCdnStack } from "../lib/multi-beta-cdn-stack";
-
-const app = new cdk.App();
-
-const betaEnvCount = parseInt(app.node.tryGetContext("betaEnvCount") ?? "3", 10);
-
-const betaEnvironments = Array.from({ length: betaEnvCount }, (_, i) => ({
-  name: `${i + 1}`,
-  bucketName: `my-app-beta-${i + 1}`,
-  cacheTtlSeconds: 3600,
-}));
-
-new MultiBetaCdnStack(app, "MultiBetaCdnStack", {
-  productionBucketName: "my-app-production",
-  previewBucketName: "my-app-preview",
-  betaEnvironments,
-  domainName: "app.example.com",
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION,
-  },
-});
 ```
 
 ---
 
-## 3. PR별 Preview 환경 CDN 자동 프로비저닝/정리 (GitHub Actions + CDK)
+## 3. 프론트엔드 개발자를 위한 캐시 정책
 
-### 3.1 PR Open/Update 시 Preview 배포
+### 3.1 브라우저 캐시 정책
 
+캐시를 삭제하기 위해 invalidate을 사용하는 경우가 있으나, 이는 추천하지 않습니다.
+
+invalidate하는 것은 최소 5분 이상 서빙되지 않더라도 문제가 없는 경우에 해당됩니다.
+
+**즉각적인 적용과 서빙을 위해 해시/UUID 사용 등 고유 URL을 만들어서 추가하는 방향을 권장합니다.**
+
+- `index.html` / API 등 캐시를 가지고 가면 안되는 리소스의 경우 TTL을 0으로 잡습니다.
+- JS/CSS/이미지 등 해시 값이 들어가는 리소스 또는 폰트와 같은 완전 정적 에셋의 경우 1년의 캐시값을 두어 원활한 서빙이 될 수 있게 합니다.
+
+#### 상황별 캐시 적용 방법 가이드
+
+| 상황 | 추천 방법 | 이유 |
+|------|----------|------|
+| **S3의 정적 파일들**에 대해 긴 캐시를 적용하고 싶을 때 | 응답 헤더 정책 | 파일마다 메타데이터를 수정할 필요 없이 CloudFront에서 일괄 적용이 가능해 편리합니다. |
+| **API 응답**처럼 동적으로 캐시 정책이 바뀌어야 할 때 | 캐시 정책 | 원본 서버(API 서버)에서 보낸 Cache-Control 헤더를 존중하도록 설정하는 것이 유연합니다. |
+| 특정 파일(예: index.html)은 **캐시하지 않아야 할 때** | 응답 헤더 정책 | Cache-Control 헤더에 no-cache, no-store 값을 설정한 정책을 만들어 해당 파일 경로의 동작(Behavior)에만 적용할 수 있습니다. |
+
+#### 파일 타입별 헤더 적용 가이드
+
+| 콘텐츠 유형 | TTL | Cache-Control | 캐시 키 구성 | 비고 |
+|------------|-----|---------------|-------------|------|
+| **JS/CSS/이미지 (해시명)** | 1년 | `max-age=31,536,000` `s-maxage=31,536,000` | URL + 쿼리 | 가장 일반적 해시 기반 캐시 버스팅 |
+| **아이콘, 로고** | 1개월 | `max-age=2592000` `s-maxage=31,536,000` | URL 경로만 | WebP 포맷 우선 |
+| **index.html** | 무캐시 | `max-age=0`, `s-maxage=604800`, `no-cache/no-store`, `must-revalidate` | URL 경로만 | 엔트리포인트 |
+| **API 엔드포인트** | 무캐시 | `max-age=0`, `s-maxage=604800`, `no-cache/no-store`, `must-revalidate` | URL + 헤더 + 쿼리 | 동적 콘텐츠 |
+| **폰트 파일** | 1년 | `max-age=31,536,000` `s-maxage=31,536,000` | URL 경로만 | CORS 설정 필요 |
+| **이미지 (해시 미사용시)** | 필요에 따라 | - | URL 경로만 | 단발성 마케팅 영역 |
+
+#### 각 헤더 항목들에 대한 설명
+
+| 헤더 | 설명 |
+|------|------|
+| **max-age** | 웹 브라우저(클라이언트)에게 해당 콘텐츠의 캐시 유효 기간을 알려줍니다. |
+| **s-maxage** | 공유 캐시(CDN, 프록시 서버 등)에만 적용됩니다. max-age를 덮어쓰며, 해당 기간 동안 CDN은 서버에 다시 요청하지 않고 캐시된 콘텐츠를 사용자에게 바로 제공할 수 있습니다. |
+| **no-cache** | 캐시된 복사본을 저장할 수 있지만, 사용할 때마다 서버에 재확인(revalidation)을 요청해야 합니다. |
+| **no-store** | 응답이 어떤 캐시에도 저장되어서는 안 됩니다. 매우 민감한 데이터를 다룰 때 사용됩니다. |
+| **must-revalidate** | 캐시된 콘텐츠가 만료되었을 때 반드시 서버에 재확인을 요청해야 합니다. |
+| **ETag** | 리소스의 버전을 식별하는 값입니다. 파일 내용의 해시 값이나 최종 수정 시간을 기반으로 생성됩니다. |
+
+#### no-cache vs no-store 비교
+
+| 구분 | no-cache | no-store |
+|------|----------|----------|
+| **캐시 저장** | 허용됨 | **허용되지 않음** |
+| **재검증** | 매번 사용 전 필요 | 해당 없음 (캐시 없음) |
+| **목적** | 신선도 보장 | 개인 정보/보안 보장 |
+| **효율성** | 전체 다운로드보다 빠름 (304 Not Modified 사용) | 항상 전체 다운로드가 필요함 |
+| **사용 사례** | 프로필 페이지, 자주 업데이트되는 콘텐츠 | 민감한 데이터 (의료, 금융, 로그인 등) |
+
+### 3.2 L2 ~ L3 CloudFront 캐시 정책
+
+#### L2: CDN Edge 캐시 계층 (CloudFront)
+- **목적**: 지역별 빠른 응답, Origin 서버 부하 분산
+
+#### L3: Regional Cache 계층 (Origin Shield)
+- **목적**: 대용량 트래픽 흡수, Origin 보호
+
+**정적 자산 캐시 정책**
 ```yaml
-# .github/workflows/preview-deploy.yml
-name: Preview Deploy
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  id-token: write
-  contents: read
-  pull-requests: write
-
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-jobs:
-  deploy-preview:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build with preview base path
-        run: pnpm build
-        env:
-          VITE_BASE_PATH: /pr-${{ github.event.pull_request.number }}/
-          VITE_ENV_LABEL: "PR #${{ github.event.pull_request.number }}"
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
-
-      - name: Deploy to S3 preview prefix
-        run: |
-          aws s3 sync dist/ \
-            s3://${{ vars.PREVIEW_BUCKET }}/pr-${{ github.event.pull_request.number }}/ \
-            --delete \
-            --cache-control "public, max-age=300"
-
-      - name: Invalidate CloudFront preview path
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/pr-${{ github.event.pull_request.number }}/*"
-
-      - name: Comment preview URL
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const previewUrl = `https://${{ vars.CDN_DOMAIN }}/pr-${prNumber}/`;
-            const body = `## Preview 환경\n\n| 항목 | 값 |\n|------|----|\n| URL | ${previewUrl} |\n| PR | #${prNumber} |\n| Commit | \`${context.sha.slice(0, 8)}\` |\n\n이 환경은 PR이 머지/종료되면 자동으로 정리됩니다.`;
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-            const existing = comments.find(c => c.body?.includes('## Preview 환경'));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body,
-              });
-            }
+CachePolicyId: "정적자산-초장기"
+Parameters:
+  TTL:
+    DefaultTTL: 31536000 # 1년
+    MaxTTL: 31536000
+  CacheKeyBehavior:
+    - URL 경로만
 ```
 
-### 3.2 PR 종료 시 Preview 자동 정리
-
+**메뉴 이미지 캐시 정책**
 ```yaml
-# .github/workflows/preview-cleanup.yml
-name: Preview Cleanup
-
-on:
-  pull_request:
-    types: [closed]
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  cleanup-preview:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
-
-      - name: Remove preview assets from S3
-        run: |
-          aws s3 rm \
-            s3://${{ vars.PREVIEW_BUCKET }}/pr-${{ github.event.pull_request.number }}/ \
-            --recursive
-
-      - name: Invalidate CloudFront to purge cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/pr-${{ github.event.pull_request.number }}/*"
-
-      - name: Log cleanup
-        run: |
-          echo "Preview environment for PR #${{ github.event.pull_request.number }} cleaned up."
+CachePolicyId: "메뉴이미지-장기"
+Parameters:
+  TTL:
+    DefaultTTL: 604800 # 1주
+    MaxTTL: 2592000 # 1개월
+  CacheKeyBehavior:
+    - URL 경로
+    - Accept-Encoding
+    - Accept (WebP 지원 권고)
 ```
 
-### 3.3 Preview 환경 만료 자동 정리 (스케줄 기반)
+**Origin Shield 설정 (Seoul Region)**
+```javascript
+const originShieldConfig = {
+  enabled: true,
+  region: "ap-northeast-2", // 서울 리전
 
-```typescript
-// scripts/cleanup-stale-previews.ts
-import {
-  S3Client,
-  ListObjectsV2Command,
-  DeleteObjectsCommand,
-} from "@aws-sdk/client-s3";
-import {
-  CloudFrontClient,
-  CreateInvalidationCommand,
-} from "@aws-sdk/client-cloudfront";
+  // 서비스 특화 캐시 정책
+  cachePolicies: {
+    // 러시아워 대응 - 트래픽 급증 시 캐시 확장
+    rushHour: {
+      timeSlots: ["11:30-13:30", "18:00-20:30"],
+      ttlMultiplier: 2.0, // TTL 2배 연장
+      maxCacheSize: "500GB",
+    },
 
-interface PreviewEnvironment {
-  prNumber: number;
-  prefix: string;
-  lastModified: Date;
-  objectCount: number;
-}
+    // 이벤트 대응 - 예측 기반 캐시 워밍
+    eventMode: {
+      triggers: ["신규서비스_오픈", "프로모션_런칭"],
+      preWarmPaths: [
+        "/api/items/near/*",
+        "/api/products/popular/*",
+        "/static/images/brands/*",
+      ],
+    },
+  },
+};
+```
 
-interface CleanupConfig {
-  previewBucket: string;
-  distributionId: string;
-  maxAgeDays: number;
-  region: string;
-}
+### 3.3 Webpack/Vite 빌드 해시 설정
 
-async function listPreviewEnvironments(
-  s3: S3Client,
-  bucket: string,
-): Promise<PreviewEnvironment[]> {
-  const environments = new Map<number, PreviewEnvironment>();
+#### Webpack 설정
 
-  let continuationToken: string | undefined;
-  do {
-    const response = await s3.send(new ListObjectsV2Command({
-      Bucket: bucket,
-      Prefix: "pr-",
-      Delimiter: "/",
-      ContinuationToken: continuationToken,
-    }));
+```javascript
+// webpack.config.js
+module.exports = {
+  output: {
+    filename: "[name].[contenthash].js",
+    chunkFilename: "[name].[contenthash].js",
+    assetModuleFilename: "assets/[name].[contenthash][ext]",
+  },
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: "vendors",
+          chunks: "all",
+        },
+      },
+    },
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: "src/index.html",
+      filename: "index.html",
+      inject: true,
+    }),
+  ],
+};
+```
 
-    for (const prefix of response.CommonPrefixes ?? []) {
-      const match = prefix.Prefix?.match(/^pr-(\d+)\/$/);
-      if (!match) continue;
+#### Vite 설정
 
-      const prNumber = parseInt(match[1], 10);
-      const objects = await s3.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix.Prefix,
-        MaxKeys: 1,
-      }));
+```javascript
+// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `[name].[hash].js`,
+        chunkFileNames: `[name].[hash].js`,
+        assetFileNames: `assets/[name].[hash].[ext]`,
+      },
+    },
+  },
+});
+```
 
-      const lastModified = objects.Contents?.[0]?.LastModified ?? new Date(0);
-      environments.set(prNumber, {
-        prNumber,
-        prefix: prefix.Prefix!,
-        lastModified,
-        objectCount: objects.KeyCount ?? 0,
-      });
-    }
+### 3.4 코드 스플리팅 정책
 
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
+**코드 스플리팅**은 애플리케이션의 코드를 여러 개의 작은 번들 파일로 나누는 기술입니다. 이를 해싱과 결합하면 효율을 극대화할 수 있습니다.
 
-  return [...environments.values()];
-}
+- **변경 최소화**: 하나의 큰 `bundle.js` 파일에 모든 코드가 포함되어 있다면, 작은 수정이라도 파일 전체의 해시 값을 변경시켜 브라우저가 전체 번들을 다시 다운로드해야 합니다.
+- **부분적 변경**: 코드 스플리팅을 사용하면 자주 변경되는 코드(예: 기능별 모듈)와 자주 변경되지 않는 코드(예: 라이브러리)를 별도의 번들로 분리할 수 있습니다. 이렇게 하면 특정 모듈의 코드만 변경될 때, 해당 번들의 해시 값만 바뀌고 나머지 번들은 그대로 유지됩니다.
 
-async function cleanupStaleEnvironments(config: CleanupConfig): Promise<void> {
-  const s3 = new S3Client({ region: config.region });
-  const cf = new CloudFrontClient({ region: config.region });
-  const cutoff = new Date(Date.now() - config.maxAgeDays * 86400_000);
+### 3.5 멀티 오리진 캐시 오염 주의
 
-  const environments = await listPreviewEnvironments(s3, config.previewBucket);
-  const stale = environments.filter((env) => env.lastModified < cutoff);
+1. **CloudFront Function 사용 시 주의사항**:
+   - URI rewrite가 캐시 키에 미치는 영향 사전 검토
+   - 다중 오리진 환경에서는 Lambda@Edge 우선 고려
+   - 배포 시 캐시 키 충돌 가능성 검증
 
-  console.log(`발견: ${environments.length}개 preview, 만료: ${stale.length}개`);
+2. **테스트 시나리오**:
 
-  for (const env of stale) {
-    // S3 오브젝트 삭제
-    let continuationToken: string | undefined;
-    do {
-      const list = await s3.send(new ListObjectsV2Command({
-        Bucket: config.previewBucket,
-        Prefix: env.prefix,
-        ContinuationToken: continuationToken,
-      }));
+```bash
+# 캐시 오염 테스트 스크립트
+#!/bin/bash
 
-      if (list.Contents?.length) {
-        await s3.send(new DeleteObjectsCommand({
-          Bucket: config.previewBucket,
-          Delete: {
-            Objects: list.Contents.map((obj) => ({ Key: obj.Key })),
-          },
-        }));
+# 첫 번째 경로 요청 (특정 오리진)
+curl -H "X-Test-Origin: A" "https://example.com/A/test"
+
+# 두 번째 경로 요청 (다른 오리진이어야 함)
+curl -H "X-Test-Origin: B" "https://example.com/B/test"
+
+# 응답 헤더에서 실제 오리진 확인
+curl -I "https://example.com/B/test" | grep -E "(X-Cache|X-Amz-Cf-)"
+```
+
+---
+
+## 4. 모니터링 및 성능 최적화
+
+### 4.1 프론트엔드 성능 지표 (KPI)
+
+**프론트엔드 월간 회의**에서 다음과 같은 지표들을 정기적으로 모니터링할 수 있도록 합니다.
+
+| 지표 | 목표값 | 측정 방법 | 개선 액션 |
+|------|--------|----------|-----------|
+| **캐시 히트율** | 95% 이상 | CloudWatch | 캐시 키 최적화 |
+| **4xx/5xx 에러율** | 1% 미만 | CloudWatch | 전반적인 CF 설정에 대한 점검 |
+| **Time to First Byte** | 200ms 미만 | RUM/Synthetic | 캐시 정책 최적화 및 개정 |
+
+### 4.2 CloudWatch 대시보드 설정
+
+```json
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/CloudFront", "CacheHitRate", "DistributionId", "E1234567890"],
+          [".", "OriginLatency", ".", "."],
+          [".", "Requests", ".", "."]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "CloudFront 성능 지표"
       }
-      continuationToken = list.NextContinuationToken;
-    } while (continuationToken);
-
-    // CloudFront 무효화
-    await cf.send(new CreateInvalidationCommand({
-      DistributionId: config.distributionId,
-      InvalidationBatch: {
-        CallerReference: `cleanup-pr-${env.prNumber}-${Date.now()}`,
-        Paths: {
-          Quantity: 1,
-          Items: [`/pr-${env.prNumber}/*`],
-        },
-      },
-    }));
-
-    console.log(`정리 완료: PR #${env.prNumber} (${env.objectCount} objects)`);
-  }
-}
-
-// 실행
-cleanupStaleEnvironments({
-  previewBucket: process.env.PREVIEW_BUCKET!,
-  distributionId: process.env.CF_DISTRIBUTION_ID!,
-  maxAgeDays: 7,
-  region: "ap-northeast-2",
-});
-```
-
----
-
-## 4. 환경별 캐시 키 네임스페이스 분리 패턴
-
-### 4.1 캐시 키 구조
-
-각 환경의 캐시가 절대 충돌하지 않도록 네임스페이스를 분리한다.
-
-```
-캐시 키 = Distribution ID + Behavior Path + Cache Policy Headers + URI
-
-예시:
-  Production:  DIST123 + /* + /assets/main.a1b2c3.js
-  Beta 1:      DIST123 + /beta-1/* + X-Beta-Environment:beta-1 + /assets/main.d4e5f6.js
-  PR #42:      DIST123 + /pr-42/* + /assets/main.g7h8i9.js
-```
-
-### 4.2 CloudFront Function: 캐시 키 네임스페이스 주입
-
-```typescript
-// infra/lib/functions/cache-namespace.ts
-// CloudFront Function (JS 2.0) -- 빌드 시 인라인됨
-
-export const cacheNamespaceFunction = `
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-  var headers = request.headers;
-
-  // 환경 식별
-  var envMatch = uri.match(/^\\/(beta-[a-z0-9-]+|pr-[0-9]+)\\//);
-  var envName = envMatch ? envMatch[1] : 'production';
-
-  // 캐시 키 네임스페이스 헤더
-  headers['x-cache-namespace'] = { value: envName };
-
-  // 버전 태그 (배포 시점 식별)
-  var versionMatch = uri.match(/\\.([a-f0-9]{8,16})\\.(js|css|woff2?|png|jpg|webp|avif|svg)$/);
-  if (versionMatch) {
-    headers['x-asset-version'] = { value: versionMatch[1] };
-  }
-
-  // 환경 접두사 제거 후 오리진 전달
-  if (envMatch) {
-    request.uri = uri.substring(envMatch[0].length - 1);
-  }
-
-  // SPA fallback
-  if (!request.uri.includes('.')) {
-    request.uri = '/index.html';
-  }
-
-  return request;
-}`;
-```
-
-### 4.3 환경별 Cache-Control 헤더 전략
-
-```typescript
-// scripts/generate-cache-headers.ts
-interface EnvironmentCacheConfig {
-  env: "production" | "beta" | "preview";
-  pathPattern: string;
-  cacheControl: string;
-  cdnTtl: number;
-  browserTtl: number;
-  staleWhileRevalidate: number;
-}
-
-const CACHE_CONFIGS: EnvironmentCacheConfig[] = [
-  // Production: 해시된 에셋은 불변
-  {
-    env: "production",
-    pathPattern: "/assets/*.[hash].*",
-    cacheControl: "public, max-age=31536000, immutable",
-    cdnTtl: 31536000,
-    browserTtl: 31536000,
-    staleWhileRevalidate: 0,
-  },
-  {
-    env: "production",
-    pathPattern: "/index.html",
-    cacheControl: "public, max-age=0, s-maxage=60, stale-while-revalidate=30",
-    cdnTtl: 60,
-    browserTtl: 0,
-    staleWhileRevalidate: 30,
-  },
-  // Beta: 적극적 캐싱이되 빠른 무효화 가능
-  {
-    env: "beta",
-    pathPattern: "/beta-*/assets/*.[hash].*",
-    cacheControl: "public, max-age=86400, immutable",
-    cdnTtl: 86400,
-    browserTtl: 86400,
-    staleWhileRevalidate: 0,
-  },
-  {
-    env: "beta",
-    pathPattern: "/beta-*/index.html",
-    cacheControl: "public, max-age=0, s-maxage=300, stale-while-revalidate=60",
-    cdnTtl: 300,
-    browserTtl: 0,
-    staleWhileRevalidate: 60,
-  },
-  // Preview: 최소 캐싱 (빠른 피드백 루프 우선)
-  {
-    env: "preview",
-    pathPattern: "/pr-*/assets/*",
-    cacheControl: "public, max-age=300, stale-while-revalidate=60",
-    cdnTtl: 300,
-    browserTtl: 300,
-    staleWhileRevalidate: 60,
-  },
-  {
-    env: "preview",
-    pathPattern: "/pr-*/index.html",
-    cacheControl: "no-cache, s-maxage=60",
-    cdnTtl: 60,
-    browserTtl: 0,
-    staleWhileRevalidate: 0,
-  },
-];
-
-function getCacheConfigForPath(
-  path: string,
-  env: EnvironmentCacheConfig["env"],
-): EnvironmentCacheConfig | undefined {
-  return CACHE_CONFIGS.find(
-    (config) => config.env === env && matchPattern(path, config.pathPattern),
-  );
-}
-
-function matchPattern(path: string, pattern: string): boolean {
-  const regex = new RegExp(
-    "^" + pattern
-      .replace(/\./g, "\\.")
-      .replace(/\[hash\]/g, "[a-f0-9]{6,16}")
-      .replace(/\*/g, ".*") + "$",
-  );
-  return regex.test(path);
-}
-
-export { CACHE_CONFIGS, getCacheConfigForPath };
-export type { EnvironmentCacheConfig };
-```
-
----
-
-## 5. AI 프롬프트 5선
-
-### 프롬프트 1: 캐시 적중률 분석
-
-> ```
-> 다음은 멀티 베타 환경의 CloudFront 액세스 로그에서 추출한 캐시 적중률 분석 결과이다.
-> 환경별(production, beta-1, beta-2, pr-123)로 분리하여:
-> (1) 적중률이 낮은 경로 패턴의 원인을 추정하고,
-> (2) 환경 간 캐시 오염(cross-env cache pollution)이 발생했는지 확인하고,
-> (3) 각 환경에 적합한 최적 TTL을 권장해줘.
->
-> --- 분석 결과 ---
-> {여기에 환경별 캐시 적중률 데이터 붙여넣기}
->
-> --- 현재 캐시 정책 ---
-> {여기에 환경별 Cache-Control 헤더 붙여넣기}
-> ```
-
-### 프롬프트 2: TTL 최적화
-
-> ```
-> 아래 멀티 베타 환경의 경로별 트래픽 패턴과 콘텐츠 변경 주기를 분석하여,
-> AWS CDK(TypeScript)로 환경별 CloudFront CachePolicy를 정의하는 코드를 생성해줘.
-> 각 정책에 대해 TTL 결정 근거를 주석으로 설명해줘.
->
-> --- 환경 구성 ---
-> - Production: 일 50만 요청, 주 1회 배포
-> - Beta 1~3: 일 5만 요청, 일 3~5회 배포
-> - PR Preview: 일 500 요청, 커밋마다 배포
->
-> --- 경로별 트래픽 ---
-> {여기에 경로별 트래픽 데이터 붙여넣기}
-> ```
-
-### 프롬프트 3: 무효화 영향 분석
-
-> ```
-> CloudFront 캐시 무효화를 실행하려고 한다.
-> 다음 무효화 패턴에 대해:
-> (1) 영향받는 환경(production/beta/preview)을 식별하고,
-> (2) 예상되는 오리진 부하 증가량을 추정하고,
-> (3) 무효화 비용(요청 수 기준)을 계산하고,
-> (4) 단계적 무효화 전략을 제안해줘.
->
-> --- 무효화 대상 ---
-> /beta-1/assets/*
-> /pr-*/index.html
->
-> --- 현재 트래픽 ---
-> {여기에 분당 요청 수 데이터 붙여넣기}
-> ```
-
-### 프롬프트 4: 캐시 정책 설계
-
-> ```
-> 새로운 베타 환경(beta-4)을 추가하려고 한다.
-> 기존 멀티 베타 인프라 구성을 참고하여:
-> (1) CDK로 새 S3 버킷 + CloudFront Behavior를 추가하는 코드를 생성하고,
-> (2) 캐시 키 네임스페이스가 기존 환경과 충돌하지 않는지 검증하고,
-> (3) Origin Shield 설정 포함 여부를 비용 대비 판단하고,
-> (4) GitHub Actions 배포 워크플로우도 함께 생성해줘.
->
-> --- 기존 인프라 ---
-> {여기에 CDK 스택 코드 또는 CloudFormation 출력 붙여넣기}
-> ```
-
-### 프롬프트 5: 비용 분석
-
-> ```
-> 멀티 베타 환경의 CloudFront 비용을 분석해줘.
-> (1) 환경별(production, beta-1~3, preview) 요청 수와 데이터 전송량을 분리하고,
-> (2) Preview 환경의 수명 주기별 비용 패턴을 분석하고,
-> (3) 비용 절감을 위한 캐시 정책 최적화 방안을 제시하고,
-> (4) 월간 예상 비용을 환경별로 산출해줘.
->
-> --- CloudFront 사용량 ---
-> {여기에 AWS Cost Explorer 또는 CloudFront 보고서 데이터 붙여넣기}
->
-> --- 현재 환경 수 ---
-> Beta: 3개 (상시), Preview: 평균 12개 (동시)
-> ```
-
----
-
-## 6. CloudFront Functions: 멀티 베타 라우팅
-
-### 6.1 A/B 테스트 라우팅
-
-```typescript
-// infra/lib/functions/ab-routing.ts
-export const abRoutingFunction = `
-function handler(event) {
-  var request = event.request;
-  var headers = request.headers;
-  var cookies = request.cookies;
-
-  // 기존 A/B 쿠키 확인
-  var abGroup = cookies['x-ab-group'] ? cookies['x-ab-group'].value : null;
-
-  if (!abGroup) {
-    // 새 방문자: 가중치 기반 배정
-    var rand = Math.random();
-    if (rand < 0.8) {
-      abGroup = 'production';
-    } else if (rand < 0.9) {
-      abGroup = 'beta-1';
-    } else {
-      abGroup = 'beta-2';
     }
-  }
-
-  // 캐시 키에 A/B 그룹 포함
-  headers['x-ab-group'] = { value: abGroup };
-
-  // Beta 환경으로 라우팅
-  if (abGroup.startsWith('beta-')) {
-    request.uri = '/' + abGroup + request.uri;
-  }
-
-  return request;
-}`;
+  ]
+}
 ```
 
-### 6.2 응답 헤더 함수
+### 4.3 알림 설정
 
-```typescript
-// infra/lib/functions/response-headers.ts
-export const responseHeadersFunction = `
-function handler(event) {
-  var response = event.response;
-  var headers = response.headers;
-
-  // 보안 헤더
-  headers['strict-transport-security'] = { value: 'max-age=63072000; includeSubDomains; preload' };
-  headers['x-content-type-options'] = { value: 'nosniff' };
-  headers['x-frame-options'] = { value: 'DENY' };
-  headers['referrer-policy'] = { value: 'strict-origin-when-cross-origin' };
-  headers['permissions-policy'] = { value: 'camera=(), microphone=(), geolocation=()' };
-
-  // 환경 식별 헤더 (디버깅용)
-  var cacheStatus = response.headers['x-cache'] ? response.headers['x-cache'].value : 'unknown';
-  headers['x-served-by'] = { value: 'cloudfront-multi-beta' };
-  headers['x-cache-status'] = { value: cacheStatus };
-
-  return response;
-}`;
+```yaml
+# CloudWatch 알람 설정 (Terraform)
+resource "aws_cloudwatch_metric_alarm" "cache_hit_rate_low" {
+  alarm_name          = "cloudfront-cache-hit-rate-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CacheHitRate"
+  namespace           = "AWS/CloudFront"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "90"
+  alarm_description   = "캐시 히트율이 90% 미만입니다"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  
+  dimensions = {
+    DistributionId = aws_cloudfront_distribution.main.id
+  }
+}
 ```
 
----
+### 4.4 CloudFront 응답 헤더 분석
 
-## 7. Origin Shield + 멀티 베타 최적화
+```bash
+#!/bin/bash
+# CloudFront 헤더 분석 스크립트
 
-### 7.1 멀티 베타 환경에서 Origin Shield 전략
+URL="$1"
+echo "🔍 CloudFront 응답 분석: $URL"
+echo
 
-```typescript
-// infra/lib/origin-shield-config.ts
-import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+# 헤더 정보 수집
+HEADERS=$(curl -s -I "$URL")
 
-interface OriginShieldDecision {
-  environment: string;
-  enableShield: boolean;
-  region: string;
-  reason: string;
-}
+echo "📊 캐시 관련 헤더:"
+echo "$HEADERS" | grep -E "(X-Cache|X-Amz-Cf-|Cache-Control|ETag|Last-Modified|Expires)"
 
-function decideOriginShield(
-  envType: "production" | "beta" | "preview",
-  dailyRequests: number,
-  originRegion: string,
-): OriginShieldDecision {
-  // Origin Shield 비용: 요청당 $0.0075/10,000건
-  // 오리진 보호 이점 vs 추가 비용 판단
-  const shieldRegionMap: Record<string, string> = {
-    "ap-northeast-2": "ap-northeast-2", // 서울 -> 서울
-    "us-east-1": "us-east-1",
-    "eu-west-1": "eu-west-1",
-  };
+echo
+echo "🌍 엣지 로케이션:"
+echo "$HEADERS" | grep "X-Amz-Cf-Pop"
 
-  if (envType === "preview") {
-    return {
-      environment: envType,
-      enableShield: false,
-      region: originRegion,
-      reason: "Preview 환경은 트래픽이 적어 Origin Shield 비용 대비 이점 없음",
-    };
-  }
-
-  if (envType === "beta" && dailyRequests < 10000) {
-    return {
-      environment: envType,
-      enableShield: false,
-      region: originRegion,
-      reason: "일 1만 미만 트래픽의 베타 환경은 Shield 불필요",
-    };
-  }
-
-  return {
-    environment: envType,
-    enableShield: true,
-    region: shieldRegionMap[originRegion] ?? originRegion,
-    reason: "높은 트래픽으로 오리진 부하 분산 필요",
-  };
-}
-
-export { decideOriginShield };
-export type { OriginShieldDecision };
+echo
+echo "🔄 캐시 상태:"
+CACHE_STATUS=$(echo "$HEADERS" | grep "X-Cache" | cut -d' ' -f2-)
+case "$CACHE_STATUS" in
+  *"Hit"*) echo "✅ 캐시 히트 - 최적 상태" ;;
+  *"Miss"*) echo "⚠️ 캐시 미스 - 첫 요청이거나 TTL 만료" ;;
+  *"RefreshHit"*) echo "🔄 리프레시 히트 - 재검증 후 캐시 사용" ;;
+  *"Error"*) echo "❌ 오류 - 원본 서버 문제 확인 필요" ;;
+esac
 ```
 
 ---
 
-## 8. 실시간 로그 분석 파이프라인
+## 5. 체크리스트
 
-### 8.1 멀티 베타 환경별 로그 수집 및 분석
+### 빌드 설정
+- [ ] 정적 자산에 contenthash 적용됨
+- [ ] index.html은 해시 없는 고정 파일명 사용
+- [ ] 청크 분할 설정 (vendor, runtime 분리)
+- [ ] Tree shaking 활성화
 
-```typescript
-// scripts/multi-beta-log-analysis.ts
-import { readFileSync } from "node:fs";
+### CloudFront 설정
+- [ ] 정적 자산용 Long-term 캐시 정책 적용
+- [ ] HTML용 No-cache 정책 적용
+- [ ] 보안 헤더 정책 적용
+- [ ] 응답 헤더 정책 적용 (max-age, no-cache 등)
 
-interface AccessLogEntry {
-  timestamp: string;
-  edgeLocation: string;
-  statusCode: number;
-  uri: string;
-  cacheResult: "Hit" | "Miss" | "RefreshHit" | "Error" | "LimitExceeded";
-  timeTaken: number;
-  queryString: string;
-  contentType: string;
-  bytesOut: number;
-}
+### 모니터링 설정
+- [ ] CloudWatch 대시보드 확인
+- [ ] 캐시 히트율 알람 설정
+- [ ] 오류율 알람 설정
+- [ ] 비용 알림 설정
 
-interface EnvironmentMetrics {
-  environment: string;
-  totalRequests: number;
-  hitRatio: number;
-  avgLatency: number;
-  p99Latency: number;
-  totalBytesOut: number;
-  topMissedPaths: Array<{ path: string; missCount: number }>;
-}
+### 배포 전 점검
+- [ ] 빌드 결과물에 해시가 포함된 파일명 확인
+- [ ] 스테이징 환경에서 캐시 동작 테스트
+- [ ] 크로스 브라우저 테스트 완료
+- [ ] 성능 지표 측정 (Lighthouse 등)
+- [ ] 보안 스캔 실행
 
-function parseAccessLog(logContent: string): AccessLogEntry[] {
-  return logContent
-    .split("\n")
-    .filter((line) => line && !line.startsWith("#"))
-    .map((line) => {
-      const fields = line.split("\t");
-      return {
-        timestamp: fields[0],
-        edgeLocation: fields[2],
-        statusCode: parseInt(fields[7], 10),
-        uri: fields[6],
-        cacheResult: fields[12] as AccessLogEntry["cacheResult"],
-        timeTaken: parseFloat(fields[17]),
-        queryString: fields[10],
-        contentType: fields[28] ?? "unknown",
-        bytesOut: parseInt(fields[3], 10),
-      };
-    });
-}
-
-function identifyEnvironment(uri: string): string {
-  const match = uri.match(/^\/(beta-[a-z0-9-]+|pr-[0-9]+)\//);
-  return match ? match[1] : "production";
-}
-
-function analyzeByEnvironment(entries: AccessLogEntry[]): EnvironmentMetrics[] {
-  const envMap = new Map<string, AccessLogEntry[]>();
-
-  for (const entry of entries) {
-    const env = identifyEnvironment(entry.uri);
-    const list = envMap.get(env) ?? [];
-    list.push(entry);
-    envMap.set(env, list);
-  }
-
-  return [...envMap.entries()].map(([env, envEntries]) => {
-    const hits = envEntries.filter(
-      (e) => e.cacheResult === "Hit" || e.cacheResult === "RefreshHit",
-    ).length;
-
-    const latencies = envEntries.map((e) => e.timeTaken).sort((a, b) => a - b);
-    const p99Index = Math.floor(latencies.length * 0.99);
-
-    const missedPaths = new Map<string, number>();
-    for (const entry of envEntries.filter((e) => e.cacheResult === "Miss")) {
-      const normalized = normalizePath(entry.uri);
-      missedPaths.set(normalized, (missedPaths.get(normalized) ?? 0) + 1);
-    }
-
-    return {
-      environment: env,
-      totalRequests: envEntries.length,
-      hitRatio: hits / envEntries.length,
-      avgLatency: latencies.reduce((a, b) => a + b, 0) / latencies.length,
-      p99Latency: latencies[p99Index] ?? 0,
-      totalBytesOut: envEntries.reduce((sum, e) => sum + e.bytesOut, 0),
-      topMissedPaths: [...missedPaths.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([path, missCount]) => ({ path, missCount })),
-    };
-  });
-}
-
-function normalizePath(uri: string): string {
-  return uri
-    .replace(/\.[a-f0-9]{6,16}\.(js|css|woff2?|png|jpg|svg)$/i, ".[hash].$1")
-    .replace(/\/pr-\d+\//, "/pr-*/");
-}
-
-function generateEnvComparisonPrompt(metrics: EnvironmentMetrics[]): string {
-  const summary = metrics
-    .map((m) =>
-      `[${m.environment}] 요청: ${m.totalRequests}, 적중률: ${(m.hitRatio * 100).toFixed(1)}%, ` +
-      `평균 지연: ${m.avgLatency.toFixed(1)}ms, P99: ${m.p99Latency.toFixed(1)}ms`,
-    )
-    .join("\n");
-
-  return `멀티 베타 환경별 CloudFront 성능을 비교 분석해줘.
-환경 간 캐시 적중률 차이의 원인을 추정하고, 개선 방안을 제시해줘.
-
---- 환경별 메트릭 ---
-${summary}`;
-}
-
-// 실행
-const logContent = readFileSync("cloudfront-logs/combined.log", "utf-8");
-const entries = parseAccessLog(logContent);
-const metrics = analyzeByEnvironment(entries);
-console.log(generateEnvComparisonPrompt(metrics));
-
-export { parseAccessLog, analyzeByEnvironment, generateEnvComparisonPrompt };
-export type { AccessLogEntry, EnvironmentMetrics };
-```
+### 배포 후 검증
+- [ ] index.html이 캐시되지 않음 확인 (`X-Cache: Miss` 또는 `RefreshHit`)
+- [ ] 정적 자산이 캐시됨 확인 (`X-Cache: Hit`)
+- [ ] 신규 자산이 정상 로드됨 확인
+- [ ] 404 에러 없음 확인
+- [ ] 캐시 히트율 90% 이상 확인 (배포 1시간 후)
+- [ ] 사용자 리포트된 이슈 없음 확인
 
 ---
-
-## 9. 체크리스트
-
-### 인프라 구성
-
-- [ ] CDK 스택에 멀티 베타 S3 버킷 + CloudFront Behavior 정의
-- [ ] Preview 전용 S3 버킷 생성 (접두사 기반 분리)
-- [ ] CloudFront Function으로 환경 라우팅 + 캐시 키 네임스페이스 주입
-- [ ] 환경별 CachePolicy 분리 (Production / Beta / Preview)
-- [ ] Origin Shield 환경별 활성화 여부 결정
-
-### CI/CD
-
-- [ ] PR Open 시 Preview 환경 자동 배포 워크플로우
-- [ ] PR Close 시 Preview 환경 자동 정리 워크플로우
-- [ ] 스케줄 기반 만료 Preview 정리 스크립트 (cron)
-- [ ] Preview URL을 PR 코멘트에 자동 게시
-
-### 캐시 전략
-
-- [ ] 해시 기반 에셋 파일명 적용 (Vite content hash)
-- [ ] 환경별 Cache-Control 헤더 정책 문서화
-- [ ] 캐시 키 충돌 테스트 (환경 간 오염 방지 검증)
-- [ ] 무효화 비용 모니터링 알림 설정
-
-### AI 활용
-
-- [ ] 캐시 적중률 분석 프롬프트 팀 공유
-- [ ] TTL 최적화 주기적 검토 (분기 1회)
-- [ ] 환경별 비용 분석 대시보드 구축
-
----
-
-## 10. 참고 자료
-
-- [AWS CDK CloudFront Module](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront-readme.html)
-- [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html)
-- [CloudFront Cache Policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-the-cache-key.html)
-- [Origin Shield](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html)
-- [S3 Origin Access Control](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
