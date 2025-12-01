@@ -1,491 +1,1075 @@
-# CloudFront 캐시 사용 표준
+# CloudFront 캐시 사용 표준 (2026) -- AI 중심
 
 ## 목차
-1. [개요](#1-개요)
-2. [캐시 전략 기본 원칙](#2-캐시-전략-기본-원칙)
-3. [프론트엔드 개발자를 위한 캐시 정책](#3-프론트엔드-개발자를-위한-캐시-정책)
-4. [모니터링 및 성능 최적화](#4-모니터링-및-성능-최적화)
-5. [체크리스트](#5-체크리스트)
+
+1. [AI 기반 캐시 적중률 분석 및 TTL 최적화](#1-ai-기반-캐시-적중률-분석-및-ttl-최적화)
+2. [AI 기반 캐시 무효화 영향 범위 분석](#2-ai-기반-캐시-무효화-영향-범위-분석)
+3. [Multi-CDN 캐시 전략](#3-multi-cdn-캐시-전략)
+4. [캐시 키 설계 패턴](#4-캐시-키-설계-패턴)
+5. [CloudFront Functions vs Lambda@Edge 비교](#5-cloudfront-functions-vs-lambdaedge-비교)
+6. [Origin Shield 전략](#6-origin-shield-전략)
+7. [HTTP/3 & Security Headers](#7-http3--security-headers)
+8. [실시간 로그 분석 파이프라인](#8-실시간-로그-분석-파이프라인)
+9. [체크리스트](#9-체크리스트)
 
 ---
 
-## 1. 개요
+## 1. AI 기반 캐시 적중률 분석 및 TTL 최적화
 
-### 1.1 문서 목적
+CloudFront 액세스 로그를 AI에 전달하여 캐시 적중률(Cache Hit Ratio) 저하 원인을 자동으로 진단하고, 경로별 최적 TTL을 도출한다.
 
-배포 시스템의 설정으로 대부분의 내용들이 자동으로 설정 되어있습니다만, 현재 배포시 Invalidate을 강제 하고 있는 배포 시스템의 환경에서는 대응하기 어려운 것이 현실입니다.
+### 1.1 캐시 적중률 데이터 수집
 
-이 문서는 프론트엔드 개발자들이 **배포 시스템과 AWS CloudFront를 연동**하여 최적의 사용자 경험을 제공하기 위한 표준 가이드라인입니다.
+```typescript
+// scripts/cache-hit-analysis.ts
+import { readFileSync } from "node:fs";
 
-### 1.2 CloudFront 캐시 계층 도면
+interface AccessLogEntry {
+  timestamp: string;
+  edgeLocation: string;
+  statusCode: number;
+  uri: string;
+  cacheResult: "Hit" | "Miss" | "RefreshHit" | "Error" | "LimitExceeded";
+  timeTaken: number;
+  queryString: string;
+  contentType: string;
+  bytesOut: number;
+}
 
-```
-[사용자] → [Edge Location (PoP)] → [Regional Edge Cache] → [Origin Shield] → [S3/Origin]
-           ↓
-        L1 Cache           →           L2 Cache          →     L3 Cache    →   Origin
-```
+interface CacheAnalysis {
+  totalRequests: number;
+  hitRatio: number;
+  byPath: Record<string, { hits: number; misses: number; ratio: number }>;
+  byContentType: Record<string, { hits: number; misses: number; ratio: number }>;
+  topMissedPaths: Array<{ path: string; missCount: number; ratio: number }>;
+}
 
-### 1.3 핵심 용어 정의
+function parseAccessLog(logContent: string): AccessLogEntry[] {
+  return logContent
+    .split("\n")
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => {
+      const fields = line.split("\t");
+      return {
+        timestamp: fields[0],
+        edgeLocation: fields[2],
+        statusCode: parseInt(fields[7], 10),
+        uri: fields[6],
+        cacheResult: fields[12] as AccessLogEntry["cacheResult"],
+        timeTaken: parseFloat(fields[17]),
+        queryString: fields[10],
+        contentType: fields[28] ?? "unknown",
+        bytesOut: parseInt(fields[3], 10),
+      };
+    });
+}
 
-| 용어 | 설명 |
-|------|------|
-| **캐시 키** | 동일한 콘텐츠인지 판단하는 고유 식별자 |
-| **TTL (Time-to-Live)** | 캐시된 객체의 유효 기간 |
-| **Origin Shield** | 원본 서버 보호를 위한 중앙 집중식 캐시 계층, 원본 서버에 접근하는것을 최소화 하기위한 마지막 계층 |
-| **PoP (Point of Presence)** | 엣지 로케이션을 의미합니다. 일반적으로 사용자에게 지리적으로 가장 가까운 CDN으로 라우팅 됩니다 |
+function analyzeCachePerformance(entries: AccessLogEntry[]): CacheAnalysis {
+  const total = entries.length;
+  const hits = entries.filter((e) => e.cacheResult === "Hit" || e.cacheResult === "RefreshHit").length;
 
----
-
-## 2. 캐시 전략 기본 원칙
-
-### 2.1 불변성 원칙 (Immutability Principle)
-
-**핵심 개념**: 파일 내용이 변경되면 파일명도 변경되어야 합니다. 이를 통해 영구 캐싱과 즉시 업데이트를 동시에 달성할 수 있습니다.
-
-```javascript
-// ✅ 올바른 방식: 해시 기반 파일명
-main.a1b2c3d4.js;
-styles.e5f6g7h8.css;
-logo.i9j0k1l2.png;
-
-// ❌ 잘못된 방식: 고정 파일명
-main.js;
-styles.css;
-logo.png;
-
-// 예외: index.html 캐시TTL이 0이기 때문
-```
-
-### 2.2 이중 캐시 전략 (Dual Cache Strategy)
-
-1. **정적 자산**: 장기 캐싱 (1년)
-2. **HTML 엔트리포인트**: 단기 캐싱 또는 무캐싱
-
-이 전략을 통해 새로운 배포 시 사용자가 즉시 최신 버전을 받을 수 있으면서도, 정적 자산은 효율적으로 캐싱됩니다.
-
-### 2.3 최소 특정성 원칙 (Principle of Least Specificity)
-
-캐시 키는 콘텐츠의 정확성을 보장하는 데 **필요한 최소한의 요소**만 포함해야 합니다.
-
-```javascript
-// ✅ 좋은 예: 필수 요소만 포함
-캐시 키: URL 경로(해시값) + Accept-Encoding
-
-// ❌ 나쁜 예: 불필요한 요소 포함
-캐시 키: URL + 모든 헤더 + 쿠키 + User-Agent
-```
-
-### 2.4 캐시 오염 방지 전략
-
-#### 1. 다중 오리진 서비스인 경우 CFF 대신 Lambda@Edge 사용
-
-**기본적으로 다중 오리진 서비스를 지양 해야합니다.**
-
-- CloudFront 함수(CFF)는 요청 URL을 바꾸면, 바뀐 URL을 캐시 키로 사용합니다.
-- 이 때문에 서로 다른 Origin에서 온 콘텐츠가 같은 캐시 키(예: `/index.html`)를 공유하면서 캐시가 오염될 수 있습니다.
-- 결과적으로 사용자는 엉뚱한 페이지를 보게 될 수 있습니다.
-
-**문제 상황 비유 (택배함 예시)**
-
-```
-CloudFront: 아파트 택배 시스템
-Origin 1 (기본 S3): 우리 집 (기본 배송지)
-Origin 2 (다른 S3): 아파트 내 헬스장 (특별 배송지)
-
-1. 첫 번째 방문: 헬스장으로 가는 택배
-   - /A/운동기구 요청 → CFF가 /index.html로 변경
-   - 헬스장에서 index.html 받아옴
-   - 캐시 키: index.html로 저장
-
-2. 두 번째 방문: 우리 집으로 와야 할 택배
-   - /B/내물건 요청 → 404 발생 → /index.html로 리다이렉트
-   - "어? 아까 index.html로 보관해 둔 게 있네?"
-   - 헬스장 콘텐츠가 잘못 제공됨!
-```
-
-**해결 방안**: Lambda@Edge를 사용하여 배송지(Origin) 자체를 동적으로 변경
-
-```javascript
-// Lambda@Edge (Origin Request)
-exports.handler = async (event) => {
-  const request = event.Records[0].cf.request;
-  const uri = request.uri;
-
-  // URI별로 다른 오리진 동적 선택 가능
-  if (uri.startsWith("/A/")) {
-    request.origin = {
-      custom: {
-        domainName: "origin2.example.com",
-        // ... 오리진2 설정
-      },
-    };
-    // 원본 URI 유지하면서 오리진만 변경
+  // 경로별 분석
+  const pathMap = new Map<string, { hits: number; misses: number }>();
+  for (const entry of entries) {
+    const pathKey = normalizePath(entry.uri);
+    const current = pathMap.get(pathKey) ?? { hits: 0, misses: 0 };
+    if (entry.cacheResult === "Hit" || entry.cacheResult === "RefreshHit") {
+      current.hits++;
+    } else {
+      current.misses++;
+    }
+    pathMap.set(pathKey, current);
   }
 
-  return request;
-};
-```
-
-#### 2. Custom Error Page 대신 Origin Request 처리
-
-**기존 방식 (문제 있는 설정)**
-
-```yaml
-custom_error_response {
-  error_code         = 403
-  response_code      = 200
-  response_page_path = "/index.html"  # ⚠️ 모든 403이 동일한 캐시 키
-}
-custom_error_response {
-  error_code         = 404
-  response_code      = 200
-  response_page_path = "/index.html"  # ⚠️ 모든 404가 동일한 캐시 키
-}
-```
-
-**핵심 문제**: 모든 SPA 라우팅 요청이 `/index.html` 캐시 키를 공유하여 다중 오리진 환경에서 캐시 오염 발생
-
-**안전한 패턴**
-
-```javascript
-// CloudFront Function (Viewer Request)
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-
-  // 캐시 키 보존을 위해 쿼리 파라미터로 원본 경로 유지
-  if (!uri.includes(".") && uri !== "/") {
-    request.querystring = {
-      "original-path": { value: encodeURIComponent(uri) },
+  const byPath: CacheAnalysis["byPath"] = {};
+  for (const [path, stats] of pathMap) {
+    byPath[path] = {
+      ...stats,
+      ratio: stats.hits / (stats.hits + stats.misses),
     };
+  }
+
+  // Content-Type별 분석
+  const typeMap = new Map<string, { hits: number; misses: number }>();
+  for (const entry of entries) {
+    const current = typeMap.get(entry.contentType) ?? { hits: 0, misses: 0 };
+    if (entry.cacheResult === "Hit" || entry.cacheResult === "RefreshHit") {
+      current.hits++;
+    } else {
+      current.misses++;
+    }
+    typeMap.set(entry.contentType, current);
+  }
+
+  const byContentType: CacheAnalysis["byContentType"] = {};
+  for (const [type, stats] of typeMap) {
+    byContentType[type] = {
+      ...stats,
+      ratio: stats.hits / (stats.hits + stats.misses),
+    };
+  }
+
+  // Miss가 많은 경로 Top 20
+  const topMissedPaths = Object.entries(byPath)
+    .filter(([, stats]) => stats.misses > 10)
+    .sort((a, b) => b[1].misses - a[1].misses)
+    .slice(0, 20)
+    .map(([path, stats]) => ({ path, missCount: stats.misses, ratio: stats.ratio }));
+
+  return {
+    totalRequests: total,
+    hitRatio: hits / total,
+    byPath,
+    byContentType,
+    topMissedPaths,
+  };
+}
+
+function normalizePath(uri: string): string {
+  // 해시 기반 파일명 정규화: /assets/main.a1b2c3.js -> /assets/main.[hash].js
+  return uri.replace(/\.[a-f0-9]{6,16}\.(js|css|woff2?|png|jpg|svg)$/i, ".[hash].$1");
+}
+
+export { parseAccessLog, analyzeCachePerformance };
+export type { AccessLogEntry, CacheAnalysis };
+```
+
+### 1.2 AI 프롬프트 예시 -- 캐시 적중률 분석
+
+> **프롬프트 1: 캐시 적중률 저하 원인 진단**
+>
+> ```
+> 다음은 CloudFront 액세스 로그에서 추출한 캐시 적중률 분석 결과이다.
+> (1) 적중률이 낮은 경로 패턴의 원인을 추정하고,
+> (2) 각 경로 패턴에 대한 최적 TTL을 권장하고,
+> (3) 캐시 키에서 제거해야 할 불필요한 요소를 제안해줘.
+>
+> --- 분석 결과 ---
+> 전체 적중률: 72.3%
+> 경로별 Miss Top 10:
+> {여기에 topMissedPaths 데이터 붙여넣기}
+>
+> Content-Type별 적중률:
+> {여기에 byContentType 데이터 붙여넣기}
+>
+> 현재 캐시 정책:
+> - /assets/*: max-age=31536000, immutable
+> - /api/*: no-cache
+> - /: max-age=0, s-maxage=60
+> ```
+
+> **프롬프트 2: TTL 최적화 CDK 코드 생성**
+>
+> ```
+> 아래 경로별 트래픽 패턴과 콘텐츠 변경 주기를 분석하여,
+> AWS CDK(TypeScript)로 CloudFront CachePolicy를 정의하는 코드를 생성해줘.
+> 각 정책에 대해 TTL 결정 근거를 주석으로 설명해줘.
+>
+> --- 트래픽 패턴 ---
+> /assets/*: 일 50만 요청, 콘텐츠 해시 기반 파일명, 변경 시 새 해시 생성
+> /api/products: 일 10만 요청, 5분 간격 갱신
+> /api/user/*: 일 8만 요청, 사용자별 개인화
+> /index.html: 일 20만 요청, 배포 시마다 변경
+> /images/*: 일 30만 요청, 거의 변경 없음
+> ```
+
+### 1.3 AI 분석 결과 기반 TTL 자동 적용
+
+```typescript
+// scripts/apply-ttl-optimization.ts
+interface TtlRecommendation {
+  pathPattern: string;
+  currentTtl: number;
+  recommendedTtl: number;
+  reason: string;
+  estimatedHitRatioGain: number;
+}
+
+interface CacheConfig {
+  pathPattern: string;
+  ttl: number;
+  sMaxAge: number;
+  staleWhileRevalidate: number;
+  immutable: boolean;
+}
+
+function generateCacheHeaders(recommendations: TtlRecommendation[]): CacheConfig[] {
+  return recommendations.map((rec) => {
+    const isImmutable = rec.pathPattern.includes("[hash]") || rec.recommendedTtl >= 86400 * 365;
+
+    return {
+      pathPattern: rec.pathPattern,
+      ttl: rec.recommendedTtl,
+      sMaxAge: rec.recommendedTtl,
+      staleWhileRevalidate: Math.min(rec.recommendedTtl, 3600),
+      immutable: isImmutable,
+    };
+  });
+}
+
+function buildCacheControlHeader(config: CacheConfig): string {
+  const directives: string[] = [];
+
+  if (config.ttl === 0) {
+    return "no-cache, no-store, must-revalidate";
+  }
+
+  directives.push(`max-age=${config.ttl}`);
+
+  if (config.sMaxAge !== config.ttl) {
+    directives.push(`s-maxage=${config.sMaxAge}`);
+  }
+
+  if (config.staleWhileRevalidate > 0) {
+    directives.push(`stale-while-revalidate=${config.staleWhileRevalidate}`);
+  }
+
+  if (config.immutable) {
+    directives.push("immutable");
+  } else {
+    directives.push("public");
+  }
+
+  return directives.join(", ");
+}
+
+export { generateCacheHeaders, buildCacheControlHeader };
+export type { TtlRecommendation, CacheConfig };
+```
+
+---
+
+## 2. AI 기반 캐시 무효화 영향 범위 분석
+
+배포 시 캐시 무효화(Invalidation)의 영향 범위를 AI가 분석하여, 과도한 무효화를 방지하고 최소 범위 무효화를 자동 산출한다.
+
+### 2.1 무효화 영향 분석 도구
+
+```typescript
+// scripts/invalidation-analyzer.ts
+import { execSync } from "node:child_process";
+
+interface InvalidationScope {
+  paths: string[];
+  estimatedCostUsd: number;
+  affectedEdgeLocations: number;
+  estimatedOriginLoadIncrease: number;
+  recommendation: "proceed" | "narrow-scope" | "delay";
+}
+
+interface DeployDiff {
+  added: string[];
+  modified: string[];
+  deleted: string[];
+}
+
+function getDeployDiff(fromCommit: string, toCommit: string): DeployDiff {
+  const diffOutput = execSync(
+    `git diff --name-status ${fromCommit}..${toCommit} -- dist/`,
+    { encoding: "utf-8" },
+  );
+
+  const result: DeployDiff = { added: [], modified: [], deleted: [] };
+
+  for (const line of diffOutput.split("\n").filter(Boolean)) {
+    const [status, filePath] = line.split("\t");
+    const cdnPath = "/" + filePath.replace("dist/", "");
+
+    switch (status) {
+      case "A":
+        result.added.push(cdnPath);
+        break;
+      case "M":
+        result.modified.push(cdnPath);
+        break;
+      case "D":
+        result.deleted.push(cdnPath);
+        break;
+    }
+  }
+
+  return result;
+}
+
+function calculateInvalidationScope(
+  diff: DeployDiff,
+  dailyRequestMap: Record<string, number>,
+): InvalidationScope {
+  // 해시 기반 파일은 무효화 불필요 (새 URL 생성)
+  const hashPattern = /\.[a-f0-9]{6,16}\.(js|css|woff2?|png|jpg|svg)$/i;
+  const needsInvalidation = diff.modified
+    .filter((path) => !hashPattern.test(path));
+
+  // 삭제된 파일도 무효화 필요
+  const allPaths = [...needsInvalidation, ...diff.deleted];
+
+  // 와일드카드 최적화: 같은 디렉토리에 3개 이상이면 디렉토리 단위로 묶기
+  const optimizedPaths = optimizeInvalidationPaths(allPaths);
+
+  // CloudFront 무효화 비용: 처음 1,000 경로/월 무료, 이후 경로당 $0.005
+  const estimatedCost = Math.max(0, optimizedPaths.length - 1000) * 0.005;
+
+  // 영향 받는 요청 수 추정
+  const affectedRequests = allPaths.reduce(
+    (sum, path) => sum + (dailyRequestMap[path] ?? 0),
+    0,
+  );
+
+  let recommendation: InvalidationScope["recommendation"] = "proceed";
+  if (optimizedPaths.length > 100) {
+    recommendation = "narrow-scope";
+  } else if (affectedRequests > 1_000_000) {
+    recommendation = "delay"; // 트래픽 적은 시간대로 지연
+  }
+
+  return {
+    paths: optimizedPaths,
+    estimatedCostUsd: estimatedCost,
+    affectedEdgeLocations: 400, // CloudFront 글로벌 PoP 수
+    estimatedOriginLoadIncrease: affectedRequests * 0.3, // Miss 시 오리진 요청 추정
+    recommendation,
+  };
+}
+
+function optimizeInvalidationPaths(paths: string[]): string[] {
+  const dirCount = new Map<string, string[]>();
+
+  for (const path of paths) {
+    const dir = path.substring(0, path.lastIndexOf("/"));
+    const existing = dirCount.get(dir) ?? [];
+    existing.push(path);
+    dirCount.set(dir, existing);
+  }
+
+  const optimized: string[] = [];
+  for (const [dir, files] of dirCount) {
+    if (files.length >= 3) {
+      optimized.push(`${dir}/*`);
+    } else {
+      optimized.push(...files);
+    }
+  }
+
+  return optimized;
+}
+
+function generateInvalidationPrompt(
+  scope: InvalidationScope,
+  diff: DeployDiff,
+): string {
+  return `다음 배포의 캐시 무효화 범위를 검토해줘.
+과도한 무효화가 없는지 확인하고, 최적화 방안을 제시해줘.
+
+--- 배포 변경사항 ---
+추가: ${diff.added.length}건
+수정: ${diff.modified.length}건
+삭제: ${diff.deleted.length}건
+
+--- 무효화 대상 ---
+경로 수: ${scope.paths.length}
+예상 비용: $${scope.estimatedCostUsd.toFixed(2)}
+예상 오리진 부하 증가: ${scope.estimatedOriginLoadIncrease.toLocaleString()} 요청
+
+--- 무효화 경로 ---
+${scope.paths.join("\n")}
+
+현재 추천: ${scope.recommendation}`;
+}
+
+export { getDeployDiff, calculateInvalidationScope, generateInvalidationPrompt };
+export type { InvalidationScope, DeployDiff };
+```
+
+---
+
+## 3. Multi-CDN 캐시 전략
+
+### 3.1 Multi-CDN 아키텍처
+
+단일 CloudFront에 의존하지 않고, 장애 대응 및 비용 최적화를 위해 Multi-CDN 전략을 구성한다.
+
+```
+사용자 요청
+  │
+  ▼
+Route 53 (가중치/지연 시간 기반 라우팅)
+  ├── 80% → CloudFront (Primary)
+  │         ├── /assets/* → S3 (immutable)
+  │         ├── /api/* → ALB
+  │         └── / → S3 (SPA)
+  └── 20% → Cloudflare (Secondary)
+            └── 동일 S3 오리진 참조
+```
+
+### 3.2 CDK Multi-Origin 설정
+
+```typescript
+// cdk/multi-origin-distribution.ts
+import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { Construct } from "constructs";
+
+export class MultiOriginStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+    const assetBucket = s3.Bucket.fromBucketName(
+      this, "AssetBucket", "frontend-assets-prod",
+    );
+
+    // 정적 에셋: 1년 캐시, immutable
+    const immutableCachePolicy = new cloudfront.CachePolicy(
+      this, "ImmutableCachePolicy", {
+        cachePolicyName: "immutable-assets-1y",
+        defaultTtl: cdk.Duration.days(365),
+        maxTtl: cdk.Duration.days(365),
+        minTtl: cdk.Duration.days(365),
+        headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+        queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+        cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+        enableAcceptEncodingGzip: true,
+        enableAcceptEncodingBrotli: true,
+      },
+    );
+
+    // HTML: 캐시 없음 (항상 최신)
+    const noCachePolicy = new cloudfront.CachePolicy(
+      this, "NoCachePolicy", {
+        cachePolicyName: "no-cache-html",
+        defaultTtl: cdk.Duration.seconds(0),
+        maxTtl: cdk.Duration.seconds(0),
+        minTtl: cdk.Duration.seconds(0),
+      },
+    );
+
+    // API: SWR 패턴 (60초 캐시 + stale-while-revalidate)
+    const swrCachePolicy = new cloudfront.CachePolicy(
+      this, "SWRCachePolicy", {
+        cachePolicyName: "swr-api-cache",
+        defaultTtl: cdk.Duration.seconds(60),
+        maxTtl: cdk.Duration.hours(1),
+        minTtl: cdk.Duration.seconds(0),
+        headerBehavior: cloudfront.CacheHeaderBehavior.allowList("Authorization"),
+        queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+        enableAcceptEncodingGzip: true,
+        enableAcceptEncodingBrotli: true,
+      },
+    );
+
+    const distribution = new cloudfront.Distribution(
+      this, "Distribution", {
+        defaultBehavior: {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(assetBucket),
+          cachePolicy: noCachePolicy,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        },
+        additionalBehaviors: {
+          "/assets/*": {
+            origin: origins.S3BucketOrigin.withOriginAccessControl(assetBucket),
+            cachePolicy: immutableCachePolicy,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          },
+          "/api/*": {
+            origin: new origins.HttpOrigin("api.example.com"),
+            cachePolicy: swrCachePolicy,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          },
+        },
+        enableLogging: true,
+        httpVersion: cloudfront.HttpVersion.HTTP3,
+      },
+    );
+
+    new cdk.CfnOutput(this, "DistributionDomain", {
+      value: distribution.distributionDomainName,
+    });
+  }
+}
+```
+
+### 3.3 CDN Failover 헬스체크
+
+```typescript
+// scripts/cdn-healthcheck.ts
+interface CdnEndpoint {
+  name: string;
+  url: string;
+  weight: number;
+}
+
+interface HealthCheckResult {
+  endpoint: CdnEndpoint;
+  status: "healthy" | "degraded" | "down";
+  latencyMs: number;
+  cacheHit: boolean;
+  headers: Record<string, string>;
+}
+
+async function checkCdnHealth(endpoint: CdnEndpoint): Promise<HealthCheckResult> {
+  const start = performance.now();
+
+  try {
+    const response = await fetch(endpoint.url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const latencyMs = performance.now() - start;
+    const cacheStatus = response.headers.get("x-cache") ?? "";
+
+    return {
+      endpoint,
+      status: response.ok ? "healthy" : "degraded",
+      latencyMs,
+      cacheHit: cacheStatus.includes("Hit"),
+      headers: Object.fromEntries(response.headers),
+    };
+  } catch {
+    return {
+      endpoint,
+      status: "down",
+      latencyMs: performance.now() - start,
+      cacheHit: false,
+      headers: {},
+    };
+  }
+}
+
+async function runMultiCdnHealthCheck(
+  endpoints: CdnEndpoint[],
+): Promise<HealthCheckResult[]> {
+  return Promise.all(endpoints.map(checkCdnHealth));
+}
+
+export { checkCdnHealth, runMultiCdnHealthCheck };
+export type { CdnEndpoint, HealthCheckResult };
+```
+
+---
+
+## 4. 캐시 키 설계 패턴
+
+### 4.1 캐시 키 최소화 원칙
+
+캐시 적중률을 높이려면 캐시 키에 포함되는 요소를 최소화해야 한다. 불필요한 Query String, Header, Cookie는 캐시 키에서 제외한다.
+
+```typescript
+// cdk/cache-key-policies.ts
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import { Construct } from "constructs";
+
+export function createCacheKeyPolicies(scope: Construct) {
+  // 정적 에셋: 캐시 키 = URI만 (Query String, Header, Cookie 모두 무시)
+  const staticAssetPolicy = new cloudfront.CachePolicy(
+    scope, "StaticAssetCacheKey", {
+      cachePolicyName: "static-asset-minimal-key",
+      headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+    },
+  );
+
+  // API: 캐시 키 = URI + 특정 Query String + Accept-Language
+  const apiCachePolicy = new cloudfront.CachePolicy(
+    scope, "ApiCacheKey", {
+      cachePolicyName: "api-selective-key",
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList(
+        "Accept-Language",
+      ),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.allowList(
+        "page", "limit", "sort", "filter",
+      ),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+    },
+  );
+
+  // 개인화 콘텐츠: 캐시 키 = URI + Authorization (사용자별 캐시)
+  const personalizedPolicy = new cloudfront.CachePolicy(
+    scope, "PersonalizedCacheKey", {
+      cachePolicyName: "personalized-user-key",
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList("Authorization"),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+    },
+  );
+
+  return { staticAssetPolicy, apiCachePolicy, personalizedPolicy };
+}
+```
+
+### 4.2 캐시 키 Anti-Pattern
+
+| Anti-Pattern | 문제 | 해결 방안 |
+|---|---|---|
+| 모든 Query String 포함 | 캐시 적중률 급감 | 필요한 파라미터만 allowList |
+| `Cookie` 전체 포함 | 사용자별 캐시 분리 | 필요한 쿠키만 allowList 또는 제외 |
+| `User-Agent` 포함 | 수천 가지 변형 | CloudFront 디바이스 감지 헤더 사용 |
+| 타임스탬프 Query String | `?t=1234` 등 | Cache-Busting은 파일명 해시로 대체 |
+| `Authorization` 불필요 포함 | 공개 콘텐츠의 캐시 분리 | 공개/비공개 경로 분리 |
+
+---
+
+## 5. CloudFront Functions vs Lambda@Edge 비교
+
+### 5.1 비교 매트릭스
+
+| 항목 | CloudFront Functions | Lambda@Edge |
+|------|---------------------|-------------|
+| 실행 위치 | 450+ PoP (Edge) | 13개 리전 (Regional Edge Cache) |
+| 실행 시간 제한 | 1ms | 5초 (Viewer) / 30초 (Origin) |
+| 메모리 | 2MB | 128MB~10GB |
+| 런타임 | JavaScript (ES 5.1) | Node.js, Python |
+| 네트워크 접근 | 불가 | 가능 |
+| 비용 | $0.10 / 100만 요청 | $0.60 / 100만 요청 + 실행 시간 |
+| 적합 용도 | 헤더 조작, URL rewrite, 간단 인증 | 이미지 최적화, A/B 테스트, SSR |
+
+### 5.2 CloudFront Function 예시: Security Headers + URL Rewrite
+
+```typescript
+// cloudfront-functions/security-headers.ts
+// CloudFront Functions는 ES 5.1 문법을 사용해야 하지만,
+// 여기서는 TypeScript 타입으로 구조를 정의한다.
+
+interface CfEvent {
+  request: {
+    uri: string;
+    headers: Record<string, { value: string }>;
+    querystring: Record<string, { value: string }>;
+  };
+  response?: {
+    headers: Record<string, { value: string }>;
+    statusCode: number;
+  };
+}
+
+// Viewer Response: Security Headers 삽입
+function viewerResponse(event: CfEvent): CfEvent["response"] {
+  const response = event.response!;
+  const headers = response.headers;
+
+  headers["strict-transport-security"] = {
+    value: "max-age=63072000; includeSubDomains; preload",
+  };
+  headers["x-content-type-options"] = { value: "nosniff" };
+  headers["x-frame-options"] = { value: "DENY" };
+  headers["x-xss-protection"] = { value: "1; mode=block" };
+  headers["referrer-policy"] = { value: "strict-origin-when-cross-origin" };
+  headers["permissions-policy"] = {
+    value: "camera=(), microphone=(), geolocation=(self)",
+  };
+  headers["content-security-policy"] = {
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;",
+  };
+
+  return response;
+}
+
+// Viewer Request: SPA URL Rewrite
+function viewerRequest(event: CfEvent): CfEvent["request"] {
+  const request = event.request;
+  const uri = request.uri;
+
+  // 확장자가 없으면 SPA의 index.html로 라우팅
+  if (!uri.includes(".") && !uri.startsWith("/api/")) {
     request.uri = "/index.html";
   }
 
   return request;
 }
+
+export { viewerResponse, viewerRequest };
 ```
 
----
+### 5.3 Lambda@Edge 예시: 이미지 최적화
 
-## 3. 프론트엔드 개발자를 위한 캐시 정책
+```typescript
+// lambda-edge/image-optimizer.ts
+import { CloudFrontRequestEvent, CloudFrontResponseResult } from "aws-lambda";
 
-### 3.1 브라우저 캐시 정책
-
-캐시를 삭제하기 위해 invalidate을 사용하는 경우가 있으나, 이는 추천하지 않습니다.
-
-invalidate하는 것은 최소 5분 이상 서빙되지 않더라도 문제가 없는 경우에 해당됩니다.
-
-**즉각적인 적용과 서빙을 위해 해시/UUID 사용 등 고유 URL을 만들어서 추가하는 방향을 권장합니다.**
-
-- `index.html` / API 등 캐시를 가지고 가면 안되는 리소스의 경우 TTL을 0으로 잡습니다.
-- JS/CSS/이미지 등 해시 값이 들어가는 리소스 또는 폰트와 같은 완전 정적 에셋의 경우 1년의 캐시값을 두어 원활한 서빙이 될 수 있게 합니다.
-
-#### 상황별 캐시 적용 방법 가이드
-
-| 상황 | 추천 방법 | 이유 |
-|------|----------|------|
-| **S3의 정적 파일들**에 대해 긴 캐시를 적용하고 싶을 때 | 응답 헤더 정책 | 파일마다 메타데이터를 수정할 필요 없이 CloudFront에서 일괄 적용이 가능해 편리합니다. |
-| **API 응답**처럼 동적으로 캐시 정책이 바뀌어야 할 때 | 캐시 정책 | 원본 서버(API 서버)에서 보낸 Cache-Control 헤더를 존중하도록 설정하는 것이 유연합니다. |
-| 특정 파일(예: index.html)은 **캐시하지 않아야 할 때** | 응답 헤더 정책 | Cache-Control 헤더에 no-cache, no-store 값을 설정한 정책을 만들어 해당 파일 경로의 동작(Behavior)에만 적용할 수 있습니다. |
-
-#### 파일 타입별 헤더 적용 가이드
-
-| 콘텐츠 유형 | TTL | Cache-Control | 캐시 키 구성 | 비고 |
-|------------|-----|---------------|-------------|------|
-| **JS/CSS/이미지 (해시명)** | 1년 | `max-age=31,536,000` `s-maxage=31,536,000` | URL + 쿼리 | 가장 일반적 해시 기반 캐시 버스팅 |
-| **아이콘, 로고** | 1개월 | `max-age=2592000` `s-maxage=31,536,000` | URL 경로만 | WebP 포맷 우선 |
-| **index.html** | 무캐시 | `max-age=0`, `s-maxage=604800`, `no-cache/no-store`, `must-revalidate` | URL 경로만 | 엔트리포인트 |
-| **API 엔드포인트** | 무캐시 | `max-age=0`, `s-maxage=604800`, `no-cache/no-store`, `must-revalidate` | URL + 헤더 + 쿼리 | 동적 콘텐츠 |
-| **폰트 파일** | 1년 | `max-age=31,536,000` `s-maxage=31,536,000` | URL 경로만 | CORS 설정 필요 |
-| **이미지 (해시 미사용시)** | 필요에 따라 | - | URL 경로만 | 단발성 마케팅 영역 |
-
-#### 각 헤더 항목들에 대한 설명
-
-| 헤더 | 설명 |
-|------|------|
-| **max-age** | 웹 브라우저(클라이언트)에게 해당 콘텐츠의 캐시 유효 기간을 알려줍니다. |
-| **s-maxage** | 공유 캐시(CDN, 프록시 서버 등)에만 적용됩니다. max-age를 덮어쓰며, 해당 기간 동안 CDN은 서버에 다시 요청하지 않고 캐시된 콘텐츠를 사용자에게 바로 제공할 수 있습니다. |
-| **no-cache** | 캐시된 복사본을 저장할 수 있지만, 사용할 때마다 서버에 재확인(revalidation)을 요청해야 합니다. |
-| **no-store** | 응답이 어떤 캐시에도 저장되어서는 안 됩니다. 매우 민감한 데이터를 다룰 때 사용됩니다. |
-| **must-revalidate** | 캐시된 콘텐츠가 만료되었을 때 반드시 서버에 재확인을 요청해야 합니다. |
-| **ETag** | 리소스의 버전을 식별하는 값입니다. 파일 내용의 해시 값이나 최종 수정 시간을 기반으로 생성됩니다. |
-
-#### no-cache vs no-store 비교
-
-| 구분 | no-cache | no-store |
-|------|----------|----------|
-| **캐시 저장** | 허용됨 | **허용되지 않음** |
-| **재검증** | 매번 사용 전 필요 | 해당 없음 (캐시 없음) |
-| **목적** | 신선도 보장 | 개인 정보/보안 보장 |
-| **효율성** | 전체 다운로드보다 빠름 (304 Not Modified 사용) | 항상 전체 다운로드가 필요함 |
-| **사용 사례** | 프로필 페이지, 자주 업데이트되는 콘텐츠 | 민감한 데이터 (의료, 금융, 로그인 등) |
-
-### 3.2 L2 ~ L3 CloudFront 캐시 정책
-
-#### L2: CDN Edge 캐시 계층 (CloudFront)
-- **목적**: 지역별 빠른 응답, Origin 서버 부하 분산
-
-#### L3: Regional Cache 계층 (Origin Shield)
-- **목적**: 대용량 트래픽 흡수, Origin 보호
-
-**정적 자산 캐시 정책**
-```yaml
-CachePolicyId: "정적자산-초장기"
-Parameters:
-  TTL:
-    DefaultTTL: 31536000 # 1년
-    MaxTTL: 31536000
-  CacheKeyBehavior:
-    - URL 경로만
-```
-
-**메뉴 이미지 캐시 정책**
-```yaml
-CachePolicyId: "메뉴이미지-장기"
-Parameters:
-  TTL:
-    DefaultTTL: 604800 # 1주
-    MaxTTL: 2592000 # 1개월
-  CacheKeyBehavior:
-    - URL 경로
-    - Accept-Encoding
-    - Accept (WebP 지원 권고)
-```
-
-**Origin Shield 설정 (Seoul Region)**
-```javascript
-const originShieldConfig = {
-  enabled: true,
-  region: "ap-northeast-2", // 서울 리전
-
-  // 서비스 특화 캐시 정책
-  cachePolicies: {
-    // 러시아워 대응 - 트래픽 급증 시 캐시 확장
-    rushHour: {
-      timeSlots: ["11:30-13:30", "18:00-20:30"],
-      ttlMultiplier: 2.0, // TTL 2배 연장
-      maxCacheSize: "500GB",
-    },
-
-    // 이벤트 대응 - 예측 기반 캐시 워밍
-    eventMode: {
-      triggers: ["신규서비스_오픈", "프로모션_런칭"],
-      preWarmPaths: [
-        "/api/items/near/*",
-        "/api/products/popular/*",
-        "/static/images/brands/*",
-      ],
-    },
-  },
-};
-```
-
-### 3.3 Webpack/Vite 빌드 해시 설정
-
-#### Webpack 설정
-
-```javascript
-// webpack.config.js
-module.exports = {
-  output: {
-    filename: "[name].[contenthash].js",
-    chunkFilename: "[name].[contenthash].js",
-    assetModuleFilename: "assets/[name].[contenthash][ext]",
-  },
-  optimization: {
-    splitChunks: {
-      chunks: "all",
-      cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendors",
-          chunks: "all",
-        },
-      },
-    },
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: "src/index.html",
-      filename: "index.html",
-      inject: true,
-    }),
-  ],
-};
-```
-
-#### Vite 설정
-
-```javascript
-// vite.config.js
-export default defineConfig({
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: `[name].[hash].js`,
-        chunkFileNames: `[name].[hash].js`,
-        assetFileNames: `assets/[name].[hash].[ext]`,
-      },
-    },
-  },
-});
-```
-
-### 3.4 코드 스플리팅 정책
-
-**코드 스플리팅**은 애플리케이션의 코드를 여러 개의 작은 번들 파일로 나누는 기술입니다. 이를 해싱과 결합하면 효율을 극대화할 수 있습니다.
-
-- **변경 최소화**: 하나의 큰 `bundle.js` 파일에 모든 코드가 포함되어 있다면, 작은 수정이라도 파일 전체의 해시 값을 변경시켜 브라우저가 전체 번들을 다시 다운로드해야 합니다.
-- **부분적 변경**: 코드 스플리팅을 사용하면 자주 변경되는 코드(예: 기능별 모듈)와 자주 변경되지 않는 코드(예: 라이브러리)를 별도의 번들로 분리할 수 있습니다. 이렇게 하면 특정 모듈의 코드만 변경될 때, 해당 번들의 해시 값만 바뀌고 나머지 번들은 그대로 유지됩니다.
-
-### 3.5 멀티 오리진 캐시 오염 주의
-
-1. **CloudFront Function 사용 시 주의사항**:
-   - URI rewrite가 캐시 키에 미치는 영향 사전 검토
-   - 다중 오리진 환경에서는 Lambda@Edge 우선 고려
-   - 배포 시 캐시 키 충돌 가능성 검증
-
-2. **테스트 시나리오**:
-
-```bash
-# 캐시 오염 테스트 스크립트
-#!/bin/bash
-
-# 첫 번째 경로 요청 (특정 오리진)
-curl -H "X-Test-Origin: A" "https://example.com/A/test"
-
-# 두 번째 경로 요청 (다른 오리진이어야 함)
-curl -H "X-Test-Origin: B" "https://example.com/B/test"
-
-# 응답 헤더에서 실제 오리진 확인
-curl -I "https://example.com/B/test" | grep -E "(X-Cache|X-Amz-Cf-)"
-```
-
----
-
-## 4. 모니터링 및 성능 최적화
-
-### 4.1 프론트엔드 성능 지표 (KPI)
-
-**프론트엔드 월간 회의**에서 다음과 같은 지표들을 정기적으로 모니터링할 수 있도록 합니다.
-
-| 지표 | 목표값 | 측정 방법 | 개선 액션 |
-|------|--------|----------|-----------|
-| **캐시 히트율** | 95% 이상 | CloudWatch | 캐시 키 최적화 |
-| **4xx/5xx 에러율** | 1% 미만 | CloudWatch | 전반적인 CF 설정에 대한 점검 |
-| **Time to First Byte** | 200ms 미만 | RUM/Synthetic | 캐시 정책 최적화 및 개정 |
-
-### 4.2 CloudWatch 대시보드 설정
-
-```json
-{
-  "widgets": [
-    {
-      "type": "metric",
-      "properties": {
-        "metrics": [
-          ["AWS/CloudFront", "CacheHitRate", "DistributionId", "E1234567890"],
-          [".", "OriginLatency", ".", "."],
-          [".", "Requests", ".", "."]
-        ],
-        "period": 300,
-        "stat": "Average",
-        "region": "us-east-1",
-        "title": "CloudFront 성능 지표"
-      }
-    }
-  ]
+interface ImageParams {
+  width: number;
+  quality: number;
+  format: "webp" | "avif" | "jpeg" | "png";
 }
+
+function parseImageParams(querystring: string): ImageParams {
+  const params = new URLSearchParams(querystring);
+  return {
+    width: Math.min(parseInt(params.get("w") ?? "0", 10) || 1920, 3840),
+    quality: Math.min(parseInt(params.get("q") ?? "80", 10), 100),
+    format: (params.get("f") as ImageParams["format"]) ?? "webp",
+  };
+}
+
+function buildCacheKey(uri: string, params: ImageParams): string {
+  return `${uri}?w=${params.width}&q=${params.quality}&f=${params.format}`;
+}
+
+// Origin Request에서 이미지 변환 요청 라우팅
+async function handler(
+  event: CloudFrontRequestEvent,
+): Promise<CloudFrontResponseResult> {
+  const request = event.Records[0].cf.request;
+  const imageParams = parseImageParams(request.querystring);
+
+  // 이미지 최적화 오리진으로 리다이렉트
+  request.uri = buildCacheKey(request.uri, imageParams);
+  request.headers["x-image-width"] = [{ key: "X-Image-Width", value: String(imageParams.width) }];
+  request.headers["x-image-quality"] = [{ key: "X-Image-Quality", value: String(imageParams.quality) }];
+  request.headers["x-image-format"] = [{ key: "X-Image-Format", value: imageParams.format }];
+
+  return request;
+}
+
+export { handler, parseImageParams };
 ```
 
-### 4.3 알림 설정
+---
 
-```yaml
-# CloudWatch 알람 설정 (Terraform)
-resource "aws_cloudwatch_metric_alarm" "cache_hit_rate_low" {
-  alarm_name          = "cloudfront-cache-hit-rate-low"
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "CacheHitRate"
-  namespace           = "AWS/CloudFront"
-  period              = "300"
-  statistic           = "Average"
-  threshold           = "90"
-  alarm_description   = "캐시 히트율이 90% 미만입니다"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
-  
-  dimensions = {
-    DistributionId = aws_cloudfront_distribution.main.id
+## 6. Origin Shield 전략
+
+### 6.1 Origin Shield 개념
+
+Origin Shield는 CloudFront와 오리진 사이에 추가 캐시 레이어를 두어 오리진 요청을 최소화하는 기능이다.
+
+```
+사용자 → Edge PoP → Regional Edge Cache → Origin Shield → 오리진
+                                            (추가 캐시 레이어)
+```
+
+### 6.2 CDK Origin Shield 설정
+
+```typescript
+// cdk/origin-shield.ts
+import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { Construct } from "constructs";
+
+export class OriginShieldStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+    const bucket = s3.Bucket.fromBucketName(
+      this, "AssetBucket", "frontend-assets-prod",
+    );
+
+    // Origin Shield 활성화: 오리진에 가장 가까운 리전 선택
+    const s3Origin = origins.S3BucketOrigin.withOriginAccessControl(bucket, {
+      originShieldRegion: "ap-northeast-2", // 서울 리전
+      originShieldEnabled: true,
+    });
+
+    new cloudfront.Distribution(this, "ShieldedDistribution", {
+      defaultBehavior: {
+        origin: s3Origin,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      httpVersion: cloudfront.HttpVersion.HTTP3,
+    });
   }
 }
 ```
 
-### 4.4 CloudFront 응답 헤더 분석
+### 6.3 Origin Shield 적용 기준
 
-```bash
-#!/bin/bash
-# CloudFront 헤더 분석 스크립트
+| 시나리오 | Origin Shield 권장 | 이유 |
+|---------|-------------------|------|
+| 글로벌 사용자, S3 오리진 | 강력 권장 | 오리진 요청 최대 90% 감소 |
+| 단일 리전 사용자 | 선택적 | 이미 Regional Edge Cache로 충분 |
+| 실시간 API (TTL=0) | 비권장 | Shield 통과 지연만 추가 |
+| 대용량 미디어 | 권장 | 오리진 대역폭 비용 절감 |
 
-URL="$1"
-echo "🔍 CloudFront 응답 분석: $URL"
-echo
+---
 
-# 헤더 정보 수집
-HEADERS=$(curl -s -I "$URL")
+## 7. HTTP/3 & Security Headers
 
-echo "📊 캐시 관련 헤더:"
-echo "$HEADERS" | grep -E "(X-Cache|X-Amz-Cf-|Cache-Control|ETag|Last-Modified|Expires)"
+### 7.1 HTTP/3 (QUIC) 활성화
 
-echo
-echo "🌍 엣지 로케이션:"
-echo "$HEADERS" | grep "X-Amz-Cf-Pop"
+CloudFront는 HTTP/3를 네이티브로 지원하며, 별도 설정만으로 활성화된다.
 
-echo
-echo "🔄 캐시 상태:"
-CACHE_STATUS=$(echo "$HEADERS" | grep "X-Cache" | cut -d' ' -f2-)
-case "$CACHE_STATUS" in
-  *"Hit"*) echo "✅ 캐시 히트 - 최적 상태" ;;
-  *"Miss"*) echo "⚠️ 캐시 미스 - 첫 요청이거나 TTL 만료" ;;
-  *"RefreshHit"*) echo "🔄 리프레시 히트 - 재검증 후 캐시 사용" ;;
-  *"Error"*) echo "❌ 오류 - 원본 서버 문제 확인 필요" ;;
-esac
+```typescript
+// HTTP/3 지원 확인 유틸
+async function checkHttp3Support(url: string): Promise<boolean> {
+  const response = await fetch(url, { method: "HEAD" });
+  const altSvc = response.headers.get("alt-svc");
+  return altSvc?.includes("h3") ?? false;
+}
+
+// HTTP/3 성능 비교 측정
+interface ProtocolMetrics {
+  protocol: string;
+  ttfb: number;
+  downloadTime: number;
+  totalTime: number;
+}
+
+async function measureProtocolPerformance(url: string): Promise<ProtocolMetrics> {
+  const start = performance.now();
+  const response = await fetch(url);
+  const ttfb = performance.now() - start;
+
+  const body = await response.arrayBuffer();
+  const totalTime = performance.now() - start;
+
+  return {
+    protocol: response.headers.get("x-protocol") ?? "unknown",
+    ttfb,
+    downloadTime: totalTime - ttfb,
+    totalTime,
+  };
+}
+
+export { checkHttp3Support, measureProtocolPerformance };
+```
+
+### 7.2 Security Headers 표준
+
+```typescript
+// config/security-headers.ts
+interface SecurityHeaderConfig {
+  strictTransportSecurity: string;
+  contentSecurityPolicy: string;
+  xContentTypeOptions: string;
+  xFrameOptions: string;
+  referrerPolicy: string;
+  permissionsPolicy: string;
+}
+
+const PRODUCTION_HEADERS: SecurityHeaderConfig = {
+  strictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
+  contentSecurityPolicy: [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.example.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https://api.example.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; "),
+  xContentTypeOptions: "nosniff",
+  xFrameOptions: "DENY",
+  referrerPolicy: "strict-origin-when-cross-origin",
+  permissionsPolicy: "camera=(), microphone=(), geolocation=(self), payment=(self)",
+};
+
+function generateHeaderMap(
+  config: SecurityHeaderConfig,
+): Record<string, { value: string }> {
+  return {
+    "strict-transport-security": { value: config.strictTransportSecurity },
+    "content-security-policy": { value: config.contentSecurityPolicy },
+    "x-content-type-options": { value: config.xContentTypeOptions },
+    "x-frame-options": { value: config.xFrameOptions },
+    "referrer-policy": { value: config.referrerPolicy },
+    "permissions-policy": { value: config.permissionsPolicy },
+  };
+}
+
+export { PRODUCTION_HEADERS, generateHeaderMap };
+export type { SecurityHeaderConfig };
 ```
 
 ---
 
-## 5. 체크리스트
+## 8. 실시간 로그 분석 파이프라인
 
-### 빌드 설정
-- [ ] 정적 자산에 contenthash 적용됨
-- [ ] index.html은 해시 없는 고정 파일명 사용
-- [ ] 청크 분할 설정 (vendor, runtime 분리)
-- [ ] Tree shaking 활성화
+### 8.1 아키텍처
 
-### CloudFront 설정
-- [ ] 정적 자산용 Long-term 캐시 정책 적용
-- [ ] HTML용 No-cache 정책 적용
-- [ ] 보안 헤더 정책 적용
-- [ ] 응답 헤더 정책 적용 (max-age, no-cache 등)
+```
+CloudFront Real-time Logs
+  → Kinesis Data Stream
+  → Kinesis Data Firehose
+  → S3 (Parquet) + Lambda (실시간 알림)
+  → Athena (Ad-hoc 분석) / Grafana (대시보드)
+```
 
-### 모니터링 설정
-- [ ] CloudWatch 대시보드 확인
-- [ ] 캐시 히트율 알람 설정
-- [ ] 오류율 알람 설정
-- [ ] 비용 알림 설정
+### 8.2 실시간 로그 처리 Lambda
 
-### 배포 전 점검
-- [ ] 빌드 결과물에 해시가 포함된 파일명 확인
-- [ ] 스테이징 환경에서 캐시 동작 테스트
-- [ ] 크로스 브라우저 테스트 완료
-- [ ] 성능 지표 측정 (Lighthouse 등)
-- [ ] 보안 스캔 실행
+```typescript
+// lambda/realtime-log-processor.ts
+import { KinesisStreamEvent } from "aws-lambda";
 
-### 배포 후 검증
-- [ ] index.html이 캐시되지 않음 확인 (`X-Cache: Miss` 또는 `RefreshHit`)
-- [ ] 정적 자산이 캐시됨 확인 (`X-Cache: Hit`)
-- [ ] 신규 자산이 정상 로드됨 확인
-- [ ] 404 에러 없음 확인
-- [ ] 캐시 히트율 90% 이상 확인 (배포 1시간 후)
-- [ ] 사용자 리포트된 이슈 없음 확인
+interface CloudFrontLogRecord {
+  timestamp: number;
+  edgeLocation: string;
+  responseBytes: number;
+  clientIp: string;
+  httpMethod: string;
+  uri: string;
+  statusCode: number;
+  cacheResult: string;
+  timeTaken: number;
+  tlsVersion: string;
+  httpVersion: string;
+}
+
+interface AlertThresholds {
+  errorRatePercent: number;
+  cacheMissRatePercent: number;
+  p99LatencyMs: number;
+}
+
+const DEFAULT_THRESHOLDS: AlertThresholds = {
+  errorRatePercent: 5,
+  cacheMissRatePercent: 40,
+  p99LatencyMs: 3000,
+};
+
+function parseLogRecord(data: string): CloudFrontLogRecord {
+  const fields = data.split("\t");
+  return {
+    timestamp: parseInt(fields[0], 10),
+    edgeLocation: fields[2],
+    responseBytes: parseInt(fields[3], 10),
+    clientIp: fields[4],
+    httpMethod: fields[5],
+    uri: fields[6],
+    statusCode: parseInt(fields[7], 10),
+    cacheResult: fields[12],
+    timeTaken: parseFloat(fields[17]),
+    tlsVersion: fields[26] ?? "",
+    httpVersion: fields[30] ?? "",
+  };
+}
+
+interface WindowMetrics {
+  totalRequests: number;
+  errorCount: number;
+  cacheMisses: number;
+  latencies: number[];
+}
+
+function computeMetrics(records: CloudFrontLogRecord[]): WindowMetrics {
+  const latencies = records.map((r) => r.timeTaken).sort((a, b) => a - b);
+  return {
+    totalRequests: records.length,
+    errorCount: records.filter((r) => r.statusCode >= 500).length,
+    cacheMisses: records.filter((r) => r.cacheResult === "Miss").length,
+    latencies,
+  };
+}
+
+function checkThresholds(
+  metrics: WindowMetrics,
+  thresholds: AlertThresholds,
+): string[] {
+  const alerts: string[] = [];
+  const errorRate = (metrics.errorCount / metrics.totalRequests) * 100;
+  const cacheMissRate = (metrics.cacheMisses / metrics.totalRequests) * 100;
+  const p99Index = Math.floor(metrics.latencies.length * 0.99);
+  const p99Latency = metrics.latencies[p99Index] ?? 0;
+
+  if (errorRate > thresholds.errorRatePercent) {
+    alerts.push(
+      `[ERROR RATE] ${errorRate.toFixed(1)}% > ${thresholds.errorRatePercent}% 임계값 초과`,
+    );
+  }
+
+  if (cacheMissRate > thresholds.cacheMissRatePercent) {
+    alerts.push(
+      `[CACHE MISS] ${cacheMissRate.toFixed(1)}% > ${thresholds.cacheMissRatePercent}% 임계값 초과`,
+    );
+  }
+
+  if (p99Latency > thresholds.p99LatencyMs) {
+    alerts.push(
+      `[LATENCY P99] ${p99Latency.toFixed(0)}ms > ${thresholds.p99LatencyMs}ms 임계값 초과`,
+    );
+  }
+
+  return alerts;
+}
+
+async function handler(event: KinesisStreamEvent): Promise<void> {
+  const records = event.Records.map((record) => {
+    const payload = Buffer.from(record.kinesis.data, "base64").toString("utf-8");
+    return parseLogRecord(payload);
+  });
+
+  const metrics = computeMetrics(records);
+  const alerts = checkThresholds(metrics, DEFAULT_THRESHOLDS);
+
+  if (alerts.length > 0) {
+    console.warn("[CloudFront Alert]", JSON.stringify({ alerts, metrics }));
+    // SNS 또는 Slack 알림 전송
+  }
+
+  console.info("[CloudFront Metrics]", JSON.stringify({
+    requests: metrics.totalRequests,
+    errorRate: ((metrics.errorCount / metrics.totalRequests) * 100).toFixed(1),
+    cacheMissRate: ((metrics.cacheMisses / metrics.totalRequests) * 100).toFixed(1),
+  }));
+}
+
+export { handler, parseLogRecord, computeMetrics, checkThresholds };
+export type { CloudFrontLogRecord, AlertThresholds, WindowMetrics };
+```
+
+### 8.3 Athena 쿼리 예시
+
+```sql
+-- 시간대별 캐시 적중률 추이
+SELECT
+  date_trunc('hour', from_unixtime(timestamp)) AS hour,
+  COUNT(*) AS total_requests,
+  COUNT_IF(cache_result IN ('Hit', 'RefreshHit')) AS cache_hits,
+  ROUND(COUNT_IF(cache_result IN ('Hit', 'RefreshHit')) * 100.0 / COUNT(*), 2) AS hit_ratio
+FROM cloudfront_logs
+WHERE dt >= current_date - INTERVAL '7' DAY
+GROUP BY 1
+ORDER BY 1;
+
+-- 캐시 Miss가 많은 경로 Top 20
+SELECT
+  uri,
+  COUNT(*) AS miss_count,
+  ROUND(AVG(time_taken) * 1000, 0) AS avg_latency_ms,
+  SUM(response_bytes) / 1024 / 1024 AS total_mb
+FROM cloudfront_logs
+WHERE cache_result = 'Miss'
+  AND dt >= current_date - INTERVAL '1' DAY
+GROUP BY uri
+ORDER BY miss_count DESC
+LIMIT 20;
+```
 
 ---
+
+## 9. 체크리스트
+
+### 캐시 설계
+
+- [ ] 경로별 캐시 정책 정의 (immutable / SWR / no-cache)
+- [ ] 캐시 키 최소화 (불필요한 Query String, Header, Cookie 제거)
+- [ ] `Cache-Control` 헤더에 `stale-while-revalidate` 적용
+- [ ] Origin Shield 활성화 여부 검토
+
+### AI 활용
+
+- [ ] **AI로 캐시 적중률 분석** 프롬프트 템플릿 팀 공유
+- [ ] **AI로 무효화 영향 범위 분석** 스크립트 CI 연동
+- [ ] AI 기반 TTL 최적화 결과 정기 리뷰 (월 1회)
+
+### 보안 & 성능
+
+- [ ] Security Headers (HSTS, CSP, X-Frame-Options) CloudFront Function 적용
+- [ ] HTTP/3 활성화
+- [ ] TLS 1.3 최소 버전 설정
+
+### 모니터링
+
+- [ ] 실시간 로그 → Kinesis → Lambda 파이프라인 구축
+- [ ] 캐시 적중률 알림 임계값 설정 (40% 미만 시 알림)
+- [ ] 5xx 에러율 알림 임계값 설정 (5% 초과 시 알림)
+- [ ] Athena 쿼리로 주간 캐시 성능 보고서 생성

@@ -1,679 +1,744 @@
 # TypeScript 심화 가이드 (2026)
 
 ## 목차
-1. [AI 시대의 TypeScript](#ai-시대의-typescript)
-2. [TypeScript 5.8+ 최신 기능 심화](#typescript-58-최신-기능-심화)
-3. [타입 레벨 프로그래밍 마스터클래스](#타입-레벨-프로그래밍-마스터클래스)
-4. [Full-Stack 타입 안전성](#full-stack-타입-안전성)
-5. [React 19 + TypeScript 고급 패턴](#react-19--typescript-고급-패턴)
-6. [런타임 검증과 타입 통합](#런타임-검증과-타입-통합)
-7. [성능 & DX 최적화](#성능--dx-최적화)
-8. [참고 자료](#참고-자료)
+
+1. [AI 시대의 TypeScript](#1-ai-시대의-typescript)
+2. [TypeScript 5.8+ 최신 기능](#2-typescript-58-최신-기능)
+3. [타입 레벨 프로그래밍 마스터클래스](#3-타입-레벨-프로그래밍-마스터클래스)
+4. [Full-Stack 타입 안전성](#4-full-stack-타입-안전성)
+5. [React 19 + TypeScript 고급 패턴](#5-react-19--typescript-고급-패턴)
+6. [런타임 검증과 타입 통합](#6-런타임-검증과-타입-통합)
+7. [성능 & DX 최적화](#7-성능--dx-최적화)
 
 ---
 
-## AI 시대의 TypeScript
+## 1. AI 시대의 TypeScript
 
-### AI 코드 어시스턴트와 TypeScript 타입 시스템 시너지
+### 1.1 Claude Code로 타입 안전한 코드 생성
 
-AI 코드 어시스턴트(GitHub Copilot, Claude 등)는 타입 정보가 풍부할수록 정확한 코드를 생성한다. TypeScript의 타입 시스템은 AI에게 강력한 컨텍스트를 제공하는 도구다.
+Claude Code는 프로젝트 컨텍스트를 이해하고 타입 안전한 코드를 생성할 수 있다. 핵심은 **구체적인 프롬프트**를 작성하는 것이다.
+
+#### 프롬프트 예시 1: API 응답 타입과 fetcher 생성
+
+```
+프롬프트:
+"GET /api/users/:id 엔드포인트의 응답을 처리하는 코드를 만들어줘.
+응답 필드: id(number), name(string), email(string), role('admin' | 'user' | 'viewer'),
+createdAt(ISO 8601 string). 에러 응답도 타입으로 정의하고,
+Zod 스키마로 런타임 검증까지 포함해줘."
+```
 
 ```typescript
-// 타입이 빈약한 경우 - AI가 의도를 파악하기 어려움
-function process(data: any) {
-  return data.map((item: any) => item.value);
-}
+import { z } from "zod";
 
-// 타입이 풍부한 경우 - AI가 정확한 코드를 생성
-interface SensorReading {
-  /** 센서 고유 식별자 (예: "temp-001") */
-  sensorId: string;
-  /** 측정값 (섭씨 온도) */
-  value: number;
-  /** ISO 8601 형식 타임스탬프 */
-  timestamp: string;
-  /** 측정 신뢰도 (0-1 범위) */
-  confidence: number;
-}
+// Zod 스키마 정의 -> 타입 자동 추론
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  role: z.enum(["admin", "user", "viewer"]),
+  createdAt: z.string().datetime(),
+});
 
-function processSensorData(readings: SensorReading[]): {
-  averageValue: number;
-  highConfidenceCount: number;
-} {
-  const highConfidence = readings.filter(r => r.confidence > 0.9);
-  const avg = readings.reduce((sum, r) => sum + r.value, 0) / readings.length;
-  return { averageValue: avg, highConfidenceCount: highConfidence.length };
+const ApiErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  details: z.record(z.string()).optional(),
+});
+
+const ApiResponseSchema = z.discriminatedUnion("success", [
+  z.object({ success: z.literal(true), data: UserSchema }),
+  z.object({ success: z.literal(false), error: ApiErrorSchema }),
+]);
+
+// 스키마에서 타입 자동 추론 (단일 소스)
+type User = z.infer<typeof UserSchema>;
+type ApiError = z.infer<typeof ApiErrorSchema>;
+type ApiResponse = z.infer<typeof ApiResponseSchema>;
+
+async function fetchUser(id: number): Promise<User> {
+  const res = await fetch(`/api/users/${id}`);
+  const json = await res.json();
+  const parsed = ApiResponseSchema.parse(json);
+
+  if (!parsed.success) {
+    throw new Error(`API Error [${parsed.error.code}]: ${parsed.error.message}`);
+  }
+  return parsed.data;
 }
 ```
 
-**핵심 원칙**: 타입을 더 명확하게 작성할수록 AI 어시스턴트가 생성하는 코드의 품질이 비례하여 높아진다.
+#### 프롬프트 예시 2: 제네릭 유틸리티 타입 생성
 
-### AI가 생성한 코드의 타입 안전성 검증 전략
-
-AI가 생성한 코드는 런타임 에러를 포함할 수 있다. 타입 시스템을 방어 계층으로 활용하는 전략이 중요하다.
+```
+프롬프트:
+"중첩 객체의 모든 필드를 optional로 만드는 DeepPartial 타입,
+dot notation 경로를 추출하는 DotPath 타입,
+그리고 해당 경로로 값을 가져오는 타입 안전한 get 함수를 만들어줘."
+```
 
 ```typescript
-// 1단계: strict 모드를 최대한 활용
-// tsconfig.json에서 아래 옵션을 모두 활성화
-// "strict": true, "noUncheckedIndexedAccess": true, "exactOptionalPropertyTypes": true
+// DeepPartial: 중첩 객체까지 모두 optional
+type DeepPartial<T> = T extends object
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : T;
 
-// 2단계: AI 생성 코드에 대한 타입 검증 래퍼
-type Validator<T> = {
-  validate: (input: unknown) => input is T;
-  parse: (input: unknown) => T;
+// DotPath: "user.address.city" 같은 경로 타입 추출
+type DotPath<T, Prefix extends string = ""> = T extends object
+  ? {
+      [K in keyof T & string]: T[K] extends object
+        ? `${Prefix}${K}` | DotPath<T[K], `${Prefix}${K}.`>
+        : `${Prefix}${K}`;
+    }[keyof T & string]
+  : never;
+
+// PathValue: 경로에 해당하는 값의 타입
+type PathValue<T, P extends string> = P extends `${infer K}.${infer Rest}`
+  ? K extends keyof T
+    ? PathValue<T[K], Rest>
+    : never
+  : P extends keyof T
+    ? T[P]
+    : never;
+
+// 타입 안전한 get 함수
+function get<T, P extends DotPath<T>>(obj: T, path: P): PathValue<T, P> {
+  return path.split(".").reduce((acc: any, key) => acc?.[key], obj);
+}
+
+// 사용 예
+interface Config {
+  db: { host: string; port: number; credentials: { user: string; pass: string } };
+  cache: { ttl: number };
+}
+
+const config: Config = {
+  db: { host: "localhost", port: 5432, credentials: { user: "admin", pass: "secret" } },
+  cache: { ttl: 3600 },
 };
 
-function createValidator<T>(guard: (input: unknown) => input is T): Validator<T> {
+const host = get(config, "db.host"); // string
+const port = get(config, "db.port"); // number
+// get(config, "db.invalid"); // 컴파일 에러
+```
+
+#### 프롬프트 예시 3: 상태 머신 패턴 생성
+
+```
+프롬프트:
+"주문 처리 상태 머신을 만들어줘.
+상태: pending -> confirmed -> shipped -> delivered.
+각 전이에서 필요한 데이터가 다르고, 잘못된 전이는 컴파일 타임에 막아야 해."
+```
+
+```typescript
+interface OrderStates {
+  pending: { orderId: string; items: string[] };
+  confirmed: { orderId: string; confirmedAt: Date; estimatedDelivery: Date };
+  shipped: { orderId: string; trackingNumber: string; carrier: string };
+  delivered: { orderId: string; deliveredAt: Date; signature: string };
+}
+
+interface Transitions {
+  pending: "confirmed";
+  confirmed: "shipped";
+  shipped: "delivered";
+  delivered: never;
+}
+
+type TransitionPayload<From extends keyof OrderStates> =
+  Transitions[From] extends never
+    ? never
+    : OrderStates[Transitions[From] & keyof OrderStates];
+
+class OrderStateMachine<S extends keyof OrderStates> {
+  constructor(
+    public readonly state: S,
+    public readonly data: OrderStates[S],
+  ) {}
+
+  transition(
+    nextData: TransitionPayload<S>,
+  ): Transitions[S] extends never
+    ? never
+    : OrderStateMachine<Transitions[S] & keyof OrderStates> {
+    const nextState = {
+      pending: "confirmed",
+      confirmed: "shipped",
+      shipped: "delivered",
+    } as Record<string, string>;
+    return new OrderStateMachine(
+      nextState[this.state] as any,
+      nextData as any,
+    ) as any;
+  }
+}
+
+// 사용
+const order = new OrderStateMachine("pending", {
+  orderId: "ORD-001",
+  items: ["item-a", "item-b"],
+});
+
+const confirmed = order.transition({
+  orderId: "ORD-001",
+  confirmedAt: new Date(),
+  estimatedDelivery: new Date(),
+});
+// confirmed.state === "confirmed" (타입 레벨에서 확정)
+```
+
+### 1.2 Copilot / Cursor에서 TypeScript 타입 시스템 최대 활용
+
+#### AI 친화적 타입 작성 원칙
+
+```typescript
+// [원칙 1] JSDoc으로 비즈니스 컨텍스트 제공
+/**
+ * 사용자 구독 상태를 나타내는 타입.
+ * 결제 주기에 따라 billing 정보가 달라진다.
+ * @example
+ * const sub: Subscription = { plan: "pro", billingCycle: "monthly", ... }
+ */
+interface Subscription {
+  /** 구독 플랜 - free는 결제 정보 불필요 */
+  plan: "free" | "pro" | "enterprise";
+  /** 결제 주기 - free 플랜에서는 null */
+  billingCycle: "monthly" | "yearly" | null;
+  /** Unix timestamp (초 단위) */
+  expiresAt: number;
+}
+
+// [원칙 2] 함수 시그니처에 의도를 명확히 표현
+// Bad: AI가 반환값을 추측해야 함
+function processPayment(amount: number): any { /* ... */ }
+
+// Good: 성공/실패 케이스가 타입으로 명확
+type PaymentResult =
+  | { status: "success"; transactionId: string; receiptUrl: string }
+  | { status: "failed"; errorCode: string; retryable: boolean }
+  | { status: "pending"; estimatedCompletion: Date };
+
+function processPayment(amount: number, currency: string): Promise<PaymentResult> {
+  // AI가 각 케이스를 정확히 처리하는 코드를 생성할 수 있음
+}
+
+// [원칙 3] Branded Type으로 도메인 개념 인코딩
+type USD = number & { readonly __brand: "USD" };
+type EUR = number & { readonly __brand: "EUR" };
+
+function createUSD(amount: number): USD { return amount as USD; }
+function createEUR(amount: number): EUR { return amount as EUR; }
+
+// AI가 통화 혼합 실수를 방지하는 코드를 생성
+function addUSD(a: USD, b: USD): USD {
+  return (a + b) as USD;
+}
+// addUSD(createUSD(10), createEUR(20)); // 컴파일 에러
+```
+
+#### .cursorrules / CLAUDE.md 로 AI 컨텍스트 최적화
+
+프로젝트 루트에 `.cursorrules` 또는 `CLAUDE.md` 파일을 두면 AI가 프로젝트 규칙을 자동으로 반영한다.
+
+```markdown
+# CLAUDE.md 예시
+
+## TypeScript 규칙
+- 모든 함수에 명시적 반환 타입을 작성한다.
+- `any` 대신 `unknown`을 사용하고, type guard로 좁힌다.
+- API 응답은 반드시 Zod 스키마로 런타임 검증한다.
+- 에러 처리는 Result 패턴(discriminated union)을 사용한다.
+
+## 타입 패턴
+- 도메인 ID는 Branded Type을 사용한다: `type UserId = string & { __brand: "UserId" }`
+- 서버 응답 타입은 `/types/api.ts`에 정의한다.
+- 컴포넌트 props는 컴포넌트 파일 내에 정의한다.
+
+## 프로젝트 구조
+- /src/types - 공유 타입 정의
+- /src/schemas - Zod 스키마 (타입의 단일 소스)
+- /src/lib - 유틸리티 함수
+```
+
+### 1.3 AI 생성 코드의 타입 안전성 검증 전략
+
+```typescript
+import { z } from "zod";
+
+// 전략 1: Zod 스키마를 Single Source of Truth로 사용
+const CreateUserInputSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  age: z.number().int().min(0).max(150),
+});
+
+type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
+
+// 전략 2: AI가 생성한 함수에 대한 타입 테스트
+// type-testing.ts
+import { expectTypeOf } from "vitest";
+
+expectTypeOf(fetchUser).parameter(0).toBeNumber();
+expectTypeOf(fetchUser).returns.resolves.toMatchTypeOf<User>();
+
+// 전략 3: satisfies를 활용한 타입 검증 (AI 출력 검증에 유용)
+const defaultConfig = {
+  retryCount: 3,
+  timeout: 5000,
+  baseUrl: "https://api.example.com",
+} satisfies Record<string, string | number>;
+// satisfies는 값의 타입을 좁히면서도 구조를 검증
+
+// 전략 4: Valibot으로 경량 런타임 검증 (번들 사이즈 최소화)
+import * as v from "valibot";
+
+const UserSchema = v.object({
+  id: v.pipe(v.number(), v.integer()),
+  name: v.pipe(v.string(), v.minLength(1)),
+  email: v.pipe(v.string(), v.email()),
+});
+
+type User = v.InferOutput<typeof UserSchema>;
+
+function validateApiResponse<T>(schema: v.BaseSchema<any, T, any>, data: unknown): T {
+  return v.parse(schema, data);
+}
+```
+
+### 1.4 AI API 응답 검증: Zod 스키마 -> TypeScript 타입 자동 추론 패턴
+
+```typescript
+import { z } from "zod";
+
+// LLM API 응답을 구조화된 타입으로 검증하는 패턴
+const LLMResponseSchema = z.object({
+  id: z.string(),
+  model: z.string(),
+  choices: z.array(
+    z.object({
+      message: z.object({
+        role: z.enum(["assistant", "user", "system"]),
+        content: z.string(),
+      }),
+      finishReason: z.enum(["stop", "length", "content_filter"]),
+    }),
+  ),
+  usage: z.object({
+    promptTokens: z.number(),
+    completionTokens: z.number(),
+    totalTokens: z.number(),
+  }),
+});
+
+type LLMResponse = z.infer<typeof LLMResponseSchema>;
+
+// Structured Output 검증 패턴
+function createStructuredParser<T extends z.ZodType>(schema: T) {
   return {
-    validate: guard,
-    parse(input: unknown): T {
-      if (!guard(input)) {
-        throw new TypeError(`Validation failed: ${JSON.stringify(input)}`);
-      }
-      return input;
+    schema,
+    parse(raw: unknown): z.infer<T> {
+      return schema.parse(raw);
+    },
+    safeParse(raw: unknown) {
+      return schema.safeParse(raw);
     },
   };
 }
 
-// 3단계: AI 생성 함수를 타입 안전 래퍼로 감싸기
-function withTypeCheck<TArgs extends unknown[], TReturn>(
-  fn: (...args: TArgs) => TReturn,
-  returnValidator: Validator<TReturn>,
-): (...args: TArgs) => TReturn {
-  return (...args: TArgs) => {
-    const result = fn(...args);
-    return returnValidator.parse(result);
-  };
-}
-```
-
-### JSDoc + TypeScript로 AI 컨텍스트 최적화
-
-JSDoc 주석은 AI 어시스턴트에게 의도와 제약 조건을 전달하는 가장 효과적인 수단이다.
-
-```typescript
-/**
- * 주문 금액을 계산한다.
- *
- * @description
- * - 할인율은 0-100 범위의 정수만 허용
- * - 세금은 주문 금액에서 할인 적용 후 계산
- * - 최종 금액이 0 미만이면 0을 반환
- *
- * @example
- * ```ts
- * calculateOrderTotal({ subtotal: 10000, discountPercent: 10, taxRate: 0.1 })
- * // => { subtotal: 10000, discount: 1000, tax: 900, total: 9900 }
- * ```
- */
-function calculateOrderTotal(params: {
-  /** 상품 합계 금액 (원) */
-  subtotal: number;
-  /** 할인율 (0-100) */
-  discountPercent: number;
-  /** 세율 (0-1 범위, 예: 0.1 = 10%) */
-  taxRate: number;
-}): {
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-} {
-  const { subtotal, discountPercent, taxRate } = params;
-  const discount = Math.round(subtotal * (discountPercent / 100));
-  const afterDiscount = subtotal - discount;
-  const tax = Math.round(afterDiscount * taxRate);
-  const total = Math.max(0, afterDiscount + tax);
-  return { subtotal, discount, tax, total };
-}
-```
-
-### Zod/Valibot 스키마에서 타입 자동 추론 (AI API 응답 검증)
-
-AI API(OpenAI, Claude 등)의 응답을 런타임에 검증하면서 타입을 자동 추론하는 패턴이다.
-
-```typescript
-import { z } from 'zod';
-
-// AI API 응답 스키마 정의 - 타입이 자동으로 추론됨
-const AIAnalysisSchema = z.object({
-  sentiment: z.enum(['positive', 'negative', 'neutral']),
+// 사용: AI가 JSON을 반환할 때 타입 안전하게 파싱
+const SentimentSchema = z.object({
+  sentiment: z.enum(["positive", "negative", "neutral"]),
   confidence: z.number().min(0).max(1),
-  keywords: z.array(z.string()).min(1),
-  summary: z.string().max(500),
-  categories: z.array(z.object({
-    name: z.string(),
-    score: z.number().min(0).max(1),
-  })),
+  keywords: z.array(z.string()),
 });
 
-// 스키마에서 타입 자동 추론
-type AIAnalysis = z.infer<typeof AIAnalysisSchema>;
-// {
-//   sentiment: "positive" | "negative" | "neutral";
-//   confidence: number;
-//   keywords: string[];
-//   summary: string;
-//   categories: { name: string; score: number }[];
-// }
+const sentimentParser = createStructuredParser(SentimentSchema);
 
-// AI API 호출 + 런타임 검증
-async function analyzeText(text: string): Promise<AIAnalysis> {
-  const response = await fetch('/api/ai/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+async function analyzeSentiment(text: string) {
+  const response = await callLLM({
+    prompt: `Analyze sentiment: "${text}". Return JSON.`,
   });
-
-  const raw = await response.json();
-
-  // 런타임 검증 - 스키마와 불일치하면 ZodError 발생
-  const validated = AIAnalysisSchema.parse(raw);
-  return validated; // 타입이 AIAnalysis로 보장됨
-}
-
-// Valibot 방식 (번들 크기 최적화)
-import * as v from 'valibot';
-
-const AIAnalysisValibotSchema = v.object({
-  sentiment: v.picklist(['positive', 'negative', 'neutral']),
-  confidence: v.pipe(v.number(), v.minValue(0), v.maxValue(1)),
-  keywords: v.pipe(v.array(v.string()), v.minLength(1)),
-  summary: v.pipe(v.string(), v.maxLength(500)),
-});
-
-type AIAnalysisValibot = v.InferOutput<typeof AIAnalysisValibotSchema>;
-```
-
----
-
-## TypeScript 5.8+ 최신 기능 심화
-
-### `erasableSyntaxOnly` 모드와 Node.js 네이티브 TS 실행
-
-TypeScript 5.8에서 도입된 `erasableSyntaxOnly`는 Node.js의 `--experimental-strip-types`와 완벽히 호환되는 코드만 허용한다. 타입 구문을 단순 제거(erasure)하는 것만으로 유효한 JavaScript가 되어야 한다.
-
-```jsonc
-// tsconfig.json
-{
-  "compilerOptions": {
-    "erasableSyntaxOnly": true
-  }
-}
-```
-
-```typescript
-// 허용되는 구문 (erasable)
-type User = { name: string; age: number };
-interface Config { debug: boolean }
-function greet(name: string): string { return `Hello, ${name}`; }
-const value = someValue as string;
-
-// 금지되는 구문 (non-erasable) - 제거만으로는 의미가 바뀜
-enum Direction { Up, Down, Left, Right }  // 에러: enum은 런타임 코드를 생성
-namespace MyApp { export const version = '1.0'; }  // 에러: 값을 가진 namespace
-
-// 대안: const enum 또는 union 타입 사용
-// const enum은 erasable (인라인 치환됨)
-const enum Direction { Up, Down, Left, Right }
-
-// 또는 union 타입으로 대체 (권장)
-type Direction = 'up' | 'down' | 'left' | 'right';
-```
-
-```bash
-# Node.js 22.6+ 에서 TypeScript 직접 실행
-node --experimental-strip-types app.ts
-
-# Node.js 23+ 에서는 플래그 없이도 가능 (안정화)
-node app.ts
-```
-
-### `isolatedDeclarations` 모드
-
-`isolatedDeclarations`는 각 파일이 독립적으로 `.d.ts`를 생성할 수 있도록 강제한다. 다른 파일의 타입 정보 없이도 선언 파일을 만들 수 있어야 하므로, 내보내는 함수와 변수에 명시적 타입 어노테이션이 필요하다.
-
-```jsonc
-// tsconfig.json
-{
-  "compilerOptions": {
-    "isolatedDeclarations": true,
-    "declaration": true
-  }
-}
-```
-
-```typescript
-// 에러: 반환 타입을 명시해야 함
-export function add(a: number, b: number) {
-  return a + b;
-}
-
-// 수정: 반환 타입 명시
-export function add(a: number, b: number): number {
-  return a + b;
-}
-
-// 에러: 내보내는 변수의 타입을 추론에 의존할 수 없음
-export const config = {
-  port: 3000,
-  host: 'localhost',
-};
-
-// 수정: 타입을 명시하거나 as const 사용
-export const config: { port: number; host: string } = {
-  port: 3000,
-  host: 'localhost',
-};
-
-// 또는 satisfies + as const 조합
-export const config = {
-  port: 3000,
-  host: 'localhost',
-} as const satisfies { port: number; host: string };
-```
-
-**장점**: 병렬 빌드 도구(swc, oxc, esbuild)가 개별 파일에서 `.d.ts`를 생성할 수 있어 빌드 속도가 크게 향상된다.
-
-### `--noCheck` 플래그로 빌드 성능 최적화
-
-`--noCheck`를 사용하면 타입 체크를 생략하고 emit(변환)만 수행한다. CI에서 빌드와 타입 체크를 분리하여 전체 파이프라인 속도를 높일 수 있다.
-
-```bash
-# 빌드만 수행 (타입 체크 생략) - 빠름
-tsc --noCheck --outDir dist
-
-# 타입 체크만 수행 (emit 생략) - 별도 단계
-tsc --noEmit
-
-# CI 파이프라인 예시: 병렬 실행으로 시간 단축
-# Step 1 (병렬): 빌드 + 타입 체크
-tsc --noCheck --outDir dist &   # 빌드 (빠름)
-tsc --noEmit &                  # 타입 체크 (별도)
-wait
-```
-
-```jsonc
-// tsconfig.build.json - 빌드 전용 설정
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noCheck": true,
-    "outDir": "dist",
-    "declaration": true,
-    "declarationMap": true
-  }
-}
-```
-
-### Resolution 모드 개선사항
-
-TypeScript 5.8+에서는 모듈 해석이 더욱 정교해졌다. `require()` 호출에서도 ESM 모듈을 올바르게 처리한다.
-
-```typescript
-// 타입 임포트에서 resolution 모드 명시
-import type { Config } from './config' with { 'resolution-mode': 'import' };
-import type { Legacy } from './legacy' with { 'resolution-mode': 'require' };
-
-// package.json의 exports 필드와 연동
-// {
-//   "exports": {
-//     ".": {
-//       "import": "./dist/esm/index.js",
-//       "require": "./dist/cjs/index.cjs"
-//     }
-//   }
-// }
-```
-
-```jsonc
-// tsconfig.json - 2026 권장 모듈 설정
-{
-  "compilerOptions": {
-    "module": "NodeNext",             // Node.js ESM/CJS 듀얼 지원
-    "moduleResolution": "NodeNext",   // package.json exports 완전 지원
-    // 또는 번들러 사용 시:
-    "module": "ESNext",
-    "moduleResolution": "Bundler"     // Vite, esbuild, webpack 5+
-  }
+  const parsed = JSON.parse(response.choices[0].message.content);
+  return sentimentParser.parse(parsed);
+  // 반환 타입이 자동으로 { sentiment: "positive" | ..., confidence: number, ... }
 }
 ```
 
 ---
 
-## 타입 레벨 프로그래밍 마스터클래스
+## 2. TypeScript 5.8+ 최신 기능
 
-### Recursive Conditional Types 실전 패턴
+### 2.1 erasableSyntaxOnly + Node.js 네이티브 TS 실행
 
-재귀적 조건부 타입을 사용하면 복잡한 타입 변환을 구현할 수 있다.
+Node.js 22.6+에서 `--experimental-strip-types` 플래그로 TypeScript를 직접 실행할 수 있다. 이 모드는 타입 어노테이션을 단순히 제거(erase)하여 실행하므로, enum이나 namespace처럼 런타임 코드를 생성하는 구문은 사용할 수 없다.
+
+```jsonc
+// tsconfig.json
+{
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,     // enum, namespace 등 사용 시 에러
+    "verbatimModuleSyntax": true,   // import type 강제
+    "rewriteRelativeImportExtensions": true  // .ts -> .js 자동 변환 (TS 5.7)
+  }
+}
+```
 
 ```typescript
-// 깊은 중첩 객체를 모두 Readonly로 변환
-type DeepReadonly<T> =
-  T extends (infer U)[]
-    ? ReadonlyArray<DeepReadonly<U>>
-    : T extends object
-      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-      : T;
+// 허용: 순수 타입 구문 (컴파일 시 제거됨)
+type UserId = string;
+interface User { id: UserId; name: string; }
+function greet(user: User): string { return `Hello ${user.name}`; }
 
-interface NestedConfig {
-  db: {
-    host: string;
-    credentials: {
-      username: string;
-      password: string;
-    };
-  };
-  features: string[];
+// 금지: 런타임 코드를 생성하는 구문
+// enum Status { Active, Inactive }  // 에러! erasableSyntaxOnly 위반
+// namespace Utils { ... }           // 에러!
+
+// 대안: const object + as const
+const Status = { Active: "active", Inactive: "inactive" } as const;
+type Status = (typeof Status)[keyof typeof Status];
+```
+
+```bash
+# Node.js에서 직접 실행 (빌드 불필요)
+node --experimental-strip-types src/server.ts
+
+# Node.js 23+ (플래그 없이 실행 가능)
+node src/server.ts
+```
+
+### 2.2 isolatedDeclarations 모드
+
+각 파일이 다른 파일의 타입 정보 없이도 독립적으로 `.d.ts`를 생성할 수 있도록 강제한다. 대규모 프로젝트에서 병렬 선언 파일 생성이 가능해진다.
+
+```jsonc
+{
+  "compilerOptions": {
+    "isolatedDeclarations": true
+  }
 }
+```
 
-type FrozenConfig = DeepReadonly<NestedConfig>;
-// {
-//   readonly db: {
-//     readonly host: string;
-//     readonly credentials: {
-//       readonly username: string;
-//       readonly password: string;
-//     };
-//   };
-//   readonly features: ReadonlyArray<string>;
+```typescript
+// 에러: 반환 타입 추론 불가 (다른 파일 정보 필요)
+// export function getUser(id: number) {
+//   return db.findUser(id);
 // }
 
-// 깊은 Partial
-type DeepPartial<T> =
-  T extends object
-    ? { [K in keyof T]?: DeepPartial<T[K]> }
+// 해결: 명시적 반환 타입
+export function getUser(id: number): User | null {
+  return db.findUser(id);
+}
+
+// 에러: 복잡한 초기화 표현식에서 타입 추론 불가
+// export const config = createConfig({ ... });
+
+// 해결: 명시적 타입 어노테이션
+export const config: AppConfig = createConfig({ /* ... */ });
+```
+
+### 2.3 --noCheck 빌드 성능 최적화
+
+타입 검사를 건너뛰고 트랜스파일만 수행한다. CI에서 타입 검사와 빌드를 분리하여 병렬 실행할 때 유용하다.
+
+```jsonc
+// package.json
+{
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:fast": "tsc --noCheck",
+    "ci": "npm run typecheck & npm run build:fast & wait"
+  }
+}
+```
+
+### 2.4 추론된 타입 술어 (TS 5.5)
+
+함수가 타입 가드 역할을 할 때, `is` 키워드 없이도 TypeScript가 자동으로 타입을 좁힌다.
+
+```typescript
+// TS 5.5 이전: 명시적 타입 술어 필요
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+// TS 5.5+: 자동 추론 (명시적 선언 불필요)
+function isNonNull<T>(value: T | null | undefined) {
+  return value != null;
+  // 반환 타입이 자동으로 `value is T`로 추론됨
+}
+
+const items = ["a", null, "b", undefined, "c"];
+const filtered = items.filter(isNonNull);
+// 타입: string[] (null | undefined 제거됨)
+
+// 실전: 배열에서 특정 조건 필터링 시 타입이 자동으로 좁혀짐
+interface Cat { kind: "cat"; meow(): void; }
+interface Dog { kind: "dog"; bark(): void; }
+type Animal = Cat | Dog;
+
+const animals: Animal[] = [/* ... */];
+const dogs = animals.filter((a) => a.kind === "dog");
+// TS 5.5+: Dog[] 로 자동 추론
+```
+
+### 2.5 정규표현식 구문 검사 (TS 5.5)
+
+```typescript
+// TS 5.5+: 잘못된 정규표현식을 컴파일 타임에 감지
+// const re = /[a-z/;     // 에러: 닫히지 않은 문자 클래스
+// const re2 = /(?<name)/; // 에러: 잘못된 named group
+
+const validRe = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // OK
+```
+
+### 2.6 NoInfer 유틸리티 타입 (TS 5.4)
+
+제네릭 타입 추론에서 특정 위치의 타입이 추론에 참여하지 않도록 막는다.
+
+```typescript
+// 문제: defaultValue의 타입이 추론에 영향을 줌
+function getOrDefault<T>(values: T[], defaultValue: T): T {
+  return values.length > 0 ? values[0] : defaultValue;
+}
+// getOrDefault([1, 2, 3], "fallback") -> T가 string | number로 추론 (의도하지 않음)
+
+// 해결: NoInfer로 defaultValue를 추론에서 제외
+function getOrDefault<T>(values: T[], defaultValue: NoInfer<T>): T {
+  return values.length > 0 ? values[0] : defaultValue;
+}
+// getOrDefault([1, 2, 3], "fallback") -> 에러! string은 number에 할당 불가
+// getOrDefault([1, 2, 3], 0)          -> OK, T는 number
+
+// 실전: 이벤트 핸들러에서 페이로드 타입 강제
+function on<K extends string>(
+  event: K,
+  handler: (payload: NoInfer<EventMap[K]>) => void,
+): void { /* ... */ }
+```
+
+---
+
+## 3. 타입 레벨 프로그래밍 마스터클래스
+
+### 3.1 Recursive Conditional Types
+
+```typescript
+// DeepReadonly: 중첩 객체를 재귀적으로 readonly로 변환
+type DeepReadonly<T> = T extends (infer U)[]
+  ? ReadonlyArray<DeepReadonly<U>>
+  : T extends object
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
     : T;
 
-// 점 표기법 경로 추출 (예: "db.credentials.username")
-type DotPath<T, Prefix extends string = ''> =
-  T extends object
+interface AppState {
+  user: { name: string; settings: { theme: string; notifications: boolean } };
+  items: { id: number; tags: string[] }[];
+}
+
+type FrozenState = DeepReadonly<AppState>;
+// FrozenState.user.settings.theme은 readonly string
+// FrozenState.items는 ReadonlyArray<...>
+
+// DotPath (재귀 경로 추출 - 깊이 제한 포함)
+type DotPath<T, Depth extends unknown[] = []> = Depth["length"] extends 5
+  ? never
+  : T extends object
     ? {
-        [K in keyof T & string]:
-          | `${Prefix}${K}`
-          | DotPath<T[K], `${Prefix}${K}.`>
+        [K in keyof T & string]: T[K] extends object
+          ? K | `${K}.${DotPath<T[K], [...Depth, unknown]>}`
+          : K;
       }[keyof T & string]
     : never;
 
-type ConfigPaths = DotPath<NestedConfig>;
-// "db" | "db.host" | "db.credentials" | "db.credentials.username"
-// | "db.credentials.password" | "features"
-
-// 점 표기법으로 값 타입 추출
-type GetByPath<T, P extends string> =
-  P extends `${infer Head}.${infer Tail}`
-    ? Head extends keyof T
-      ? GetByPath<T[Head], Tail>
-      : never
-    : P extends keyof T
-      ? T[P]
-      : never;
-
-type HostType = GetByPath<NestedConfig, 'db.host'>; // string
-type CredType = GetByPath<NestedConfig, 'db.credentials'>; // { username: string; password: string }
+type StatePaths = DotPath<AppState>;
+// "user" | "user.name" | "user.settings" | "user.settings.theme" | ...
 ```
 
-### Variadic Tuple Types 고급 활용
-
-가변 길이 튜플 타입을 활용한 타입 안전한 유틸리티 함수 패턴이다.
+### 3.2 Variadic Tuple Types
 
 ```typescript
-// 타입 안전한 pipe 함수
-type PipeFunction<In, Out> = (input: In) => Out;
+// pipe: 함수 합성을 타입 안전하게 구현
+type LastOf<T extends any[]> = T extends [...any[], infer L] ? L : never;
+type PipeReturn<Fns extends ((...args: any[]) => any)[]> = ReturnType<LastOf<Fns>>;
 
-function pipe<A>(value: A): A;
-function pipe<A, B>(value: A, fn1: PipeFunction<A, B>): B;
-function pipe<A, B, C>(value: A, fn1: PipeFunction<A, B>, fn2: PipeFunction<B, C>): C;
+function pipe<A, B>(fn1: (a: A) => B): (a: A) => B;
+function pipe<A, B, C>(fn1: (a: A) => B, fn2: (b: B) => C): (a: A) => C;
 function pipe<A, B, C, D>(
-  value: A,
-  fn1: PipeFunction<A, B>,
-  fn2: PipeFunction<B, C>,
-  fn3: PipeFunction<C, D>,
-): D;
-function pipe(value: unknown, ...fns: Function[]) {
-  return fns.reduce((acc, fn) => fn(acc), value);
+  fn1: (a: A) => B, fn2: (b: B) => C, fn3: (c: C) => D,
+): (a: A) => D;
+function pipe(...fns: Function[]) {
+  return (x: any) => fns.reduce((v, f) => f(v), x);
 }
 
-const result = pipe(
-  '  Hello, World!  ',
-  (s: string) => s.trim(),
-  (s: string) => s.toLowerCase(),
-  (s: string) => s.split(' '),
+const transform = pipe(
+  (s: string) => s.length,         // string -> number
+  (n: number) => n > 5,            // number -> boolean
+  (b: boolean) => (b ? "long" : "short"), // boolean -> string
 );
-// result: string[] = ["hello,", "world!"]
+// transform의 타입: (s: string) => string
 
-// 튜플 연결
-type Concat<A extends unknown[], B extends unknown[]> = [...A, ...B];
-type AB = Concat<[1, 2], [3, 4]>; // [1, 2, 3, 4]
+// zip: 두 튜플을 쌍으로 묶기
+type Zip<A extends any[], B extends any[]> = A extends [infer AH, ...infer AT]
+  ? B extends [infer BH, ...infer BT]
+    ? [[AH, BH], ...Zip<AT, BT>]
+    : []
+  : [];
 
-// 튜플의 첫 번째 / 나머지 분리
-type Head<T extends unknown[]> = T extends [infer H, ...unknown[]] ? H : never;
-type Tail<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
-
-type First = Head<[string, number, boolean]>; // string
-type Rest = Tail<[string, number, boolean]>;  // [number, boolean]
-
-// 튜플 길이 기반 타입 가드
-type HasMinLength<T extends unknown[], N extends number> =
-  T['length'] extends N ? true :
-  T extends [unknown, ...infer Rest] ? HasMinLength<Rest, N> : false;
-
-// 타입 안전한 zip 함수
-function zip<A extends unknown[], B extends unknown[]>(
-  a: [...A],
-  b: [...B],
-): { [K in keyof A]: K extends keyof B ? [A[K], B[K]] : never } {
-  return a.map((val, i) => [val, b[i]]) as any;
+function zip<A extends any[], B extends any[]>(a: [...A], b: [...B]): Zip<A, B> {
+  return a.map((item, i) => [item, b[i]]) as any;
 }
 
-const zipped = zip([1, 'a'] as [number, string], [true, 42] as [boolean, number]);
-// 타입: [number, boolean], [string, number]]
+const zipped = zip([1, "a", true] as const, ["x", 2, null] as const);
+// 타입: [[1, "x"], ["a", 2], [true, null]]
 ```
 
-### Key Remapping via `as` clause
-
-Mapped Types에서 `as`를 사용한 키 재매핑으로 강력한 타입 변환을 구현한다.
+### 3.3 Key Remapping via `as` clause
 
 ```typescript
-// Getter 타입 자동 생성
+// Getters 자동 생성
 type Getters<T> = {
   [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];
 };
 
-interface Person {
-  name: string;
-  age: number;
-  email: string;
-}
-
+interface Person { name: string; age: number; email: string; }
 type PersonGetters = Getters<Person>;
-// {
-//   getName: () => string;
-//   getAge: () => number;
-//   getEmail: () => string;
-// }
+// { getName: () => string; getAge: () => number; getEmail: () => string }
 
-// 특정 타입의 프로퍼티만 필터링
-type OnlyStrings<T> = {
+// 특정 타입의 키만 필터링
+type OnlyStringKeys<T> = {
   [K in keyof T as T[K] extends string ? K : never]: T[K];
 };
 
-type StringProps = OnlyStrings<Person>;
-// { name: string; email: string }
+type StringFields = OnlyStringKeys<Person>;
+// { name: string; email: string } (age 제외)
 
-// 이벤트 핸들러 타입 생성
+// Event Handler 맵 생성
 type EventHandlers<T> = {
   [K in keyof T as `on${Capitalize<string & K>}Change`]: (newValue: T[K]) => void;
 };
 
-type PersonEvents = EventHandlers<Person>;
-// {
-//   onNameChange: (newValue: string) => void;
-//   onAgeChange: (newValue: number) => void;
-//   onEmailChange: (newValue: string) => void;
-// }
-
-// Prefix 제거
-type RemovePrefix<T, P extends string> = {
-  [K in keyof T as K extends `${P}${infer Rest}` ? Uncapitalize<Rest> : K]: T[K];
-};
-
-type ApiResponse = {
-  data_userId: string;
-  data_userName: string;
-  data_email: string;
-  meta_total: number;
-};
-
-type CleanResponse = RemovePrefix<ApiResponse, 'data_'>;
-// { userId: string; userName: string; email: string; meta_total: number }
+type PersonHandlers = EventHandlers<Person>;
+// { onNameChange: (v: string) => void; onAgeChange: (v: number) => void; ... }
 ```
 
-### Type-safe Event Emitter (제네릭 + 오버로딩)
-
-타입 안전한 이벤트 이미터를 제네릭과 조건부 타입으로 구현한다.
+### 3.4 Type-safe Event Emitter
 
 ```typescript
-type EventMap = Record<string, unknown[]>;
+// Template Literal Types + 제네릭으로 타입 안전한 이벤트 시스템
+interface EventMap {
+  "user:login": { userId: string; timestamp: number };
+  "user:logout": { userId: string; reason: "manual" | "timeout" };
+  "order:created": { orderId: string; total: number };
+  "order:shipped": { orderId: string; trackingNumber: string };
+}
 
-type EventKey<T extends EventMap> = string & keyof T;
+// 이벤트 이름에서 namespace 추출
+type EventNamespace = EventMap extends Record<`${infer NS}:${string}`, any> ? NS : never;
+// "user" | "order"
 
-class TypedEventEmitter<Events extends EventMap> {
+class TypedEventEmitter<Events extends Record<string, any>> {
   private listeners = new Map<string, Set<Function>>();
 
-  on<K extends EventKey<Events>>(
+  on<K extends keyof Events & string>(
     event: K,
-    handler: (...args: Events[K]) => void,
+    handler: (payload: Events[K]) => void,
   ): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    const handlers = this.listeners.get(event)!;
-    handlers.add(handler);
-
-    // 구독 해제 함수 반환
-    return () => {
-      handlers.delete(handler);
-    };
+    this.listeners.get(event)!.add(handler);
+    return () => this.listeners.get(event)?.delete(handler);
   }
 
-  emit<K extends EventKey<Events>>(event: K, ...args: Events[K]): void {
-    const handlers = this.listeners.get(event);
-    if (handlers) {
-      handlers.forEach(handler => handler(...args));
+  emit<K extends keyof Events & string>(event: K, payload: Events[K]): void {
+    this.listeners.get(event)?.forEach((handler) => handler(payload));
+  }
+
+  // 와일드카드: 특정 namespace의 모든 이벤트 구독
+  onNamespace<NS extends EventNamespace>(
+    namespace: NS,
+    handler: (event: string, payload: any) => void,
+  ): void {
+    for (const [event] of this.listeners) {
+      if (event.startsWith(`${namespace}:`)) {
+        this.on(event as any, (payload) => handler(event, payload));
+      }
     }
   }
-
-  once<K extends EventKey<Events>>(
-    event: K,
-    handler: (...args: Events[K]) => void,
-  ): void {
-    const unsubscribe = this.on(event, ((...args: Events[K]) => {
-      unsubscribe();
-      handler(...args);
-    }) as (...args: Events[K]) => void);
-  }
 }
 
-// 사용: 이벤트 맵을 제네릭으로 정의
-type AppEvents = {
-  'user:login': [userId: string, timestamp: Date];
-  'user:logout': [userId: string];
-  'notification:push': [title: string, body: string, priority: 'low' | 'high'];
-  'error': [error: Error, context: Record<string, unknown>];
-};
+const emitter = new TypedEventEmitter<EventMap>();
 
-const emitter = new TypedEventEmitter<AppEvents>();
-
-// 모든 인수의 타입이 자동 추론됨
-emitter.on('user:login', (userId, timestamp) => {
-  // userId: string, timestamp: Date
-  console.log(`${userId} logged in at ${timestamp.toISOString()}`);
+emitter.on("user:login", (payload) => {
+  // payload는 자동으로 { userId: string; timestamp: number }
+  console.log(`User ${payload.userId} logged in`);
 });
 
-emitter.emit('user:login', 'user-123', new Date()); // 정상
-// emitter.emit('user:login', 123); // 에러: number는 string에 할당 불가
-// emitter.emit('user:login', 'user-123'); // 에러: timestamp 인수 누락
+emitter.emit("order:created", { orderId: "ORD-1", total: 99.99 });
+// emitter.emit("order:created", { orderId: "ORD-1" }); // 에러: total 누락
 ```
 
-### HKT(Higher-Kinded Types) 시뮬레이션
+### 3.5 HKT(Higher-Kinded Types) 시뮬레이션
 
-TypeScript는 Higher-Kinded Types를 직접 지원하지 않지만, 인터페이스 확장 패턴으로 시뮬레이션할 수 있다.
+TypeScript는 HKT를 네이티브로 지원하지 않지만, 인터페이스 확장 패턴으로 시뮬레이션할 수 있다.
 
 ```typescript
-// HKT 시뮬레이션을 위한 기반 인터페이스
-interface HKT {
-  readonly _URI: string;
-  readonly _A: unknown;
-}
-
-// URI -> 구체 타입 매핑을 위한 레지스트리
-interface URItoKind<A> {}
-
-// URI에서 구체 타입 추출
-type Kind<URI extends keyof URItoKind<unknown>, A> = URItoKind<A>[URI];
-
-// Option 타입 정의
-type Option<A> = { tag: 'none' } | { tag: 'some'; value: A };
-
-// 레지스트리에 등록
-interface URItoKind<A> {
-  Option: Option<A>;
-}
-
-// Array 등록
-interface URItoKind<A> {
+// HKT 시뮬레이션을 위한 기본 인프라
+interface TypeRegistry<A = unknown> {
   Array: A[];
+  Promise: Promise<A>;
+  Nullable: A | null;
+  Readonly: Readonly<A>;
 }
 
-// Functor 타입 클래스
-interface Functor<F extends keyof URItoKind<unknown>> {
-  map: <A, B>(fa: Kind<F, A>, f: (a: A) => B) => Kind<F, B>;
+type Kind<F extends keyof TypeRegistry, A> = TypeRegistry<A>[F];
+
+// HKT를 활용한 Functor 인터페이스
+interface Functor<F extends keyof TypeRegistry> {
+  map<A, B>(fa: Kind<F, A>, f: (a: A) => B): Kind<F, B>;
 }
 
-// Option의 Functor 인스턴스
-const optionFunctor: Functor<'Option'> = {
-  map: <A, B>(fa: Option<A>, f: (a: A) => B): Option<B> => {
-    if (fa.tag === 'none') return { tag: 'none' };
-    return { tag: 'some', value: f(fa.value) };
-  },
-};
-
-// Array의 Functor 인스턴스
-const arrayFunctor: Functor<'Array'> = {
+// Array Functor
+const arrayFunctor: Functor<"Array"> = {
   map: <A, B>(fa: A[], f: (a: A) => B): B[] => fa.map(f),
 };
 
-// Functor를 사용하는 제네릭 함수
-function doubleAll<F extends keyof URItoKind<unknown>>(
+// Nullable Functor
+const nullableFunctor: Functor<"Nullable"> = {
+  map: <A, B>(fa: A | null, f: (a: A) => B): B | null =>
+    fa === null ? null : f(fa),
+};
+
+// 제네릭 함수에서 HKT 활용
+function doubleAll<F extends keyof TypeRegistry>(
   functor: Functor<F>,
-  fa: Kind<F, number>,
+  values: Kind<F, number>,
 ): Kind<F, number> {
-  return functor.map(fa, n => n * 2);
+  return functor.map(values, (n) => n * 2);
 }
 
-const doubled = doubleAll(arrayFunctor, [1, 2, 3]); // [2, 4, 6]
-const doubledOpt = doubleAll(optionFunctor, { tag: 'some', value: 5 }); // { tag: 'some', value: 10 }
+doubleAll(arrayFunctor, [1, 2, 3]);         // [2, 4, 6]
+doubleAll(nullableFunctor, 5);               // 10
+doubleAll(nullableFunctor, null);             // null
 ```
 
 ---
 
-## Full-Stack 타입 안전성
+## 4. Full-Stack 타입 안전성
 
-### tRPC 타입 안전 API 계층
-
-tRPC를 사용하면 서버와 클라이언트 사이에 API 스키마 없이 완전한 타입 안전성을 확보할 수 있다.
+### 4.1 tRPC 타입 안전 API 계층
 
 ```typescript
-// server/trpc.ts - tRPC 라우터 정의
-import { initTRPC, TRPCError } from '@trpc/server';
-import { z } from 'zod';
+// server/trpc.ts - 라우터 정의
+import { initTRPC, TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 const t = initTRPC.context<{ userId?: string }>().create();
 
 const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.userId) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   return next({ ctx: { userId: ctx.userId } });
 });
@@ -685,23 +750,20 @@ export const appRouter = t.router({
     getById: protectedProcedure
       .input(z.object({ id: z.string().uuid() }))
       .query(async ({ input, ctx }) => {
-        // input.id: string (자동 추론)
-        // ctx.userId: string (미들웨어에서 보장)
         const user = await db.user.findUnique({ where: { id: input.id } });
-        if (!user) throw new TRPCError({ code: 'NOT_FOUND' });
+        if (!user) throw new TRPCError({ code: "NOT_FOUND" });
         return user;
       }),
 
-    update: protectedProcedure
+    updateProfile: protectedProcedure
       .input(z.object({
-        id: z.string().uuid(),
-        name: z.string().min(1).optional(),
-        email: z.string().email().optional(),
+        name: z.string().min(1).max(100),
+        bio: z.string().max(500).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         return db.user.update({
-          where: { id: input.id },
-          data: { name: input.name, email: input.email },
+          where: { id: ctx.userId },
+          data: input,
         });
       }),
 
@@ -718,7 +780,7 @@ export const appRouter = t.router({
         const hasMore = items.length > input.limit;
         return {
           items: hasMore ? items.slice(0, -1) : items,
-          nextCursor: hasMore ? items[items.length - 1].id : undefined,
+          nextCursor: hasMore ? items[items.length - 1].id : null,
         };
       }),
   }),
@@ -728,46 +790,42 @@ export type AppRouter = typeof appRouter;
 ```
 
 ```typescript
-// client/trpc.ts - 클라이언트에서 사용
-import { createTRPCReact } from '@trpc/react-query';
-import type { AppRouter } from '../server/trpc';
+// client/trpc.ts - 클라이언트 (타입이 자동으로 동기화)
+import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "../server/trpc";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-// 컴포넌트에서 사용 - 모든 타입이 서버에서 자동 추론
+// 컴포넌트에서 사용
 function UserProfile({ userId }: { userId: string }) {
-  const { data: user, isLoading } = trpc.user.getById.useQuery({ id: userId });
-  // user의 타입이 서버의 반환 타입에서 자동 추론
+  const { data: user } = trpc.user.getById.useQuery({ id: userId });
+  // user의 타입이 서버 반환 타입과 자동으로 동기화됨
 
-  const updateMutation = trpc.user.update.useMutation();
+  const updateMutation = trpc.user.updateProfile.useMutation();
 
-  const handleUpdate = (name: string) => {
-    updateMutation.mutate({
-      id: userId,
-      name, // 타입 안전: string만 허용
-    });
-  };
-
-  if (isLoading) return <div>Loading...</div>;
-  return <div>{user?.name}</div>;
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      updateMutation.mutate({ name: "New Name", bio: "Updated bio" });
+      // 입력 타입도 서버 Zod 스키마에서 자동 추론
+    }}>
+      <p>{user?.name}</p>
+    </form>
+  );
 }
 ```
 
-### Prisma + TypeScript 타입 동기화
-
-Prisma는 스키마에서 TypeScript 타입을 자동 생성하여 DB 계층부터 API까지 타입 안전성을 보장한다.
+### 4.2 Prisma + TypeScript 타입 동기화
 
 ```prisma
 // prisma/schema.prisma
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  name      String?
-  role      Role     @default(MEMBER)
+  name      String
+  role      Role     @default(USER)
   posts     Post[]
-  profile   Profile?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Post {
@@ -777,105 +835,102 @@ model Post {
   published Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
-  tags      Tag[]
 }
 
 enum Role {
+  USER
   ADMIN
-  MEMBER
-  GUEST
+  MODERATOR
 }
 ```
 
 ```typescript
-// Prisma가 생성한 타입을 활용
-import { Prisma, type User, type Post, type Role } from '@prisma/client';
+// Prisma가 자동 생성한 타입 활용
+import { Prisma } from "@prisma/client";
 
-// 관계를 포함한 타입 생성
-type UserWithPosts = Prisma.UserGetPayload<{
-  include: { posts: true; profile: true };
-}>;
-// {
-//   id: string; email: string; name: string | null; role: Role;
-//   posts: Post[]; profile: Profile | null;
-//   createdAt: Date; updatedAt: Date;
-// }
+// 특정 select/include 조합에 대한 타입 추출
+const userWithPosts = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: { posts: { where: { published: true } } },
+});
+type UserWithPosts = Prisma.UserGetPayload<typeof userWithPosts>;
 
-// select로 부분 타입 생성
-type UserSummary = Prisma.UserGetPayload<{
-  select: { id: true; email: true; name: true; role: true };
-}>;
-// { id: string; email: string; name: string | null; role: Role }
+// 재사용 가능한 쿼리 빌더
+function buildUserQuery<T extends Prisma.UserFindManyArgs>(
+  args: Prisma.SelectSubset<T, Prisma.UserFindManyArgs>,
+) {
+  return prisma.user.findMany(args);
+}
 
-// 입력 타입 활용
-type CreateUserInput = Prisma.UserCreateInput;
-type UpdateUserInput = Prisma.UserUpdateInput;
+// 호출 시 select/include에 따라 반환 타입이 자동으로 달라짐
+const simpleUsers = await buildUserQuery({ select: { id: true, name: true } });
+// 타입: { id: string; name: string }[]
 
-// 서비스 레이어에서 타입 안전한 쿼리
-async function getPublishedPostsByUser(userId: string): Promise<Post[]> {
-  return prisma.post.findMany({
-    where: {
-      authorId: userId,
-      published: true,  // boolean만 허용
-    },
-    orderBy: {
-      createdAt: 'desc', // 'asc' | 'desc'만 허용
-    },
-  });
+const fullUsers = await buildUserQuery({ include: { posts: true } });
+// 타입: (User & { posts: Post[] })[]
+
+// 서비스 레이어에서 타입 안전한 패턴
+class UserService {
+  async findActive(role?: Role): Promise<UserWithPosts[]> {
+    return prisma.user.findMany({
+      where: { role },
+      include: { posts: { where: { published: true } } },
+    });
+  }
 }
 ```
 
-### Zodios/ts-rest로 REST API 타입 안전성
-
-REST API에서도 계약 기반(contract-first) 접근으로 타입 안전성을 확보할 수 있다.
+### 4.3 ts-rest REST API 계약
 
 ```typescript
-// ts-rest 방식: API 계약 정의
-import { initContract } from '@ts-rest/core';
-import { z } from 'zod';
+// shared/contract.ts - 서버/클라이언트 공유 API 계약
+import { initContract } from "@ts-rest/core";
+import { z } from "zod";
 
 const c = initContract();
 
-const UserSchema = z.object({
+const PostSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  email: z.string().email(),
-  role: z.enum(['admin', 'member', 'guest']),
+  title: z.string(),
+  content: z.string().nullable(),
+  published: z.boolean(),
+  authorId: z.string(),
 });
 
-const CreateUserSchema = UserSchema.omit({ id: true });
-
-export const apiContract = c.router({
-  users: {
+export const contract = c.router({
+  posts: {
     getAll: {
-      method: 'GET',
-      path: '/api/users',
+      method: "GET",
+      path: "/posts",
       query: z.object({
         page: z.coerce.number().default(1),
         limit: z.coerce.number().default(20),
+        published: z.coerce.boolean().optional(),
       }),
       responses: {
         200: z.object({
-          users: z.array(UserSchema),
+          items: z.array(PostSchema),
           total: z.number(),
         }),
       },
     },
     getById: {
-      method: 'GET',
-      path: '/api/users/:id',
+      method: "GET",
+      path: "/posts/:id",
       pathParams: z.object({ id: z.string() }),
       responses: {
-        200: UserSchema,
+        200: PostSchema,
         404: z.object({ message: z.string() }),
       },
     },
     create: {
-      method: 'POST',
-      path: '/api/users',
-      body: CreateUserSchema,
+      method: "POST",
+      path: "/posts",
+      body: z.object({
+        title: z.string().min(1),
+        content: z.string().optional(),
+      }),
       responses: {
-        201: UserSchema,
+        201: PostSchema,
         400: z.object({ errors: z.array(z.string()) }),
       },
     },
@@ -884,982 +939,681 @@ export const apiContract = c.router({
 ```
 
 ```typescript
-// 서버: 계약을 구현 (Express + ts-rest)
-import { createExpressEndpoints, initServer } from '@ts-rest/express';
-import { apiContract } from './contract';
+// server/routes.ts - Express/Fastify 서버 구현
+import { createExpressEndpoints } from "@ts-rest/express";
+import { contract } from "../shared/contract";
 
-const s = initServer();
-
-const router = s.router(apiContract, {
-  users: {
+createExpressEndpoints(contract, {
+  posts: {
     getAll: async ({ query }) => {
-      // query.page: number, query.limit: number (자동 추론)
-      const users = await db.user.findMany({
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
-      });
-      return { status: 200, body: { users, total: await db.user.count() } };
+      const { page, limit, published } = query;
+      const [items, total] = await Promise.all([
+        prisma.post.findMany({
+          where: published !== undefined ? { published } : {},
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.post.count(),
+      ]);
+      return { status: 200, body: { items, total } };
     },
     getById: async ({ params }) => {
-      const user = await db.user.findUnique({ where: { id: params.id } });
-      if (!user) return { status: 404 as const, body: { message: 'Not found' } };
-      return { status: 200 as const, body: user };
+      const post = await prisma.post.findUnique({ where: { id: params.id } });
+      if (!post) return { status: 404 as const, body: { message: "Not found" } };
+      return { status: 200 as const, body: post };
     },
     create: async ({ body }) => {
-      // body의 타입이 CreateUserSchema에서 자동 추론
-      const user = await db.user.create({ data: body });
-      return { status: 201 as const, body: user };
+      const post = await prisma.post.create({ data: body });
+      return { status: 201 as const, body: post };
     },
   },
-});
-
-createExpressEndpoints(apiContract, router, app);
+}, app);
 ```
 
-```typescript
-// 클라이언트: 동일한 계약으로 타입 안전한 호출
-import { initClient } from '@ts-rest/core';
-import { apiContract } from './contract';
-
-const client = initClient(apiContract, {
-  baseUrl: 'http://localhost:3000',
-  baseHeaders: { Authorization: `Bearer ${token}` },
-});
-
-// 모든 요청/응답 타입이 계약에서 추론
-const { status, body } = await client.users.getAll({
-  query: { page: 1, limit: 10 },
-});
-
-if (status === 200) {
-  body.users.forEach(user => {
-    console.log(user.name); // string으로 추론
-  });
-}
-```
-
-### Server/Client 공유 타입 전략
-
-모노레포에서 서버와 클라이언트 간 타입을 공유하는 실전 패턴이다.
+### 4.4 Server/Client 공유 타입 전략
 
 ```typescript
-// packages/shared/src/types.ts - 공유 타입 패키지
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
+// shared/types.ts - 공유 타입 (패키지 또는 경로 alias로 공유)
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
-
-export type UserRole = 'admin' | 'member' | 'guest';
 
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   page: number;
-  pageSize: number;
+  totalPages: number;
   hasMore: boolean;
 }
 
-// API 엔드포인트 타입 매핑
-export interface ApiEndpoints {
-  'GET /users': {
-    query: { page?: number; limit?: number; role?: UserRole };
-    response: PaginatedResponse<User>;
-  };
-  'GET /users/:id': {
-    params: { id: string };
-    response: User;
-  };
-  'POST /users': {
-    body: Omit<User, 'id'>;
-    response: User;
-  };
-  'PATCH /users/:id': {
-    params: { id: string };
-    body: Partial<Omit<User, 'id'>>;
-    response: User;
-  };
+export interface ApiResult<T> {
+  success: true;
+  data: T;
+  meta?: { requestId: string; duration: number };
 }
 
-// 엔드포인트에서 메서드별 경로 추출
-type ExtractPaths<M extends string> = {
-  [K in keyof ApiEndpoints]: K extends `${M} ${infer Path}` ? Path : never;
-}[keyof ApiEndpoints];
-
-export type GetPaths = ExtractPaths<'GET'>;   // "/users" | "/users/:id"
-export type PostPaths = ExtractPaths<'POST'>; // "/users"
-```
-
-```typescript
-// packages/shared/src/typedFetch.ts - 타입 안전한 fetch 래퍼
-import type { ApiEndpoints } from './types';
-
-type EndpointConfig<K extends keyof ApiEndpoints> = ApiEndpoints[K];
-
-export async function typedFetch<K extends keyof ApiEndpoints>(
-  endpoint: K,
-  ...args: 'body' extends keyof EndpointConfig<K>
-    ? [options: { body: EndpointConfig<K> extends { body: infer B } ? B : never }]
-    : [options?: { query?: Record<string, string> }]
-): Promise<EndpointConfig<K> extends { response: infer R } ? R : never> {
-  // 구현...
-  const [method, path] = (endpoint as string).split(' ');
-  const response = await fetch(path, { method });
-  return response.json();
+export interface ApiError {
+  success: false;
+  error: { code: string; message: string; details?: unknown };
 }
+
+export type ApiResponse<T> = ApiResult<T> | ApiError;
+
+// 타입 가드
+export function isApiError<T>(response: ApiResponse<T>): response is ApiError {
+  return !response.success;
+}
+
+// 공유 유틸리티 타입
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+export type RequireAtLeastOne<T> = {
+  [K in keyof T]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<keyof T, K>>>;
+}[keyof T];
+
+// monorepo에서의 활용 (tsconfig paths)
+// tsconfig.json: { "paths": { "@shared/*": ["../../packages/shared/src/*"] } }
+// import type { ApiResponse } from "@shared/types";
 ```
 
 ---
 
-## React 19 + TypeScript 고급 패턴
+## 5. React 19 + TypeScript 고급 패턴
 
-### Server Components 타입 패턴
-
-React 19의 Server Components에서는 비동기 컴포넌트와 Server Actions를 위한 새로운 타입 패턴이 필요하다.
+### 5.1 async Server Components 타입
 
 ```typescript
-// async Server Component - React 19에서 공식 지원
-interface PostPageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ draft?: string }>;
+// React 19 Server Components는 async 함수 가능
+interface UserPageProps {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
-// Server Component는 async 함수로 작성 가능
-async function PostPage({ params, searchParams }: PostPageProps) {
-  const { slug } = await params;
-  const { draft } = await searchParams;
-
-  const post = await db.post.findUnique({
-    where: { slug, published: draft !== 'true' },
-  });
-
-  if (!post) return notFound();
+// Next.js 15+ App Router Server Component
+async function UserPage({ params, searchParams }: UserPageProps) {
+  const { id } = await params;
+  const { tab } = await searchParams;
+  const user = await fetchUser(id);
 
   return (
-    <article>
-      <h1>{post.title}</h1>
-      <PostContent content={post.content} />
-    </article>
+    <div>
+      <h1>{user.name}</h1>
+      {tab === "posts" && <UserPosts userId={id} />}
+    </div>
   );
 }
 
-// Server Actions 타입 패턴
-'use server';
+// async Server Component의 타입 정의
+async function UserPosts({ userId }: { userId: string }) {
+  const posts = await db.post.findMany({ where: { authorId: userId } });
 
-import { z } from 'zod';
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
 
-const CreatePostSchema = z.object({
-  title: z.string().min(1).max(200),
-  content: z.string().min(1),
-  tags: z.array(z.string()).default([]),
+export default UserPage;
+```
+
+### 5.2 Server Actions 타입 패턴
+
+```typescript
+"use server";
+
+import { z } from "zod";
+
+// Server Action에 Zod 검증을 결합한 패턴
+const UpdateProfileSchema = z.object({
+  name: z.string().min(1).max(100),
+  bio: z.string().max(500).optional(),
+  avatarUrl: z.string().url().optional(),
 });
 
-// 액션 결과 타입
-type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string; fieldErrors?: Record<string, string[]> };
+interface ActionState {
+  success: boolean;
+  message: string;
+  errors?: Record<string, string[]>;
+}
 
-async function createPost(
-  _prevState: ActionResult<{ id: string }> | null,
+export async function updateProfile(
+  prevState: ActionState,
   formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
-  const parsed = CreatePostSchema.safeParse({
-    title: formData.get('title'),
-    content: formData.get('content'),
-    tags: formData.getAll('tags'),
-  });
+): Promise<ActionState> {
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = UpdateProfileSchema.safeParse(raw);
 
   if (!parsed.success) {
     return {
       success: false,
-      error: 'Validation failed',
-      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Validation failed",
+      errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
 
-  const post = await db.post.create({ data: parsed.data });
-  revalidatePath('/posts');
-  return { success: true, data: { id: post.id } };
+  try {
+    await db.user.update({
+      where: { id: getCurrentUserId() },
+      data: parsed.data,
+    });
+    return { success: true, message: "Profile updated" };
+  } catch {
+    return { success: false, message: "Failed to update profile" };
+  }
 }
 ```
 
 ```typescript
-// 클라이언트에서 Server Action 사용
-'use client';
+"use client";
 
-import { useActionState } from 'react';
+import { useActionState } from "react";
+import { updateProfile } from "./actions";
 
-function CreatePostForm() {
-  const [state, formAction, isPending] = useActionState(createPost, null);
+function ProfileForm() {
+  const [state, formAction, isPending] = useActionState(updateProfile, {
+    success: false,
+    message: "",
+  });
 
   return (
     <form action={formAction}>
-      <input name="title" disabled={isPending} />
-      {state?.success === false && state.fieldErrors?.title && (
-        <p className="error">{state.fieldErrors.title[0]}</p>
-      )}
-      <textarea name="content" disabled={isPending} />
+      <input name="name" />
+      {state.errors?.name && <p>{state.errors.name[0]}</p>}
+
+      <textarea name="bio" />
+      {state.errors?.bio && <p>{state.errors.bio[0]}</p>}
+
       <button type="submit" disabled={isPending}>
-        {isPending ? 'Creating...' : 'Create Post'}
+        {isPending ? "Saving..." : "Save"}
       </button>
+
+      {state.message && <p>{state.message}</p>}
     </form>
   );
 }
 ```
 
-### `use()` hook 타입 패턴
-
-React 19의 `use()` hook은 Promise와 Context를 컴포넌트 내부에서 직접 소비할 수 있다.
+### 5.3 Polymorphic 컴포넌트 (ref 포함)
 
 ```typescript
-import { use, Suspense } from 'react';
+import { type ComponentPropsWithRef, type ElementType, forwardRef } from "react";
 
-// Promise를 use()로 소비
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-function UserProfile({ userPromise }: { userPromise: Promise<User> }) {
-  // use()는 Promise를 unwrap - Suspense 경계 필요
-  const user = use(userPromise);
-  // user의 타입은 User로 자동 추론
-
-  return (
-    <div>
-      <h2>{user.name}</h2>
-      <p>{user.email}</p>
-    </div>
-  );
-}
-
-// 부모 컴포넌트에서 Promise 전달
-function UserPage({ userId }: { userId: string }) {
-  // Promise를 생성만 하고 전달 (렌더링 시점에 fetch 시작)
-  const userPromise = fetchUser(userId);
-
-  return (
-    <Suspense fallback={<div>Loading user...</div>}>
-      <UserProfile userPromise={userPromise} />
-    </Suspense>
-  );
-}
-
-// Context를 use()로 조건부 소비
-import { createContext } from 'react';
-
-interface Theme {
-  primary: string;
-  secondary: string;
-  mode: 'light' | 'dark';
-}
-
-const ThemeContext = createContext<Theme | null>(null);
-
-function ThemedButton({ override }: { override?: boolean }) {
-  // use()는 조건문 안에서도 호출 가능 (useContext와 다른 점)
-  if (override) {
-    return <button style={{ color: 'red' }}>Override</button>;
-  }
-
-  const theme = use(ThemeContext);
-  if (!theme) throw new Error('ThemeContext not provided');
-
-  return (
-    <button style={{ color: theme.primary }}>
-      Themed Button ({theme.mode})
-    </button>
-  );
-}
-```
-
-### Polymorphic 컴포넌트 타입 (개선된 패턴)
-
-React 19에서는 `forwardRef` 없이 ref를 props로 받으므로 Polymorphic 패턴이 더 깔끔해진다.
-
-```typescript
-import type { ComponentPropsWithRef, ElementType, ReactNode } from 'react';
-
-// 개선된 Polymorphic 타입 - ref 포함
-type PolymorphicProps<
-  C extends ElementType,
-  Props = {},
-> = Props & {
-  as?: C;
-  children?: ReactNode;
-} & Omit<ComponentPropsWithRef<C>, keyof Props | 'as' | 'children'>;
-
-// 스타일 props 포함 예시
-interface BoxOwnProps {
-  padding?: 'sm' | 'md' | 'lg';
-  rounded?: boolean;
-}
-
-type BoxProps<C extends ElementType = 'div'> = PolymorphicProps<C, BoxOwnProps>;
-
-// React 19: forwardRef 없이 ref를 직접 prop으로 받음
-function Box<C extends ElementType = 'div'>({
-  as,
-  padding,
-  rounded,
-  ref,
-  children,
-  className,
-  ...rest
-}: BoxProps<C>) {
-  const Component = as ?? 'div';
-
-  const paddingClass = padding ? `p-${padding}` : '';
-  const roundedClass = rounded ? 'rounded' : '';
-
-  return (
-    <Component
-      ref={ref}
-      className={`${paddingClass} ${roundedClass} ${className ?? ''}`.trim()}
-      {...rest}
-    >
-      {children}
-    </Component>
-  );
-}
-
-// 사용
-<Box padding="md" rounded>기본 div</Box>
-<Box as="section" padding="lg">섹션으로 렌더링</Box>
-<Box as="a" href="/home" padding="sm">앵커로 렌더링</Box>
-<Box as="button" onClick={() => {}} padding="md">버튼으로 렌더링</Box>
-// <Box as="a" disabled /> // 에러: 'a' 요소에 disabled 없음
-```
-
-### Compound Component 타입 패턴
-
-관련 컴포넌트를 하나의 네임스페이스로 묶는 Compound Component 패턴이다.
-
-```typescript
-import { createContext, use, useState, type ReactNode } from 'react';
-
-// 1. Context 타입 정의
-interface AccordionContextValue {
-  openItems: Set<string>;
-  toggle: (id: string) => void;
-  multiple: boolean;
-}
-
-const AccordionContext = createContext<AccordionContextValue | null>(null);
-
-function useAccordionContext(): AccordionContextValue {
-  const ctx = use(AccordionContext);
-  if (!ctx) {
-    throw new Error('Accordion 하위 컴포넌트는 Accordion 내부에서 사용해야 합니다.');
-  }
-  return ctx;
-}
-
-// 2. 루트 컴포넌트
-interface AccordionRootProps {
-  children: ReactNode;
-  multiple?: boolean;
-  defaultOpen?: string[];
-}
-
-function AccordionRoot({ children, multiple = false, defaultOpen = [] }: AccordionRootProps) {
-  const [openItems, setOpenItems] = useState<Set<string>>(new Set(defaultOpen));
-
-  const toggle = (id: string) => {
-    setOpenItems(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        if (!multiple) next.clear();
-        next.add(id);
-      }
-      return next;
-    });
+// Polymorphic 컴포넌트의 핵심 타입
+type PolymorphicProps<E extends ElementType, Props = {}> = Props &
+  Omit<ComponentPropsWithRef<E>, keyof Props | "as"> & {
+    as?: E;
   };
 
+// ref를 포함한 Polymorphic 컴포넌트
+type ButtonProps<E extends ElementType = "button"> = PolymorphicProps<
+  E,
+  {
+    variant?: "primary" | "secondary" | "ghost";
+    size?: "sm" | "md" | "lg";
+    isLoading?: boolean;
+  }
+>;
+
+type ButtonComponent = <E extends ElementType = "button">(
+  props: ButtonProps<E>,
+) => React.ReactElement | null;
+
+const Button: ButtonComponent = forwardRef(function Button<
+  E extends ElementType = "button",
+>(
+  { as, variant = "primary", size = "md", isLoading, children, ...rest }: ButtonProps<E>,
+  ref: React.Ref<Element>,
+) {
+  const Component = as || "button";
   return (
-    <AccordionContext value={{ openItems, toggle, multiple }}>
-      <div role="region">{children}</div>
-    </AccordionContext>
+    <Component ref={ref} data-variant={variant} data-size={size} {...rest}>
+      {isLoading ? "Loading..." : children}
+    </Component>
+  );
+}) as ButtonComponent;
+
+// 사용
+<Button variant="primary">Click me</Button>                          // button
+<Button as="a" href="/about" variant="ghost">About</Button>          // a 태그
+<Button as="link" to="/dashboard" variant="secondary">Dashboard</Button>
+// 각각의 경우 해당 요소의 props가 자동 완성됨
+```
+
+### 5.4 Compound Component 타입 패턴
+
+```typescript
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+// Compound Component 패턴: Tabs 예시
+interface TabsContextValue {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+const TabsContext = createContext<TabsContextValue | null>(null);
+
+function useTabsContext(): TabsContextValue {
+  const context = useContext(TabsContext);
+  if (!context) {
+    throw new Error("Tabs compound component must be used within <Tabs>");
+  }
+  return context;
+}
+
+// Root
+interface TabsProps {
+  defaultTab: string;
+  children: ReactNode;
+  onChange?: (tab: string) => void;
+}
+
+function Tabs({ defaultTab, children, onChange }: TabsProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const handleChange = (tab: string) => {
+    setActiveTab(tab);
+    onChange?.(tab);
+  };
+  return (
+    <TabsContext.Provider value={{ activeTab, setActiveTab: handleChange }}>
+      <div role="tablist">{children}</div>
+    </TabsContext.Provider>
   );
 }
 
-// 3. 하위 컴포넌트
-interface AccordionItemProps {
-  id: string;
+// Sub-components
+interface TabProps {
+  value: string;
   children: ReactNode;
+  disabled?: boolean;
 }
 
-function AccordionItem({ id, children }: AccordionItemProps) {
-  return <div data-accordion-item={id}>{children}</div>;
-}
-
-interface AccordionTriggerProps {
-  id: string;
-  children: ReactNode;
-}
-
-function AccordionTrigger({ id, children }: AccordionTriggerProps) {
-  const { openItems, toggle } = useAccordionContext();
+function Tab({ value, children, disabled }: TabProps) {
+  const { activeTab, setActiveTab } = useTabsContext();
   return (
     <button
-      aria-expanded={openItems.has(id)}
-      onClick={() => toggle(id)}
+      role="tab"
+      aria-selected={activeTab === value}
+      disabled={disabled}
+      onClick={() => setActiveTab(value)}
     >
       {children}
     </button>
   );
 }
 
-interface AccordionContentProps {
-  id: string;
-  children: ReactNode;
+function TabPanel({ value, children }: { value: string; children: ReactNode }) {
+  const { activeTab } = useTabsContext();
+  if (activeTab !== value) return null;
+  return <div role="tabpanel">{children}</div>;
 }
 
-function AccordionContent({ id, children }: AccordionContentProps) {
-  const { openItems } = useAccordionContext();
-  if (!openItems.has(id)) return null;
-  return <div role="region">{children}</div>;
-}
+// Namespace export
+Tabs.Tab = Tab;
+Tabs.Panel = TabPanel;
 
-// 4. Compound Component로 조합
-const Accordion = Object.assign(AccordionRoot, {
-  Item: AccordionItem,
-  Trigger: AccordionTrigger,
-  Content: AccordionContent,
-});
+export { Tabs };
 
 // 사용
-function FAQ() {
+function App() {
   return (
-    <Accordion multiple defaultOpen={['faq-1']}>
-      <Accordion.Item id="faq-1">
-        <Accordion.Trigger id="faq-1">TypeScript란?</Accordion.Trigger>
-        <Accordion.Content id="faq-1">
-          TypeScript는 JavaScript의 슈퍼셋 언어입니다.
-        </Accordion.Content>
-      </Accordion.Item>
-      <Accordion.Item id="faq-2">
-        <Accordion.Trigger id="faq-2">왜 사용하나요?</Accordion.Trigger>
-        <Accordion.Content id="faq-2">
-          타입 안전성과 개발 생산성을 높여줍니다.
-        </Accordion.Content>
-      </Accordion.Item>
-    </Accordion>
+    <Tabs defaultTab="overview" onChange={(tab) => console.log(tab)}>
+      <Tabs.Tab value="overview">Overview</Tabs.Tab>
+      <Tabs.Tab value="settings">Settings</Tabs.Tab>
+      <Tabs.Tab value="billing" disabled>Billing</Tabs.Tab>
+
+      <Tabs.Panel value="overview">Overview content</Tabs.Panel>
+      <Tabs.Panel value="settings">Settings content</Tabs.Panel>
+    </Tabs>
   );
 }
-```
-
-### forwardRef 제거 후 ref 패턴
-
-React 19에서는 `forwardRef`가 더 이상 필요하지 않다. ref를 일반 prop으로 받는다.
-
-```typescript
-// React 18 (이전 방식) - forwardRef 필요
-import { forwardRef } from 'react';
-
-interface InputProps {
-  label: string;
-  error?: string;
-}
-
-const InputOld = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, ...rest }, ref) => (
-    <div>
-      <label>{label}</label>
-      <input ref={ref} {...rest} />
-      {error && <span className="error">{error}</span>}
-    </div>
-  )
-);
-
-// React 19 (새 방식) - ref를 직접 prop으로 받음
-interface InputNewProps {
-  label: string;
-  error?: string;
-  ref?: React.Ref<HTMLInputElement>;
-}
-
-function Input({ label, error, ref, ...rest }: InputNewProps) {
-  return (
-    <div>
-      <label>{label}</label>
-      <input ref={ref} {...rest} />
-      {error && <span className="error">{error}</span>}
-    </div>
-  );
-}
-
-// 제네릭 컴포넌트에서도 ref가 자연스럽게 동작
-interface ListRef<T> {
-  scrollToItem: (item: T) => void;
-  getVisibleItems: () => T[];
-}
-
-interface VirtualListProps<T> {
-  items: T[];
-  renderItem: (item: T) => ReactNode;
-  ref?: React.Ref<ListRef<T>>;
-}
-
-function VirtualList<T>({ items, renderItem, ref }: VirtualListProps<T>) {
-  useImperativeHandle(ref, () => ({
-    scrollToItem: (item: T) => { /* 구현 */ },
-    getVisibleItems: () => items.slice(0, 10),
-  }));
-
-  return <div>{items.map(renderItem)}</div>;
-}
-
-// 사용
-const listRef = useRef<ListRef<User>>(null);
-<VirtualList ref={listRef} items={users} renderItem={u => <div>{u.name}</div>} />
 ```
 
 ---
 
-## 런타임 검증과 타입 통합
+## 6. 런타임 검증과 타입 통합
 
-### Zod vs Valibot vs ArkType 비교 (2026)
+### 6.1 Zod vs Valibot vs ArkType 비교 (2026)
 
-| 특성 | Zod | Valibot | ArkType |
+| 항목 | Zod | Valibot | ArkType |
 |------|-----|---------|---------|
-| 번들 크기 | ~14KB | ~1KB (tree-shake) | ~5KB |
-| API 스타일 | 메서드 체이닝 | 파이프/함수 조합 | 선언적 문법 |
-| 타입 추론 | 우수 | 우수 | 최상 |
-| 에러 메시지 | 커스터마이징 가능 | 커스터마이징 가능 | 자동 상세 메시지 |
-| 생태계 | 가장 넓음 (tRPC, React Hook Form 등) | 빠르게 성장 중 | 신생 |
-| 성능 | 좋음 | 매우 좋음 | 최상 (컴파일 타임 최적화) |
+| **번들 사이즈** | ~57KB (min) | ~6KB (사용분만) | ~30KB |
+| **Tree-shaking** | 제한적 | 완벽 (함수 기반) | 부분 지원 |
+| **성능 (파싱)** | 기준선 | ~2x 빠름 | ~5x 빠름 |
+| **API 스타일** | 메서드 체이닝 | 파이프 기반 | 문자열 DSL |
+| **TypeScript 추론** | 우수 | 우수 | 최상 (1:1 매핑) |
+| **에코시스템** | 최대 (tRPC, react-hook-form) | 성장 중 | 초기 |
+| **러닝 커브** | 낮음 | 낮음 | 중간 |
+| **추천 시나리오** | 범용, 에코시스템 중요 | 번들 사이즈 민감 | 최대 성능 필요 |
 
 ```typescript
-// Zod - 가장 널리 쓰이는 선택
-import { z } from 'zod';
-
-const UserSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).max(100),
+// Zod: 가장 넓은 에코시스템
+import { z } from "zod";
+const ZodUser = z.object({
+  name: z.string().min(1),
   email: z.string().email(),
-  age: z.number().int().positive().max(150),
-  role: z.enum(['admin', 'member', 'guest']),
-  metadata: z.record(z.unknown()).optional(),
+  age: z.number().int().positive(),
 });
 
-type User = z.infer<typeof UserSchema>;
-
-// 변환 포함 스키마
-const CreateUserSchema = UserSchema.omit({ id: true }).transform(data => ({
-  ...data,
-  id: crypto.randomUUID(),
-  createdAt: new Date(),
-}));
-
-type CreateUserInput = z.input<typeof CreateUserSchema>;   // 입력 타입 (id 제외)
-type CreateUserOutput = z.output<typeof CreateUserSchema>; // 출력 타입 (id, createdAt 포함)
-```
-
-```typescript
-// Valibot - 번들 크기 최소화 (tree-shakeable)
-import * as v from 'valibot';
-
-const UserSchema = v.object({
-  id: v.pipe(v.string(), v.uuid()),
-  name: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
+// Valibot: 최소 번들 사이즈 (함수형 API)
+import * as v from "valibot";
+const ValibotUser = v.object({
+  name: v.pipe(v.string(), v.minLength(1)),
   email: v.pipe(v.string(), v.email()),
-  age: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(150)),
-  role: v.picklist(['admin', 'member', 'guest']),
-  metadata: v.optional(v.record(v.string(), v.unknown())),
+  age: v.pipe(v.number(), v.integer(), v.minValue(1)),
 });
 
-type User = v.InferOutput<typeof UserSchema>;
-
-// 사용하지 않는 검증 함수는 번들에서 자동 제거됨
-const result = v.safeParse(UserSchema, data);
-if (result.success) {
-  const user = result.output; // User 타입
-} else {
-  console.error(result.issues); // 상세 에러 정보
-}
-```
-
-```typescript
-// ArkType - 최고 성능 + 선언적 문법
-import { type } from 'arktype';
-
-const User = type({
-  id: 'string.uuid',
-  name: '1<string<=100',
-  email: 'string.email',
-  age: '1<integer<=150',
-  role: '"admin" | "member" | "guest"',
-  'metadata?': 'Record<string, unknown>',
+// ArkType: 최대 성능 + TypeScript에 가장 가까운 문법
+import { type } from "arktype";
+const ArkUser = type({
+  name: "string > 0",
+  email: "string.email",
+  age: "integer > 0",
 });
-
-type User = typeof User.infer;
-
-// ArkType의 에러 메시지는 자동으로 상세함
-const result = User({ id: 'not-uuid', name: '', age: -1, email: 'bad', role: 'unknown' });
-if (result instanceof type.errors) {
-  console.log(result.summary);
-  // id must be a valid UUID (was "not-uuid")
-  // name must be more than 1 characters (was "")
-  // ...
-}
 ```
 
-### Effect-TS 타입 시스템 활용
+### 6.2 Effect-TS 타입 시스템
 
-Effect-TS는 에러 처리, 의존성 주입, 동시성을 타입 레벨에서 추적하는 함수형 프로그래밍 라이브러리다.
+Effect-TS는 함수형 프로그래밍 기반의 강력한 타입 시스템을 제공한다. 에러 타입, 의존성, 성공 타입을 모두 타입 레벨에서 추적한다.
 
 ```typescript
-import { Effect, pipe, Schema } from 'effect';
+import { Effect, pipe, Schema } from "effect";
 
-// 스키마 정의 (런타임 검증 + 타입 추론)
-class User extends Schema.Class<User>('User')({
+// Effect<Success, Error, Requirements>
+// 세 가지 타입 파라미터로 부수 효과를 완전히 추적
+
+// Schema: Effect의 내장 검증 라이브러리
+class User extends Schema.Class<User>("User")({
   id: Schema.String,
   name: Schema.NonEmptyString,
   email: Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
-  role: Schema.Literal('admin', 'member', 'guest'),
+  age: Schema.Int.pipe(Schema.positive()),
 }) {}
 
-// Effect: 성공 타입(A), 에러 타입(E), 의존성(R)을 모두 추적
-class DatabaseError {
-  readonly _tag = 'DatabaseError';
-  constructor(readonly cause: unknown) {}
-}
+// 에러 타입이 자동으로 추적됨
+class DatabaseError extends Schema.TaggedError<DatabaseError>()("DatabaseError", {
+  message: Schema.String,
+}) {}
 
-class NotFoundError {
-  readonly _tag = 'NotFoundError';
-  constructor(readonly entity: string, readonly id: string) {}
-}
+class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError", {
+  entityId: Schema.String,
+}) {}
 
-interface UserRepository {
-  readonly findById: (id: string) => Effect.Effect<User, DatabaseError | NotFoundError>;
-  readonly save: (user: User) => Effect.Effect<void, DatabaseError>;
-}
-
-// 에러와 의존성이 타입에서 추적됨
-const getUserProfile = (userId: string): Effect.Effect<
-  { user: User; isAdmin: boolean },  // 성공 타입
-  DatabaseError | NotFoundError,      // 에러 타입
-  UserRepository                      // 의존성 타입
-> =>
+// Effect를 사용한 서비스 정의
+const findUser = (id: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
   pipe(
-    Effect.serviceFunctionEffect(
-      Effect.Tag<UserRepository>()('UserRepository'),
-      repo => repo.findById,
-    )(userId),
-    Effect.map(user => ({
-      user,
-      isAdmin: user.role === 'admin',
-    })),
+    Effect.tryPromise({
+      try: () => db.user.findUnique({ where: { id } }),
+      catch: () => new DatabaseError({ message: "DB connection failed" }),
+    }),
+    Effect.flatMap((user) =>
+      user
+        ? Effect.succeed(user as User)
+        : Effect.fail(new NotFoundError({ entityId: id })),
+    ),
   );
+
+// 에러 처리: 각 에러 타입별로 분기
+const program = pipe(
+  findUser("user-123"),
+  Effect.catchTag("NotFoundError", (e) =>
+    Effect.succeed({ fallback: true, id: e.entityId }),
+  ),
+  // 이 시점에서 에러 타입은 DatabaseError만 남음
+);
 ```
 
-### io-ts에서 Zod/Valibot 마이그레이션
-
-io-ts에서 Zod 또는 Valibot으로 마이그레이션하는 실전 패턴이다.
+### 6.3 환경 변수 타입 안전 검증
 
 ```typescript
-// 이전: io-ts
-import * as t from 'io-ts';
-import { isRight } from 'fp-ts/Either';
+import { z } from "zod";
 
-const UserCodec = t.type({
-  id: t.string,
-  name: t.string,
-  age: t.number,
-  email: t.string,
-  role: t.union([t.literal('admin'), t.literal('member')]),
+// 환경 변수 스키마 정의
+const envSchema = z.object({
+  // 서버 전용
+  DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(32),
+  REDIS_URL: z.string().url().optional(),
+
+  // 공개 (클라이언트 접근 가능)
+  NEXT_PUBLIC_API_URL: z.string().url(),
+  NEXT_PUBLIC_APP_ENV: z.enum(["development", "staging", "production"]),
+
+  // 숫자형 환경 변수
+  PORT: z.coerce.number().default(3000),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(10),
+
+  // 불리언 환경 변수
+  ENABLE_CACHE: z
+    .string()
+    .transform((v) => v === "true")
+    .default("false"),
 });
 
-type UserIoTs = t.TypeOf<typeof UserCodec>;
+// 타입 추론
+type Env = z.infer<typeof envSchema>;
 
-const result = UserCodec.decode(data);
-if (isRight(result)) {
-  const user = result.right;
+// 검증 함수: 앱 시작 시 호출
+function validateEnv(): Env {
+  const result = envSchema.safeParse(process.env);
+
+  if (!result.success) {
+    console.error("Invalid environment variables:");
+    for (const issue of result.error.issues) {
+      console.error(`  ${issue.path.join(".")}: ${issue.message}`);
+    }
+    process.exit(1);
+  }
+
+  return result.data;
 }
-```
 
-```typescript
-// 이후: Zod (권장 마이그레이션 대상)
-import { z } from 'zod';
+// 전역 접근 (타입 안전)
+export const env = validateEnv();
 
-const UserSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  age: z.number(),
-  email: z.string().email(), // 기본 제공 검증
-  role: z.enum(['admin', 'member']),
+// 사용
+// env.DATABASE_URL   // string (검증됨)
+// env.PORT           // number (자동 변환됨)
+// env.ENABLE_CACHE   // boolean (자동 변환됨)
+
+// Next.js의 경우 클라이언트/서버 분리
+const clientEnvSchema = envSchema.pick({
+  NEXT_PUBLIC_API_URL: true,
+  NEXT_PUBLIC_APP_ENV: true,
 });
 
-type User = z.infer<typeof UserSchema>;
-
-// safeParse는 Either 패턴과 유사하게 동작
-const result = UserSchema.safeParse(data);
-if (result.success) {
-  const user = result.data; // User 타입
-} else {
-  console.error(result.error.flatten());
-}
-```
-
-```typescript
-// 마이그레이션 도우미: io-ts 코덱을 Zod 스키마로 매핑하는 패턴
-// 점진적 마이그레이션 시 두 라이브러리를 병행 사용
-
-// 공통 타입 정의
-interface UserShape {
-  id: string;
-  name: string;
-  age: number;
-  email: string;
-  role: 'admin' | 'member';
-}
-
-// 기존 io-ts 코덱과 새 Zod 스키마가 동일한 타입을 보장
-type AssertSameType<A, B> = A extends B ? (B extends A ? true : never) : never;
-
-type IoTsUser = t.TypeOf<typeof UserCodec>;
-type ZodUser = z.infer<typeof UserSchema>;
-
-// 컴파일 타임에 두 타입이 동일한지 검증
-const _typeCheck: AssertSameType<IoTsUser, ZodUser> = true;
+export const clientEnv = clientEnvSchema.parse({
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
+});
 ```
 
 ---
 
-## 성능 & DX 최적화
+## 7. 성능 & DX 최적화
 
-### tsconfig 최적 설정 2026
+### 7.1 tsconfig 2026 최적 설정
 
 ```jsonc
 // tsconfig.json - 2026 권장 설정
 {
   "compilerOptions": {
-    // 언어 & 환경
-    "target": "ES2024",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-
-    // 모듈
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-
-    // 엄격한 타입 체크
+    // 타입 검사 강화
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,     // 인덱스 접근 시 undefined 가능성 체크
+    "exactOptionalPropertyTypes": true,    // optional과 undefined 구분
+    "noPropertyAccessFromIndexSignature": true,  // 인덱스 시그니처 dot 접근 금지
 
-    // 5.8+ 신규 옵션
-    "erasableSyntaxOnly": true,
-    "isolatedDeclarations": true,
+    // 모듈 시스템
+    "module": "node16",                    // ESM + CJS 호환
+    "moduleResolution": "node16",
+    "verbatimModuleSyntax": true,          // import type 강제
+    "isolatedModules": true,               // 트랜스파일러 호환
+
+    // 빌드 최적화
+    "target": "es2023",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "incremental": true,                   // 증분 빌드
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
+
+    // 2026 신규 기능
+    "erasableSyntaxOnly": true,            // Node.js 네이티브 실행 호환
+    "isolatedDeclarations": true,          // 병렬 선언 파일 생성
 
     // 출력
-    "noEmit": true,
+    "outDir": "./dist",
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": true,                // IDE go-to-definition 지원
     "sourceMap": true,
-
-    // 성능
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
-    "skipLibCheck": true,
-
-    // 호환성
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
 
     // 경로
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./packages/shared/src/*"]
     }
   },
-  "include": ["src", "env.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
 ```
 
-### 타입 체크 성능 최적화 (`--incremental`, Project References)
+### 7.2 Project References & incremental 빌드
 
-대규모 프로젝트에서 타입 체크 속도를 개선하는 전략이다.
-
-```jsonc
-// 1. Incremental 빌드 - 변경된 파일만 재검사
-// tsconfig.json
-{
-  "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo"  // 빌드 캐시 파일
-  }
-}
-```
+monorepo에서 패키지 간 의존 관계를 선언하여 변경된 패키지만 재빌드한다.
 
 ```jsonc
-// 2. Project References - 모노레포에서 프로젝트 간 의존성 관리
 // tsconfig.json (루트)
 {
-  "files": [],
   "references": [
-    { "path": "packages/shared" },
-    { "path": "packages/server" },
-    { "path": "packages/client" }
-  ]
+    { "path": "./packages/shared" },
+    { "path": "./packages/server" },
+    { "path": "./packages/client" }
+  ],
+  "files": []
 }
-```
 
-```jsonc
 // packages/shared/tsconfig.json
 {
   "compilerOptions": {
     "composite": true,        // Project References 필수
-    "declaration": true,      // .d.ts 생성 필수
+    "declaration": true,
     "declarationMap": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts"]
 }
-```
 
-```jsonc
 // packages/server/tsconfig.json
 {
   "compilerOptions": {
     "composite": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "references": [
-    { "path": "../shared" }   // shared 프로젝트에 의존
+    { "path": "../shared" }   // shared 패키지 의존
   ],
-  "include": ["src"]
+  "include": ["src/**/*.ts"]
 }
 ```
 
 ```bash
-# Project References 빌드 (의존 순서 자동 해석, 병렬 빌드)
+# 변경된 프로젝트만 빌드
+tsc --build --watch
+
+# 클린 빌드
+tsc --build --clean
+
+# 빌드 정보 확인
 tsc --build --verbose
-
-# 변경된 프로젝트만 증분 빌드
-tsc --build
-
-# 캐시 초기화 후 전체 재빌드
-tsc --build --clean && tsc --build
 ```
 
-```typescript
-// 3. 타입 체크를 느리게 만드는 안티패턴 회피
-
-// 느림: 깊은 재귀 타입
-type DeepNested<T, D extends number = 10> = /* 재귀 깊이 제한 없음 */
-
-// 빠름: 재귀 깊이 제한
-type DeepNested<T, D extends number[] = []> =
-  D['length'] extends 10 ? T :  // 깊이 제한
-  T extends object
-    ? { [K in keyof T]: DeepNested<T[K], [...D, 0]> }
-    : T;
-
-// 느림: 과도한 union 타입
-type AllPermutations = /* 수천 개의 union */
-
-// 빠름: 필요한 만큼만 union 사용
-type LimitedUnion = 'a' | 'b' | 'c'; // 적절한 크기 유지
-```
-
-### ESLint flat config + typescript-eslint v8
-
-2026년 기준 ESLint flat config와 typescript-eslint v8 설정이다.
+### 7.3 ESLint flat config + typescript-eslint v8
 
 ```typescript
-// eslint.config.ts (flat config - ESM)
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
+// eslint.config.ts (ESLint 9+ flat config)
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   // 전역 무시 패턴
-  { ignores: ['dist/', 'node_modules/', '*.config.*'] },
+  { ignores: ["dist/", "node_modules/", "*.config.*"] },
 
   // 기본 규칙
   eslint.configs.recommended,
 
-  // TypeScript 권장 규칙 (타입 체크 포함)
+  // TypeScript 권장 규칙 (타입 기반)
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
 
-  // TypeScript 파서 설정
+  // 타입 기반 규칙에 필요한 파서 설정
   {
     languageOptions: {
       parserOptions: {
-        projectService: true,         // v8: 자동 tsconfig 탐색
+        projectService: true,           // v8: 자동 tsconfig 감지
         tsconfigRootDir: import.meta.dirname,
       },
     },
   },
 
-  // 프로젝트별 커스텀 규칙
+  // 프로젝트별 규칙 커스터마이징
   {
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
     rules: {
       // 타입 안전성
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/strict-boolean-expressions': 'error',
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
 
       // 코드 품질
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-      }],
-      '@typescript-eslint/naming-convention': ['error',
-        { selector: 'typeLike', format: ['PascalCase'] },
-        { selector: 'enumMember', format: ['UPPER_CASE'] },
-      ],
-      '@typescript-eslint/consistent-type-imports': ['error', {
-        prefer: 'type-imports',
-        fixStyle: 'inline-type-imports',
-      }],
+      "@typescript-eslint/no-floating-promises": "error",  // await 누락 방지
+      "@typescript-eslint/no-misused-promises": "error",   // Promise 잘못된 사용
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/strict-boolean-expressions": "warn",
 
-      // 불필요한 코드 방지
-      '@typescript-eslint/no-unnecessary-condition': 'error',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      // 네이밍
+      "@typescript-eslint/naming-convention": [
+        "error",
+        { selector: "typeLike", format: ["PascalCase"] },
+        { selector: "enumMember", format: ["UPPER_CASE"] },
+        {
+          selector: "variable",
+          modifiers: ["const", "exported"],
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
+        },
+      ],
     },
   },
 
-  // 테스트 파일 규칙 완화
+  // 테스트 파일은 규칙 완화
   {
-    files: ['**/*.test.ts', '**/*.spec.ts'],
+    files: ["**/*.test.ts", "**/*.spec.ts"],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
     },
   },
 );
 ```
 
-### Biome 린터/포매터 통합
+### 7.4 Biome 2.0 통합
 
-Biome은 Rust로 작성된 초고속 린터/포매터로, ESLint + Prettier를 대체할 수 있다.
+Biome는 ESLint + Prettier를 대체하는 Rust 기반 통합 도구다. 속도가 10~100배 빠르다.
 
 ```jsonc
-// biome.json - 2026 권장 설정
+// biome.json
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.0/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "organizeImports": {
     "enabled": true
   },
@@ -1867,15 +1621,13 @@ Biome은 Rust로 작성된 초고속 린터/포매터로, ESLint + Prettier를 �
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 100,
-    "lineEnding": "lf"
+    "lineWidth": 100
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "complexity": {
-        "noBannedTypes": "error",
         "noExcessiveCognitiveComplexity": {
           "level": "warn",
           "options": { "maxAllowedComplexity": 15 }
@@ -1886,64 +1638,42 @@ Biome은 Rust로 작성된 초고속 린터/포매터로, ESLint + Prettier를 �
         "noUnusedImports": "error",
         "useExhaustiveDependencies": "warn"
       },
-      "style": {
-        "noNonNullAssertion": "warn",
-        "useConst": "error",
-        "useImportType": "error",
-        "useNodejsImportProtocol": "error"
-      },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConfusingVoidType": "error"
+        "noConsoleLog": "warn"
+      },
+      "style": {
+        "useConst": "error",
+        "noNonNullAssertion": "warn"
       },
       "nursery": {
         "useSortedClasses": "warn"
       }
     }
   },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "single",
-      "trailingCommas": "all",
-      "semicolons": "always",
-      "arrowParentheses": "always"
+  "overrides": [
+    {
+      "include": ["**/*.test.ts", "**/*.spec.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
     }
-  },
-  "files": {
-    "ignore": ["node_modules", "dist", ".next", "coverage"]
-  },
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  }
+  ]
 }
 ```
 
-```bash
-# Biome 실행
-npx @biomejs/biome check .              # 린트 + 포맷 검사
-npx @biomejs/biome check --write .      # 자동 수정
-npx @biomejs/biome format --write .     # 포맷만 적용
-npx @biomejs/biome lint .               # 린트만 실행
-
-# CI에서 사용
-npx @biomejs/biome ci .                 # 포맷/린트 검사 (수정 없이 에러만 보고)
-
-# ESLint/Prettier에서 마이그레이션
-npx @biomejs/biome migrate eslint       # ESLint 규칙 자동 변환
-npx @biomejs/biome migrate prettier     # Prettier 설정 자동 변환
-```
-
 ```jsonc
-// package.json - 스크립트 설정
+// package.json - Biome 스크립트
 {
   "scripts": {
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "ci": "biome ci . && tsc --noEmit"
+    "ci:lint": "biome ci ."
   }
 }
 ```
@@ -1954,13 +1684,12 @@ npx @biomejs/biome migrate prettier     # Prettier 설정 자동 변환
 
 - [TypeScript 공식 문서](https://www.typescriptlang.org/docs/)
 - [TypeScript 5.8 릴리스 노트](https://devblogs.microsoft.com/typescript/announcing-typescript-5-8/)
-- [Type Challenges](https://github.com/type-challenges/type-challenges) - 타입 레벨 프로그래밍 연습
-- [Total TypeScript](https://www.totaltypescript.com/) - Matt Pocock의 TypeScript 심화 강의
-- [tRPC 공식 문서](https://trpc.io/docs) - Full-Stack 타입 안전성
-- [Zod 공식 문서](https://zod.dev/) - 런타임 검증 라이브러리
-- [Valibot 공식 문서](https://valibot.dev/) - 경량 검증 라이브러리
-- [ArkType 공식 문서](https://arktype.io/) - 고성능 타입 검증
-- [Effect-TS 공식 문서](https://effect.website/) - 함수형 TypeScript
-- [Biome 공식 문서](https://biomejs.dev/) - 차세대 린터/포매터
-- [ts-rest 공식 문서](https://ts-rest.com/) - REST API 타입 안전성
-- [React TypeScript Cheatsheet](https://react-typescript-cheatsheet.netlify.app/) - React + TS 패턴 모음
+- [tRPC 공식 문서](https://trpc.io/docs)
+- [ts-rest 공식 문서](https://ts-rest.com)
+- [Zod 공식 문서](https://zod.dev)
+- [Valibot 공식 문서](https://valibot.dev)
+- [ArkType 공식 문서](https://arktype.io)
+- [Effect-TS 공식 문서](https://effect.website)
+- [Biome 공식 문서](https://biomejs.dev)
+- [typescript-eslint v8](https://typescript-eslint.io)
+- [Prisma 공식 문서](https://www.prisma.io/docs)
