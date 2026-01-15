@@ -2,73 +2,38 @@
 
 ## 목차
 
-1. [AI + Sentry 모니터링](#ai--sentry-모니터링)
-2. [Sentry SDK 2026 설정](#sentry-sdk-2026-설정)
-3. [에러 수집 최적화](#에러-수집-최적화)
-4. [Source Map 보안 관리](#source-map-보안-관리)
-5. [Alert 정책 설계](#alert-정책-설계)
-6. [민감정보 필터링](#민감정보-필터링)
-7. [Release Health 및 배포 연동](#release-health-및-배포-연동)
-8. [체크리스트](#체크리스트)
+1. [AI + Sentry 통합 전략](#1-ai--sentry-통합-전략)
+   - [Claude/GPT 에러 분석 프롬프트](#11-claudegpt-에러-분석-프롬프트)
+   - [AI 기반 에러 자동 분류 및 담당자 할당](#12-ai-기반-에러-자동-분류-및-담당자-할당)
+   - [Sentry → Slack AI 요약 파이프라인](#13-sentry--slack-ai-요약-파이프라인)
+   - [AI 기반 주간 에러 트렌드 리포트](#14-ai-기반-주간-에러-트렌드-리포트)
+   - [Copilot 에러 핸들링 자동 생성 패턴](#15-copilot-에러-핸들링-자동-생성-패턴)
+2. [멀티 베타 환경 Sentry 전략](#2-멀티-베타-환경-sentry-전략)
+   - [독립 프로젝트 vs 태그 기반 분리](#21-독립-프로젝트-vs-태그-기반-분리)
+   - [PR별 Preview 환경 Release 자동 관리](#22-pr별-preview-환경-release-자동-관리)
+   - [환경별 동적 샘플링](#23-환경별-동적-샘플링)
+   - [Feature Flag별 에러 추적](#24-feature-flag별-에러-추적)
+   - [베타 → 프로덕션 영향도 예측](#25-베타--프로덕션-영향도-예측)
+   - [환경별 독립 Alert 정책](#26-환경별-독립-alert-정책)
+   - [Preview 환경 정리 시 Sentry Release 연동](#27-preview-환경-정리-시-sentry-release-연동)
+3. [Sentry SDK 2026 설정](#3-sentry-sdk-2026-설정)
+4. [에러 수집 최적화](#4-에러-수집-최적화)
+5. [Source Map 보안 관리](#5-source-map-보안-관리)
+6. [Alert 정책 설계](#6-alert-정책-설계)
+7. [Release Health 및 배포 연동](#7-release-health-및-배포-연동)
+8. [체크리스트](#8-체크리스트)
 
 ---
 
-## AI + Sentry 모니터링
+## 1. AI + Sentry 통합 전략
 
-AI를 Sentry 워크플로우의 중심에 배치한다. 에러 수집부터 분석, 분류, 알림까지 전 과정에서 AI를 활용하여 사람의 개입을 최소화하고, 근본 원인 파악 속도를 극대화한다.
+AI를 Sentry 워크플로우 전 과정(수집 → 분류 → 분석 → 알림 → 리포트)에 내재화한다. 사람의 개입을 최소화하고 근본 원인 파악 속도를 극대화하는 것이 목표다.
 
-### AI Issue Grouping 설정
+### 1.1 Claude/GPT 에러 분석 프롬프트
 
-Sentry의 AI Issue Grouping은 머신러닝 기반으로 스택트레이스, 에러 메시지, 컨텍스트를 종합 분석하여 유사 에러를 자동 그룹핑한다. 기존 fingerprint 기반보다 정확도가 높다.
+Sentry Webhook으로 수신한 에러를 LLM에 전달하여 자동 분석한다. 아래 5개 프롬프트는 실전에서 검증된 패턴이다.
 
-**활성화 경로:** Sentry Dashboard > Settings > Issue Grouping > Enable AI Grouping
-
-```typescript
-// AI 그룹핑을 보강하는 커스텀 컨텍스트 추가
-// AI가 더 정확한 그룹핑을 수행하도록 구조화된 데이터 제공
-Sentry.setContext("business_context", {
-  module: "payment",
-  flow: "checkout",
-  provider: "toss",
-});
-
-// AI 그룹핑 오버라이드가 필요한 경우 (예: 외부 API 에러)
-Sentry.captureException(error, {
-  fingerprint: ["external-api", apiProvider, endpoint],
-  tags: {
-    ai_group_hint: "external-dependency-failure",
-  },
-});
-```
-
-**AI Grouping 튜닝 설정:**
-
-```typescript
-// sentry.config.ts
-Sentry.init({
-  // AI Grouping에 더 많은 컨텍스트를 제공하는 이벤트 프로세서
-  beforeSend(event) {
-    if (event.exception?.values) {
-      event.exception.values.forEach((exception) => {
-        // 에러 분류 힌트를 태그로 추가
-        if (exception.type?.includes("TypeError")) {
-          event.tags = { ...event.tags, error_category: "type-safety" };
-        }
-        if (exception.type?.includes("NetworkError")) {
-          event.tags = { ...event.tags, error_category: "network" };
-        }
-      });
-    }
-    return event;
-  },
-});
-```
-
-### Claude/GPT를 활용한 Sentry 에러 자동 분석
-
-Sentry Webhook으로 수신한 에러를 LLM에 전달하여 자동 분석한다. 아래 프롬프트는 실전에서 검증된 패턴이다.
-
-**프롬프트 1: 에러 근본 원인 분석**
+**프롬프트 1: 근본 원인 분석**
 
 ```text
 당신은 시니어 프론트엔드 엔지니어입니다.
@@ -84,1175 +49,1537 @@ Sentry Webhook으로 수신한 에러를 LLM에 전달하여 자동 분석한다
 - 브라우저: {{browser}}
 - OS: {{os}}
 - URL: {{url}}
-- 사용자 액션: {{breadcrumbs_last_5}}
+- 사용자 액션(최근 5개 breadcrumb): {{breadcrumbs_last_5}}
 
-## 요청 형식
+## 응답 형식
 1. 근본 원인 (한 줄 요약)
-2. 상세 분석 (코드 레벨)
+2. 상세 분석 (코드 레벨, 어떤 조건에서 발생하는지)
 3. 수정 방안 (코드 예시 포함)
-4. 재발 방지 대책
-5. 심각도 판단 (Critical/High/Medium/Low)
+4. 재발 방지 대책 (타입 가드, 테스트 케이스 등)
+5. 심각도 판단 (Critical / High / Medium / Low) + 근거
 ```
 
 **프롬프트 2: 반복 에러 패턴 분석**
 
 ```text
 아래는 최근 7일간 발생한 Sentry 에러 목록입니다.
-패턴을 분석하여 공통 원인과 우선 해결 순서를 제안하세요.
+반복 패턴, 공통 원인, 우선 해결 순서를 분석하세요.
 
 ## 에러 목록
-{{error_list_with_count_and_first_seen}}
+{{error_list_json}}
+(각 항목: issue_id, title, count, first_seen, last_seen, tags)
 
-## 요청 형식
-1. 에러 그룹 분류 (공통 원인별)
-2. 각 그룹의 근본 원인 추정
-3. 해결 우선순위 (사용자 영향도 기준)
-4. 하나의 수정으로 여러 에러를 해결할 수 있는 경우 명시
+## 분석 요청
+1. 공통 근본 원인으로 묶을 수 있는 에러 그룹 식별
+2. 각 그룹의 공통 패턴 (특정 브라우저, OS, 페이지, 시간대)
+3. 해결 우선순위 (영향 범위 x 발생 빈도 기준)
+4. 한 번의 수정으로 다수 에러를 해결할 수 있는 "root fix" 제안
+5. 각 그룹별 예상 수정 난이도 (간단/보통/복잡)
 ```
 
 **프롬프트 3: Release 영향 분석**
 
 ```text
-새 릴리스 배포 후 발생한 에러를 이전 릴리스와 비교 분석하세요.
+새로운 Release 배포 후 Sentry 에러 변화를 분석하세요.
 
-## 새 릴리스 에러 ({{new_release}})
-{{new_errors}}
+## Release 정보
+- 현재 Release: {{current_release}}
+- 이전 Release: {{previous_release}}
+- 배포 시각: {{deploy_time}}
 
-## 이전 릴리스 에러 ({{prev_release}})
-{{prev_errors}}
+## 에러 데이터
+- 신규 에러 (이전 Release에 없던 것): {{new_issues_json}}
+- 재발 에러 (Resolved → Regressed): {{regressed_issues_json}}
+- 해소 에러 (이번 Release에서 사라진 것): {{resolved_issues_json}}
+- 에러율 변화: 이전 {{prev_error_rate}}% → 현재 {{curr_error_rate}}%
 
-## 요청 형식
-1. 신규 에러 (이전 릴리스에 없던 에러)
-2. 악화된 에러 (발생 빈도 증가)
-3. 해결된 에러 (더 이상 발생하지 않는 에러)
-4. 롤백 필요 여부 판단 (근거 포함)
-5. 핫픽스 필요 항목 목록
+## 분석 요청
+1. 이번 Release가 안정적인지 판단 (배포 유지/롤백 권고)
+2. 신규 에러 각각의 원인 추정 및 긴급도
+3. 재발 에러의 이전 수정이 불완전했던 이유 추정
+4. 전체 에러율 변화 추이 해석
 ```
 
-### AI 기반 에러 자동 분류 및 담당자 할당
-
-Sentry Ownership Rules와 AI를 결합하여 에러를 자동으로 분류하고 담당자를 할당한다.
-
-```typescript
-// scripts/sentry-ai-classifier.ts
-// Sentry Webhook에서 호출되는 에러 분류기
-
-import Anthropic from "@anthropic-ai/sdk";
-
-interface SentryEvent {
-  title: string;
-  culprit: string;
-  tags: Record<string, string>;
-  exception?: {
-    values: Array<{
-      type: string;
-      value: string;
-      stacktrace?: { frames: Array<{ filename: string; function: string }> };
-    }>;
-  };
-}
-
-interface ClassificationResult {
-  team: string;
-  assignee: string;
-  priority: "critical" | "high" | "medium" | "low";
-  category: string;
-}
-
-const TEAM_MAP: Record<string, { slack: string; members: string[] }> = {
-  payment: { slack: "#team-payment", members: ["alice", "bob"] },
-  auth: { slack: "#team-auth", members: ["charlie", "dave"] },
-  platform: { slack: "#team-platform", members: ["eve", "frank"] },
-};
-
-async function classifyError(event: SentryEvent): Promise<ClassificationResult> {
-  const client = new Anthropic();
-
-  const prompt = `
-    에러를 분석하여 담당 팀, 우선순위, 카테고리를 JSON으로 반환하세요.
-
-    팀 목록: ${Object.keys(TEAM_MAP).join(", ")}
-
-    에러 정보:
-    - 제목: ${event.title}
-    - 소스: ${event.culprit}
-    - 타입: ${event.exception?.values?.[0]?.type}
-    - 메시지: ${event.exception?.values?.[0]?.value}
-    - 파일 경로: ${event.exception?.values?.[0]?.stacktrace?.frames
-      ?.map((f) => f.filename)
-      .join(", ")}
-
-    JSON 형식: { "team": string, "priority": "critical"|"high"|"medium"|"low", "category": string }
-  `;
-
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 256,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const content = response.content[0];
-  const text = content.type === "text" ? content.text : "";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  const result = JSON.parse(jsonMatch![0]);
-
-  const team = TEAM_MAP[result.team] || TEAM_MAP.platform;
-  return {
-    team: result.team,
-    assignee: team.members[0],
-    priority: result.priority,
-    category: result.category,
-  };
-}
-```
-
-**Sentry Ownership Rules 설정 (`.sentry/CODEOWNERS`):**
+**프롬프트 4: 사용자 영향 범위 분석**
 
 ```text
-# 경로 기반 자동 할당 (AI 분류의 fallback)
-path:src/features/payment/*    #team-payment
-path:src/features/auth/*       #team-auth
-path:src/shared/*              #team-platform
+아래 Sentry 에러의 사용자 영향 범위를 분석하세요.
 
-# URL 기반 할당
-url:/checkout/*                #team-payment
-url:/login/*                   #team-auth
+## 에러 정보
+- Issue ID: {{issue_id}}
+- 에러 메시지: {{exception_message}}
+- 총 이벤트 수: {{event_count}}
+- 영향받은 사용자 수: {{affected_users}}
+- 전체 활성 사용자 수: {{total_active_users}}
 
-# 에러 태그 기반 할당
-tags.error_category:network    #team-platform
-tags.error_category:payment    #team-payment
+## 영향 분석 데이터
+- 영향받은 페이지 목록: {{affected_pages}}
+- 발생 브라우저 분포: {{browser_distribution}}
+- 발생 지역 분포: {{geo_distribution}}
+- 관련 트랜잭션 성능 데이터: {{transaction_metrics}}
+
+## 분석 요청
+1. 사용자 영향 심각도 (전체 사용자의 몇 %, 어떤 기능 차단)
+2. 비즈니스 임팩트 (매출, 전환율, 사용자 이탈 예상)
+3. 특정 사용자 세그먼트 집중 여부 (특정 브라우저/지역/기기)
+4. 임시 대응 방안 (Feature Flag, 우회 로직 등)
+5. 에러 미해결 시 예상되는 악화 시나리오
 ```
 
-### Sentry -> Slack AI 요약 자동 전송 파이프라인
+**프롬프트 5: 수정 코드 제안**
 
-Sentry Webhook 이벤트를 받아 AI로 요약한 후 Slack에 전송하는 파이프라인이다.
+```text
+아래 Sentry 에러에 대한 수정 코드를 제안하세요.
+
+## 에러 정보
+- 에러 타입: {{exception_type}}
+- 에러 메시지: {{exception_message}}
+- 발생 파일: {{culprit_file}}
+- 발생 함수: {{culprit_function}}
+- 스택트레이스:
+{{stacktrace}}
+
+## 현재 코드
+```typescript
+{{current_source_code}}
+```
+
+## 요청 사항
+1. 에러를 해결하는 수정 코드 (diff 형태)
+2. 수정 코드에 대한 설명
+3. 에지 케이스 처리 포함 여부
+4. 수정 후 추가해야 할 테스트 케이스 (vitest 기준)
+5. 동일 패턴의 다른 코드에 적용할 일반화된 가이드
+```
+
+### 1.2 AI 기반 에러 자동 분류 및 담당자 할당
+
+Sentry Webhook 이벤트를 수신하고 Anthropic SDK로 에러를 분류한 뒤, 적합한 담당자에게 자동 할당한다.
 
 ```typescript
-// functions/sentry-slack-pipeline.ts
-// Sentry Webhook -> AI 분석 -> Slack 전송
-
+// ai-error-classifier.ts
 import Anthropic from "@anthropic-ai/sdk";
-
-interface SlackBlock {
-  type: string;
-  text?: { type: string; text: string };
-  fields?: Array<{ type: string; text: string }>;
-}
-
-interface SentryWebhookPayload {
-  action: string;
-  data: {
-    issue: {
-      title: string;
-      culprit: string;
-      count: string;
-      firstSeen: string;
-      lastSeen: string;
-      permalink: string;
-      metadata: {
-        type: string;
-        value: string;
-      };
-    };
-  };
-}
-
-async function handleSentryWebhook(payload: SentryWebhookPayload): Promise<void> {
-  const { issue } = payload.data;
-
-  // 1. AI로 에러 요약 생성
-  const client = new Anthropic();
-  const aiResponse = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: `
-          Sentry 에러를 Slack에 공유할 요약을 작성하세요.
-          비개발자도 이해할 수 있는 수준으로, 사용자 영향을 중심으로 서술하세요.
-
-          에러: ${issue.title}
-          소스: ${issue.culprit}
-          발생횟수: ${issue.count}
-          에러타입: ${issue.metadata.type}
-          에러메시지: ${issue.metadata.value}
-
-          형식:
-          1. 한 줄 요약 (사용자 영향 중심)
-          2. 기술적 원인 (간결하게)
-          3. 권장 조치
-        `,
-      },
-    ],
-  });
-
-  const content = aiResponse.content[0];
-  const summary = content.type === "text" ? content.text : "";
-
-  // 2. Slack Block Kit 메시지 구성
-  const blocks: SlackBlock[] = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: `Sentry Alert: ${issue.title.slice(0, 100)}` },
-    },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: summary },
-    },
-    {
-      type: "section",
-      fields: [
-        { type: "mrkdwn", text: `*발생 횟수:* ${issue.count}` },
-        { type: "mrkdwn", text: `*최초 발생:* ${issue.firstSeen}` },
-        { type: "mrkdwn", text: `*최근 발생:* ${issue.lastSeen}` },
-        { type: "mrkdwn", text: `*링크:* <${issue.permalink}|Sentry에서 보기>` },
-      ],
-    },
-  ];
-
-  // 3. Slack 전송
-  await fetch(process.env.SLACK_WEBHOOK_URL!, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ blocks }),
-  });
-}
-```
-
-### AI로 반복 에러 패턴 분석 및 근본 원인 추적
-
-Sentry API에서 이슈 목록을 조회하여 AI로 패턴을 분석하는 주기적 작업이다.
-
-```typescript
-// scripts/sentry-pattern-analysis.ts
-// cron으로 주 1회 실행 — 반복 에러 패턴 분석
 
 interface SentryIssue {
   id: string;
   title: string;
   culprit: string;
-  count: string;
+  metadata: { type: string; value: string };
+  tags: Array<{ key: string; value: string }>;
+  count: number;
   userCount: number;
   firstSeen: string;
   lastSeen: string;
 }
 
-async function analyzeWeeklyPatterns(): Promise<void> {
-  // 1. Sentry API에서 최근 7일 이슈 조회
-  const response = await fetch(
-    `https://sentry.io/api/0/projects/${process.env.SENTRY_ORG}/${process.env.SENTRY_PROJECT}/issues/?query=is:unresolved+firstSeen:-7d&sort=freq`,
-    {
-      headers: { Authorization: `Bearer ${process.env.SENTRY_API_TOKEN}` },
+interface ClassificationResult {
+  category: "network" | "type-safety" | "ui-render" | "auth" | "data" | "performance" | "infra" | "unknown";
+  severity: "critical" | "high" | "medium" | "low";
+  assignee: string;
+  explanation: string;
+  suggestedLabels: string[];
+}
+
+// 팀별 담당 영역 매핑 (조직에 맞게 수정)
+const TEAM_OWNERSHIP: Record<string, { team: string; members: string[] }> = {
+  "network": { team: "platform", members: ["alice", "bob"] },
+  "type-safety": { team: "frontend-core", members: ["charlie", "dave"] },
+  "ui-render": { team: "frontend-ui", members: ["eve", "frank"] },
+  "auth": { team: "security", members: ["grace", "heidi"] },
+  "data": { team: "backend", members: ["ivan", "judy"] },
+  "performance": { team: "platform", members: ["alice", "bob"] },
+  "infra": { team: "devops", members: ["karl", "leo"] },
+  "unknown": { team: "triage", members: ["lead-on-call"] },
+};
+
+const anthropic = new Anthropic();
+
+export async function classifyAndAssign(issue: SentryIssue): Promise<ClassificationResult> {
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: `Sentry 에러를 분류하세요.
+
+## 에러 정보
+- 제목: ${issue.title}
+- 타입: ${issue.metadata.type}
+- 메시지: ${issue.metadata.value}
+- 발생 위치: ${issue.culprit}
+- 이벤트 수: ${issue.count}
+- 영향 사용자 수: ${issue.userCount}
+- 태그: ${JSON.stringify(issue.tags)}
+
+## 반드시 아래 JSON 형식으로만 응답:
+{
+  "category": "network|type-safety|ui-render|auth|data|performance|infra|unknown",
+  "severity": "critical|high|medium|low",
+  "explanation": "분류 근거 한 줄",
+  "suggestedLabels": ["라벨1", "라벨2"]
+}`,
+      },
+    ],
+  });
+
+  const content = message.content[0];
+  if (content.type !== "text") throw new Error("Unexpected response type");
+
+  const parsed = JSON.parse(content.text);
+  const ownership = TEAM_OWNERSHIP[parsed.category] ?? TEAM_OWNERSHIP["unknown"];
+
+  // 라운드 로빈으로 담당자 배정
+  const assigneeIndex = parseInt(issue.id, 16) % ownership.members.length;
+
+  return {
+    ...parsed,
+    assignee: ownership.members[assigneeIndex],
+  };
+}
+
+// Sentry Webhook 핸들러
+export async function handleSentryWebhook(payload: {
+  action: string;
+  data: { issue: SentryIssue };
+}): Promise<void> {
+  if (payload.action !== "created") return;
+
+  const issue = payload.data.issue;
+  const result = await classifyAndAssign(issue);
+
+  // Sentry API로 이슈 업데이트
+  await fetch(`https://sentry.io/api/0/organizations/{org}/issues/${issue.id}/`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      assignedTo: `member:${result.assignee}`,
+      priority: result.severity,
+    }),
+  });
+
+  // Sentry 이슈에 AI 분석 코멘트 추가
+  await fetch(`https://sentry.io/api/0/organizations/{org}/issues/${issue.id}/comments/`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text: [
+        `**AI 자동 분류 결과**`,
+        `- 카테고리: \`${result.category}\``,
+        `- 심각도: \`${result.severity}\``,
+        `- 담당자: @${result.assignee}`,
+        `- 근거: ${result.explanation}`,
+        `- 라벨: ${result.suggestedLabels.map((l) => `\`${l}\``).join(", ")}`,
+      ].join("\n"),
+    }),
+  });
+}
+```
+
+### 1.3 Sentry → Slack AI 요약 파이프라인
+
+Sentry 에러를 수신하면 AI로 요약한 뒤 Slack에 구조화된 메시지로 전송한다.
+
+```typescript
+// sentry-slack-ai-pipeline.ts
+import Anthropic from "@anthropic-ai/sdk";
+
+interface SentryEvent {
+  event_id: string;
+  title: string;
+  message: string;
+  culprit: string;
+  environment: string;
+  release: string;
+  exception?: {
+    values: Array<{
+      type: string;
+      value: string;
+      stacktrace?: { frames: Array<{ filename: string; function: string; lineno: number }> };
+    }>;
+  };
+  tags: Array<{ key: string; value: string }>;
+  contexts: Record<string, Record<string, unknown>>;
+  user?: { id: string; email: string };
+  breadcrumbs?: { values: Array<{ category: string; message: string; timestamp: string }> };
+}
+
+interface AISummary {
+  oneLiner: string;
+  rootCause: string;
+  impact: string;
+  suggestedFix: string;
+  severity: "critical" | "high" | "medium" | "low";
+}
+
+const anthropic = new Anthropic();
+
+async function analyzeWithAI(event: SentryEvent): Promise<AISummary> {
+  const stackTrace = event.exception?.values?.[0]?.stacktrace?.frames
+    ?.slice(-5)
+    .map((f) => `  ${f.filename}:${f.lineno} in ${f.function}`)
+    .join("\n") ?? "N/A";
+
+  const recentBreadcrumbs = event.breadcrumbs?.values
+    ?.slice(-5)
+    .map((b) => `  [${b.category}] ${b.message}`)
+    .join("\n") ?? "N/A";
+
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 512,
+    messages: [
+      {
+        role: "user",
+        content: `Sentry 에러를 Slack 알림용으로 요약하세요.
+
+에러: ${event.title}
+메시지: ${event.exception?.values?.[0]?.value ?? event.message}
+환경: ${event.environment}
+릴리즈: ${event.release}
+스택트레이스 (마지막 5프레임):
+${stackTrace}
+최근 사용자 액션:
+${recentBreadcrumbs}
+
+반드시 JSON으로만 응답:
+{"oneLiner":"한 줄 요약","rootCause":"원인","impact":"영향","suggestedFix":"수정 제안","severity":"critical|high|medium|low"}`,
+      },
+    ],
+  });
+
+  const content = message.content[0];
+  if (content.type !== "text") throw new Error("Unexpected response");
+  return JSON.parse(content.text);
+}
+
+const SEVERITY_EMOJI: Record<string, string> = {
+  critical: "P0",
+  high: "P1",
+  medium: "P2",
+  low: "P3",
+};
+
+async function sendToSlack(event: SentryEvent, summary: AISummary): Promise<void> {
+  const sentryUrl = `https://sentry.io/organizations/{org}/issues/?query=${event.event_id}`;
+
+  const payload = {
+    channel: process.env.SLACK_SENTRY_CHANNEL,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: `[${SEVERITY_EMOJI[summary.severity]}] ${summary.oneLiner}` },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*환경:*\n\`${event.environment}\`` },
+          { type: "mrkdwn", text: `*릴리즈:*\n\`${event.release}\`` },
+          { type: "mrkdwn", text: `*근본 원인:*\n${summary.rootCause}` },
+          { type: "mrkdwn", text: `*영향 범위:*\n${summary.impact}` },
+        ],
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*수정 제안:*\n\`\`\`${summary.suggestedFix}\`\`\`` },
+      },
+      {
+        type: "actions",
+        elements: [
+          { type: "button", text: { type: "plain_text", text: "Sentry에서 보기" }, url: sentryUrl },
+          {
+            type: "button",
+            text: { type: "plain_text", text: "담당자 할당" },
+            action_id: "assign_issue",
+            value: event.event_id,
+          },
+        ],
+      },
+    ],
+  };
+
+  await fetch("https://slack.com/api/chat.postMessage", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+// 메인 파이프라인
+export async function sentryToSlackPipeline(event: SentryEvent): Promise<void> {
+  const summary = await analyzeWithAI(event);
+  await sendToSlack(event, summary);
+
+  // Critical 이벤트는 즉시 on-call 멘션
+  if (summary.severity === "critical") {
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel: process.env.SLACK_ONCALL_CHANNEL,
+        text: `<!here> CRITICAL 에러 발생: ${summary.oneLiner}\n원인: ${summary.rootCause}\n환경: ${event.environment}`,
+      }),
+    });
+  }
+}
+```
+
+### 1.4 AI 기반 주간 에러 트렌드 리포트
+
+매주 월요일 자동 실행하여 지난 주 에러 트렌드를 AI가 분석하고, Slack/이메일로 리포트를 전송한다.
+
+```typescript
+// weekly-error-report.ts
+import Anthropic from "@anthropic-ai/sdk";
+
+interface WeeklyStats {
+  totalEvents: number;
+  totalIssues: number;
+  newIssues: number;
+  resolvedIssues: number;
+  regressedIssues: number;
+  crashFreeRate: number;
+  topIssues: Array<{ title: string; count: number; users: number; firstSeen: string }>;
+  errorsByCategory: Record<string, number>;
+  errorsByEnvironment: Record<string, number>;
+  errorTrend: Array<{ date: string; count: number }>; // 일별 추이
+}
+
+async function fetchWeeklyStats(): Promise<WeeklyStats> {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const orgSlug = process.env.SENTRY_ORG!;
+  const headers = { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` };
+
+  const [issuesRes, statsRes] = await Promise.all([
+    fetch(
+      `https://sentry.io/api/0/organizations/${orgSlug}/issues/?query=firstSeen:>${weekAgo.toISOString()}&sort=freq&limit=20`,
+      { headers },
+    ),
+    fetch(
+      `https://sentry.io/api/0/organizations/${orgSlug}/stats_v2/?field=sum(quantity)&interval=1d&start=${weekAgo.toISOString()}&end=${now.toISOString()}&groupBy=outcome`,
+      { headers },
+    ),
+  ]);
+
+  const issues = (await issuesRes.json()) as Array<{
+    title: string;
+    count: string;
+    userCount: number;
+    firstSeen: string;
+  }>;
+  const stats = await statsRes.json();
+
+  // 실제 프로젝트에서는 stats 파싱 로직 추가
+  return {
+    totalEvents: stats.groups?.reduce((sum: number, g: { totals: Record<string, number> }) =>
+      sum + (g.totals?.["sum(quantity)"] ?? 0), 0) ?? 0,
+    totalIssues: issues.length,
+    newIssues: issues.length,
+    resolvedIssues: 0,
+    regressedIssues: 0,
+    crashFreeRate: 99.5,
+    topIssues: issues.slice(0, 10).map((i) => ({
+      title: i.title,
+      count: parseInt(i.count, 10),
+      users: i.userCount,
+      firstSeen: i.firstSeen,
+    })),
+    errorsByCategory: {},
+    errorsByEnvironment: {},
+    errorTrend: [],
+  };
+}
+
+const anthropic = new Anthropic();
+
+async function generateReport(stats: WeeklyStats): Promise<string> {
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `주간 Sentry 에러 트렌드 리포트를 작성하세요.
+
+## 통계 데이터
+${JSON.stringify(stats, null, 2)}
+
+## 리포트 형식 (Slack mrkdwn)
+1. 요약 대시보드 (핵심 지표 3~4개)
+2. 주요 발견사항 (가장 중요한 3가지)
+3. Top 5 에러 분석 (각각 원인 추정 + 권장 조치)
+4. 환경별 에러 분포 분석 (베타 vs 프로덕션)
+5. 지난주 대비 개선/악화 항목
+6. 이번 주 권장 액션 아이템 (우선순위순)
+
+간결하되 실행 가능한(actionable) 리포트를 작성하세요.`,
+      },
+    ],
+  });
+
+  const content = message.content[0];
+  if (content.type !== "text") throw new Error("Unexpected response");
+  return content.text;
+}
+
+export async function sendWeeklyReport(): Promise<void> {
+  const stats = await fetchWeeklyStats();
+  const report = await generateReport(stats);
+
+  await fetch("https://slack.com/api/chat.postMessage", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channel: process.env.SLACK_REPORT_CHANNEL,
+      text: `*주간 Sentry 에러 트렌드 리포트*\n${report}`,
+    }),
+  });
+}
+```
+
+### 1.5 Copilot 에러 핸들링 자동 생성 패턴
+
+GitHub Copilot이 에러 핸들링 코드를 일관되게 생성하도록 프로젝트 수준 지시를 설정한다.
+
+**.github/copilot-instructions.md** 에 아래 내용을 추가:
+
+```markdown
+## 에러 핸들링 규칙
+
+- 모든 API 호출은 try-catch로 감싸고 Sentry.captureException 호출
+- catch 블록에서는 반드시 사용자 친화적 에러 메시지를 반환
+- Sentry 에러에는 항상 context(모듈명, 함수명, 파라미터)를 첨부
+- async 함수의 에러는 반드시 상위로 전파하거나 명시적으로 처리
+- 네트워크 에러는 retry 로직과 함께 처리
+```
+
+Copilot이 위 지시를 참고하여 생성하는 전형적 패턴:
+
+```typescript
+// Copilot 생성 패턴: API 호출 + 에러 핸들링 + Sentry
+import * as Sentry from "@sentry/react";
+
+async function fetchUserProfile(userId: string): Promise<UserProfile> {
+  const span = Sentry.startInactiveSpan({ name: "fetchUserProfile", op: "http.client" });
+
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      const error = new Error(`Failed to fetch user profile: ${response.status}`);
+      Sentry.captureException(error, {
+        contexts: {
+          api_call: {
+            endpoint: `/api/users/${userId}`,
+            status: response.status,
+            response_body: errorBody.slice(0, 500),
+          },
+        },
+        tags: { module: "user", operation: "fetch-profile" },
+      });
+      throw error;
     }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      // 네트워크 에러 → 재시도 가능
+      Sentry.captureException(error, {
+        level: "warning",
+        tags: { error_type: "network", retryable: "true" },
+      });
+    }
+    throw error;
+  } finally {
+    span.end();
+  }
+}
+
+// Copilot 생성 패턴: React Error Boundary
+function ProfilePage({ userId }: { userId: string }) {
+  return (
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) => (
+        <ErrorFallback error={error} onRetry={resetError} context="프로필 페이지" />
+      )}
+      beforeCapture={(scope) => {
+        scope.setTag("page", "profile");
+        scope.setContext("component_props", { userId });
+      }}
+    >
+      <ProfileContent userId={userId} />
+    </Sentry.ErrorBoundary>
   );
-  const issues: SentryIssue[] = await response.json();
-
-  // 2. AI 패턴 분석
-  const analysisPrompt = `
-    아래 Sentry 에러 목록의 패턴을 분석하세요.
-
-    ${issues.map((i) => `- [${i.count}회, 영향 ${i.userCount}명] ${i.title} (${i.culprit})`).join("\n")}
-
-    분석 요청:
-    1. 공통 근본 원인으로 묶을 수 있는 에러 그룹
-    2. 각 그룹의 추정 근본 원인
-    3. 하나의 수정으로 여러 에러를 해결할 수 있는 항목
-    4. 해결 우선순위 (사용자 영향도 x 발생빈도)
-    5. 아키텍처 레벨 개선이 필요한 영역
-  `;
-
-  // 3. 분석 결과를 Slack으로 전송 (위의 파이프라인 재활용)
-  // 4. 높은 우선순위 항목은 Jira 티켓 자동 생성
 }
 ```
 
 ---
 
-## Sentry SDK 2026 설정
+## 2. 멀티 베타 환경 Sentry 전략
 
-### 기본 초기화
+N개 베타 환경, PR별 Preview 환경에서 에러를 효과적으로 수집하고 프로덕션과 분리하여 관리한다.
+
+### 2.1 독립 프로젝트 vs 태그 기반 분리
+
+| 항목 | 독립 프로젝트 | 태그 기반 분리 (권장) |
+|------|--------------|---------------------|
+| 설정 복잡도 | 높음 (프로젝트별 DSN 관리) | 낮음 (단일 DSN + environment 태그) |
+| 비용 | 프로젝트 수만큼 쿼터 소비 | 단일 쿼터 공유 (샘플링으로 제어) |
+| 에러 검색 | 프로젝트 전환 필요 | 필터링으로 통합 검색 |
+| Alert 독립성 | 완전 분리 | 환경 조건부 Alert로 분리 |
+| 환경 간 비교 | 불편 (대시보드 별도) | 편리 (같은 이슈에서 환경별 필터) |
+| 권한 분리 | 가능 | 불가 (동일 프로젝트) |
+| Release 관리 | 독립적 | Release + environment 조합 |
+| 추천 상황 | 보안/규정상 완전 분리 필요 시 | 대부분의 경우 |
+
+**권장: 태그 기반 분리** (하나의 Sentry 프로젝트에서 `environment` 태그로 구분)
+
+```typescript
+// sentry-env-config.ts
+type AppEnvironment = "production" | "staging" | `beta-${string}` | `preview-pr-${number}`;
+
+function detectEnvironment(): AppEnvironment {
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const envVar = process.env.NEXT_PUBLIC_APP_ENV;
+
+  if (envVar) return envVar as AppEnvironment;
+  if (hostname === "app.example.com") return "production";
+  if (hostname === "staging.example.com") return "staging";
+
+  // beta-1.example.com, beta-2.example.com
+  const betaMatch = hostname.match(/^beta-(\w+)\.example\.com$/);
+  if (betaMatch) return `beta-${betaMatch[1]}`;
+
+  // pr-123.preview.example.com
+  const prMatch = hostname.match(/^pr-(\d+)\.preview\.example\.com$/);
+  if (prMatch) return `preview-pr-${parseInt(prMatch[1], 10)}`;
+
+  return "production";
+}
+
+export function getSentryConfig(env: AppEnvironment) {
+  return {
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN, // 모든 환경에서 동일한 DSN
+    environment: env,
+    release: process.env.NEXT_PUBLIC_RELEASE_VERSION,
+    // 환경별 태그 자동 추가
+    initialScope: {
+      tags: {
+        app_env: env,
+        is_beta: env.startsWith("beta-") ? "true" : "false",
+        is_preview: env.startsWith("preview-") ? "true" : "false",
+      },
+    },
+  };
+}
+```
+
+### 2.2 PR별 Preview 환경 Release 자동 관리
+
+GitHub Actions에서 PR 생성/머지 시 Sentry Release를 자동으로 등록하고 정리한다.
+
+```yaml
+# .github/workflows/preview-sentry.yml
+name: Preview Sentry Release
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+
+jobs:
+  sentry-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set release name
+        run: echo "RELEASE=preview-pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # PR 열림/업데이트 시 Release 등록
+      - name: Create Sentry Release
+        if: github.event.action != 'closed'
+        run: |
+          npx @sentry/cli releases new "$RELEASE" --org $SENTRY_ORG --project $SENTRY_PROJECT
+          npx @sentry/cli releases set-commits "$RELEASE" --auto --org $SENTRY_ORG --project $SENTRY_PROJECT
+          npx @sentry/cli releases deploys "$RELEASE" new -e "preview-pr-${{ github.event.pull_request.number }}" --org $SENTRY_ORG --project $SENTRY_PROJECT
+          npx @sentry/cli sourcemaps upload ./dist --release "$RELEASE" --org $SENTRY_ORG --project $SENTRY_PROJECT
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+
+      # PR 닫힘 시 Release 정리
+      - name: Cleanup Sentry Releases
+        if: github.event.action == 'closed'
+        run: |
+          # 해당 PR의 모든 preview release 삭제
+          npx @sentry/cli releases list --org $SENTRY_ORG --project $SENTRY_PROJECT \
+            | grep "preview-pr-${{ github.event.pull_request.number }}" \
+            | awk '{print $1}' \
+            | xargs -I {} npx @sentry/cli releases delete {} --org $SENTRY_ORG --project $SENTRY_PROJECT
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+```
+
+### 2.3 환경별 동적 샘플링
+
+환경 중요도에 따라 샘플링 비율을 동적으로 조정하여 비용을 최적화한다.
 
 ```typescript
 // sentry.config.ts
 import * as Sentry from "@sentry/react";
 
+const env = detectEnvironment();
+
+const SAMPLING_RATES: Record<string, { errors: number; traces: number; replays: number }> = {
+  production: { errors: 1.0, traces: 0.2, replays: 0.1 },
+  staging: { errors: 1.0, traces: 0.5, replays: 0.3 },
+};
+
+function getSamplingRate(env: string): { errors: number; traces: number; replays: number } {
+  if (SAMPLING_RATES[env]) return SAMPLING_RATES[env];
+  if (env.startsWith("beta-")) return { errors: 0.5, traces: 0.3, replays: 0.2 };
+  if (env.startsWith("preview-")) return { errors: 0.1, traces: 0.05, replays: 0.0 };
+  return { errors: 1.0, traces: 0.1, replays: 0.0 };
+}
+
+const rates = getSamplingRate(env);
+
 Sentry.init({
-  dsn: process.env.VITE_SENTRY_DSN,
-  environment: process.env.VITE_APP_ENV, // "production" | "staging" | "development"
-  release: `app@${process.env.VITE_APP_VERSION}`,
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: env,
+  release: process.env.NEXT_PUBLIC_RELEASE_VERSION,
 
-  // Performance Monitoring v2
-  tracesSampleRate: process.env.VITE_APP_ENV === "production" ? 0.2 : 1.0,
-  tracePropagationTargets: ["localhost", /^https:\/\/api\.example\.com/],
-
-  // Session Replay
-  replaysSessionSampleRate: 0.1, // 전체 세션의 10% 기록
-  replaysOnErrorSampleRate: 1.0, // 에러 발생 세션은 100% 기록
-
-  // 통합 모듈
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration({
-      maskAllText: true,
-      maskAllInputs: true,
-      blockAllMedia: false,
-      // 민감 영역 선택적 마스킹
-      mask: [".sensitive-data", '[data-sentry-mask="true"]'],
-      block: [".pii-content"],
-      unmask: [".safe-to-show"],
-    }),
-    Sentry.feedbackIntegration({
-      colorScheme: "system",
-      showBranding: false,
-    }),
-  ],
-
-  // 에러 필터링 (beforeSend 섹션에서 상세 설명)
+  // 에러 샘플링: beforeSend로 확률적 드롭
   beforeSend(event) {
-    return filterEvent(event);
+    if (Math.random() > rates.errors) return null;
+    return event;
   },
+
+  // 트랜잭션 샘플링: tracesSampler로 세밀 제어
+  tracesSampler(samplingContext) {
+    const txName = samplingContext.name;
+
+    // 헬스체크는 모든 환경에서 드롭
+    if (txName?.includes("/health") || txName?.includes("/ready")) return 0;
+
+    // 결제 관련은 모든 환경에서 100%
+    if (txName?.includes("/payment") || txName?.includes("/checkout")) return 1.0;
+
+    return rates.traces;
+  },
+
+  // Session Replay 샘플링
+  replaysSessionSampleRate: rates.replays,
+  replaysOnErrorSampleRate: env === "production" ? 1.0 : 0.5,
 });
 ```
 
-### React 19 Error Boundary 연동
+### 2.4 Feature Flag별 에러 추적
 
-React 19의 Error Boundary와 Sentry를 통합하여 컴포넌트 레벨 에러를 정확하게 포착한다.
+Feature Flag 활성화 상태를 Sentry 이벤트에 첨부하여, 어떤 Flag가 에러를 유발하는지 추적한다.
+
+```typescript
+// feature-flag-sentry-integration.ts
+import * as Sentry from "@sentry/react";
+
+interface FeatureFlagState {
+  [flagName: string]: boolean | string;
+}
+
+// Feature Flag 상태를 Sentry 컨텍스트에 동기화
+export function syncFeatureFlagsToSentry(flags: FeatureFlagState): void {
+  Sentry.setContext("feature_flags", flags);
+
+  // 활성 Flag를 태그로도 추가 (검색/필터용)
+  const activeFlags = Object.entries(flags)
+    .filter(([, value]) => value === true || (typeof value === "string" && value !== "control"))
+    .map(([key]) => key);
+
+  Sentry.setTag("active_flags", activeFlags.join(","));
+  Sentry.setTag("active_flags_count", String(activeFlags.length));
+}
+
+// Flag 변경 시점 추적
+export function trackFlagChange(flagName: string, oldValue: unknown, newValue: unknown): void {
+  Sentry.addBreadcrumb({
+    category: "feature-flag",
+    message: `Flag "${flagName}" changed: ${String(oldValue)} → ${String(newValue)}`,
+    level: "info",
+    data: { flagName, oldValue, newValue },
+  });
+}
+
+// 특정 Flag가 에러와 상관관계가 있는지 분석하는 쿼리 헬퍼
+// Sentry Discover에서 사용할 쿼리를 생성
+export function buildFlagCorrelationQuery(flagName: string): string {
+  return [
+    // Flag ON 상태에서의 에러율
+    `SELECT count() as error_count, count_unique(user) as affected_users`,
+    `FROM events`,
+    `WHERE feature_flags.${flagName}:true AND event.type:error`,
+    `GROUP BY release, environment`,
+    `ORDER BY error_count DESC`,
+  ].join("\n");
+}
+
+// React Hook: Flag 상태 자동 동기화
+export function useFeatureFlagSentry(flags: FeatureFlagState): void {
+  // flags 변경 시 Sentry 컨텍스트 업데이트
+  const prevFlagsRef = { current: flags };
+
+  if (prevFlagsRef.current !== flags) {
+    syncFeatureFlagsToSentry(flags);
+
+    // 변경된 Flag 추적
+    for (const [key, value] of Object.entries(flags)) {
+      if (prevFlagsRef.current[key] !== value) {
+        trackFlagChange(key, prevFlagsRef.current[key], value);
+      }
+    }
+    prevFlagsRef.current = flags;
+  }
+}
+```
+
+### 2.5 베타 → 프로덕션 영향도 예측
+
+베타 환경에서 수집된 에러 패턴을 분석하여, 해당 코드가 프로덕션에 배포되었을 때의 영향도를 AI로 예측한다.
+
+```typescript
+// beta-impact-predictor.ts
+import Anthropic from "@anthropic-ai/sdk";
+
+interface BetaErrorSummary {
+  issueId: string;
+  title: string;
+  errorCount: number;
+  userCount: number;
+  betaEnvironment: string;
+  firstSeen: string;
+  affectedPages: string[];
+  errorRate: number; // 베타 환경에서의 에러율 (%)
+}
+
+interface ImpactPrediction {
+  risk: "critical" | "high" | "medium" | "low";
+  estimatedProductionUsers: number;
+  estimatedProductionEvents: number;
+  recommendation: "block-deploy" | "deploy-with-monitoring" | "safe-to-deploy";
+  explanation: string;
+  mitigationSteps: string[];
+}
+
+const anthropic = new Anthropic();
+
+export async function predictProductionImpact(
+  betaErrors: BetaErrorSummary[],
+  productionMetrics: { dailyActiveUsers: number; avgErrorRate: number },
+): Promise<ImpactPrediction[]> {
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `베타 환경 에러가 프로덕션에 미칠 영향을 예측하세요.
+
+## 베타 환경 에러 목록
+${JSON.stringify(betaErrors, null, 2)}
+
+## 프로덕션 기준 메트릭
+- 일간 활성 사용자: ${productionMetrics.dailyActiveUsers}
+- 현재 평균 에러율: ${productionMetrics.avgErrorRate}%
+
+## 각 에러에 대해 JSON 배열로 응답:
+[{
+  "issueId": "이슈ID",
+  "risk": "critical|high|medium|low",
+  "estimatedProductionUsers": 숫자,
+  "estimatedProductionEvents": 숫자,
+  "recommendation": "block-deploy|deploy-with-monitoring|safe-to-deploy",
+  "explanation": "예측 근거",
+  "mitigationSteps": ["조치1", "조치2"]
+}]`,
+      },
+    ],
+  });
+
+  const content = message.content[0];
+  if (content.type !== "text") throw new Error("Unexpected response");
+  return JSON.parse(content.text);
+}
+```
+
+### 2.6 환경별 독립 Alert 정책
+
+환경마다 다른 알림 채널과 임계값을 설정한다.
+
+```typescript
+// alert-policy-config.ts
+
+// Sentry Alert Rule을 코드로 정의 (Terraform/API 호출용)
+interface AlertRule {
+  name: string;
+  environment: string | null; // null = 모든 환경
+  conditions: Array<{ id: string; value: number; interval?: string }>;
+  actions: Array<{ id: string; channel?: string; service?: string; targetType?: string }>;
+  frequency: number; // 분
+}
+
+export const alertPolicies: AlertRule[] = [
+  // 프로덕션: PagerDuty + Slack 즉시 알림
+  {
+    name: "[PROD] Critical Error Spike",
+    environment: "production",
+    conditions: [
+      { id: "sentry.rules.conditions.event_frequency.EventFrequencyCondition", value: 100, interval: "5m" },
+    ],
+    actions: [
+      { id: "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction", service: "prod-oncall" },
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#prod-alerts" },
+    ],
+    frequency: 5,
+  },
+  {
+    name: "[PROD] New Error in Release",
+    environment: "production",
+    conditions: [
+      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition", value: 1 },
+    ],
+    actions: [
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#prod-alerts" },
+    ],
+    frequency: 30,
+  },
+  {
+    name: "[PROD] Crash Free Rate Drop",
+    environment: "production",
+    conditions: [
+      { id: "sentry.rules.conditions.event_frequency.SessionFrequencyCondition", value: 95 },
+    ],
+    actions: [
+      { id: "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction", service: "prod-oncall" },
+    ],
+    frequency: 10,
+  },
+
+  // 베타: Slack만 (비긴급)
+  {
+    name: "[BETA] Error Spike",
+    environment: "beta-*",
+    conditions: [
+      { id: "sentry.rules.conditions.event_frequency.EventFrequencyCondition", value: 50, interval: "10m" },
+    ],
+    actions: [
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#beta-monitoring" },
+    ],
+    frequency: 30,
+  },
+  {
+    name: "[BETA] New Error Type",
+    environment: "beta-*",
+    conditions: [
+      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition", value: 1 },
+    ],
+    actions: [
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#beta-monitoring" },
+    ],
+    frequency: 60,
+  },
+
+  // Preview: 로그만 (알림 없음, Sentry 대시보드에서 확인)
+  {
+    name: "[PREVIEW] Error Tracking Only",
+    environment: "preview-*",
+    conditions: [
+      { id: "sentry.rules.conditions.event_frequency.EventFrequencyCondition", value: 200, interval: "1h" },
+    ],
+    actions: [
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#preview-errors" },
+    ],
+    frequency: 120,
+  },
+];
+
+// Sentry API를 통해 Alert 규칙 일괄 등록
+export async function syncAlertRules(projectSlug: string): Promise<void> {
+  for (const rule of alertPolicies) {
+    await fetch(
+      `https://sentry.io/api/0/projects/${process.env.SENTRY_ORG}/${projectSlug}/rules/`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: rule.name,
+          environment: rule.environment,
+          conditions: rule.conditions,
+          actions: rule.actions,
+          frequency: rule.frequency,
+          actionMatch: "all",
+        }),
+      },
+    );
+  }
+}
+```
+
+### 2.7 Preview 환경 정리 시 Sentry Release 연동
+
+Preview 환경 인프라를 정리할 때 Sentry Release도 함께 정리한다.
+
+```typescript
+// preview-cleanup.ts
+
+interface CleanupResult {
+  environment: string;
+  releasesDeleted: string[];
+  eventsArchived: number;
+}
+
+export async function cleanupPreviewSentry(prNumber: number): Promise<CleanupResult> {
+  const orgSlug = process.env.SENTRY_ORG!;
+  const projectSlug = process.env.SENTRY_PROJECT!;
+  const headers = {
+    Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}`,
+    "Content-Type": "application/json",
+  };
+  const environment = `preview-pr-${prNumber}`;
+
+  // 1. 해당 환경의 Release 목록 조회
+  const releasesRes = await fetch(
+    `https://sentry.io/api/0/organizations/${orgSlug}/releases/?query=${environment}&project=${projectSlug}`,
+    { headers },
+  );
+  const releases = (await releasesRes.json()) as Array<{ version: string }>;
+
+  const deletedReleases: string[] = [];
+
+  // 2. 각 Release 삭제
+  for (const release of releases) {
+    if (!release.version.includes(`preview-pr-${prNumber}`)) continue;
+
+    const deleteRes = await fetch(
+      `https://sentry.io/api/0/organizations/${orgSlug}/releases/${encodeURIComponent(release.version)}/`,
+      { method: "DELETE", headers },
+    );
+
+    if (deleteRes.ok) {
+      deletedReleases.push(release.version);
+    }
+  }
+
+  // 3. 해당 환경의 미해결 이슈 일괄 아카이브
+  const archiveRes = await fetch(
+    `https://sentry.io/api/0/organizations/${orgSlug}/issues/?query=environment:${environment}&project=${projectSlug}`,
+    { headers },
+  );
+  const issues = (await archiveRes.json()) as Array<{ id: string }>;
+
+  if (issues.length > 0) {
+    await fetch(
+      `https://sentry.io/api/0/organizations/${orgSlug}/issues/`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          id: issues.map((i) => i.id),
+          status: "ignored",
+          substatus: "archived_until_escalating",
+        }),
+      },
+    );
+  }
+
+  return {
+    environment,
+    releasesDeleted: deletedReleases,
+    eventsArchived: issues.length,
+  };
+}
+```
+
+---
+
+## 3. Sentry SDK 2026 설정
+
+React 19 + Next.js 15 환경에 최적화된 Sentry SDK 구성.
+
+```typescript
+// sentry.config.ts
+import * as Sentry from "@sentry/react";
+
+const env = detectEnvironment();
+const rates = getSamplingRate(env);
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: env,
+  release: process.env.NEXT_PUBLIC_RELEASE_VERSION,
+  enabled: process.env.NODE_ENV === "production" || env.startsWith("beta-"),
+
+  // Performance Monitoring
+  tracesSampler(samplingContext) {
+    if (samplingContext.name?.includes("/health")) return 0;
+    if (samplingContext.name?.includes("/api/payment")) return 1.0;
+    return rates.traces;
+  },
+
+  // Session Replay
+  replaysSessionSampleRate: rates.replays,
+  replaysOnErrorSampleRate: env === "production" ? 1.0 : 0.5,
+
+  integrations: [
+    // React 19 Error Boundary 통합
+    Sentry.reactRouterV7BrowserTracingIntegration({
+      useEffect: undefined, // React 19 자동 감지
+    }),
+
+    // Session Replay
+    Sentry.replayIntegration({
+      maskAllText: true,
+      blockAllMedia: true,
+      maskAllInputs: true,
+      // 민감 요소 추가 마스킹
+      mask: [".credit-card", ".ssn", "[data-sensitive]"],
+      // 네트워크 요청 캡처
+      networkDetailAllowUrls: ["/api/"],
+      networkCaptureBodies: env !== "production", // 프로덕션에서는 body 미수집
+      networkRequestHeaders: ["X-Request-Id", "X-Correlation-Id"],
+      networkResponseHeaders: ["X-Request-Id"],
+    }),
+
+    // 브라우저 프로파일링
+    Sentry.browserProfilingIntegration(),
+
+    // HTTP 클라이언트 에러 캡처
+    Sentry.httpClientIntegration({
+      failedRequestStatusCodes: [[400, 599]],
+      failedRequestTargets: ["/api/"],
+    }),
+
+    // 유저 피드백
+    Sentry.feedbackIntegration({
+      autoInject: false,
+      colorScheme: "system",
+    }),
+  ],
+
+  // 민감정보 필터링
+  beforeSend(event) {
+    // 에러 샘플링
+    if (Math.random() > rates.errors) return null;
+
+    // 민감 URL 파라미터 제거
+    if (event.request?.query_string) {
+      const params = new URLSearchParams(event.request.query_string);
+      for (const key of ["token", "secret", "password", "apiKey", "authorization"]) {
+        if (params.has(key)) params.set(key, "[FILTERED]");
+      }
+      event.request.query_string = params.toString();
+    }
+
+    // 쿠키 제거
+    if (event.request?.cookies) {
+      event.request.cookies = "[FILTERED]";
+    }
+
+    // 사용자 IP 제거
+    if (event.user) {
+      delete event.user.ip_address;
+    }
+
+    return event;
+  },
+
+  // 불필요한 에러 무시
+  ignoreErrors: [
+    "ResizeObserver loop",
+    "Non-Error promise rejection",
+    "AbortError",
+    "NetworkError when attempting to fetch",
+    "Load failed",
+    /^Loading chunk \d+ failed/,
+    /^Loading CSS chunk \d+ failed/,
+    "ChunkLoadError",
+  ],
+
+  denyUrls: [
+    /extensions\//i,
+    /^chrome:\/\//i,
+    /^moz-extension:\/\//i,
+    /^safari-extension:\/\//i,
+    /gtag\/js/,
+    /analytics/,
+  ],
+});
+```
+
+### React 19 Error Boundary 통합
 
 ```typescript
 // components/SentryErrorBoundary.tsx
 import * as Sentry from "@sentry/react";
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
-  fallback: ReactNode;
-  /** 에러 컨텍스트를 Sentry에 추가하기 위한 식별자 */
-  boundary: string;
+  module: string;
+  fallback?: ReactNode;
 }
 
-interface State {
-  hasError: boolean;
+export function SentryErrorBoundary({ children, module, fallback }: Props) {
+  return (
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) =>
+        fallback ?? (
+          <div role="alert">
+            <h2>오류가 발생했습니다</h2>
+            <p>잠시 후 다시 시도해주세요.</p>
+            <button onClick={resetError}>다시 시도</button>
+          </div>
+        )
+      }
+      beforeCapture={(scope) => {
+        scope.setTag("module", module);
+        scope.setTag("boundary", "react-error-boundary");
+        scope.setLevel("error");
+      }}
+      onError={(error, componentStack) => {
+        // 에러 발생 시 추가 컨텍스트 전송
+        Sentry.setContext("react_component_stack", {
+          componentStack,
+        });
+      }}
+    >
+      {children}
+    </Sentry.ErrorBoundary>
+  );
 }
 
-class SentryErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false };
-
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    Sentry.withScope((scope) => {
-      scope.setTag("boundary", this.props.boundary);
-      scope.setContext("react", {
-        componentStack: errorInfo.componentStack,
-      });
-      scope.setLevel("error");
-      Sentry.captureException(error);
-    });
-  }
-
-  render(): ReactNode {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-    return this.props.children;
-  }
-}
-
-// Sentry의 래퍼를 활용한 간소화 버전
-const SentryBoundary = Sentry.withErrorBoundary(
-  ({ children }: { children: ReactNode }) => <>{children}</>,
-  {
-    fallback: <div>오류가 발생했습니다. 페이지를 새로고침해 주세요.</div>,
-    showDialog: true, // 사용자 피드백 다이얼로그 표시
-  }
-);
-
-export { SentryErrorBoundary, SentryBoundary };
-```
-
-**페이지 레벨 적용:**
-
-```typescript
-// App.tsx
-import { SentryErrorBoundary } from "./components/SentryErrorBoundary";
-
+// 사용 예시
 function App() {
   return (
-    <SentryErrorBoundary boundary="app-root" fallback={<AppErrorFallback />}>
-      <SentryErrorBoundary boundary="header" fallback={<HeaderFallback />}>
+    <SentryErrorBoundary module="app-root">
+      <SentryErrorBoundary module="header">
         <Header />
       </SentryErrorBoundary>
-      <SentryErrorBoundary boundary="main-content" fallback={<ContentFallback />}>
+      <SentryErrorBoundary module="main-content">
         <MainContent />
+      </SentryErrorBoundary>
+      <SentryErrorBoundary module="footer">
+        <Footer />
       </SentryErrorBoundary>
     </SentryErrorBoundary>
   );
 }
 ```
 
-### 구조화된 에러 리포팅 (커스텀 에러 클래스)
+---
 
-에러를 구조화하면 Sentry에서 분류와 검색이 쉬워지고, AI 분석의 정확도도 올라간다.
+## 4. 에러 수집 최적화
 
-```typescript
-// errors/base.ts
-
-/** 모든 커스텀 에러의 베이스 클래스 */
-abstract class AppError extends Error {
-  abstract readonly code: string;
-  abstract readonly severity: "critical" | "high" | "medium" | "low";
-  abstract readonly userMessage: string;
-  readonly metadata: Record<string, unknown>;
-
-  constructor(message: string, metadata: Record<string, unknown> = {}) {
-    super(message);
-    this.name = this.constructor.name;
-    this.metadata = metadata;
-  }
-
-  /** Sentry에 구조화된 형태로 보고 */
-  report(): void {
-    Sentry.withScope((scope) => {
-      scope.setTag("error.code", this.code);
-      scope.setTag("error.severity", this.severity);
-      scope.setLevel(this.severity === "critical" ? "fatal" : "error");
-      scope.setContext("error_metadata", this.metadata);
-      scope.setFingerprint([this.code]);
-      Sentry.captureException(this);
-    });
-  }
-}
-
-// errors/api.ts
-class ApiError extends AppError {
-  readonly code: string;
-  readonly severity: "critical" | "high" | "medium" | "low";
-  readonly userMessage: string;
-
-  constructor(
-    public readonly status: number,
-    public readonly endpoint: string,
-    message: string,
-    metadata: Record<string, unknown> = {}
-  ) {
-    super(message, { status, endpoint, ...metadata });
-    this.code = `API_${status}`;
-    this.severity = status >= 500 ? "high" : "medium";
-    this.userMessage =
-      status >= 500
-        ? "서버에 일시적인 문제가 발생했습니다."
-        : "요청을 처리할 수 없습니다.";
-  }
-}
-
-// errors/payment.ts
-class PaymentError extends AppError {
-  readonly code: string;
-  readonly severity = "critical" as const;
-  readonly userMessage = "결제 처리 중 문제가 발생했습니다.";
-
-  constructor(
-    public readonly provider: string,
-    public readonly errorCode: string,
-    message: string
-  ) {
-    super(message, { provider, errorCode });
-    this.code = `PAYMENT_${provider.toUpperCase()}_${errorCode}`;
-  }
-}
-```
-
-**사용 예시:**
+### beforeSend 필터링 전략
 
 ```typescript
-async function processPayment(orderId: string): Promise<void> {
-  try {
-    const result = await paymentApi.charge(orderId);
-    if (!result.success) {
-      throw new PaymentError("toss", result.errorCode, result.message);
-    }
-  } catch (error) {
-    if (error instanceof AppError) {
-      error.report();
-    } else {
-      Sentry.captureException(error);
-    }
-    throw error;
-  }
-}
-```
+// sentry-filters.ts
+import type { Event, EventHint } from "@sentry/types";
 
-### Session Replay 설정 (민감정보 마스킹)
+// 비용 효율적인 에러 수집을 위한 필터 체인
+type EventFilter = (event: Event, hint: EventHint) => Event | null;
 
-Session Replay는 에러 발생 전후의 사용자 행동을 영상으로 재현한다. 민감정보 마스킹이 핵심이다.
+const filters: EventFilter[] = [
+  // 1. 봇/크롤러 에러 무시
+  (event) => {
+    const ua = event.request?.headers?.["User-Agent"] ?? "";
+    if (/bot|crawler|spider|scraper/i.test(ua)) return null;
+    return event;
+  },
 
-```typescript
-// sentry.replay.ts
-Sentry.replayIntegration({
-  // 텍스트 마스킹
-  maskAllText: false, // 전체 마스킹 대신 선택적 마스킹
-  mask: [
-    // CSS 선택자로 마스킹 대상 지정
-    "input[type='password']",
-    "input[type='email']",
-    "[data-sentry-mask]",
-    ".user-name",
-    ".phone-number",
-    ".address",
-    ".credit-card",
-  ],
+  // 2. 이미 해결된 브라우저 호환성 이슈 무시
+  (event) => {
+    const msg = event.exception?.values?.[0]?.value ?? "";
+    const knownBrowserBugs = [
+      "Cannot read properties of null (reading 'offsetHeight')",
+      "Permission denied to access property",
+      "SecurityError: Blocked a frame with origin",
+    ];
+    if (knownBrowserBugs.some((bug) => msg.includes(bug))) return null;
+    return event;
+  },
 
-  // 입력 필드 마스킹
-  maskAllInputs: true, // 모든 입력 필드는 기본 마스킹
+  // 3. 3rd party 스크립트 에러 제외
+  (event) => {
+    const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+    const hasAppFrame = frames.some(
+      (f) => f.filename && !f.filename.includes("node_modules") && f.in_app,
+    );
+    if (frames.length > 0 && !hasAppFrame) return null;
+    return event;
+  },
 
-  // 미디어 차단
-  block: [
-    ".profile-image", // 프로필 사진
-    ".id-document", // 신분증
-    "[data-sentry-block]",
-  ],
+  // 4. 같은 에러가 빈번할 경우 클라이언트 사이드 레이트 리밋
+  (() => {
+    const errorCounts = new Map<string, { count: number; resetAt: number }>();
 
-  // 마스킹 해제 (마스킹하지 않아도 되는 요소)
-  unmask: [
-    ".product-name",
-    ".button-text",
-    "h1", "h2", "h3",
-    "[data-sentry-unmask]",
-  ],
+    return (event) => {
+      const key = event.exception?.values?.[0]?.type + ":" + event.exception?.values?.[0]?.value;
+      const now = Date.now();
+      const entry = errorCounts.get(key);
 
-  // 네트워크 요청 캡처
-  networkDetailAllowUrls: [/^https:\/\/api\.example\.com/],
-  networkDetailDenyUrls: [/\/auth\//, /\/payment\//],
-  networkCaptureBodies: false,
-  networkRequestHeaders: ["X-Request-Id"],
-  networkResponseHeaders: ["X-Request-Id"],
-});
-```
-
-### Performance Monitoring v2 (Web Vitals 자동 수집)
-
-```typescript
-// sentry.performance.ts
-import * as Sentry from "@sentry/react";
-import {
-  createBrowserRouter,
-  matchRoutes,
-  useLocation,
-  useNavigationType,
-} from "react-router-dom";
-
-Sentry.init({
-  integrations: [
-    Sentry.browserTracingIntegration({
-      // React Router v7 연동
-      routingInstrumentation: Sentry.reactRouterV7BrowserTracingIntegration(
-        { useEffect: undefined as any, useLocation, useNavigationType, createRoutesFromChildren: undefined as any, matchRoutes } // 실제 프로젝트에서 적절한 import 사용
-      ),
-    }),
-  ],
-
-  // Web Vitals 자동 수집 (LCP, FID, CLS, INP, TTFB)
-  enableTracing: true,
-  tracesSampleRate: 0.2,
-});
-
-// 커스텀 성능 측정
-function measureApiCall(name: string, fn: () => Promise<unknown>): Promise<unknown> {
-  return Sentry.startSpan(
-    {
-      name,
-      op: "http.client",
-      attributes: { "sentry.origin": "manual" },
-    },
-    async (span) => {
-      try {
-        const result = await fn();
-        span.setStatus({ code: 1, message: "ok" });
-        return result;
-      } catch (error) {
-        span.setStatus({ code: 2, message: "internal_error" });
-        throw error;
+      if (entry && entry.resetAt > now) {
+        if (entry.count >= 10) return null; // 1분 내 10회 초과 시 드롭
+        entry.count++;
+      } else {
+        errorCounts.set(key, { count: 1, resetAt: now + 60_000 });
       }
-    }
-  );
-}
 
-// 사용 예시
-async function fetchUserProfile(userId: string): Promise<unknown> {
-  return measureApiCall(`GET /users/${userId}`, () =>
-    fetch(`/api/users/${userId}`).then((r) => r.json())
+      return event;
+    };
+  })(),
+];
+
+// beforeSend에 통합
+export function createBeforeSend(): (event: Event, hint: EventHint) => Event | null {
+  return (event, hint) => {
+    let result: Event | null = event;
+    for (const filter of filters) {
+      if (!result) return null;
+      result = filter(result, hint);
+    }
+    return result;
+  };
+}
+```
+
+### 비용 모니터링
+
+```typescript
+// sentry-cost-monitor.ts
+
+// Sentry 쿼터 사용량 모니터링
+export async function checkQuotaUsage(): Promise<{
+  used: number;
+  limit: number;
+  percentage: number;
+  projectedOverage: boolean;
+}> {
+  const res = await fetch(
+    `https://sentry.io/api/0/organizations/${process.env.SENTRY_ORG}/stats_v2/?field=sum(quantity)&interval=1d&statsPeriod=30d&groupBy=outcome&category=error`,
+    { headers: { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` } },
   );
+
+  const data = await res.json();
+  const accepted = data.groups
+    ?.find((g: { by: { outcome: string } }) => g.by.outcome === "accepted")
+    ?.totals?.["sum(quantity)"] ?? 0;
+  const limit = 100_000; // 월간 쿼터 (조직에 맞게 수정)
+
+  const daysElapsed = new Date().getDate();
+  const projected = (accepted / daysElapsed) * 30;
+
+  return {
+    used: accepted,
+    limit,
+    percentage: Math.round((accepted / limit) * 100),
+    projectedOverage: projected > limit,
+  };
 }
 ```
 
 ---
 
-## 에러 수집 최적화
+## 5. Source Map 보안 관리
 
-### 동적 샘플링 전략
+Source Map을 Sentry에 업로드한 뒤 빌드 아티팩트에서 삭제하여 외부 노출을 방지한다. `debugId` 기반으로 업로드한다.
 
-환경과 트랜잭션 유형에 따라 샘플링 비율을 동적으로 조절한다.
+### CI/CD 파이프라인
 
-```typescript
-// sentry.sampling.ts
-import * as Sentry from "@sentry/react";
+```yaml
+# .github/workflows/deploy.yml (source map 관련 단계만 발췌)
+jobs:
+  build-and-deploy:
+    steps:
+      - name: Build with source maps
+        run: pnpm build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-Sentry.init({
-  tracesSampler(samplingContext) {
-    const { name, attributes } = samplingContext;
+      # debugId 주입 + Source Map 업로드
+      - name: Upload source maps to Sentry
+        run: |
+          npx @sentry/cli sourcemaps inject ./dist
+          npx @sentry/cli sourcemaps upload ./dist \
+            --release "${{ env.RELEASE }}" \
+            --org ${{ vars.SENTRY_ORG }} \
+            --project ${{ vars.SENTRY_PROJECT }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-    // 헬스체크 요청은 수집하지 않음
-    if (name?.includes("/health") || name?.includes("/readiness")) {
-      return 0;
-    }
+      # Source Map 파일 삭제 (배포 아티팩트에서 제거)
+      - name: Remove source maps from build output
+        run: find ./dist -name "*.map" -type f -delete
 
-    // 결제 관련 트랜잭션은 100% 수집
-    if (name?.includes("/payment") || name?.includes("/checkout")) {
-      return 1.0;
-    }
+      # sourceMappingURL 참조 제거
+      - name: Remove sourceMappingURL references
+        run: |
+          find ./dist -name "*.js" -type f -exec \
+            sed -i 's/\/\/# sourceMappingURL=.*//g' {} +
 
-    // 관리자 페이지는 낮은 비율
-    if (name?.includes("/admin")) {
-      return 0.05;
-    }
-
-    // 정적 리소스 요청은 수집하지 않음
-    if (name?.match(/\.(js|css|png|jpg|svg|woff2?)$/)) {
-      return 0;
-    }
-
-    // API 호출은 환경별 다른 비율
-    if (attributes?.["http.method"]) {
-      switch (process.env.VITE_APP_ENV) {
-        case "production":
-          return 0.1;
-        case "staging":
-          return 0.5;
-        default:
-          return 1.0;
-      }
-    }
-
-    // 기본 샘플링 비율
-    return process.env.VITE_APP_ENV === "production" ? 0.2 : 1.0;
-  },
-});
+      - name: Deploy
+        run: pnpm deploy
 ```
 
-### Rate Limiting 설정
-
-Sentry 클라이언트 측에서 이벤트 발생량을 제한한다.
+### Sentry 설정 (Source Map 해석용)
 
 ```typescript
-// sentry.ratelimit.ts
-Sentry.init({
-  // 클라이언트 리포트 제한
-  maxBreadcrumbs: 50, // 브레드크럼 최대 개수
-  maxValueLength: 1000, // 문자열 값 최대 길이
-
-  // Transport 레벨 제한
-  transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
-  transportOptions: {
-    // 네트워크 오프라인 시 로컬 저장 후 재전송
-  },
-});
-
-// 애플리케이션 레벨 Rate Limiting
-class SentryRateLimiter {
-  private eventCounts = new Map<string, { count: number; resetAt: number }>();
-  private readonly maxEventsPerMinute = 10;
-  private readonly windowMs = 60_000;
-
-  shouldSend(eventKey: string): boolean {
-    const now = Date.now();
-    const entry = this.eventCounts.get(eventKey);
-
-    if (!entry || now > entry.resetAt) {
-      this.eventCounts.set(eventKey, { count: 1, resetAt: now + this.windowMs });
-      return true;
-    }
-
-    if (entry.count >= this.maxEventsPerMinute) {
-      return false;
-    }
-
-    entry.count++;
-    return true;
-  }
-}
-
-const rateLimiter = new SentryRateLimiter();
-
-// beforeSend에서 Rate Limiting 적용
-function filterEvent(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
-  const errorType = event.exception?.values?.[0]?.type || "unknown";
-  if (!rateLimiter.shouldSend(errorType)) {
-    return null; // 이벤트 드롭
-  }
-  return event;
-}
-```
-
-### 비용 관리 대시보드
-
-Sentry 대시보드에서 비용과 사용량을 모니터링하기 위한 설정이다.
-
-```typescript
-// Sentry Organization Settings에서 설정:
-// 1. Spike Protection: 활성화 (급격한 이벤트 증가 시 자동 제한)
-// 2. Spend Allocation: 프로젝트별 예산 배분
-// 3. Rate Limits: 프로젝트별 초당 이벤트 상한
-
-// 비용 모니터링 스크립트 (주기적 실행)
-async function checkSentryUsage(): Promise<void> {
-  const response = await fetch(
-    `https://sentry.io/api/0/organizations/${process.env.SENTRY_ORG}/stats_v2/?category=error&field=sum(quantity)&interval=1d&statsPeriod=30d`,
-    {
-      headers: { Authorization: `Bearer ${process.env.SENTRY_API_TOKEN}` },
-    }
-  );
-  const stats = await response.json();
-
-  const totalEvents = stats.groups[0]?.totals["sum(quantity)"] || 0;
-  const monthlyQuota = 100_000; // 월간 할당량
-
-  const usagePercent = (totalEvents / monthlyQuota) * 100;
-
-  if (usagePercent > 80) {
-    // Slack 알림: 할당량 80% 초과 경고
-    await notifySlack(`Sentry 월간 사용량 ${usagePercent.toFixed(1)}% 도달. 샘플링 비율 조정 검토 필요.`);
-  }
-}
-```
-
-### beforeSend로 노이즈 필터링
-
-```typescript
-// sentry.filter.ts
-
-/** 무시할 에러 패턴 목록 */
-const IGNORED_ERRORS: Array<string | RegExp> = [
-  // 브라우저 확장 프로그램 에러
-  "chrome-extension://",
-  "moz-extension://",
-  // 네트워크 일시 단절
-  "Failed to fetch",
-  "NetworkError",
-  "Load failed",
-  // 사용자 취소
-  "AbortError",
-  // 서드파티 스크립트
-  /^Script error\.?$/,
-  // 리사이즈 옵저버 (무해한 에러)
-  "ResizeObserver loop",
-  // 구형 브라우저 호환성
-  /Object doesn't support property or method/,
-];
-
-/** 무시할 URL 패턴 */
-const IGNORED_URLS: RegExp[] = [
-  /extensions\//i,
-  /^chrome:\/\//i,
-  /^chrome-extension:\/\//i,
-  /googletagmanager\.com/i,
-  /analytics\.google\.com/i,
-  /hotjar\.com/i,
-];
-
-function filterEvent(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
-  const errorMessage = event.exception?.values?.[0]?.value || "";
-  const errorType = event.exception?.values?.[0]?.type || "";
-
-  // 1. 에러 메시지 패턴 필터
-  for (const pattern of IGNORED_ERRORS) {
-    if (typeof pattern === "string" && errorMessage.includes(pattern)) return null;
-    if (pattern instanceof RegExp && pattern.test(errorMessage)) return null;
-  }
-
-  // 2. URL 패턴 필터 (서드파티 스크립트 에러 제외)
-  const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
-  const isThirdParty = frames.every(
-    (frame) => frame.filename && IGNORED_URLS.some((pattern) => pattern.test(frame.filename!))
-  );
-  if (isThirdParty && frames.length > 0) return null;
-
-  // 3. Bot/Crawler 트래픽 제외
-  const userAgent = event.request?.headers?.["User-Agent"] || "";
-  if (/bot|crawler|spider|headless/i.test(userAgent)) return null;
-
-  // 4. Rate Limiting 적용
-  if (!rateLimiter.shouldSend(errorType)) return null;
-
-  return event;
-}
-```
-
----
-
-## Source Map 보안 관리
-
-Source Map은 프로덕션 에러의 디버깅에 필수이지만, 소스 코드 노출 위험이 있다. debugId 기반 업로드와 배포 후 삭제 패턴을 사용한다.
-
-### debugId 기반 Source Map 업로드
-
-```typescript
-// vite.config.ts
-import { defineConfig } from "vite";
+// vite.config.ts (또는 next.config.ts)
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 export default defineConfig({
   build: {
-    sourcemap: true, // 빌드 시 Source Map 생성
+    sourcemap: true, // 빌드 시 source map 생성 (CI에서 업로드 후 삭제)
   },
   plugins: [
-    sentryVitePlugin({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-
-      // debugId 기반 업로드 (release 이름 불필요)
-      release: {
-        name: process.env.VITE_APP_VERSION,
-      },
-
-      sourcemaps: {
-        // Source Map 파일 패턴
-        assets: "./dist/**/*.{js,map}",
-        // 업로드 후 로컬 Source Map 삭제
-        filesToDeleteAfterUpload: "./dist/**/*.map",
-      },
-
-      // 디버그 모드 (문제 해결 시 활성화)
-      debug: false,
-    }),
-  ],
+    // 로컬 개발에서는 Sentry plugin 비활성화
+    process.env.CI
+      ? sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          release: { name: process.env.RELEASE_VERSION },
+          sourcemaps: {
+            filesToDeleteAfterUpload: ["./dist/**/*.map"],
+          },
+          debug: false,
+        })
+      : null,
+  ].filter(Boolean),
 });
 ```
 
-### Webpack 플러그인 설정
+---
+
+## 6. Alert 정책 설계
+
+### Metric Alerts
+
+| Alert | 조건 | 임계값 | 액션 | 환경 |
+|-------|------|--------|------|------|
+| Error Rate Spike | 에러 이벤트 수/5분 | > 100 (Warning), > 500 (Critical) | Slack + PagerDuty | production |
+| Transaction Duration | p95 응답 시간 | > 3s (Warning), > 10s (Critical) | Slack | production |
+| Crash Free Rate | 세션 기반 비율 | < 99% (Warning), < 95% (Critical) | PagerDuty | production |
+| Apdex Drop | Apdex Score | < 0.8 (Warning), < 0.5 (Critical) | Slack | production |
+| Beta Error Spike | 에러 이벤트 수/10분 | > 50 | Slack #beta | beta-* |
+
+### Issue Alerts
 
 ```typescript
-// webpack.config.ts
-import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
+// 코드 레벨 Alert 설정 참조
+const issueAlertRules = [
+  {
+    name: "First Seen in Production",
+    conditions: [{ id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" }],
+    filters: [{ id: "sentry.rules.filters.event_attribute.EventAttributeFilter", attribute: "environment", value: "production" }],
+    actions: [{ id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#prod-errors" }],
+  },
+  {
+    name: "Regression Detected",
+    conditions: [{ id: "sentry.rules.conditions.regression_event.RegressionEventCondition" }],
+    filters: [{ id: "sentry.rules.filters.event_attribute.EventAttributeFilter", attribute: "environment", value: "production" }],
+    actions: [
+      { id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#prod-errors" },
+      { id: "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction", service: "prod-oncall" },
+    ],
+  },
+  {
+    name: "High Volume Error",
+    conditions: [{ id: "sentry.rules.conditions.event_frequency.EventFrequencyCondition", value: 1000, interval: "1h" }],
+    actions: [{ id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction", channel: "#prod-alerts" }],
+  },
+];
+```
 
-export default {
-  devtool: "source-map",
-  plugins: [
-    sentryWebpackPlugin({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
+### Uptime Monitoring
 
-      release: {
-        name: process.env.APP_VERSION,
+```typescript
+// Sentry Uptime 설정 (Sentry Dashboard에서 설정)
+const uptimeConfig = {
+  monitors: [
+    {
+      name: "API Health Check",
+      url: "https://api.example.com/health",
+      schedule: { type: "interval", value: 1, unit: "minute" },
+      alertRule: {
+        environment: "production",
+        targets: [{ type: "slack", channel: "#infra-alerts" }],
       },
-
-      sourcemaps: {
-        assets: "./build/**/*.{js,map}",
-        filesToDeleteAfterUpload: "./build/**/*.map",
+    },
+    {
+      name: "Web App Availability",
+      url: "https://app.example.com",
+      schedule: { type: "interval", value: 5, unit: "minute" },
+      alertRule: {
+        targets: [{ type: "slack", channel: "#infra-alerts" }],
       },
-    }),
+    },
   ],
 };
 ```
 
-### CI/CD에서 업로드 후 삭제 패턴
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy with Sentry Source Maps
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build
-        run: npm run build
-        env:
-          VITE_APP_VERSION: ${{ github.sha }}
-
-      # Vite/Webpack 플러그인이 빌드 시 자동 업로드하므로
-      # 별도 업로드 단계가 불필요. 플러그인 미사용 시 아래 방식 사용:
-      - name: Upload Source Maps (플러그인 미사용 시)
-        if: false # 플러그인 사용 시 비활성화
-        run: |
-          npx @sentry/cli sourcemaps upload \
-            --org ${{ secrets.SENTRY_ORG }} \
-            --project ${{ secrets.SENTRY_PROJECT }} \
-            --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }} \
-            --release ${{ github.sha }} \
-            ./dist
-
-      - name: Verify Source Maps deleted from build
-        run: |
-          MAP_COUNT=$(find ./dist -name "*.map" | wc -l)
-          if [ "$MAP_COUNT" -gt "0" ]; then
-            echo "ERROR: Source Map files still exist in build output!"
-            find ./dist -name "*.map" -delete
-            echo "Deleted $MAP_COUNT source map files."
-          fi
-
-      - name: Deploy
-        run: npm run deploy
-
-      - name: Create Sentry Release
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          version: ${{ github.sha }}
-```
-
----
-
-## Alert 정책 설계
-
-Alert은 반드시 액션 가능한 것만 설정한다. "알림 피로"를 방지하는 것이 핵심이다.
-
-### Metric Alerts (P95 응답시간, 에러율)
-
-Sentry Dashboard > Alerts > Create Alert > Metric Alert에서 설정한다.
-
-| Alert 이름 | 조건 | 임계값 | 알림 대상 | 비고 |
-|---|---|---|---|---|
-| 에러율 급증 | `count()` | Warning: 50/5분, Critical: 200/5분 | Slack #alerts, PagerDuty | 5분 윈도우 |
-| P95 응답시간 | `p95(transaction.duration)` | Warning: 3초, Critical: 5초 | Slack #performance | API 트랜잭션 대상 |
-| LCP 저하 | `p75(measurements.lcp)` | Warning: 2.5초, Critical: 4초 | Slack #performance | 페이지 로드 성능 |
-| INP 저하 | `p75(measurements.inp)` | Warning: 200ms, Critical: 500ms | Slack #performance | 인터랙션 성능 |
-| Crash Free Rate 저하 | `crash_free_rate(session)` | Warning: 99%, Critical: 95% | Slack #releases, PagerDuty | 릴리스 안정성 |
-
-### Issue Alerts (새 에러, 회귀)
-
-| Alert 이름 | 조건 | 필터 | 알림 대상 |
-|---|---|---|---|
-| 새 에러 발생 | `FirstSeenEvent` | `level:error` | Slack #errors, 담당 팀 |
-| 에러 회귀 | `RegressionEvent` | `is:resolved` | Slack #errors, 원래 해결자 |
-| 에러 확산 | `EventFrequency > 100 in 1h` | `level:error` | Slack #alerts, PagerDuty |
-| Critical 에러 | `NewEvent` | `tags.severity:critical` | PagerDuty, Slack #incidents |
-
-### Uptime Monitoring 설정
-
-```typescript
-// Sentry Dashboard > Crons > Uptime Monitoring
-
-// 또는 SDK에서 직접 설정 (Cron Monitoring)
-import * as Sentry from "@sentry/node";
-
-// 주기적 작업 모니터링 예시
-async function scheduledJob(): Promise<void> {
-  const checkInId = Sentry.captureCheckIn({
-    monitorSlug: "daily-report-generation",
-    status: "in_progress",
-  });
-
-  try {
-    await generateDailyReport();
-
-    Sentry.captureCheckIn({
-      checkInId,
-      monitorSlug: "daily-report-generation",
-      status: "ok",
-    });
-  } catch (error) {
-    Sentry.captureCheckIn({
-      checkInId,
-      monitorSlug: "daily-report-generation",
-      status: "error",
-    });
-    throw error;
-  }
-}
-```
-
-**Uptime Monitor 설정 (대시보드):**
-
-| Monitor 이름 | URL | 주기 | 타임아웃 | 알림 대상 |
-|---|---|---|---|---|
-| API Health | `https://api.example.com/health` | 1분 | 10초 | PagerDuty |
-| Web Health | `https://www.example.com` | 1분 | 15초 | Slack #alerts |
-| Auth Service | `https://auth.example.com/health` | 1분 | 10초 | PagerDuty |
-
 ### 에스컬레이션 정책
 
 ```
-Level 1 (0분)   → Slack #alerts 알림
-Level 2 (15분)  → 담당 팀 리드 PagerDuty 호출
-Level 3 (30분)  → 엔지니어링 매니저 PagerDuty 호출
-Level 4 (60분)  → CTO 에스컬레이션
-```
+Level 0 (자동 대응, 0분):
+  → 조건: Low/Medium 이슈
+  → 액션: Slack 채널에 AI 요약 전송, 자동 담당자 할당
 
-에스컬레이션 조건:
-- **Critical**: P95 응답시간 10초 초과 또는 에러율 5% 초과 시 즉시 Level 2
-- **High**: Crash Free Rate 95% 미만 시 즉시 Level 2
-- **자동 해제**: 지표가 정상 범위로 복귀하면 자동으로 에스컬레이션 해제
+Level 1 (팀 알림, 10분):
+  → 조건: High 이슈 또는 Level 0 미응답
+  → 액션: 담당 팀 Slack DM, 이슈 Priority 상향
 
----
+Level 2 (긴급 대응, 30분):
+  → 조건: Critical 이슈 또는 Level 1 미응답
+  → 액션: PagerDuty 알림, 팀 리드 멘션
 
-## 민감정보 필터링
-
-### PII Scrubbing 설정
-
-Sentry 서버 측 PII Scrubbing과 클라이언트 측 필터링을 이중으로 적용한다.
-
-**서버 측 (Sentry Dashboard):**
-
-Settings > Security & Privacy에서 설정:
-- **Data Scrubbing**: 활성화
-- **Default Scrubbing**: 활성화 (이메일, IP, 신용카드 등 자동 감지)
-- **Sensitive Fields**: `password`, `token`, `secret`, `authorization`, `cookie`, `ssn`, `phone`
-- **Safe Fields**: `error_code`, `status_code`, `request_id` (스크러빙 제외)
-
-**클라이언트 측:**
-
-```typescript
-// sentry.pii.ts
-Sentry.init({
-  beforeSend(event) {
-    // 요청 데이터에서 민감 정보 제거
-    if (event.request) {
-      // 쿠키 제거
-      delete event.request.cookies;
-
-      // Authorization 헤더 마스킹
-      if (event.request.headers) {
-        const sensitiveHeaders = ["Authorization", "Cookie", "X-API-Key"];
-        for (const header of sensitiveHeaders) {
-          if (event.request.headers[header]) {
-            event.request.headers[header] = "[FILTERED]";
-          }
-        }
-      }
-
-      // 요청 바디에서 민감 필드 마스킹
-      if (event.request.data && typeof event.request.data === "object") {
-        event.request.data = scrubObject(event.request.data as Record<string, unknown>);
-      }
-    }
-
-    // 사용자 정보 최소화
-    if (event.user) {
-      delete event.user.email;
-      delete event.user.ip_address;
-      // ID만 유지 (에러 추적에 필요)
-      event.user = { id: event.user.id };
-    }
-
-    // 브레드크럼에서 민감 데이터 제거
-    if (event.breadcrumbs?.values) {
-      event.breadcrumbs.values = event.breadcrumbs.values.map((crumb) => {
-        if (crumb.data) {
-          crumb.data = scrubObject(crumb.data as Record<string, unknown>);
-        }
-        return crumb;
-      });
-    }
-
-    return event;
-  },
-
-  beforeBreadcrumb(breadcrumb) {
-    // XHR/fetch 브레드크럼에서 인증 관련 URL 필터
-    if (breadcrumb.category === "xhr" || breadcrumb.category === "fetch") {
-      const url = breadcrumb.data?.url as string | undefined;
-      if (url && /\/(auth|login|token)/.test(url)) {
-        breadcrumb.data = { url: "[FILTERED_AUTH_URL]" };
-      }
-    }
-    return breadcrumb;
-  },
-});
-
-/** 객체에서 민감 필드를 재귀적으로 마스킹 */
-function scrubObject(obj: Record<string, unknown>): Record<string, unknown> {
-  const sensitiveKeys = /password|token|secret|key|auth|credit|card|ssn|social/i;
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    if (sensitiveKeys.test(key)) {
-      result[key] = "[FILTERED]";
-    } else if (value && typeof value === "object" && !Array.isArray(value)) {
-      result[key] = scrubObject(value as Record<string, unknown>);
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
-```
-
-### Session Replay 마스킹 규칙
-
-```typescript
-// 컴포넌트에서 마스킹 어트리뷰트 사용
-function UserProfile({ user }: { user: User }) {
-  return (
-    <div>
-      {/* 마스킹 대상 */}
-      <p data-sentry-mask="true">{user.email}</p>
-      <p data-sentry-mask="true">{user.phone}</p>
-
-      {/* 차단 대상 (DOM 자체를 기록하지 않음) */}
-      <div data-sentry-block="true">
-        <CreditCardForm />
-      </div>
-
-      {/* 마스킹 제외 (안전한 데이터) */}
-      <span data-sentry-unmask="true">{user.displayName}</span>
-    </div>
-  );
-}
+Level 3 (경영진 보고, 60분):
+  → 조건: Level 2 미해결, 영향 사용자 > 전체의 10%
+  → 액션: 경영진 Slack 채널 알림, 인시던트 선언
 ```
 
 ---
 
-## Release Health 및 배포 연동
+## 7. Release Health 및 배포 연동
 
-### Release Health 모니터링 (Crash Free Rate)
-
-```typescript
-// sentry.release.ts
-Sentry.init({
-  release: `app@${process.env.VITE_APP_VERSION}`,
-
-  // 세션 추적 활성화 (Release Health 필수)
-  autoSessionTracking: true,
-
-  // 세션 종료 감지
-  // 브라우저 탭 비활성화 시 세션 종료로 처리
-});
-
-// 릴리스별 커스텀 태그 추가
-Sentry.setTag("deploy.region", process.env.DEPLOY_REGION || "ap-northeast-2");
-Sentry.setTag("deploy.commit", process.env.VITE_COMMIT_SHA?.slice(0, 7) || "unknown");
-```
-
-**모니터링 지표:**
-
-| 지표 | 목표치 | 경고 임계값 | 위험 임계값 |
-|---|---|---|---|
-| Crash Free Session Rate | 99.5% | 99.0% | 95.0% |
-| Crash Free User Rate | 99.5% | 99.0% | 95.0% |
-| Adoption Rate (24h) | 90% | 50% | 30% |
-| Error Count (신규) | 0 | 5 | 20 |
-
-### Deploy 연동 (GitHub Actions)
+### Release 등록 (CI/CD)
 
 ```yaml
-# .github/workflows/sentry-release.yml
-name: Sentry Release
+# .github/workflows/release.yml
+name: Create Sentry Release
 
 on:
   push:
@@ -1264,105 +1591,159 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 커밋 히스토리 필요 (커밋 연결)
+          fetch-depth: 0
+
+      - name: Set release version
+        run: echo "RELEASE=$(git describe --tags --always)" >> $GITHUB_ENV
 
       - name: Create Sentry Release
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         with:
           environment: production
-          version: ${{ github.sha }}
-          set_commits: auto # 커밋 자동 연결
-          started_at: ${{ github.event.head_commit.timestamp }}
+          version: ${{ env.RELEASE }}
+          sourcemaps: ./dist
+          set_commits: auto
           finalize: true
-
-      # 배포 후 Sentry Release Health 모니터링
-      - name: Monitor Release Health
-        run: |
-          echo "Release ${{ github.sha }} created."
-          echo "Monitor at: https://sentry.io/organizations/${{ secrets.SENTRY_ORG }}/releases/${{ github.sha }}/"
 ```
 
-### 외부 서비스 연동
+### Crash Free Rate 모니터링
 
-**Slack 연동:**
+```typescript
+// release-health-monitor.ts
 
-Sentry Dashboard > Settings > Integrations > Slack
+interface ReleaseHealth {
+  version: string;
+  crashFreeRate: number;
+  crashFreeSessions: number;
+  totalSessions: number;
+  newIssues: number;
+  status: "healthy" | "degraded" | "critical";
+}
 
-```text
-연동 설정:
-1. Slack 워크스페이스 연결
-2. Alert Rule에서 알림 채널 지정:
-   - #sentry-errors: 모든 새 에러
-   - #sentry-alerts: Metric Alert (P95, 에러율)
-   - #sentry-releases: Release Health 변경
-3. Issue Alert Action으로 "Send Slack notification" 추가
-```
+export async function checkReleaseHealth(release: string): Promise<ReleaseHealth> {
+  const orgSlug = process.env.SENTRY_ORG!;
+  const projectSlug = process.env.SENTRY_PROJECT!;
+  const headers = { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` };
 
-**PagerDuty 연동:**
+  const res = await fetch(
+    `https://sentry.io/api/0/organizations/${orgSlug}/releases/${encodeURIComponent(release)}/`,
+    { headers },
+  );
 
-```text
-연동 설정:
-1. Sentry > Settings > Integrations > PagerDuty
-2. PagerDuty Service Key 입력
-3. Alert Rule에서 에스컬레이션 조건 설정:
-   - Critical Alert → PagerDuty Incident 자동 생성
-   - Incident 해결 시 Sentry Issue 자동 Resolve
-```
+  const data = await res.json();
+  const sessions = data.projects?.[0]?.healthData;
+  const crashFreeRate = sessions?.crashFreeRate ?? 100;
 
-**Jira 연동:**
+  let status: "healthy" | "degraded" | "critical";
+  if (crashFreeRate >= 99) status = "healthy";
+  else if (crashFreeRate >= 95) status = "degraded";
+  else status = "critical";
 
-```text
-연동 설정:
-1. Sentry > Settings > Integrations > Jira
-2. Jira 프로젝트 매핑 설정
-3. Sentry Issue에서 "Create Jira Issue" 버튼으로 티켓 생성
-4. 양방향 동기화:
-   - Jira 티켓 Resolve → Sentry Issue 자동 Resolve
-   - Sentry Issue Resolve → Jira 티켓 상태 업데이트
+  return {
+    version: release,
+    crashFreeRate,
+    crashFreeSessions: sessions?.crashFreeSessions ?? 0,
+    totalSessions: sessions?.totalSessions ?? 0,
+    newIssues: data.newGroups ?? 0,
+    status,
+  };
+}
+
+// 배포 후 자동 모니터링 (5분 간격, 30분간)
+export async function postDeployMonitoring(release: string): Promise<void> {
+  const checkIntervalMs = 5 * 60 * 1000;
+  const totalChecks = 6;
+
+  for (let i = 0; i < totalChecks; i++) {
+    await new Promise((resolve) => setTimeout(resolve, checkIntervalMs));
+
+    const health = await checkReleaseHealth(release);
+
+    if (health.status === "critical") {
+      // 자동 롤백 알림
+      await fetch("https://slack.com/api/chat.postMessage", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channel: process.env.SLACK_ONCALL_CHANNEL,
+          text: [
+            `<!here> Release \`${release}\` CRITICAL`,
+            `Crash Free Rate: ${health.crashFreeRate}%`,
+            `신규 이슈: ${health.newIssues}개`,
+            `롤백을 검토하세요.`,
+          ].join("\n"),
+        }),
+      });
+      break;
+    }
+
+    if (health.status === "degraded") {
+      await fetch("https://slack.com/api/chat.postMessage", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channel: process.env.SLACK_SENTRY_CHANNEL,
+          text: `Release \`${release}\` 상태 주의: Crash Free Rate ${health.crashFreeRate}% (${i + 1}/${totalChecks} 체크)`,
+        }),
+      });
+    }
+  }
+}
 ```
 
 ---
 
-## 체크리스트
+## 8. 체크리스트
 
 ### 초기 설정
 
-- [ ] Sentry DSN 환경변수 설정
-- [ ] SDK 초기화 코드 추가 (environment, release 포함)
-- [ ] AI Issue Grouping 활성화
-- [ ] Session Replay 설정 (마스킹 규칙 포함)
-- [ ] Performance Monitoring 활성화
-- [ ] Source Map 업로드 플러그인 설정
-- [ ] beforeSend 필터링 적용
+- [ ] Sentry 프로젝트 생성 및 DSN 발급
+- [ ] 환경 변수 설정 (`SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
+- [ ] `sentry.config.ts` 작성 (SDK 초기화, 샘플링, 필터링)
+- [ ] `beforeSend` 필터 체인 구성
+- [ ] `ignoreErrors`, `denyUrls` 설정
+- [ ] Source Map 업로드 CI/CD 파이프라인 구성
+- [ ] Source Map 빌드 아티팩트 삭제 확인
 
-### 보안
+### AI 통합
 
-- [ ] PII Scrubbing 서버/클라이언트 이중 적용
-- [ ] Session Replay 마스킹 규칙 검증
-- [ ] Source Map 빌드 후 삭제 확인
-- [ ] 민감 헤더(Authorization, Cookie) 필터링
+- [ ] Sentry Webhook 설정 (에러 수신 엔드포인트)
+- [ ] AI 에러 자동 분류 + 담당자 할당 로직 배포
+- [ ] Sentry → Slack AI 요약 파이프라인 배포
+- [ ] 주간 에러 트렌드 리포트 스케줄링 (cron)
+- [ ] Copilot 에러 핸들링 지시 (`.github/copilot-instructions.md`)
 
-### 모니터링
+### 멀티 베타 환경
 
-- [ ] Metric Alert 설정 (에러율, P95, Web Vitals)
-- [ ] Issue Alert 설정 (새 에러, 회귀)
+- [ ] 환경 감지 로직 (`detectEnvironment`) 구현
+- [ ] 환경별 샘플링 비율 설정 및 검증
+- [ ] PR별 Preview Release 자동 등록/정리 CI 구성
+- [ ] Feature Flag → Sentry 컨텍스트 동기화
+- [ ] 환경별 Alert 정책 등록
+- [ ] Preview 환경 정리 시 Sentry Release 삭제 연동
+
+### Alert 및 모니터링
+
+- [ ] Metric Alert 규칙 설정 (Error Rate, p95, Crash Free Rate)
+- [ ] Issue Alert 규칙 설정 (First Seen, Regression)
 - [ ] Uptime Monitoring 설정
-- [ ] 에스컬레이션 정책 문서화
+- [ ] 에스컬레이션 정책 문서화 및 팀 공유
+- [ ] PagerDuty 연동 (프로덕션)
+- [ ] Slack 채널 구조 설정 (`#prod-alerts`, `#beta-monitoring`, `#preview-errors`)
 
-### AI 연동
+### Release Health
 
-- [ ] Sentry Webhook -> AI 분석 파이프라인 구축
-- [ ] Slack AI 요약 자동 전송 설정
-- [ ] 주간 패턴 분석 자동화 (cron)
-- [ ] AI 기반 에러 분류 및 담당자 할당 테스트
-
-### 배포
-
-- [ ] GitHub Actions Sentry Release 설정
-- [ ] Slack/PagerDuty/Jira 연동
-- [ ] Release Health 대시보드 확인
-- [ ] 비용 사용량 모니터링 알림 설정
+- [ ] Release 자동 등록 CI/CD 구성
+- [ ] 배포 후 자동 모니터링 스크립트 배포
+- [ ] Crash Free Rate 임계값 알림 설정
+- [ ] 롤백 판단 기준 및 프로세스 문서화
