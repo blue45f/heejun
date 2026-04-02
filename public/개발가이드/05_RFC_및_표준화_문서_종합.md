@@ -1,863 +1,1598 @@
-# AI 중심 RFC 및 표준화 문서 종합 (멀티 베타 환경)
+# RFC 및 표준화 문서 종합 가이드 (2026 Edition)
 
-> AI 활용 표준을 핵심 축으로, 멀티 베타 환경 인프라 자동 프로비저닝 표준, AI 코드 리뷰 정책, AI 생성 코드 품질 기준, 개발 환경/네이밍/테스트/UX 라이팅까지 아우르는 기술 표준화 종합 가이드
-
----
-
-## 목차
-
-1. [AI 활용 표준](#1-ai-활용-표준)
-2. [AI로 표준화 문서 초안 자동 생성](#2-ai로-표준화-문서-초안-자동-생성)
-3. [멀티 베타 환경 표준화](#3-멀티-베타-환경-표준화)
-4. [기술 표준화 사례 모음](#4-기술-표준화-사례-모음)
-5. [개발 환경 표준화](#5-개발-환경-표준화)
-6. [네이밍 컨벤션 표준](#6-네이밍-컨벤션-표준)
-7. [테스트 전략 표준](#7-테스트-전략-표준)
-8. [UX 라이팅 가이드라인](#8-ux-라이팅-가이드라인)
-9. [AI 프롬프트 모음](#9-ai-프롬프트-모음)
+> **최종 갱신**: 2026-04-01
+> **핵심 키워드**: AI 기반 표준 수립/검증, Biome 2.0, 멀티 베타 인프라 표준, 프론트엔드 특화 컨벤션
 
 ---
 
-## 1. AI 활용 표준
+## 1. RFC 프로세스 개요
 
-AI 도구는 코드 생성, 리뷰, 문서 작성 전반에 걸쳐 활용되며, 품질과 보안을 보장하기 위한 명확한 표준이 필요하다. 이 섹션은 AI 활용의 모든 측면을 다룬다.
+### 1.1 RFC 라이프사이클
 
-### 1.1 AI 코드 리뷰 정책
-
-#### 적용 범위
-
-| 구분 | AI 리뷰 자동화 | 사람 리뷰 필수 | 설명 |
-|------|:---:|:---:|------|
-| 코드 스타일/포맷 | O | - | ESLint/Prettier로 자동 수정, AI가 패턴 일관성 검증 |
-| 일반적 버그 패턴 탐지 | O | - | null 체크 누락, 무한 루프, 메모리 릭 패턴 |
-| 성능 안티패턴 식별 | O | - | 불필요한 리렌더링, N+1 쿼리, 번들 사이즈 이슈 |
-| 보안 취약점 검사 | O | O | AI 1차 스캔 후 보안 담당자 최종 확인 |
-| 비즈니스 로직 검증 | - | O | 도메인 지식이 필요한 영역은 사람이 판단 |
-| 아키텍처 적합성 | - | O | 시스템 설계 원칙과의 정합성은 사람이 판단 |
-| 접근성(a11y) 검사 | O | O | AI가 WCAG 기준 자동 검사, 사람이 UX 맥락 검증 |
-| IaC 코드 리뷰 | O | O | AI가 보안/비용 검사, 사람이 아키텍처 적합성 판단 |
-
-#### AI 코드 리뷰 파이프라인 설정
-
-```yaml
-# .github/workflows/ai-review.yml
-name: AI Code Review
-on: [pull_request]
-jobs:
-  ai-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: AI Review
-        uses: ai-code-review-action@v2
-        with:
-          model: "claude-sonnet"
-          rules: |
-            - security_scan: required
-            - performance_check: required
-            - accessibility_check: required
-            - style_check: optional
-            - iac_review: required
-          ignore_paths: |
-            - "**/*.test.ts"
-            - "**/__mocks__/**"
-          human_review_required: |
-            - "src/core/**"
-            - "src/auth/**"
-            - "src/payment/**"
-            - "infra/**"
+```
+Draft → Review → AI 검증 → 투표 → Accepted/Rejected → Implementation → Deprecated
 ```
 
-#### AI 리뷰 결과 처리 기준
+| 단계 | 소요 기간 | 필수 참여자 | AI 역할 |
+|------|-----------|-------------|---------|
+| Draft | 1-3일 | 작성자 | 초안 생성 보조, 유사 RFC 탐색 |
+| Review | 3-5일 | 팀 전원 | 영향 범위 분석, 호환성 검증 |
+| AI 검증 | 자동 | CI | 표준 충돌 감지, 보안 스캔 |
+| 투표 | 2일 | 팀 전원 | 의견 요약, 쟁점 정리 |
+| Implementation | 스프린트 내 | 담당자 | 코드 생성, 표준 준수 검증 |
 
-| AI 리뷰 결과 | 조치 |
-|-------------|------|
-| **Critical** (보안/데이터 유출 가능성) | 즉시 수정 필수, 머지 차단 |
-| **Warning** (성능/패턴 이슈) | PR 코멘트로 남기고, 사람 리뷰어가 판단 |
-| **Info** (스타일/개선 제안) | 작성자 재량으로 반영 |
-| **False Positive** | `@ai-ignore` 주석으로 무시 처리, 이유 기록 |
+### 1.2 RFC 문서 템플릿
 
-### 1.2 AI 생성 코드 품질 기준
+```markdown
+# RFC-{번호}: {제목}
 
-#### 기본 원칙
+## 메타데이터
+- **작성자**:
+- **상태**: Draft | Review | Accepted | Rejected | Deprecated
+- **생성일**:
+- **AI 검증 결과**: Pass | Fail | Pending
 
-1. **반드시 사람이 검토**: AI가 생성한 코드는 자동 머지하지 않는다
-2. **테스트 필수**: AI 생성 코드에 대해서도 동일한 테스트 기준 적용
-3. **라이선스 확인**: AI가 생성한 코드의 라이선스 이슈 검토
-4. **코드 이해 필수**: 이해하지 못하는 AI 생성 코드는 사용하지 않는다
-5. **출처 표기**: AI 도구로 생성된 주요 코드는 커밋 메시지에 명시
-6. **IaC 검증**: AI 생성 IaC 코드는 반드시 `cdk diff`로 변경 사항 확인 후 적용
+## 요약
+1-2문장으로 핵심 제안을 기술한다.
 
-#### AI 생성 코드 체크리스트
+## 동기
+왜 이 변경이 필요한가?
 
-- [ ] 생성된 코드의 동작 원리를 완전히 이해했는가
-- [ ] 프로젝트의 기존 패턴/컨벤션과 일치하는가
-- [ ] 테스트 코드가 함께 작성되었는가
-- [ ] 보안 취약점이 없는가 (하드코딩된 비밀값, 인젝션 등)
-- [ ] 불필요한 의존성을 추가하지 않았는가
-- [ ] 에러 핸들링이 적절한가
-- [ ] 타입 안전성이 보장되는가 (any 타입 사용 금지)
-- [ ] 접근성(a11y) 기준을 충족하는가
-- [ ] 성능에 부정적 영향이 없는가
-- [ ] IaC 코드의 경우 비용 영향이 검토되었는가
-- [ ] 멀티 베타 환경과 호환되는가
+## 상세 설계
+구체적인 구현 방안을 기술한다.
 
-### 1.3 프롬프트 가이드
+## AI 영향도 분석
+- AI 코드 생성에 미치는 영향
+- 기존 프롬프트 라이브러리 수정 필요 여부
 
-#### AI 코드 생성 시 권장 프롬프트 패턴
+## 대안
+검토했으나 채택하지 않은 대안과 그 이유.
 
-```text
-다음 조건을 만족하는 코드를 작성해줘:
-
-[기능 요구사항]
-- {요구사항 설명}
-
-[기술 제약]
-- TypeScript strict 모드
-- 서버/클라이언트 컴포넌트 구분
-- 에러 바운더리 포함
-- 접근성(WCAG 2.2 AA) 준수
-- 테스트 코드 포함 (Vitest + Testing Library)
-
-[프로젝트 컨텍스트]
-- 상태 관리: Zustand
-- 스타일링: Tailwind CSS
-- API 호출: TanStack Query
-- 인프라: 멀티 베타 환경 (PR별 S3 + CloudFront)
+## 마이그레이션 전략
+기존 코드의 점진적 전환 계획.
 ```
-
-#### AI 문서 생성 시 프롬프트
-
-```text
-다음 조건으로 기술 문서를 작성해줘:
-
-[문서 유형]: RFC / ADR / 기술 가이드 / 표준화 문서
-[대상 독자]: {독자 수준}
-[문서 구조]: {섹션 구성}
-[포함 내용]:
-- 코드 예시 포함 (TypeScript)
-- 의사결정 근거 명시
-- 대안 비교표 포함
-- 체크리스트 포함
-- 멀티 베타 환경 고려사항 포함
-```
-
-#### AI 코드 리뷰 요청 시 프롬프트
-
-```text
-다음 코드를 리뷰해줘:
-
-[리뷰 관점]
-- 보안 취약점
-- 성능 안티패턴
-- 타입 안전성
-- 에러 핸들링
-- 접근성
-- 멀티 베타 환경 호환성 (해당 시)
-
-[프로젝트 컨텍스트]
-- {기술 스택 설명}
-- {코딩 컨벤션 핵심 규칙}
-
-[코드]
-{코드 붙여넣기}
-```
-
-### 1.4 AI 활용 거버넌스
-
-| 항목 | 정책 |
-|------|------|
-| AI 도구 선정 | 팀 합의 후 표준 도구 지정, 분기별 재평가 |
-| 비용 관리 | 팀 단위 월간 사용량 모니터링, 예산 한도 설정 |
-| 데이터 보안 | 민감 정보(API 키, 고객 데이터, 내부 비즈니스 데이터)를 AI에 입력 금지 |
-| 교육 | 분기별 AI 활용 베스트 프랙티스 공유 세션 |
-| 품질 추적 | AI 생성 코드의 버그 발생률 월간 추적 |
-| 프롬프트 공유 | 팀 내 효과적인 프롬프트를 공유 저장소에 축적 |
-| 라이선스 | AI 생성 코드의 라이선스 리스크를 법무팀과 사전 협의 |
-| IaC 리뷰 | AI 생성 IaC 코드는 반드시 `cdk diff` + 사람 리뷰 |
 
 ---
 
-## 2. AI로 표준화 문서 초안 자동 생성
+## 2. AI 활용 표준
 
-표준화 문서의 초안을 AI로 생성하면, 작성 시간을 대폭 단축하고 빠짐없이 구조화된 문서를 만들 수 있다.
+### 2.1 AI 코드 생성 품질 기준
 
-### 2.1 표준화 문서 초안 생성 프롬프트
+#### Hallucination 탐지
 
-```text
-아래 조건으로 개발 표준화 문서 초안을 작성해줘:
-
-[표준화 대상]
-- 대상: {네이밍 컨벤션 / 테스트 전략 / 코드 리뷰 정책 / 개발 환경 / 멀티 베타 환경 등}
-- 적용 범위: {전체 조직 / 특정 팀 / 특정 프로젝트}
-- 기존 현황: {현재 운영 중인 규칙이나 관행}
-
-[요구사항]
-- 규칙마다 올바른 예시와 잘못된 예시를 함께 제시
-- 예외 사항과 예외 허용 근거를 명시
-- 도입 단계(기존 코드 마이그레이션 계획) 포함
-- 자동화 방안(린터 규칙, CI 검사 등) 포함
-- 멀티 베타 환경과의 통합 고려사항 포함
-
-[출력 형식]
-- 마크다운 테이블 활용
-- 체크리스트 형태의 검증 항목 포함
-- 변경 이력 섹션 포함
-```
-
-### 2.2 AI 초안 활용 워크플로우
-
-```
-1. 담당자가 표준화 대상과 제약 조건을 정리 (10분)
-2. AI에 프롬프트 입력 -> 초안 자동 생성 (2분)
-3. 담당자가 팀 맥락(기존 코드, 레거시, 팀 관행) 보완 (30분)
-4. AI 리뷰로 누락 항목 점검 (2분)
-5. 팀 리뷰 및 합의 -> 표준 확정
-```
-
-### 2.3 주의사항
-
-- AI 초안은 범용적이므로 팀 고유의 관행/레거시를 반드시 반영해야 한다
-- 자동 생성된 코드 예시는 실제 프로젝트에서 동작 검증 후 사용한다
-- 표준화 문서는 RFC 프로세스를 거쳐 팀 합의로 확정한다
-
----
-
-## 3. 멀티 베타 환경 표준화
-
-### 3.1 표준화 RFC 사례: 인프라 자동 프로비저닝 표준
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 인프라, 프론트엔드, QA |
-
-**문제**: 단일 스테이징 환경 공유로 배포 충돌 및 QA 병목 발생
-**결정**: PR별 독립 베타 환경을 CDK로 자동 프로비저닝하고, 라이프사이클을 GitHub Actions로 관리
-
-#### 표준 인프라 구성
+AI가 생성한 코드에서 존재하지 않는 API, 잘못된 타입, 가상의 라이브러리를 탐지한다.
 
 ```typescript
-// 멀티 베타 환경 표준 인터페이스
-interface BetaEnvironmentStandard {
-  // 리소스 네이밍 규칙
-  naming: {
-    s3Bucket: `beta-${number}-${string}`;     // beta-{PR번호}-{커밋해시8자리}
-    distribution: `Beta-PR-${number}`;         // CloudFront 코멘트
-    dnsRecord: `pr-${number}.beta.${string}`; // 서브도메인
-    stackName: `MultiBeta-PR-${number}`;       // CloudFormation 스택
-  };
+// hallucination-detector.ts
+interface HallucinationCheckResult {
+  file: string;
+  line: number;
+  type: 'phantom-api' | 'invalid-type' | 'nonexistent-package' | 'deprecated-usage';
+  description: string;
+  confidence: number;
+  suggestion: string;
+}
 
-  // 필수 태그
-  tags: {
-    Environment: 'beta';
-    PRNumber: string;
-    ManagedBy: 'cdk-multi-beta';
-    ExpiresAt: string;           // ISO 8601
-    CreatedBy: string;           // GitHub Actions run ID
-  };
+interface HallucinationDetectorConfig {
+  packageRegistry: string;
+  typeDefinitionPaths: string[];
+  apiInventoryPath: string;
+  confidenceThreshold: number;
+}
 
-  // 라이프사이클 정책
-  lifecycle: {
-    defaultTtlDays: 7;
-    maxTtlDays: 30;
-    autoCleanupOnPrClose: true;
-    scheduledSweepCron: '0 3 * * *';
-    maxConcurrentEnvironments: 20;
-  };
+async function detectHallucinations(
+  generatedCode: string,
+  config: HallucinationDetectorConfig,
+): Promise<HallucinationCheckResult[]> {
+  const results: HallucinationCheckResult[] = [];
 
-  // 보안 정책
-  security: {
-    blockPublicAccess: true;
-    encryption: 's3-managed';
-    httpsOnly: true;
-    oac: true;                   // Origin Access Control 필수
+  // 1. import된 패키지가 실제 레지스트리에 존재하는지 확인
+  const imports = parseImports(generatedCode);
+  for (const imp of imports) {
+    const exists = await checkPackageExists(imp.packageName, config.packageRegistry);
+    if (!exists) {
+      results.push({
+        file: imp.file,
+        line: imp.line,
+        type: 'nonexistent-package',
+        description: `패키지 "${imp.packageName}"이 레지스트리에 존재하지 않음`,
+        confidence: 0.95,
+        suggestion: `유사 패키지 확인: ${await findSimilarPackages(imp.packageName)}`,
+      });
+    }
+  }
+
+  // 2. 호출된 API가 해당 패키지에 실제로 존재하는지 확인
+  const apiCalls = parseApiCalls(generatedCode);
+  for (const call of apiCalls) {
+    const valid = await validateApiExists(call, config.apiInventoryPath);
+    if (!valid) {
+      results.push({
+        file: call.file,
+        line: call.line,
+        type: 'phantom-api',
+        description: `"${call.fullName}"은 해당 모듈에 존재하지 않는 API`,
+        confidence: 0.9,
+        suggestion: `사용 가능한 API: ${await listAvailableApis(call.module)}`,
+      });
+    }
+  }
+
+  // 3. deprecated API 사용 탐지
+  const deprecatedUsages = await checkDeprecatedUsage(generatedCode, config.typeDefinitionPaths);
+  results.push(...deprecatedUsages);
+
+  return results.filter((r) => r.confidence >= config.confidenceThreshold);
+}
+```
+
+#### 라이선스 검증
+
+```typescript
+// license-validator.ts
+interface LicensePolicy {
+  allowed: string[];
+  restricted: string[];
+  requireApproval: string[];
+  maxTransitiveDependencyDepth: number;
+}
+
+interface LicenseViolation {
+  package: string;
+  version: string;
+  license: string;
+  violationType: 'restricted' | 'approval-required' | 'unknown' | 'copyleft-contamination';
+  dependencyChain: string[];
+}
+
+const DEFAULT_POLICY: LicensePolicy = {
+  allowed: ['MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'BlueOak-1.0.0'],
+  restricted: ['GPL-2.0', 'GPL-3.0', 'AGPL-3.0', 'SSPL-1.0', 'BUSL-1.1'],
+  requireApproval: ['MPL-2.0', 'LGPL-2.1', 'LGPL-3.0', 'CPAL-1.0'],
+  maxTransitiveDependencyDepth: 5,
+};
+
+async function validateLicenses(
+  lockfilePath: string,
+  policy: LicensePolicy = DEFAULT_POLICY,
+): Promise<LicenseViolation[]> {
+  const dependencies = await parseLockfile(lockfilePath);
+  const violations: LicenseViolation[] = [];
+
+  for (const dep of dependencies) {
+    const license = await resolveLicense(dep);
+
+    if (policy.restricted.includes(license)) {
+      violations.push({
+        package: dep.name,
+        version: dep.version,
+        license,
+        violationType: 'restricted',
+        dependencyChain: dep.chain,
+      });
+    } else if (policy.requireApproval.includes(license)) {
+      violations.push({
+        package: dep.name,
+        version: dep.version,
+        license,
+        violationType: 'approval-required',
+        dependencyChain: dep.chain,
+      });
+    } else if (!policy.allowed.includes(license)) {
+      violations.push({
+        package: dep.name,
+        version: dep.version,
+        license,
+        violationType: 'unknown',
+        dependencyChain: dep.chain,
+      });
+    }
+  }
+
+  return violations;
+}
+```
+
+#### AI 생성 코드 보안 검토
+
+```typescript
+// ai-security-review.ts
+interface SecurityFinding {
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  category: string;
+  description: string;
+  location: { file: string; startLine: number; endLine: number };
+  cweId?: string;
+  remediation: string;
+}
+
+const AI_SPECIFIC_SECURITY_RULES = [
+  {
+    id: 'AI-SEC-001',
+    name: 'Prompt Injection via User Input',
+    pattern: /(?:prompt|message|instruction)\s*[+=]\s*(?:req\.|params\.|query\.|body\.)/,
+    severity: 'critical' as const,
+    cweId: 'CWE-77',
+    remediation: '사용자 입력을 AI 프롬프트에 직접 삽입하지 말 것. 반드시 새니타이징 후 사용.',
+  },
+  {
+    id: 'AI-SEC-002',
+    name: 'Hardcoded API Key',
+    pattern: /(?:api[_-]?key|secret|token)\s*[:=]\s*['"`][A-Za-z0-9_\-]{20,}['"`]/i,
+    severity: 'critical' as const,
+    cweId: 'CWE-798',
+    remediation: '환경 변수 또는 시크릿 매니저를 사용할 것.',
+  },
+  {
+    id: 'AI-SEC-003',
+    name: 'Unvalidated Dynamic Import',
+    pattern: /import\(\s*(?:req\.|params\.|query\.|body\.)/,
+    severity: 'high' as const,
+    cweId: 'CWE-94',
+    remediation: '동적 import 경로에 사용자 입력을 직접 사용하지 말 것.',
+  },
+  {
+    id: 'AI-SEC-004',
+    name: 'AI Output Direct Rendering',
+    pattern: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html:\s*(?:aiResponse|generated|completion)/,
+    severity: 'high' as const,
+    cweId: 'CWE-79',
+    remediation: 'AI 응답을 HTML로 직접 렌더링하지 말 것. DOMPurify 등으로 새니타이징.',
+  },
+];
+
+async function reviewAiGeneratedCode(
+  code: string,
+  filePath: string,
+): Promise<SecurityFinding[]> {
+  const findings: SecurityFinding[] = [];
+  const lines = code.split('\n');
+
+  for (const rule of AI_SPECIFIC_SECURITY_RULES) {
+    lines.forEach((line, index) => {
+      if (rule.pattern.test(line)) {
+        findings.push({
+          severity: rule.severity,
+          category: rule.name,
+          description: `[${rule.id}] ${rule.name} 탐지`,
+          location: { file: filePath, startLine: index + 1, endLine: index + 1 },
+          cweId: rule.cweId,
+          remediation: rule.remediation,
+        });
+      }
+    });
+  }
+
+  return findings;
+}
+```
+
+### 2.2 AI 리뷰 정책
+
+```typescript
+// ai-review-policy.ts
+interface AiReviewPolicy {
+  autoApproveThreshold: number;
+  humanReviewThreshold: number;
+  maxAutoApprovedFiles: number;
+  excludePatterns: string[];
+  requireHumanForCategories: string[];
+}
+
+const DEFAULT_AI_REVIEW_POLICY: AiReviewPolicy = {
+  autoApproveThreshold: 95,
+  humanReviewThreshold: 70,
+  maxAutoApprovedFiles: 10,
+  excludePatterns: [
+    '**/*.lock',
+    '**/migrations/**',
+    '**/*.generated.*',
+  ],
+  requireHumanForCategories: [
+    'security',
+    'authentication',
+    'payment',
+    'data-deletion',
+    'cryptography',
+    'infrastructure',
+  ],
+};
+
+interface AiReviewResult {
+  score: number;
+  category: string;
+  findings: Array<{
+    type: 'suggestion' | 'warning' | 'error';
+    message: string;
+    line?: number;
+  }>;
+  requiresHumanReview: boolean;
+  reasoning: string;
+}
+
+function evaluateReviewResult(
+  result: AiReviewResult,
+  policy: AiReviewPolicy,
+  changedFiles: string[],
+): { approved: boolean; reason: string } {
+  if (policy.requireHumanForCategories.includes(result.category)) {
+    return {
+      approved: false,
+      reason: `"${result.category}" 카테고리는 반드시 사람 리뷰가 필요합니다.`,
+    };
+  }
+
+  if (changedFiles.length > policy.maxAutoApprovedFiles) {
+    return {
+      approved: false,
+      reason: `변경 파일 ${changedFiles.length}개가 자동 승인 한도(${policy.maxAutoApprovedFiles})를 초과합니다.`,
+    };
+  }
+
+  if (result.score >= policy.autoApproveThreshold) {
+    return { approved: true, reason: `AI 점수 ${result.score}점으로 자동 승인.` };
+  }
+
+  if (result.score < policy.humanReviewThreshold) {
+    return {
+      approved: false,
+      reason: `AI 점수 ${result.score}점으로 사람 리뷰가 필요합니다.`,
+    };
+  }
+
+  return {
+    approved: false,
+    reason: `AI 점수 ${result.score}점 (${policy.humanReviewThreshold}-${policy.autoApproveThreshold} 구간). 사람 확인 권장.`,
   };
 }
 ```
 
-#### 표준 배포 파이프라인
-
-| 단계 | 트리거 | 액션 | 타임아웃 |
-|------|--------|------|---------|
-| 프로비저닝 | PR 생성 | CDK Deploy (S3 + CloudFront + DNS) | 15분 |
-| 배포 | PR 푸시 | 빌드 + S3 Sync + CF Invalidation | 10분 |
-| URL 알림 | 배포 완료 | PR 코멘트에 베타 URL 등록 | 1분 |
-| 정리 | PR 머지/닫힘 | CDK Destroy | 10분 |
-| 스윕 | 매일 03:00 UTC | 만료/유휴 환경 일괄 정리 | 30분 |
-
-### 3.2 비용 관리 표준
-
-| 정책 | 기준 | 자동화 |
-|------|------|--------|
-| TTL 만료 | 생성 후 7일 | S3 Lifecycle Rule + 스케줄 스윕 |
-| 유휴 감지 | 3일간 요청 0건 | CloudWatch 메트릭 기반 알림 |
-| 동시 상한 | 최대 20개 | 초과 시 신규 생성 차단 |
-| 월간 예산 | $50 | AWS Budgets 알림 |
-| 태그 필수 | 모든 리소스 | CDK 스택 레벨 태그 강제 |
-
-### 3.3 Feature Flag 라우팅 표준
+### 2.3 프롬프트 라이브러리 관리
 
 ```typescript
-// Feature Flag 기반 베타 라우팅 표준
-interface BetaRoutingStandard {
-  // 우선순위 (높은 순)
-  routingPriority: [
-    'query_parameter',    // ?beta=123
-    'cookie',            // x-beta-pr=123
-    'header',            // X-Beta-PR: 123
-    'feature_flag',      // 서비스 기반 플래그
-  ];
+// prompt-library.ts
+interface PromptTemplate {
+  id: string;
+  name: string;
+  version: string;
+  category: 'standard-creation' | 'standard-validation' | 'code-generation' | 'review' | 'refactor';
+  template: string;
+  variables: Array<{ name: string; description: string; required: boolean }>;
+  expectedOutputFormat: string;
+  qualityScore: number;
+  lastValidated: string;
+}
 
-  // 쿠키 규격
-  cookie: {
-    name: 'x-beta-pr';
-    maxAge: 86400;         // 24시간
-    sameSite: 'Lax';
-    secure: true;
-  };
+const STANDARD_PROMPTS: PromptTemplate[] = [
+  {
+    id: 'std-001',
+    name: '프로젝트 맞춤 코딩 컨벤션 생성',
+    version: '2.0.0',
+    category: 'standard-creation',
+    template: `당신은 시니어 소프트웨어 아키텍트입니다.
+다음 프로젝트 정보를 기반으로 코딩 컨벤션을 생성해주세요.
 
-  // 응답 헤더
-  responseHeaders: {
-    'X-Beta-PR': string;
-    'X-Beta-Routed': 'true' | 'false';
-  };
+## 프로젝트 정보
+- 프레임워크: {{framework}}
+- 언어: {{language}}
+- 팀 규모: {{teamSize}}명
+- 기존 코드 스타일 샘플:
+\`\`\`
+{{codeSample}}
+\`\`\`
+
+## 요구사항
+1. 네이밍 규칙 (변수, 함수, 컴포넌트, 파일)
+2. 디렉토리 구조 표준
+3. import 순서 규칙
+4. 에러 핸들링 패턴
+5. 주석 작성 기준
+6. Biome 2.0 설정으로 변환 가능한 규칙 목록
+
+출력은 Markdown 형식으로, 각 규칙에 올바른 예시와 잘못된 예시를 포함해주세요.`,
+    variables: [
+      { name: 'framework', description: '사용 프레임워크', required: true },
+      { name: 'language', description: '프로그래밍 언어', required: true },
+      { name: 'teamSize', description: '팀 인원 수', required: true },
+      { name: 'codeSample', description: '기존 코드 스타일 샘플', required: false },
+    ],
+    expectedOutputFormat: 'markdown',
+    qualityScore: 92,
+    lastValidated: '2026-03-15',
+  },
+  {
+    id: 'std-002',
+    name: '표준 위반 검사',
+    version: '2.0.0',
+    category: 'standard-validation',
+    template: `다음 코드가 우리 프로젝트의 코딩 표준을 위반하는지 검사해주세요.
+
+## 프로젝트 표준
+{{standards}}
+
+## 검사 대상 코드
+\`\`\`{{language}}
+{{code}}
+\`\`\`
+
+## 출력 형식
+각 위반에 대해 다음 형식으로 보고해주세요:
+- **위반 규칙**: 규칙 ID와 이름
+- **위치**: 라인 번호
+- **심각도**: error | warning | info
+- **설명**: 왜 위반인지
+- **수정 예시**: 올바른 코드
+
+위반이 없으면 "모든 표준을 준수합니다."라고 응답해주세요.`,
+    variables: [
+      { name: 'standards', description: '프로젝트 코딩 표준 문서', required: true },
+      { name: 'language', description: '코드 언어', required: true },
+      { name: 'code', description: '검사 대상 코드', required: true },
+    ],
+    expectedOutputFormat: 'structured-list',
+    qualityScore: 88,
+    lastValidated: '2026-03-20',
+  },
+  {
+    id: 'std-003',
+    name: 'RFC 영향도 분석',
+    version: '1.0.0',
+    category: 'standard-creation',
+    template: `다음 RFC 제안이 기존 코드베이스에 미치는 영향을 분석해주세요.
+
+## RFC 내용
+{{rfcContent}}
+
+## 현재 코드베이스 통계
+- 총 파일 수: {{totalFiles}}
+- 주요 패턴: {{patterns}}
+- 의존성 그래프: {{dependencyGraph}}
+
+## 분석 항목
+1. 영향 받는 파일 수 추정
+2. 마이그레이션 난이도 (1-10)
+3. 예상 소요 시간
+4. 위험 요소
+5. 단계별 마이그레이션 전략
+
+JSON 형식으로 출력해주세요.`,
+    variables: [
+      { name: 'rfcContent', description: 'RFC 문서 내용', required: true },
+      { name: 'totalFiles', description: '코드베이스 파일 수', required: true },
+      { name: 'patterns', description: '주요 코드 패턴', required: false },
+      { name: 'dependencyGraph', description: '의존성 그래프 요약', required: false },
+    ],
+    expectedOutputFormat: 'json',
+    qualityScore: 85,
+    lastValidated: '2026-03-10',
+  },
+];
+
+function renderPrompt(template: PromptTemplate, variables: Record<string, string>): string {
+  let rendered = template.template;
+
+  for (const v of template.variables) {
+    const value = variables[v.name];
+    if (v.required && !value) {
+      throw new Error(`필수 변수 "${v.name}"이 누락되었습니다.`);
+    }
+    rendered = rendered.replace(new RegExp(`\\{\\{${v.name}\\}\\}`, 'g'), value ?? '');
+  }
+
+  return rendered;
+}
+
+function getPromptsByCategory(category: PromptTemplate['category']): PromptTemplate[] {
+  return STANDARD_PROMPTS
+    .filter((p) => p.category === category)
+    .sort((a, b) => b.qualityScore - a.qualityScore);
 }
 ```
 
 ---
 
-## 4. 기술 표준화 사례 모음
+## 3. Biome 2.0 기반 포맷팅/린팅 표준
 
-### 사례 1: 렌더링 전략 표준화 (Server Components 기반)
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 프론트엔드 전체 |
-
-**문제**: CSR/SSR/SSG 전략이 프로젝트마다 달라 코드 재사용성 저하
-**결정**: Server Components를 기본으로 사용하고, 상호작용이 필요한 컴포넌트만 `'use client'` 선언
-
-| 구분 | Server Component | Client Component |
-|------|:---:|:---:|
-| 데이터 패칭 | O | - |
-| 정적 레이아웃 | O | - |
-| 이벤트 핸들링 | - | O |
-| 상태 관리 (useState) | - | O |
-| 서드파티 (window 접근) | - | O |
-
-### 사례 2: AI 코드 리뷰 파이프라인 표준화
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 전체 개발 조직 |
-
-**문제**: AI 코드 리뷰 도구 도입이 팀마다 상이하여 품질 편차 발생
-**결정**: PR 생성 시 AI 자동 리뷰를 1차로 수행하고, 사람 리뷰를 2차로 수행하는 2단계 리뷰 프로세스 표준화
-
-### 사례 3: 멀티 베타 환경 인프라 표준화
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 인프라, 프론트엔드, QA |
-
-**문제**: 단일 스테이징 환경 공유로 배포 대기 4시간, QA 병목
-**결정**: PR별 S3 + CloudFront를 CDK로 동적 프로비저닝, TTL 기반 자동 정리, Feature Flag Edge 라우팅 표준화
-
-### 사례 4: 모노레포 빌드 시스템 표준화
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 프로젝트 인프라 |
-
-**문제**: 멀티레포 운영으로 패키지 버전 충돌, 공유 코드 관리 어려움
-**결정**: Turborepo 기반 모노레포로 통합하고, 원격 캐싱으로 빌드 속도 보장
-
-### 사례 5: 타입 안전 API 계약 표준화
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 프론트엔드, 백엔드 |
-
-**문제**: API 스펙 문서와 실제 구현의 불일치, 프론트-백 간 타입 불일치
-**결정**: 내부 API는 tRPC, 외부 공개 API는 OpenAPI 3.1 + 자동 타입 생성으로 표준화
-
-### 사례 6: Edge Runtime 배포 전략 표준화
-
-| 항목 | 내용 |
-|------|------|
-| 발의일자 | YYYY-MM-DD |
-| 상태 | Accepted |
-| 영향 범위 | 인프라, 백엔드 |
-
-**문제**: 글로벌 사용자 대상 서비스에서 응답 지연 발생
-**결정**: 사용자 인접 엣지에서 실행 가능한 경량 API를 Edge Runtime으로 배포하고, 무거운 연산은 Origin Server로 위임
-
----
-
-## 5. 개발 환경 표준화
-
-### 5.1 devcontainer 설정
-
-모든 프로젝트에 `.devcontainer` 설정을 포함하여 일관된 개발 환경을 보장한다.
+### 3.1 Biome 2.0 설정
 
 ```json
-// .devcontainer/devcontainer.json
+// biome.json
 {
-  "name": "Project Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
-  "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/aws-cli:1": {}
+  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "organizeImports": {
+    "enabled": true,
+    "groups": [
+      ["builtin"],
+      ["external"],
+      ["internal"],
+      ["parent", "sibling", "index"],
+      ["type"]
+    ]
   },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "bradlc.vscode-tailwindcss",
-        "vitest.explorer",
-        "amazonwebservices.aws-toolkit-vscode"
-      ],
-      "settings": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
-        }
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": { "maxAllowedComplexity": 15 }
+        },
+        "noVoid": "error",
+        "useLiteralKeys": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "useExhaustiveDependencies": "warn",
+        "noUndeclaredVariables": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useConst": "error",
+        "useShorthandArrayType": "error",
+        "useTemplate": "error",
+        "useImportType": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsoleLog": "warn",
+        "noDebugger": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error"
+      },
+      "nursery": {
+        "useSortedClasses": "warn",
+        "noBarrelFile": "warn"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error"
       }
     }
   },
-  "postCreateCommand": "corepack enable && pnpm install",
-  "forwardPorts": [3000, 5173]
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "trailingCommas": "none"
+    }
+  },
+  "overrides": [
+    {
+      "include": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["**/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off"
+          }
+        }
+      }
+    }
+  ]
 }
 ```
 
-### 5.2 mise (런타임 버전 관리)
-
-mise를 사용하여 Node.js, pnpm 등의 런타임 버전을 프로젝트별로 관리한다.
-
-```toml
-# .mise.toml
-[tools]
-node = "22"
-pnpm = "9"
-"npm:aws-cdk" = "latest"
-
-[env]
-NODE_ENV = "development"
-```
-
-```bash
-# mise 설치 및 활성화
-curl https://mise.run | sh
-mise install
-mise activate
-```
-
-### 5.3 Node.js 버전 관리 정책
-
-| 항목 | 정책 |
-|------|------|
-| LTS 버전 | Node.js 22 LTS |
-| 업그레이드 주기 | LTS 릴리즈 후 3개월 이내 검토 |
-| 버전 고정 도구 | mise + `.mise.toml` (우선) 또는 `.nvmrc` |
-| CI/CD | `.mise.toml`과 동일 버전 사용 |
-| 패키지 매니저 | pnpm 9+ (Corepack으로 버전 고정) |
-
-```bash
-# Corepack으로 pnpm 버전 고정
-corepack enable
-corepack use pnpm@9
-```
-
-### 5.4 표준 기술 스택
-
-| 카테고리 | 표준 도구 | 비고 |
-|---------|----------|------|
-| 프레임워크 | React 19+ / Next.js 15+ | 서버 컴포넌트 기본 활용 |
-| 언어 | TypeScript 5.5+ | strict 모드 필수 |
-| 빌드 도구 | Vite 6+ | Rolldown 기반 |
-| 패키지 매니저 | pnpm 9+ | 워크스페이스 지원 |
-| 상태 관리 | Zustand / TanStack Query | 서버 상태와 클라이언트 상태 분리 |
-| 스타일링 | Tailwind CSS 4+ | 디자인 토큰 연동 |
-| 테스트 | Vitest + Playwright | 단위/통합/E2E 통합 |
-| 린팅 | ESLint 9 (Flat Config) + Prettier | AI 린팅 보조 연동 |
-| AI 보조 | Claude Code / GitHub Copilot | 코드 생성 + 리뷰 보조 |
-| IaC | AWS CDK (TypeScript) | 멀티 베타 환경 프로비저닝 |
-| CI/CD | GitHub Actions | PR별 베타 환경 자동화 |
-
----
-
-## 6. 네이밍 컨벤션 표준
-
-### 6.1 파일/폴더 네이밍
-
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| 컴포넌트 파일 | PascalCase | `UserProfile.tsx` |
-| 훅 파일 | camelCase (use 접두사) | `useAuth.ts` |
-| 유틸 파일 | camelCase | `formatDate.ts` |
-| 상수 파일 | camelCase | `apiEndpoints.ts` |
-| 타입 파일 | camelCase | `user.types.ts` |
-| 테스트 파일 | 원본명 + .test | `UserProfile.test.tsx` |
-| CDK 스택 파일 | kebab-case | `multi-beta-stack.ts` |
-| 폴더 | kebab-case | `user-profile/` |
-
-### 6.2 변수/함수 네이밍
-
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| 변수 | camelCase | `userName`, `isLoading` |
-| 상수 | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`, `API_BASE_URL` |
-| 함수 | camelCase (동사 시작) | `fetchUserData()`, `handleClick()` |
-| 컴포넌트 | PascalCase | `UserProfileCard` |
-| 커스텀 훅 | camelCase (use 접두사) | `useUserProfile()` |
-| 타입/인터페이스 | PascalCase | `UserProfile`, `ApiResponse` |
-| Enum | PascalCase (멤버: PascalCase) | `UserRole.Admin` |
-| 이벤트 핸들러 | handle + 대상 + 동작 | `handleFormSubmit()` |
-| boolean 변수 | is/has/can/should 접두사 | `isVisible`, `hasPermission` |
-
-### 6.3 컴포넌트 네이밍
-
-| 유형 | 규칙 | 예시 |
-|------|------|------|
-| 페이지 컴포넌트 | 도메인 + Page | `OrderListPage` |
-| 레이아웃 | 영역 + Layout | `DashboardLayout` |
-| 컨테이너 | 도메인 + Container | `UserProfileContainer` |
-| 프레젠테이션 | 도메인 + 역할 | `UserCard`, `OrderTable` |
-| 공통 UI | 기능 설명 | `Button`, `Modal`, `Tooltip` |
-
-### 6.4 API 관련 네이밍
-
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| API 호출 함수 | 동사 + 리소스 | `getUsers()`, `createOrder()` |
-| Query Key | 배열 형태, 리소스 기반 | `['users', userId]` |
-| API 응답 타입 | 리소스 + Response | `UserListResponse` |
-| API 요청 타입 | 동작 + 리소스 + Request | `CreateUserRequest` |
-
-### 6.5 인프라 리소스 네이밍
-
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| S3 버킷 | 용도-{식별자} | `beta-42-a1b2c3d4` |
-| CloudFront | 용도-{식별자} | `Beta-PR-42` |
-| CDK 스택 | PascalCase-식별자 | `MultiBeta-PR-42` |
-| DNS 레코드 | kebab-case | `pr-42.beta.example.com` |
-| IAM 역할 | PascalCase | `MultiBetaDeployRole` |
-
-### 6.6 금지 패턴
+### 3.2 ESLint에서 Biome 2.0으로의 마이그레이션
 
 ```typescript
-// 의미 없는 이름
-const data = fetchData();        // data가 무엇인지 불명확
-const temp = calculate();        // 임시 변수명 사용 금지
+// migrate-to-biome.ts
+interface MigrationReport {
+  migratedRules: Array<{ eslintRule: string; biomeRule: string }>;
+  unsupportedRules: Array<{ eslintRule: string; reason: string; alternative: string }>;
+  manualReviewRequired: Array<{ eslintRule: string; note: string }>;
+  estimatedEffort: string;
+}
 
-// 올바른 이름
-const userList = fetchUsers();
-const discountRate = calculateDiscount();
+async function analyzeMigration(eslintConfigPath: string): Promise<MigrationReport> {
+  const eslintConfig = await loadEslintConfig(eslintConfigPath);
+  const report: MigrationReport = {
+    migratedRules: [],
+    unsupportedRules: [],
+    manualReviewRequired: [],
+    estimatedEffort: '',
+  };
 
-// 부정형 boolean 금지
-const isNotVisible = false;      // 이중 부정 발생 가능
-const isVisible = true;          // 긍정형 사용
+  const ruleMapping: Record<string, string> = {
+    'no-unused-vars': 'correctness/noUnusedVariables',
+    'no-console': 'suspicious/noConsoleLog',
+    'no-debugger': 'suspicious/noDebugger',
+    'prefer-const': 'style/useConst',
+    'prefer-template': 'style/useTemplate',
+    'no-var': 'style/noVar',
+    '@typescript-eslint/no-explicit-any': 'suspicious/noExplicitAny',
+    '@typescript-eslint/no-unused-vars': 'correctness/noUnusedVariables',
+    'react/no-danger': 'security/noDangerouslySetInnerHtml',
+    'import/order': 'organizeImports (built-in)',
+    'import/no-duplicates': 'correctness/noDuplicateImports',
+  };
 
-// 약어 사용 규칙
-const btn = document.querySelector('button');   // 금지
-const button = document.querySelector('button'); // 허용
-// 예외: 업계 표준 약어 (API, URL, ID, CSS, HTML, CDK, IaC 등)
+  for (const [rule, _config] of Object.entries(eslintConfig.rules ?? {})) {
+    if (ruleMapping[rule]) {
+      report.migratedRules.push({
+        eslintRule: rule,
+        biomeRule: ruleMapping[rule],
+      });
+    } else {
+      report.unsupportedRules.push({
+        eslintRule: rule,
+        reason: 'Biome 2.0에 대응 규칙 없음',
+        alternative: 'custom plugin 또는 AI 검증으로 대체',
+      });
+    }
+  }
+
+  const total = Object.keys(eslintConfig.rules ?? {}).length;
+  const migrated = report.migratedRules.length;
+  report.estimatedEffort =
+    migrated / total > 0.8
+      ? '낮음 (80% 이상 자동 전환 가능)'
+      : migrated / total > 0.5
+        ? '중간 (일부 커스텀 규칙 수동 전환 필요)'
+        : '높음 (상당수 규칙 수동 대응 필요)';
+
+  return report;
+}
+```
+
+### 3.3 CI에서 Biome 실행
+
+```yaml
+# .github/workflows/biome-check.yml
+name: Biome Check
+on: [pull_request]
+
+jobs:
+  biome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: biomejs/setup-biome@v2
+        with:
+          version: "2.0"
+      - name: Biome CI check
+        run: biome ci --reporter=github .
+      - name: Biome format check
+        run: biome format --check .
 ```
 
 ---
 
-## 7. 테스트 전략 표준
+## 4. 멀티 베타 인프라 표준
 
-### 7.1 Testing Trophy 채택
+### 4.1 환경 네이밍 컨벤션
 
-| 테스트 유형 | 비율 | 도구 | 설명 |
-|-------------|------|------|------|
-| 정적 분석 | 기반 | ESLint, TypeScript | 모든 테스트의 기반 |
-| 단위 테스트 | 20% | Vitest | 순수 함수 및 복잡한 비즈니스 로직 |
-| 통합 테스트 | 70% | Vitest + Testing Library | 컴포넌트 간 상호작용 검증 |
-| E2E 테스트 | 10% | Playwright | 핵심 사용자 플로우 |
-| IaC 테스트 | 별도 | CDK Assertions | CDK 스택 구성 검증 |
+```typescript
+// environment-naming.ts
+interface EnvironmentConfig {
+  name: string;
+  tier: 'preview' | 'staging' | 'production';
+  branchPattern: string;
+  url: string;
+  autoExpiry: string;
+  costLimitUsd: number;
+  owner: string;
+}
 
-### 7.2 표준 테스트 도구
+function generateEnvironmentName(
+  tier: EnvironmentConfig['tier'],
+  branchName: string,
+  prNumber?: number,
+): string {
+  const sanitized = branchName
+    .replace(/[^a-z0-9-]/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 30)
+    .toLowerCase();
 
-```json
-{
-  "devDependencies": {
-    "vitest": "^3.0.0",
-    "@testing-library/react": "^16.0.0",
-    "@testing-library/jest-dom": "^7.0.0",
-    "@testing-library/user-event": "^15.0.0",
-    "msw": "^3.0.0",
-    "playwright": "^1.50.0",
-    "@axe-core/playwright": "^5.0.0",
-    "aws-cdk-lib": "^2.170.0"
+  switch (tier) {
+    case 'preview':
+      return prNumber ? `preview-pr-${prNumber}` : `preview-${sanitized}`;
+    case 'staging':
+      return `staging-${sanitized}`;
+    case 'production':
+      return 'production';
   }
 }
+
+const ENVIRONMENT_DEFAULTS: Record<EnvironmentConfig['tier'], Partial<EnvironmentConfig>> = {
+  preview: {
+    autoExpiry: 'P3D',      // 3일 후 자동 만료
+    costLimitUsd: 5,        // 일 $5 한도
+  },
+  staging: {
+    autoExpiry: 'P14D',     // 14일 후 자동 만료
+    costLimitUsd: 20,       // 일 $20 한도
+  },
+  production: {
+    autoExpiry: '',          // 만료 없음
+    costLimitUsd: 0,         // 별도 관리
+  },
+};
 ```
 
-### 7.3 테스트 작성 원칙
-
-1. **사용자 행동 기반 테스트**: 구현 세부사항이 아닌 사용자 관점에서 테스트
-2. **AAA 패턴**: Arrange-Act-Assert 구조 준수
-3. **GWT 설명**: Given-When-Then 방식으로 테스트 설명 작성
-4. **AI 보조 테스트 생성**: AI 도구로 테스트 코드 초안을 생성하되, 반드시 사람이 검토
-
-### 7.4 테스트 커버리지 기준
-
-| 지표 | 최소 기준 | 권장 기준 |
-|------|----------|----------|
-| 신규 코드 커버리지 | 20% | 40% 이상 |
-| PR별 테스트 포함률 | 100% (신규 기능) | 100% (모든 변경) |
-| E2E 핵심 플로우 | 필수 시나리오 100% | 전체 시나리오 80% |
-| IaC 스택 테스트 | 필수 리소스 검증 | 전체 리소스 검증 |
-
-### 7.5 테스트 작성 예시
+### 4.2 Preview 환경 자동 만료 및 비용 관리
 
 ```typescript
-// 컴포넌트 테스트
-describe('LoginForm', () => {
-  it('Given 유효한 인증 정보, When 로그인 버튼 클릭, Then 대시보드로 이동', async () => {
-    // Arrange
-    const user = userEvent.setup();
-    render(<LoginForm />);
+// environment-lifecycle.ts
+interface EnvironmentStatus {
+  name: string;
+  createdAt: string;
+  expiresAt: string;
+  currentCostUsd: number;
+  costLimitUsd: number;
+  status: 'active' | 'warning' | 'expired' | 'cost-exceeded';
+}
 
-    // Act
-    await user.type(screen.getByLabelText('이메일'), 'user@example.com');
-    await user.type(screen.getByLabelText('비밀번호'), 'password123');
-    await user.click(screen.getByRole('button', { name: '로그인' }));
+async function checkEnvironmentHealth(
+  envs: EnvironmentStatus[],
+): Promise<Array<{ env: string; action: 'keep' | 'warn' | 'destroy'; reason: string }>> {
+  const now = new Date();
+  const actions: Array<{ env: string; action: 'keep' | 'warn' | 'destroy'; reason: string }> = [];
 
-    // Assert
-    await waitFor(() => {
-      expect(screen.getByText('대시보드')).toBeInTheDocument();
-    });
+  for (const env of envs) {
+    const expiresAt = new Date(env.expiresAt);
+    const hoursUntilExpiry = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (env.costLimitUsd > 0 && env.currentCostUsd >= env.costLimitUsd) {
+      actions.push({
+        env: env.name,
+        action: 'destroy',
+        reason: `비용 한도 초과 ($${env.currentCostUsd}/$${env.costLimitUsd})`,
+      });
+      continue;
+    }
+
+    if (hoursUntilExpiry <= 0) {
+      actions.push({
+        env: env.name,
+        action: 'destroy',
+        reason: `만료 시간 경과 (${env.expiresAt})`,
+      });
+      continue;
+    }
+
+    if (hoursUntilExpiry <= 6) {
+      actions.push({
+        env: env.name,
+        action: 'warn',
+        reason: `${Math.round(hoursUntilExpiry)}시간 후 만료 예정`,
+      });
+      continue;
+    }
+
+    if (env.costLimitUsd > 0 && env.currentCostUsd >= env.costLimitUsd * 0.8) {
+      actions.push({
+        env: env.name,
+        action: 'warn',
+        reason: `비용 ${Math.round((env.currentCostUsd / env.costLimitUsd) * 100)}% 도달`,
+      });
+      continue;
+    }
+
+    actions.push({ env: env.name, action: 'keep', reason: '정상' });
+  }
+
+  return actions;
+}
+```
+
+### 4.3 Preview 환경 표준 준수 자동 검증 CI
+
+```typescript
+// preview-standards-ci.ts
+interface StandardsCheckResult {
+  environment: string;
+  prNumber: number;
+  checks: Array<{
+    name: string;
+    status: 'pass' | 'fail' | 'warn';
+    details: string;
+    duration: number;
+  }>;
+  overallStatus: 'pass' | 'fail';
+  reportUrl: string;
+}
+
+async function runStandardsCheck(
+  prNumber: number,
+  previewUrl: string,
+): Promise<StandardsCheckResult> {
+  const environment = `preview-pr-${prNumber}`;
+  const checks: StandardsCheckResult['checks'] = [];
+
+  // 1. Biome 린팅/포맷 검사
+  const biomeResult = await runBiomeCheck();
+  checks.push({
+    name: 'Biome 2.0 린팅/포맷',
+    status: biomeResult.errors === 0 ? 'pass' : 'fail',
+    details: `오류 ${biomeResult.errors}건, 경고 ${biomeResult.warnings}건`,
+    duration: biomeResult.duration,
   });
-});
 
-// CDK 스택 테스트
-import { Template } from 'aws-cdk-lib/assertions';
-import { MultiBetaStack } from '../lib/multi-beta-stack';
-
-describe('MultiBetaStack', () => {
-  it('Given PR 번호, When 스택 생성, Then S3 버킷과 CloudFront가 생성된다', () => {
-    // Arrange
-    const app = new cdk.App();
-    const stack = new MultiBetaStack(app, 'TestStack', {
-      prNumber: 42,
-      commitHash: 'a1b2c3d4e5f6',
-      domainName: 'example.com',
-      hostedZoneId: 'Z1234567890',
-      certificateArn: 'arn:aws:acm:us-east-1:123456789:certificate/xxx',
-      ttlDays: 7,
-    });
-
-    // Act
-    const template = Template.fromStack(stack);
-
-    // Assert
-    template.resourceCountIs('AWS::S3::Bucket', 1);
-    template.resourceCountIs('AWS::CloudFront::Distribution', 1);
-    template.hasResourceProperties('AWS::S3::Bucket', {
-      BucketName: 'beta-42-a1b2c3d4',
-    });
+  // 2. TypeScript 타입 검사
+  const tscResult = await runTypeCheck();
+  checks.push({
+    name: 'TypeScript 타입 검사',
+    status: tscResult.errors === 0 ? 'pass' : 'fail',
+    details: `타입 오류 ${tscResult.errors}건`,
+    duration: tscResult.duration,
   });
-});
+
+  // 3. AI 기반 표준 준수 분석
+  const aiAnalysis = await runAiStandardsAnalysis(prNumber);
+  checks.push({
+    name: 'AI 표준 준수 분석',
+    status: aiAnalysis.violations === 0 ? 'pass' : aiAnalysis.violations <= 3 ? 'warn' : 'fail',
+    details: `위반 ${aiAnalysis.violations}건 탐지. ${aiAnalysis.summary}`,
+    duration: aiAnalysis.duration,
+  });
+
+  // 4. 번들 크기 검사
+  const bundleResult = await checkBundleSize(previewUrl);
+  checks.push({
+    name: '번들 크기 기준 검사',
+    status: bundleResult.withinBudget ? 'pass' : 'warn',
+    details: `JS: ${bundleResult.jsSize}KB (한도: ${bundleResult.jsBudget}KB)`,
+    duration: bundleResult.duration,
+  });
+
+  // 5. 접근성 자동 검사
+  const a11yResult = await runAccessibilityAudit(previewUrl);
+  checks.push({
+    name: '접근성 (WCAG 2.2 AA)',
+    status: a11yResult.violations === 0 ? 'pass' : 'fail',
+    details: `위반 ${a11yResult.violations}건, 경고 ${a11yResult.warnings}건`,
+    duration: a11yResult.duration,
+  });
+
+  // 6. Lighthouse 성능 검사
+  const perfResult = await runLighthouseCheck(previewUrl);
+  checks.push({
+    name: 'Lighthouse 성능 점수',
+    status: perfResult.score >= 90 ? 'pass' : perfResult.score >= 70 ? 'warn' : 'fail',
+    details: `성능: ${perfResult.score}, LCP: ${perfResult.lcp}ms, CLS: ${perfResult.cls}`,
+    duration: perfResult.duration,
+  });
+
+  const overallStatus = checks.some((c) => c.status === 'fail') ? 'fail' : 'pass';
+
+  return {
+    environment,
+    prNumber,
+    checks,
+    overallStatus,
+    reportUrl: `${previewUrl}/__standards-report`,
+  };
+}
+```
+
+### 4.4 GitHub Actions: 멀티 베타 표준 검증 워크플로우
+
+```yaml
+# .github/workflows/preview-standards.yml
+name: Preview Standards Verification
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    outputs:
+      preview-url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy preview
+        id: deploy
+        run: |
+          ENV_NAME="preview-pr-${{ github.event.pull_request.number }}"
+          echo "url=https://${ENV_NAME}.preview.example.com" >> $GITHUB_OUTPUT
+
+  standards-check:
+    needs: deploy-preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+
+      - name: Biome 2.0 check
+        run: npx biome ci --reporter=github .
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: AI standards analysis
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: npx tsx scripts/ai-standards-check.ts
+
+      - name: Accessibility audit
+        run: |
+          npx @axe-core/cli ${{ needs.deploy-preview.outputs.preview-url }} \
+            --exit --tags wcag2aa
+
+      - name: Bundle size check
+        run: npx bundlewatch
+
+      - name: Post results to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## Standards Verification Report
+            | Check | Status |
+            |-------|--------|
+            | Biome 2.0 | ${{ steps.biome.outcome == 'success' && 'Pass' || 'Fail' }} |
+            | TypeScript | ${{ steps.tsc.outcome == 'success' && 'Pass' || 'Fail' }} |
+            | AI Analysis | ${{ steps.ai.outcome == 'success' && 'Pass' || 'Fail' }} |
+            | Accessibility | ${{ steps.a11y.outcome == 'success' && 'Pass' || 'Fail' }} |
+
+            Preview: ${{ needs.deploy-preview.outputs.preview-url }}`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  auto-expire:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    steps:
+      - name: Destroy preview environment
+        run: |
+          ENV_NAME="preview-pr-${{ github.event.pull_request.number }}"
+          echo "Destroying environment: ${ENV_NAME}"
 ```
 
 ---
 
-## 8. UX 라이팅 가이드라인
+## 5. 프론트엔드 특화 표준 사례
 
-### 8.1 핵심 원칙
+### 5.1 개발환경 표준
 
-1. **명확성 (Clear)**: 사용자에게 혼란을 주지 않고 메시지를 쉽고 빠르게 이해
-2. **간결성 (Concise)**: 핵심 내용을 중심으로 짧고 효율적인 문장
-3. **유용성 (Useful)**: 사용자가 다음에 어떤 행동을 해야 할지 명확히 안내
-4. **친근함 (Friendly)**: 사용자에게 편안하고 친근하게 다가가는 어조
-5. **신뢰성 (Trustworthy)**: 정확하고 일관된 정보 제공
+```typescript
+// standards/dev-environment.ts
+interface DevEnvironmentStandard {
+  nodeVersion: string;
+  packageManager: { name: 'pnpm'; version: string };
+  typescript: { version: string; strict: true };
+  formatter: { tool: 'biome'; version: string };
+  linter: { tool: 'biome'; version: string };
+  testRunner: { tool: 'vitest'; version: string };
+  bundler: { tool: 'vite' | 'turbopack'; version: string };
+}
 
-### 8.2 Quick Check List
+const DEV_ENVIRONMENT_2026: DevEnvironmentStandard = {
+  nodeVersion: '22.x',
+  packageManager: { name: 'pnpm', version: '10.x' },
+  typescript: { version: '5.7.x', strict: true },
+  formatter: { tool: 'biome', version: '2.0.x' },
+  linter: { tool: 'biome', version: '2.0.x' },
+  testRunner: { tool: 'vitest', version: '3.x' },
+  bundler: { tool: 'vite', version: '6.x' },
+};
 
-#### 공통 확인 항목
+function validateDevEnvironment(
+  actual: Partial<DevEnvironmentStandard>,
+  expected: DevEnvironmentStandard,
+): string[] {
+  const violations: string[] = [];
 
-- **띄어쓰기**: 맞춤법 허용 시 **붙여쓰기** 우선
-- **마침표**: Title/Label에는 없음, Description에는 있음
-- **고유명사**: 서비스 공식 명칭 확인
-- **날짜**: 한 자리 수 앞 '0' 제거 (8월 7일)
-- **시간**: 12시간제 + 오전/오후 표기
-- **금액**: 천 단위 쉼표 사용 (1,000원)
+  if (actual.nodeVersion && !actual.nodeVersion.startsWith(expected.nodeVersion.replace('.x', ''))) {
+    violations.push(`Node.js 버전 불일치: ${actual.nodeVersion} (기준: ${expected.nodeVersion})`);
+  }
 
-#### 대상별 어조
+  if (actual.packageManager?.name !== expected.packageManager.name) {
+    violations.push(`패키지 매니저: ${actual.packageManager?.name} (기준: ${expected.packageManager.name})`);
+  }
 
-| 대상 | 어조 | 특징 |
-|------|------|------|
-| 일반 사용자 | 친근하고 편안한 어조 | 긍정적 표현, 혜택 강조 |
-| 비즈니스 파트너 | 정중하고 전문적인 어조 | 적절한 호칭, 비즈니스 용어 |
-| 내부 어드민 | 간결하고 기능 중심 | 기술 용어 허용 |
+  return violations;
+}
+```
 
-### 8.3 띄어쓰기 가이드
+### 5.2 네이밍 표준
 
-#### 무조건 붙여쓰기
+```typescript
+// standards/naming-convention.ts
+const NAMING_RULES = {
+  // 컴포넌트: PascalCase
+  component: {
+    pattern: /^[A-Z][a-zA-Z0-9]*$/,
+    example: { correct: 'UserProfile', incorrect: 'userProfile' },
+    filePattern: /^[A-Z][a-zA-Z0-9]*\.tsx$/,
+  },
 
-| 잘못된 표기 | 올바른 표기 |
-|------------|------------|
-| 해 주세요 | 해주세요 |
-| 알려 드려요 | 알려드려요 |
-| 첫 주문 | 첫주문 |
-| 더 보기 | 더보기 |
-| 고객 센터 | 고객센터 |
+  // 훅: camelCase, use 접두사
+  hook: {
+    pattern: /^use[A-Z][a-zA-Z0-9]*$/,
+    example: { correct: 'useAuthStatus', incorrect: 'authStatusHook' },
+    filePattern: /^use[A-Z][a-zA-Z0-9]*\.ts$/,
+  },
 
-#### 무조건 띄어쓰기
+  // 유틸리티 함수: camelCase
+  utility: {
+    pattern: /^[a-z][a-zA-Z0-9]*$/,
+    example: { correct: 'formatCurrency', incorrect: 'FormatCurrency' },
+    filePattern: /^[a-z][a-zA-Z0-9]*\.ts$/,
+  },
 
-| 잘못된 표기 | 올바른 표기 |
-|------------|------------|
-| 준비중 | 준비 중 |
-| 결제시 | 결제 시 |
-| 분후 | 분 후 |
-| 다음날 | 다음 날 |
+  // 상수: SCREAMING_SNAKE_CASE
+  constant: {
+    pattern: /^[A-Z][A-Z0-9_]*$/,
+    example: { correct: 'MAX_RETRY_COUNT', incorrect: 'maxRetryCount' },
+  },
 
-### 8.4 Button Label 가이드
+  // 타입/인터페이스: PascalCase, I 접두사 금지
+  type: {
+    pattern: /^[A-Z][a-zA-Z0-9]*$/,
+    example: { correct: 'UserProfile', incorrect: 'IUserProfile' },
+  },
 
-- 최대 한 줄, 권장 글자 수 12자 이내 (공백 포함)
-- 구체적인 동작명 사용, 1가지 동작만 포함
-- 명사형 또는 '-기' 종결
+  // Enum: PascalCase (키, 값 모두)
+  enum: {
+    pattern: /^[A-Z][a-zA-Z0-9]*$/,
+    example: { correct: 'UserRole.Admin', incorrect: 'USER_ROLE.ADMIN' },
+  },
 
-| 대상 | 예시 |
+  // 이벤트 핸들러: handle + 동사 (내부) / on + 동사 (prop)
+  eventHandler: {
+    internalPattern: /^handle[A-Z][a-zA-Z0-9]*$/,
+    propPattern: /^on[A-Z][a-zA-Z0-9]*$/,
+    example: {
+      correct: 'handleClick (내부) / onClick (prop)',
+      incorrect: 'clickHandler / click',
+    },
+  },
+
+  // 디렉토리: kebab-case
+  directory: {
+    pattern: /^[a-z][a-z0-9-]*$/,
+    example: { correct: 'user-profile', incorrect: 'UserProfile' },
+  },
+} as const;
+```
+
+### 5.3 테스트 표준
+
+```typescript
+// standards/testing-convention.ts
+interface TestingStandard {
+  unitTest: {
+    framework: string;
+    coverageThreshold: { statements: number; branches: number; functions: number; lines: number };
+    filePattern: string;
+    namingConvention: string;
+  };
+  integrationTest: {
+    framework: string;
+    filePattern: string;
+  };
+  e2eTest: {
+    framework: string;
+    filePattern: string;
+  };
+}
+
+const TESTING_STANDARD: TestingStandard = {
+  unitTest: {
+    framework: 'vitest',
+    coverageThreshold: { statements: 80, branches: 75, functions: 80, lines: 80 },
+    filePattern: '**/*.test.{ts,tsx}',
+    namingConvention: 'describe("컴포넌트/함수명") > it("should 동작")',
+  },
+  integrationTest: {
+    framework: 'vitest + testing-library',
+    filePattern: '**/*.integration.test.{ts,tsx}',
+  },
+  e2eTest: {
+    framework: 'playwright',
+    filePattern: 'e2e/**/*.spec.ts',
+  },
+};
+
+// 테스트 작성 패턴: Arrange-Act-Assert 필수
+//
+// describe('UserProfile', () => {
+//   it('should render user name', () => { ... });
+//   it('should show loading skeleton when data is pending', () => { ... });
+//   it('should handle error state gracefully', () => { ... });
+// });
+//
+// it('should format currency with locale', () => {
+//   // Arrange
+//   const amount = 1234.56;
+//   const locale = 'ko-KR';
+//
+//   // Act
+//   const result = formatCurrency(amount, locale);
+//
+//   // Assert
+//   expect(result).toBe('₩1,235');
+// });
+```
+
+### 5.4 컴포넌트 API 표준
+
+```typescript
+// standards/component-api.ts
+
+// 컴포넌트 API 설계 원칙:
+// 1. Props는 인터페이스로 정의 (type alias 사용 금지)
+// 2. children 대신 render prop 또는 slot 패턴은 명확한 이유가 있을 때만
+// 3. boolean prop은 긍정형 (isVisible O, isNotHidden X)
+// 4. 콜백 prop은 on 접두사
+// 5. 컴포넌트 내부 상태는 최소화, 가능하면 제어 컴포넌트
+
+// 올바른 예시
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  isDisabled?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}
+
+// Polymorphic component 패턴
+interface PolymorphicProps<T extends React.ElementType> {
+  as?: T;
+  children: React.ReactNode;
+}
+
+type ComponentPropsWithAs<T extends React.ElementType, P = object> =
+  PolymorphicProps<T> & P & Omit<React.ComponentPropsWithoutRef<T>, keyof (PolymorphicProps<T> & P)>;
+
+// Compound component 패턴
+//
+// <Select value={value} onChange={setValue}>
+//   <Select.Trigger>{selectedLabel}</Select.Trigger>
+//   <Select.Content>
+//     <Select.Item value="a">Option A</Select.Item>
+//     <Select.Item value="b">Option B</Select.Item>
+//   </Select.Content>
+// </Select>
+```
+
+### 5.5 에러 핸들링 표준
+
+```typescript
+// standards/error-handling.ts
+
+enum ErrorCategory {
+  Network = 'NETWORK',
+  Validation = 'VALIDATION',
+  Authentication = 'AUTHENTICATION',
+  Authorization = 'AUTHORIZATION',
+  NotFound = 'NOT_FOUND',
+  RateLimit = 'RATE_LIMIT',
+  ServerError = 'SERVER_ERROR',
+  Unknown = 'UNKNOWN',
+}
+
+class AppError extends Error {
+  constructor(
+    message: string,
+    public readonly category: ErrorCategory,
+    public readonly statusCode: number,
+    public readonly isRetryable: boolean,
+    public readonly metadata?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
+
+  toUserMessage(): string {
+    const messages: Record<ErrorCategory, string> = {
+      [ErrorCategory.Network]: '네트워크 연결을 확인해주세요.',
+      [ErrorCategory.Validation]: '입력 정보를 다시 확인해주세요.',
+      [ErrorCategory.Authentication]: '다시 로그인해주세요.',
+      [ErrorCategory.Authorization]: '접근 권한이 없습니다.',
+      [ErrorCategory.NotFound]: '요청하신 정보를 찾을 수 없습니다.',
+      [ErrorCategory.RateLimit]: '잠시 후 다시 시도해주세요.',
+      [ErrorCategory.ServerError]: '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      [ErrorCategory.Unknown]: '알 수 없는 오류가 발생했습니다.',
+    };
+    return messages[this.category];
+  }
+}
+
+// React Error Boundary 표준 사용법:
+//
+// <ErrorBoundary
+//   fallback={({ error, reset }) => (
+//     <ErrorFallback error={error} onRetry={reset} />
+//   )}
+//   onError={(error, info) => {
+//     reportError(error, { componentStack: info.componentStack });
+//   }}
+// >
+//   <App />
+// </ErrorBoundary>
+
+function classifyHttpError(status: number, body?: unknown): AppError {
+  if (status === 401) {
+    return new AppError('Unauthorized', ErrorCategory.Authentication, 401, false);
+  }
+  if (status === 403) {
+    return new AppError('Forbidden', ErrorCategory.Authorization, 403, false);
+  }
+  if (status === 404) {
+    return new AppError('Not Found', ErrorCategory.NotFound, 404, false);
+  }
+  if (status === 429) {
+    return new AppError('Rate Limited', ErrorCategory.RateLimit, 429, true);
+  }
+  if (status >= 500) {
+    return new AppError('Server Error', ErrorCategory.ServerError, status, true);
+  }
+  return new AppError('Unknown Error', ErrorCategory.Unknown, status, false, { body });
+}
+```
+
+### 5.6 i18n 표준
+
+```typescript
+// standards/i18n-convention.ts
+
+// i18n 표준:
+// 1. 모든 사용자 노출 문자열은 번역 키로 관리
+// 2. 네임스페이스: 기능/페이지 단위로 분리
+// 3. 키 네이밍: snake_case, 계층 구조는 dot notation
+// 4. 복수형, 날짜/시간, 숫자 포맷은 ICU MessageFormat 사용
+// 5. 하드코딩 문자열 금지 (Biome custom rule로 탐지)
+
+interface I18nNamespace {
+  name: string;
+  keys: Record<string, string | { one: string; other: string }>;
+}
+
+function validateI18nKey(key: string): { valid: boolean; reason?: string } {
+  const pattern = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,4}$/;
+
+  if (!pattern.test(key)) {
+    return {
+      valid: false,
+      reason: `키 "${key}"가 형식에 맞지 않습니다. 형식: namespace.section.key_name (snake_case)`,
+    };
+  }
+
+  return { valid: true };
+}
+
+async function findMissingTranslations(
+  defaultLocale: string,
+  targetLocales: string[],
+  translationsDir: string,
+): Promise<Array<{ locale: string; missingKeys: string[] }>> {
+  const defaultKeys = await loadTranslationKeys(translationsDir, defaultLocale);
+  const results: Array<{ locale: string; missingKeys: string[] }> = [];
+
+  for (const locale of targetLocales) {
+    const targetKeys = await loadTranslationKeys(translationsDir, locale);
+    const missing = defaultKeys.filter((key) => !targetKeys.includes(key));
+
+    if (missing.length > 0) {
+      results.push({ locale, missingKeys: missing });
+    }
+  }
+
+  return results;
+}
+
+// 사용 예시:
+//
+// messages/ko.json
+// {
+//   "common.button.submit": "제출",
+//   "common.button.cancel": "취소",
+//   "user.profile.greeting": "{name}님, 안녕하세요!",
+//   "user.profile.item_count": "{count, plural, one {# 아이템} other {# 아이템}}"
+// }
+//
+// 컴포넌트에서:
+// const { t } = useTranslation('user');
+// <p>{t('profile.greeting', { name: user.name })}</p>
+```
+
+### 5.7 접근성 표준
+
+```typescript
+// standards/accessibility.ts
+
+// 접근성 표준 (WCAG 2.2 AA 준수):
+// 1. 모든 이미지에 대체 텍스트 (alt) 필수
+// 2. 폼 요소에 label 연결 필수
+// 3. 키보드 탐색 가능 (tabIndex 관리)
+// 4. 색상 대비 4.5:1 이상
+// 5. 동적 콘텐츠 변경 시 aria-live 사용
+// 6. 모달/다이얼로그는 포커스 트래핑 필수
+
+interface AccessibilityChecklist {
+  category: string;
+  rules: Array<{
+    id: string;
+    description: string;
+    wcagCriteria: string;
+    automatable: boolean;
+    biomeRule?: string;
+  }>;
+}
+
+const A11Y_CHECKLIST: AccessibilityChecklist[] = [
+  {
+    category: '이미지 및 미디어',
+    rules: [
+      {
+        id: 'A11Y-IMG-001',
+        description: '모든 <img>에 의미 있는 alt 텍스트 제공',
+        wcagCriteria: '1.1.1',
+        automatable: true,
+        biomeRule: 'a11y/useAltText',
+      },
+      {
+        id: 'A11Y-IMG-002',
+        description: '장식용 이미지는 alt="" 또는 role="presentation"',
+        wcagCriteria: '1.1.1',
+        automatable: true,
+      },
+    ],
+  },
+  {
+    category: '키보드 접근성',
+    rules: [
+      {
+        id: 'A11Y-KB-001',
+        description: '모든 인터랙티브 요소 키보드 접근 가능',
+        wcagCriteria: '2.1.1',
+        automatable: false,
+      },
+      {
+        id: 'A11Y-KB-002',
+        description: 'tabIndex는 0 또는 -1만 사용 (양수 금지)',
+        wcagCriteria: '2.4.3',
+        automatable: true,
+        biomeRule: 'a11y/noPositiveTabindex',
+      },
+      {
+        id: 'A11Y-KB-003',
+        description: '포커스 표시자 항상 표시 (outline: none 금지)',
+        wcagCriteria: '2.4.7',
+        automatable: true,
+      },
+    ],
+  },
+  {
+    category: '폼',
+    rules: [
+      {
+        id: 'A11Y-FORM-001',
+        description: '모든 입력에 <label> 연결 (htmlFor + id)',
+        wcagCriteria: '1.3.1',
+        automatable: true,
+        biomeRule: 'a11y/useValidFormLabels',
+      },
+      {
+        id: 'A11Y-FORM-002',
+        description: '에러 메시지는 aria-describedby로 연결',
+        wcagCriteria: '3.3.1',
+        automatable: false,
+      },
+    ],
+  },
+  {
+    category: '동적 콘텐츠',
+    rules: [
+      {
+        id: 'A11Y-DYN-001',
+        description: '비동기 업데이트 영역에 aria-live 사용',
+        wcagCriteria: '4.1.3',
+        automatable: false,
+      },
+      {
+        id: 'A11Y-DYN-002',
+        description: '모달 열릴 때 포커스 이동, 닫힐 때 원래 위치 복원',
+        wcagCriteria: '2.4.3',
+        automatable: false,
+      },
+    ],
+  },
+];
+
+interface A11yAuditConfig {
+  tool: 'axe-core';
+  version: string;
+  runAt: 'ci' | 'preview' | 'both';
+  standards: ('wcag2a' | 'wcag2aa' | 'wcag22aa')[];
+  failOnViolation: boolean;
+  ignoreRules: string[];
+}
+
+const A11Y_AUDIT_CONFIG: A11yAuditConfig = {
+  tool: 'axe-core',
+  version: '4.x',
+  runAt: 'both',
+  standards: ['wcag22aa'],
+  failOnViolation: true,
+  ignoreRules: [],
+};
+```
+
+---
+
+## 6. AI 프롬프트 시나리오 모음
+
+### 6.1 표준 수립 시나리오
+
+```
+[시나리오] "우리 프로젝트에 맞는 코딩 컨벤션 생성해줘"
+
+프롬프트:
+"우리 프로젝트는 React 19 + TypeScript 5.7 + Vite 6 기반이며,
+팀원 6명이 협업합니다. Biome 2.0으로 린팅합니다.
+다음 기존 코드를 참고하여 프로젝트에 맞는 코딩 컨벤션을 작성해주세요:
+[코드 샘플 붙여넣기]
+
+포함 항목: 네이밍, 디렉토리 구조, import 순서, 에러 핸들링, 테스트, 주석.
+각 규칙에 올바른/잘못된 예시를 달아주세요.
+Biome 2.0 설정으로 자동화 가능한 규칙은 biome.json 설정도 함께 제시해주세요."
+```
+
+### 6.2 표준 검증 시나리오
+
+```
+[시나리오] "이 코드가 우리 표준을 위반하는지 검사해줘"
+
+프롬프트:
+"다음은 우리 프로젝트의 코딩 표준입니다:
+[표준 문서 붙여넣기]
+
+아래 코드가 이 표준을 위반하는 부분을 모두 찾아주세요.
+각 위반에 대해: 규칙 ID, 라인 번호, 심각도, 설명, 수정 코드를 제시해주세요.
+[검사 대상 코드 붙여넣기]"
+```
+
+### 6.3 RFC 작성 지원 시나리오
+
+```
+[시나리오] "새로운 상태 관리 도입 RFC를 작성해줘"
+
+프롬프트:
+"우리 프로젝트에서 Redux를 Zustand로 전환하려 합니다.
+현재 Redux를 사용하는 파일이 약 45개이며, 전체 코드베이스는 300개 파일입니다.
+이 전환에 대한 RFC를 작성해주세요.
+
+포함 항목:
+1. 동기 및 현재 문제점
+2. Zustand 선택 근거 (vs Jotai, vs signals)
+3. 마이그레이션 전략 (단계별)
+4. 리스크 분석
+5. 예상 일정
+6. 롤백 계획
+
+RFC 템플릿 형식을 따라주세요."
+```
+
+### 6.4 AI 활용 표준 검증 시나리오
+
+```
+[시나리오] "AI가 생성한 코드의 품질을 검증해줘"
+
+프롬프트:
+"다음은 AI(Claude)가 생성한 코드입니다.
+아래 관점에서 검증해주세요:
+
+1. Hallucination 검사: 존재하지 않는 API나 패키지를 사용하고 있는지
+2. 타입 안전성: any 사용, 타입 단언 남용이 있는지
+3. 보안: 프롬프트 인젝션, 하드코딩된 시크릿, XSS 가능성
+4. 라이선스: 사용된 패키지의 라이선스 호환성
+5. 우리 코딩 표준 준수 여부
+
+[AI 생성 코드 붙여넣기]"
+```
+
+---
+
+## 7. 표준 거버넌스
+
+### 7.1 표준 변경 프로세스
+
+| 단계 | 설명 | 결정권자 |
+|------|------|----------|
+| 제안 | RFC 형식으로 표준 변경 제안 | 누구나 |
+| 검토 | 팀 리뷰 + AI 영향도 분석 | 팀 전원 |
+| 승인 | 과반 동의 + 테크리드 승인 | 테크리드 |
+| 구현 | Biome/CI 규칙 반영, 문서 갱신 | 담당자 |
+| 검증 | 기존 코드베이스 영향 확인 | CI 자동 |
+| 배포 | 점진적 적용 (warn -> error) | 담당자 |
+
+### 7.2 표준 버전 관리
+
+```typescript
+// standards/versioning.ts
+interface StandardVersion {
+  version: string;
+  effectiveDate: string;
+  deprecatesVersion?: string;
+  migrationGuide?: string;
+  changelog: string[];
+}
+
+// 표준 버전은 SemVer를 따른다
+// Major: 호환성 깨지는 변경 (기존 코드 수정 필요)
+// Minor: 새로운 규칙 추가 (기존 코드 영향 없음)
+// Patch: 규칙 설명 수정, 예시 보강
+
+const CURRENT_STANDARD: StandardVersion = {
+  version: '3.0.0',
+  effectiveDate: '2026-04-01',
+  deprecatesVersion: '2.x',
+  migrationGuide: '/docs/migration/v2-to-v3.md',
+  changelog: [
+    'Biome 2.0 기반으로 전면 전환 (ESLint/Prettier 제거)',
+    'AI 코드 생성 품질 기준 신설',
+    '멀티 베타 인프라 표준 추가',
+    '접근성 표준 WCAG 2.2 AA로 상향',
+    '프롬프트 라이브러리 관리 체계 도입',
+  ],
+};
+```
+
+---
+
+## 8. 참고 자료
+
+| 항목 | 링크 |
 |------|------|
-| 일반 사용자 | "주문하기", "장바구니 담기" |
-| 비즈니스 파트너 | "주문 접수", "매출 확인" |
-| 내부 어드민 | "조회", "등록", "수정", "삭제" |
-
----
-
-## 9. AI 프롬프트 모음
-
-### 프롬프트 1: 표준화 문서 초안 생성
-
-```text
-아래 조건으로 기술 표준화 문서를 작성해줘:
-
-[표준화 대상]
-- 대상: {네이밍 / 테스트 / 코드 리뷰 / IaC / 멀티 베타 환경 등}
-- 적용 범위: {전체 조직 / 특정 팀}
-
-[요구사항]
-- 올바른 예시와 잘못된 예시를 함께 제시 (TypeScript)
-- 예외 사항과 예외 허용 근거 명시
-- 자동화 방안 (린터, CI, CDK) 포함
-- 멀티 베타 환경 고려사항 포함
-
-[출력 형식]
-- 마크다운 테이블 활용
-- 체크리스트 포함
-```
-
-### 프롬프트 2: AI 코드 리뷰 규칙 설계
-
-```text
-다음 프로젝트에 맞는 AI 코드 리뷰 규칙을 설계해줘:
-
-[프로젝트 정보]
-- 기술 스택: {React, TypeScript, Next.js 등}
-- 인프라: {S3 + CloudFront + CDK, 멀티 베타 환경}
-- 팀 규모: {N명}
-- 주요 도메인: {도메인 설명}
-
-[요구사항]
-1. AI 자동 리뷰와 사람 리뷰의 범위 구분
-2. Critical / Warning / Info 등급별 리뷰 규칙
-3. IaC 코드(CDK) 전용 리뷰 규칙
-4. False Positive 처리 정책
-5. GitHub Actions 워크플로우 설정 (YAML)
-
-[출력 형식]
-- 리뷰 규칙 테이블
-- GitHub Actions 설정 코드
-- 체크리스트
-```
-
-### 프롬프트 3: AI 생성 코드 품질 검증
-
-```text
-다음 AI 생성 코드의 품질을 검증해줘:
-
-[검증 관점]
-1. 프로젝트 컨벤션 준수 여부
-2. 타입 안전성 (any 사용, 타입 단언 남용)
-3. 에러 핸들링 적절성
-4. 보안 취약점 (하드코딩된 값, 인젝션)
-5. 성능 이슈 (불필요한 리렌더링, 메모리 릭)
-6. 테스트 가능성
-7. 멀티 베타 환경 호환성 (해당 시)
-
-[코드]
-{AI 생성 코드 붙여넣기}
-
-[출력 형식]
-- 항목별 [통과 / 경고 / 위험] 등급
-- 구체적 개선 코드 예시 (TypeScript)
-```
-
-### 프롬프트 4: 컨벤션 위반 탐지 및 수정
-
-```text
-다음 코드에서 팀 컨벤션 위반 사항을 찾고 수정해줘:
-
-[컨벤션 규칙]
-- 네이밍: {파일 PascalCase, 변수 camelCase, 상수 UPPER_SNAKE_CASE}
-- 타입: {any 금지, 인터페이스 PascalCase, enum PascalCase}
-- 컴포넌트: {Server Component 기본, use client 최소화}
-- 에러 핸들링: {에러 바운더리 필수, try-catch 타입 가드}
-- IaC: {태그 필수, RemovalPolicy 명시, 보안 설정 기본값}
-
-[코드]
-{코드 붙여넣기}
-
-[출력 형식]
-- 위반 항목 목록 (위치, 규칙, 현재값, 수정값)
-- 수정된 전체 코드
-```
-
-### 프롬프트 5: 테스트 코드 자동 생성
-
-```text
-다음 코드에 대한 테스트를 작성해줘:
-
-[테스트 대상]
-{테스트할 코드 붙여넣기}
-
-[테스트 요구사항]
-- 도구: Vitest + Testing Library (컴포넌트) 또는 CDK Assertions (IaC)
-- 패턴: AAA (Arrange-Act-Assert)
-- 설명: GWT (Given-When-Then) 방식
-- 커버리지: 정상 케이스 + 엣지 케이스 + 에러 케이스
-- 모킹: MSW 활용 (API), vi.mock 최소화
-
-[프로젝트 컨텍스트]
-- {기술 스택}
-- {테스트 컨벤션}
-- {멀티 베타 환경 관련 테스트 포함 여부}
-
-[출력 형식]
-- 테스트 파일 전체 코드 (TypeScript)
-- 테스트 케이스 설명 목록
-```
-
----
-
-*본 문서는 범용 기술 표준화 가이드이며, 조직의 규모와 문화에 맞게 조정하여 사용할 수 있다.*
+| Biome 2.0 공식 문서 | https://biomejs.dev |
+| WCAG 2.2 | https://www.w3.org/TR/WCAG22/ |
+| RFC 2119 (표준 문서 용어) | https://datatracker.ietf.org/doc/html/rfc2119 |
+| ICU MessageFormat | https://unicode-org.github.io/icu/userguide/format_parse/messages/ |
+| axe-core 접근성 규칙 | https://github.com/dequelabs/axe-core |
