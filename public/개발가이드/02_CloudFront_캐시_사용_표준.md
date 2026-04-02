@@ -1,270 +1,560 @@
-# CloudFront 캐시 사용 표준 -- AI 활용 극대화 + 멀티 베타 환경
+# CloudFront 캐시 운영 표준 -- 트러블슈팅 중심 AI 활용 + 2026 최신 전략
+
+> 장애 시나리오 기반 AI 프롬프트, CloudFront Continuous Deployment, KeyValueStore Feature Flag, CDK L3 Construct Preview 인프라 원클릭, Brotli vs Zstd 압축, S3 Express One Zone 성능 비교를 통합한 2026년형 CDN 운영 가이드.
+
+---
 
 ## 목차
 
-1. [멀티 베타 환경 CDN 아키텍처](#1-멀티-베타-환경-cdn-아키텍처)
-2. [환경별 독립 캐시: 동적 S3 오리진 + CloudFront Behavior 자동 생성 (CDK)](#2-환경별-독립-캐시-동적-s3-오리진--cloudfront-behavior-자동-생성-cdk)
-3. [PR별 Preview 환경 CDN 자동 프로비저닝/정리 (GitHub Actions + CDK)](#3-pr별-preview-환경-cdn-자동-프로비저닝정리-github-actions--cdk)
-4. [환경별 캐시 키 네임스페이스 분리 패턴](#4-환경별-캐시-키-네임스페이스-분리-패턴)
-5. [AI 프롬프트 5선](#5-ai-프롬프트-5선)
-6. [CloudFront Functions: 멀티 베타 라우팅](#6-cloudfront-functions-멀티-베타-라우팅)
-7. [Origin Shield + 멀티 베타 최적화](#7-origin-shield--멀티-베타-최적화)
-8. [실시간 로그 분석 파이프라인](#8-실시간-로그-분석-파이프라인)
-9. [체크리스트](#9-체크리스트)
+1. [Continuous Deployment 기반 안전한 배포](#1-continuous-deployment-기반-안전한-배포)
+2. [KeyValueStore Feature Flag 라우팅](#2-keyvaluestore-feature-flag-라우팅)
+3. [CDK L3 Construct: Preview 인프라 원클릭 생성](#3-cdk-l3-construct-preview-인프라-원클릭-생성)
+4. [PR 닫힘 시 자동 정리 + 비용 리포트](#4-pr-닫힘-시-자동-정리--비용-리포트)
+5. [S3 Express One Zone 성능 비교](#5-s3-express-one-zone-성능-비교)
+6. [Brotli vs Zstd 압축 전략](#6-brotli-vs-zstd-압축-전략)
+7. [장애/트러블슈팅 시나리오 기반 AI 프롬프트](#7-장애트러블슈팅-시나리오-기반-ai-프롬프트)
+8. [실시간 로그 분석 + 이상 탐지](#8-실시간-로그-분석--이상-탐지)
+9. [운영 체크리스트](#9-운영-체크리스트)
 10. [참고 자료](#10-참고-자료)
 
 ---
 
-## 1. 멀티 베타 환경 CDN 아키텍처
+## 1. Continuous Deployment 기반 안전한 배포
 
-N개의 베타 환경과 PR별 Preview 환경이 공존하는 구조에서, 각 환경이 독립된 캐시 공간을 가지면서도 인프라 비용을 최소화하는 것이 핵심이다.
+CloudFront Continuous Deployment를 활용하면 스테이징 Distribution에 트래픽 일부를 라우팅하여 프로덕션 배포 전 실환경 검증이 가능하다.
 
 ### 1.1 아키텍처 개요
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   CloudFront Distribution            │
-│                                                     │
-│  Behavior: /beta-1/*  → S3: app-beta-1/             │
-│  Behavior: /beta-2/*  → S3: app-beta-2/             │
-│  Behavior: /beta-N/*  → S3: app-beta-N/             │
-│  Behavior: /pr-123/*  → S3: app-preview/pr-123/     │
-│  Behavior: /pr-456/*  → S3: app-preview/pr-456/     │
-│  Behavior: /*         → S3: app-production/         │
-│                                                     │
-│  Cache Policy: 환경별 네임스페이스 분리               │
-│  CloudFront Function: 환경 라우팅 + 캐시 키 주입     │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   Route 53 (example.com)                     │
+│                          │                                    │
+│              ┌───────────┴───────────┐                        │
+│              │  Primary Distribution  │                        │
+│              │  (Production Config)   │                        │
+│              └───────────┬───────────┘                        │
+│                          │                                    │
+│         Continuous Deployment Policy                          │
+│         ┌────────────────┼────────────────┐                   │
+│         │ 95% traffic    │                │ 5% traffic        │
+│         ▼                │                ▼                   │
+│  ┌──────────────┐        │        ┌──────────────┐            │
+│  │  Production   │        │        │   Staging     │            │
+│  │  S3 Origin    │        │        │   S3 Origin   │            │
+│  └──────────────┘        │        └──────────────┘            │
+│                          │                                    │
+│              KeyValueStore                                    │
+│              (Feature Flags + Routing Rules)                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 환경 구분 전략
-
-| 환경 유형 | 경로 패턴 | S3 버킷/접두사 | 캐시 TTL | 생명주기 |
-|-----------|----------|---------------|---------|---------|
-| Production | `/*` | `app-production/` | 1년 (immutable assets) | 영구 |
-| Beta N | `/beta-{n}/*` | `app-beta-{n}/` | 1시간 | 반영구 |
-| PR Preview | `/pr-{number}/*` | `app-preview/pr-{number}/` | 5분 | PR 머지/종료 시 자동 삭제 |
-
----
-
-## 2. 환경별 독립 캐시: 동적 S3 오리진 + CloudFront Behavior 자동 생성 (CDK)
-
-### 2.1 멀티 베타 CDK 스택
+### 1.2 Continuous Deployment CDK 구성
 
 ```typescript
-// infra/lib/multi-beta-cdn-stack.ts
+// infra/lib/continuous-deployment-stack.ts
 import * as cdk from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import type { Construct } from "constructs";
 
-interface BetaEnvironment {
-  name: string;
-  bucketName: string;
-  cacheTtlSeconds: number;
-}
-
-interface MultiBetaCdnStackProps extends cdk.StackProps {
+interface ContinuousDeploymentStackProps extends cdk.StackProps {
   productionBucketName: string;
-  previewBucketName: string;
-  betaEnvironments: BetaEnvironment[];
+  stagingBucketName: string;
   domainName: string;
+  trafficPercentage: number; // 스테이징으로 보낼 트래픽 비율 (0-15)
 }
 
-export class MultiBetaCdnStack extends cdk.Stack {
-  public readonly distribution: cloudfront.Distribution;
+export class ContinuousDeploymentStack extends cdk.Stack {
+  public readonly primaryDistribution: cloudfront.Distribution;
+  public readonly stagingDistribution: cloudfront.CfnDistribution;
 
-  constructor(scope: Construct, id: string, props: MultiBetaCdnStackProps) {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: ContinuousDeploymentStackProps,
+  ) {
     super(scope, id, props);
 
-    // Production 오리진
     const productionBucket = s3.Bucket.fromBucketName(
-      this, "ProductionBucket", props.productionBucketName,
+      this,
+      "ProdBucket",
+      props.productionBucketName,
     );
-    const productionOrigin = origins.S3BucketOrigin.withOriginAccessControl(productionBucket);
 
-    // Preview 오리진 (PR별 접두사로 분리)
-    const previewBucket = s3.Bucket.fromBucketName(
-      this, "PreviewBucket", props.previewBucketName,
+    const stagingBucket = s3.Bucket.fromBucketName(
+      this,
+      "StagingBucket",
+      props.stagingBucketName,
     );
-    const previewOrigin = origins.S3BucketOrigin.withOriginAccessControl(previewBucket);
 
-    // 캐시 정책: 환경별
-    const betaCachePolicy = new cloudfront.CachePolicy(this, "BetaCachePolicy", {
-      cachePolicyName: "MultiBeta-CachePolicy",
-      defaultTtl: cdk.Duration.hours(1),
-      maxTtl: cdk.Duration.hours(24),
-      minTtl: cdk.Duration.minutes(1),
-      headerBehavior: cloudfront.CacheHeaderBehavior.allowList(
-        "X-Beta-Environment",
-      ),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
-
-    const previewCachePolicy = new cloudfront.CachePolicy(this, "PreviewCachePolicy", {
-      cachePolicyName: "Preview-CachePolicy",
-      defaultTtl: cdk.Duration.minutes(5),
-      maxTtl: cdk.Duration.minutes(30),
-      minTtl: cdk.Duration.seconds(0),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
-
-    const immutableCachePolicy = new cloudfront.CachePolicy(this, "ImmutableCachePolicy", {
-      cachePolicyName: "Immutable-CachePolicy",
-      defaultTtl: cdk.Duration.days(365),
-      maxTtl: cdk.Duration.days(365),
-      minTtl: cdk.Duration.days(365),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-    });
-
-    // 환경 라우팅 CloudFront Function
-    const routingFunction = new cloudfront.Function(this, "BetaRoutingFunction", {
-      code: cloudfront.FunctionCode.fromInline(buildRoutingFunctionCode()),
-      runtime: cloudfront.FunctionRuntime.JS_2_0,
-      comment: "멀티 베타 환경 라우팅 + 캐시 키 네임스페이스 주입",
-    });
-
-    // Distribution 기본 behavior (Production)
-    this.distribution = new cloudfront.Distribution(this, "Distribution", {
+    // Primary Distribution
+    this.primaryDistribution = new cloudfront.Distribution(this, "PrimaryDist", {
       defaultBehavior: {
-        origin: productionOrigin,
-        cachePolicy: immutableCachePolicy,
+        origin: origins.S3BucketOrigin.withOriginAccessControl(productionBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        functionAssociations: [{
-          function: routingFunction,
-          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-        }],
+        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        compress: true,
       },
       domainNames: [props.domainName],
-      httpVersion: cloudfront.HttpVersion.HTTP3,
+      httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
     });
 
-    // Beta 환경별 Behavior 동적 생성
-    for (const beta of props.betaEnvironments) {
-      const betaBucket = s3.Bucket.fromBucketName(
-        this, `BetaBucket-${beta.name}`, beta.bucketName,
-      );
-
-      this.distribution.addBehavior(`/beta-${beta.name}/*`,
-        origins.S3BucketOrigin.withOriginAccessControl(betaBucket), {
-          cachePolicy: betaCachePolicy,
-          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-          functionAssociations: [{
-            function: routingFunction,
-            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-          }],
+    // Staging Distribution (Continuous Deployment 대상)
+    this.stagingDistribution = new cloudfront.CfnDistribution(
+      this,
+      "StagingDist",
+      {
+        distributionConfig: {
+          enabled: true,
+          staging: true,
+          defaultCacheBehavior: {
+            targetOriginId: "staging-origin",
+            viewerProtocolPolicy: "redirect-to-https",
+            forwardedValues: { queryString: false },
+            compress: true,
+          },
+          origins: [
+            {
+              id: "staging-origin",
+              domainName: stagingBucket.bucketRegionalDomainName,
+              s3OriginConfig: { originAccessIdentity: "" },
+              originAccessControlId: this.primaryDistribution.node.id,
+            },
+          ],
+          httpVersion: "http2and3",
         },
-      );
-    }
+      },
+    );
 
-    // Preview 환경 Behavior (와일드카드)
-    this.distribution.addBehavior("/pr-*/*", previewOrigin, {
-      cachePolicy: previewCachePolicy,
-      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      functionAssociations: [{
-        function: routingFunction,
-        eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-      }],
+    // Continuous Deployment Policy
+    new cloudfront.CfnContinuousDeploymentPolicy(this, "CDPolicy", {
+      continuousDeploymentPolicyConfig: {
+        enabled: true,
+        stagingDistributionDnsNames: [
+          this.stagingDistribution.attrDomainName,
+        ],
+        trafficConfig: {
+          type: "SingleWeight",
+          singleWeightConfig: {
+            weight: props.trafficPercentage / 100,
+          },
+        },
+      },
     });
 
-    // Outputs
-    new cdk.CfnOutput(this, "DistributionId", {
-      value: this.distribution.distributionId,
-    });
-    new cdk.CfnOutput(this, "DistributionDomain", {
-      value: this.distribution.distributionDomainName,
+    new cdk.CfnOutput(this, "StagingUrl", {
+      value: `https://${this.stagingDistribution.attrDomainName}`,
     });
   }
 }
-
-function buildRoutingFunctionCode(): string {
-  return `
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-
-  // 환경 식별: /beta-{name}/... 또는 /pr-{number}/...
-  var envMatch = uri.match(/^\\/(beta-[a-z0-9-]+|pr-[0-9]+)\\//);
-  if (envMatch) {
-    var envName = envMatch[1];
-    // 캐시 키 네임스페이스 헤더 주입
-    request.headers['x-beta-environment'] = { value: envName };
-    // 오리진 경로에서 환경 접두사 제거
-    request.uri = uri.substring(envMatch[0].length - 1);
-  }
-
-  // SPA fallback: 확장자가 없으면 index.html
-  if (!uri.includes('.')) {
-    request.uri = '/index.html';
-  }
-
-  return request;
-}`;
-}
 ```
 
-### 2.2 CDK 앱 엔트리포인트
+### 1.3 단계적 트래픽 전환 전략
 
-```typescript
-// infra/bin/app.ts
-import * as cdk from "aws-cdk-lib";
-import { MultiBetaCdnStack } from "../lib/multi-beta-cdn-stack";
-
-const app = new cdk.App();
-
-const betaEnvCount = parseInt(app.node.tryGetContext("betaEnvCount") ?? "3", 10);
-
-const betaEnvironments = Array.from({ length: betaEnvCount }, (_, i) => ({
-  name: `${i + 1}`,
-  bucketName: `my-app-beta-${i + 1}`,
-  cacheTtlSeconds: 3600,
-}));
-
-new MultiBetaCdnStack(app, "MultiBetaCdnStack", {
-  productionBucketName: "my-app-production",
-  previewBucketName: "my-app-preview",
-  betaEnvironments,
-  domainName: "app.example.com",
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION,
-  },
-});
-```
+| 단계 | 트래픽 비율 | 관찰 시간 | 검증 항목 |
+|------|-----------|----------|----------|
+| Canary | 1% | 30분 | 4xx/5xx 에러율, 응답 시간 p99 |
+| Low | 5% | 2시간 | Core Web Vitals, 캐시 히트율 |
+| Medium | 15% | 4시간 | 전체 비즈니스 지표, 전환율 |
+| Promote | 100% | - | Staging -> Primary 프로모션 |
 
 ---
 
-## 3. PR별 Preview 환경 CDN 자동 프로비저닝/정리 (GitHub Actions + CDK)
+## 2. KeyValueStore Feature Flag 라우팅
 
-### 3.1 PR Open/Update 시 Preview 배포
+CloudFront KeyValueStore를 활용하면 엣지에서 밀리초 단위 지연으로 Feature Flag 기반 라우팅이 가능하다. Lambda@Edge나 외부 API 호출 없이 CloudFront Functions 내에서 직접 KV 조회가 이루어진다.
+
+### 2.1 KeyValueStore 구성
+
+```typescript
+// infra/lib/kvs-feature-flag-stack.ts
+import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import type { Construct } from "constructs";
+
+interface FeatureFlag {
+  key: string;
+  targetPath: string;
+  enabledPercentage: number;
+  allowedUsers: string[];
+}
+
+interface KvsFeatureFlagStackProps extends cdk.StackProps {
+  distributionId: string;
+  flags: FeatureFlag[];
+}
+
+export class KvsFeatureFlagStack extends cdk.Stack {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: KvsFeatureFlagStackProps,
+  ) {
+    super(scope, id, props);
+
+    // KeyValueStore 생성
+    const kvStore = new cloudfront.CfnKeyValueStore(this, "FeatureFlagKVS", {
+      name: "feature-flags",
+      comment: "Feature flag routing rules for multi-beta",
+      importSource: {
+        sourceArn: "",
+        sourceType: "S3",
+      },
+    });
+
+    // CloudFront Function (KVS 연동)
+    const routingFunction = new cloudfront.Function(this, "RoutingFn", {
+      code: cloudfront.FunctionCode.fromInline(`
+        import cf from 'cloudfront';
+
+        const kvsHandle = cf.kvs();
+
+        async function handler(event) {
+          const request = event.request;
+          const uri = request.uri;
+          const headers = request.headers;
+
+          try {
+            // Feature Flag 조회
+            const flagsJson = await kvsHandle.get('active-flags');
+            const flags = JSON.parse(flagsJson);
+
+            // 사용자 식별 (쿠키 또는 헤더)
+            const userId = headers['x-user-id']
+              ? headers['x-user-id'].value
+              : '';
+
+            for (const flag of flags) {
+              if (!uri.startsWith(flag.targetPath)) continue;
+
+              // 허용 사용자 목록 우선 체크
+              if (flag.allowedUsers.includes(userId)) {
+                request.uri = '/beta/' + flag.key + uri;
+                request.headers['x-feature-flag'] = { value: flag.key };
+                return request;
+              }
+
+              // 퍼센티지 기반 라우팅
+              const hash = simpleHash(userId || request.headers['x-forwarded-for']?.value || '');
+              if (hash % 100 < flag.enabledPercentage) {
+                request.uri = '/beta/' + flag.key + uri;
+                request.headers['x-feature-flag'] = { value: flag.key };
+                return request;
+              }
+            }
+          } catch (e) {
+            // KVS 조회 실패 시 기본 경로
+          }
+
+          return request;
+        }
+
+        function simpleHash(str) {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+          }
+          return Math.abs(hash);
+        }
+      `),
+      functionName: "feature-flag-router",
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+      keyValueStore: cloudfront.KeyValueStore.fromKeyValueStoreArn(
+        this,
+        "KVSRef",
+        kvStore.attrArn,
+      ),
+    });
+
+    new cdk.CfnOutput(this, "KvsArn", {
+      value: kvStore.attrArn,
+    });
+  }
+}
+```
+
+### 2.2 KVS 데이터 관리 자동화
+
+```typescript
+// scripts/update-feature-flags.ts
+import {
+  CloudFrontKeyValueStoreClient,
+  DescribeKeyValueStoreCommand,
+  PutKeyCommand,
+} from "@aws-sdk/client-cloudfront-keyvaluestore";
+
+interface FeatureFlagConfig {
+  key: string;
+  targetPath: string;
+  enabledPercentage: number;
+  allowedUsers: string[];
+  expiresAt?: string;
+}
+
+async function updateFeatureFlags(
+  kvsArn: string,
+  flags: FeatureFlagConfig[],
+): Promise<void> {
+  const client = new CloudFrontKeyValueStoreClient({});
+
+  // 현재 ETag 조회
+  const describeResp = await client.send(
+    new DescribeKeyValueStoreCommand({ KvsARN: kvsArn }),
+  );
+  const etag = describeResp.ETag!;
+
+  // 만료된 플래그 제거
+  const now = new Date().toISOString();
+  const activeFlags = flags.filter(
+    (f) => !f.expiresAt || f.expiresAt > now,
+  );
+
+  await client.send(
+    new PutKeyCommand({
+      KvsARN: kvsArn,
+      Key: "active-flags",
+      Value: JSON.stringify(activeFlags),
+      IfMatch: etag,
+    }),
+  );
+
+  console.log(`Updated ${activeFlags.length} active feature flags`);
+}
+
+// CLI 실행
+const kvsArn = process.argv[2];
+const flagsFile = process.argv[3];
+if (kvsArn && flagsFile) {
+  const flags: FeatureFlagConfig[] = JSON.parse(
+    require("fs").readFileSync(flagsFile, "utf-8"),
+  );
+  updateFeatureFlags(kvsArn, flags);
+}
+```
+
+### 2.3 Feature Flag 운영 규칙
+
+| 규칙 | 설명 |
+|------|------|
+| **만료일 필수** | 모든 플래그에 `expiresAt`을 설정하여 좀비 플래그 방지 |
+| **최대 동시 플래그 수** | 10개 이내 유지 (KVS 조회 성능 보장) |
+| **네이밍 규칙** | `{팀}-{기능}-{YYYYMMDD}` 형식 (예: `checkout-newui-20260401`) |
+| **롤백** | KVS 값을 빈 배열로 업데이트하면 즉시 전체 플래그 비활성화 |
+| **감사 로그** | 모든 KVS 변경을 CloudTrail로 추적 |
+
+---
+
+## 3. CDK L3 Construct: Preview 인프라 원클릭 생성
+
+S3 + CloudFront + OAC + Route53을 통합한 고수준 Construct로 PR별 Preview 인프라를 원클릭 생성한다.
+
+### 3.1 L3 Construct 정의
+
+```typescript
+// infra/lib/constructs/preview-environment.ts
+import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as route53Targets from "aws-cdk-lib/aws-route53-targets";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import * as iam from "aws-cdk-lib/aws-iam";
+import type { Construct } from "constructs";
+
+export interface PreviewEnvironmentProps {
+  /** PR 번호 */
+  prNumber: number;
+  /** PR 작성자 */
+  prAuthor: string;
+  /** 기본 도메인 (예: beta.example.com) */
+  baseDomain: string;
+  /** Route53 호스팅 영역 ID */
+  hostedZoneId: string;
+  /** ACM 인증서 ARN (*.beta.example.com) */
+  certificateArn: string;
+  /** 자동 삭제까지 일수 */
+  ttlDays?: number;
+  /** S3 Express One Zone 사용 여부 */
+  useExpressOneZone?: boolean;
+  /** 압축 방식 */
+  compressionMode?: "brotli" | "zstd" | "gzip";
+}
+
+export class PreviewEnvironment extends Construct {
+  public readonly bucket: s3.IBucket;
+  public readonly distribution: cloudfront.Distribution;
+  public readonly url: string;
+
+  constructor(scope: Construct, id: string, props: PreviewEnvironmentProps) {
+    super(scope, id);
+
+    const ttlDays = props.ttlDays ?? 7;
+    const subdomain = `pr-${props.prNumber}.${props.baseDomain}`;
+
+    // S3 버킷 (Express One Zone 또는 Standard)
+    const bucket = new s3.Bucket(this, "Bucket", {
+      bucketName: `preview-pr-${props.prNumber}-${cdk.Aws.ACCOUNT_ID}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(ttlDays),
+          id: "auto-expire",
+        },
+      ],
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+    this.bucket = bucket;
+
+    // OAC 기반 오리진
+    const origin = origins.S3BucketOrigin.withOriginAccessControl(bucket);
+
+    // 응답 헤더 정책
+    const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
+      this,
+      "ResponseHeaders",
+      {
+        securityHeadersBehavior: {
+          strictTransportSecurity: {
+            accessControlMaxAge: cdk.Duration.days(365),
+            includeSubdomains: true,
+            override: true,
+          },
+          contentTypeOptions: { override: true },
+          frameOptions: {
+            frameOption: cloudfront.HeadersFrameOption.DENY,
+            override: true,
+          },
+        },
+        customHeadersBehavior: {
+          customHeaders: [
+            {
+              header: "X-Preview-PR",
+              value: String(props.prNumber),
+              override: true,
+            },
+            {
+              header: "X-Preview-Author",
+              value: props.prAuthor,
+              override: true,
+            },
+            {
+              header: "X-Preview-Expires",
+              value: new Date(
+                Date.now() + ttlDays * 86400000,
+              ).toISOString(),
+              override: true,
+            },
+          ],
+        },
+      },
+    );
+
+    // 캐시 정책 (Preview용 짧은 TTL)
+    const cachePolicy = new cloudfront.CachePolicy(this, "CachePolicy", {
+      cachePolicyName: `preview-pr-${props.prNumber}`,
+      defaultTtl: cdk.Duration.minutes(5),
+      maxTtl: cdk.Duration.hours(1),
+      minTtl: cdk.Duration.seconds(0),
+      enableAcceptEncodingBrotli: true,
+      enableAcceptEncodingGzip: true,
+    });
+
+    // CloudFront Distribution
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      "Cert",
+      props.certificateArn,
+    );
+
+    this.distribution = new cloudfront.Distribution(this, "Distribution", {
+      defaultBehavior: {
+        origin,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy,
+        responseHeadersPolicy,
+        compress: true,
+      },
+      defaultRootObject: "index.html",
+      domainNames: [subdomain],
+      certificate,
+      httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
+      errorResponses: [
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+          ttl: cdk.Duration.seconds(0),
+        },
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+          ttl: cdk.Duration.seconds(0),
+        },
+      ],
+    });
+
+    // Route53 레코드
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
+      this,
+      "Zone",
+      {
+        hostedZoneId: props.hostedZoneId,
+        zoneName: props.baseDomain,
+      },
+    );
+
+    new route53.ARecord(this, "AliasRecord", {
+      zone: hostedZone,
+      recordName: subdomain,
+      target: route53.RecordTarget.fromAlias(
+        new route53Targets.CloudFrontTarget(this.distribution),
+      ),
+    });
+
+    this.url = `https://${subdomain}`;
+
+    // 태그 (비용 추적 + 자동 정리용)
+    cdk.Tags.of(this).add("Environment", "preview");
+    cdk.Tags.of(this).add("PRNumber", String(props.prNumber));
+    cdk.Tags.of(this).add("Author", props.prAuthor);
+    cdk.Tags.of(this).add(
+      "ExpiresAt",
+      new Date(Date.now() + ttlDays * 86400000).toISOString(),
+    );
+    cdk.Tags.of(this).add("ManagedBy", "cdk-preview-construct");
+
+    new cdk.CfnOutput(this, "PreviewUrl", { value: this.url });
+    new cdk.CfnOutput(this, "DistributionId", {
+      value: this.distribution.distributionId,
+    });
+    new cdk.CfnOutput(this, "BucketName", { value: bucket.bucketName });
+  }
+}
+```
+
+### 3.2 GitHub Actions: PR 생성 시 Preview 자동 배포
 
 ```yaml
 # .github/workflows/preview-deploy.yml
-name: Preview Deploy
-
+name: Preview Environment Deploy
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   id-token: write
   contents: read
   pull-requests: write
-
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
   deploy-preview:
@@ -272,53 +562,78 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: "22"
+          cache: "npm"
 
-      - run: pnpm install --frozen-lockfile
+      - run: npm ci
 
-      - name: Build with preview base path
-        run: pnpm build
+      - name: Build
+        run: npm run build
         env:
-          VITE_BASE_PATH: /pr-${{ github.event.pull_request.number }}/
-          VITE_ENV_LABEL: "PR #${{ github.event.pull_request.number }}"
+          VITE_PREVIEW_MODE: "true"
+          VITE_PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: us-east-1
 
-      - name: Deploy to S3 preview prefix
+      - name: Deploy CDK Preview Stack
+        id: deploy
         run: |
-          aws s3 sync dist/ \
-            s3://${{ vars.PREVIEW_BUCKET }}/pr-${{ github.event.pull_request.number }}/ \
+          npx cdk deploy "PreviewStack-PR-${{ github.event.pull_request.number }}" \
+            --context prNumber=${{ github.event.pull_request.number }} \
+            --context prAuthor=${{ github.event.pull_request.user.login }} \
+            --require-approval never \
+            --outputs-file cdk-outputs.json
+
+          PREVIEW_URL=$(jq -r '.[].PreviewUrl' cdk-outputs.json)
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Sync build artifacts to S3
+        run: |
+          BUCKET=$(jq -r '.[].BucketName' cdk-outputs.json)
+          aws s3 sync dist/ "s3://${BUCKET}/" \
             --delete \
             --cache-control "public, max-age=300"
 
-      - name: Invalidate CloudFront preview path
+      - name: Invalidate CloudFront cache
         run: |
+          DIST_ID=$(jq -r '.[].DistributionId' cdk-outputs.json)
           aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/pr-${{ github.event.pull_request.number }}/*"
+            --distribution-id "$DIST_ID" \
+            --paths "/*"
 
-      - name: Comment preview URL
+      - name: Comment PR with preview URL
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.payload.pull_request.number;
-            const previewUrl = `https://${{ vars.CDN_DOMAIN }}/pr-${prNumber}/`;
-            const body = `## Preview 환경\n\n| 항목 | 값 |\n|------|----|\n| URL | ${previewUrl} |\n| PR | #${prNumber} |\n| Commit | \`${context.sha.slice(0, 8)}\` |\n\n이 환경은 PR이 머지/종료되면 자동으로 정리됩니다.`;
+            const url = '${{ steps.deploy.outputs.preview_url }}';
+            const body = [
+              '## Preview Environment',
+              '',
+              `URL: ${url}`,
+              '',
+              `Commit: \`${context.sha.slice(0, 8)}\``,
+              `Expires: ${new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}`,
+              '',
+              '---',
+              '_Powered by CDK L3 Preview Construct_',
+            ].join('\n');
 
-            const { data: comments } = await github.rest.issues.listComments({
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: prNumber,
+              issue_number: context.issue.number,
             });
-            const existing = comments.find(c => c.body?.includes('## Preview 환경'));
+
+            const existing = comments.data.find(
+              (c) => c.body?.includes('## Preview Environment')
+            );
+
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -330,699 +645,930 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: prNumber,
+                issue_number: context.issue.number,
                 body,
               });
             }
 ```
 
-### 3.2 PR 종료 시 Preview 자동 정리
+---
+
+## 4. PR 닫힘 시 자동 정리 + 비용 리포트
+
+### 4.1 자동 정리 워크플로우
 
 ```yaml
 # .github/workflows/preview-cleanup.yml
-name: Preview Cleanup
-
+name: Preview Environment Cleanup
 on:
   pull_request:
     types: [closed]
+  schedule:
+    - cron: "0 3 * * *" # 매일 03:00 UTC에 고아 환경 탐지
 
 permissions:
   id-token: write
   contents: read
+  pull-requests: write
 
 jobs:
-  cleanup-preview:
+  cleanup-pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: us-east-1
 
-      - name: Remove preview assets from S3
+      - name: Destroy CDK Preview Stack
         run: |
-          aws s3 rm \
-            s3://${{ vars.PREVIEW_BUCKET }}/pr-${{ github.event.pull_request.number }}/ \
-            --recursive
+          npx cdk destroy "PreviewStack-PR-${{ github.event.pull_request.number }}" \
+            --force
 
-      - name: Invalidate CloudFront to purge cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/pr-${{ github.event.pull_request.number }}/*"
+      - name: Generate cost report
+        id: cost
+        run: npx ts-node scripts/preview-cost-report.ts ${{ github.event.pull_request.number }}
 
-      - name: Log cleanup
-        run: |
-          echo "Preview environment for PR #${{ github.event.pull_request.number }} cleaned up."
+      - name: Comment cost report on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('cost-report.md', 'utf-8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: report,
+            });
+
+  sweep-orphans:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Find and destroy orphan stacks
+        run: npx ts-node scripts/sweep-orphan-previews.ts
 ```
 
-### 3.3 Preview 환경 만료 자동 정리 (스케줄 기반)
+### 4.2 비용 리포트 생성 스크립트
 
 ```typescript
-// scripts/cleanup-stale-previews.ts
+// scripts/preview-cost-report.ts
 import {
-  S3Client,
-  ListObjectsV2Command,
-  DeleteObjectsCommand,
-} from "@aws-sdk/client-s3";
+  CostExplorerClient,
+  GetCostAndUsageCommand,
+} from "@aws-sdk/client-cost-explorer";
 import {
-  CloudFrontClient,
-  CreateInvalidationCommand,
-} from "@aws-sdk/client-cloudfront";
+  CloudFormationClient,
+  DescribeStacksCommand,
+} from "@aws-sdk/client-cloudformation";
+import * as fs from "fs";
 
-interface PreviewEnvironment {
-  prNumber: number;
-  prefix: string;
-  lastModified: Date;
-  objectCount: number;
+interface CostBreakdown {
+  service: string;
+  amount: number;
+  unit: string;
 }
 
-interface CleanupConfig {
-  previewBucket: string;
-  distributionId: string;
-  maxAgeDays: number;
-  region: string;
-}
+async function generateCostReport(prNumber: number): Promise<void> {
+  const ceClient = new CostExplorerClient({});
+  const cfnClient = new CloudFormationClient({});
 
-async function listPreviewEnvironments(
-  s3: S3Client,
-  bucket: string,
-): Promise<PreviewEnvironment[]> {
-  const environments = new Map<number, PreviewEnvironment>();
+  // 스택 생성 시점 조회
+  const stackName = `PreviewStack-PR-${prNumber}`;
+  const stackResp = await cfnClient.send(
+    new DescribeStacksCommand({ StackName: stackName }),
+  );
+  const createdAt = stackResp.Stacks?.[0]?.CreationTime ?? new Date();
+  const now = new Date();
 
-  let continuationToken: string | undefined;
-  do {
-    const response = await s3.send(new ListObjectsV2Command({
-      Bucket: bucket,
-      Prefix: "pr-",
-      Delimiter: "/",
-      ContinuationToken: continuationToken,
-    }));
-
-    for (const prefix of response.CommonPrefixes ?? []) {
-      const match = prefix.Prefix?.match(/^pr-(\d+)\/$/);
-      if (!match) continue;
-
-      const prNumber = parseInt(match[1], 10);
-      const objects = await s3.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix.Prefix,
-        MaxKeys: 1,
-      }));
-
-      const lastModified = objects.Contents?.[0]?.LastModified ?? new Date(0);
-      environments.set(prNumber, {
-        prNumber,
-        prefix: prefix.Prefix!,
-        lastModified,
-        objectCount: objects.KeyCount ?? 0,
-      });
-    }
-
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
-
-  return [...environments.values()];
-}
-
-async function cleanupStaleEnvironments(config: CleanupConfig): Promise<void> {
-  const s3 = new S3Client({ region: config.region });
-  const cf = new CloudFrontClient({ region: config.region });
-  const cutoff = new Date(Date.now() - config.maxAgeDays * 86400_000);
-
-  const environments = await listPreviewEnvironments(s3, config.previewBucket);
-  const stale = environments.filter((env) => env.lastModified < cutoff);
-
-  console.log(`발견: ${environments.length}개 preview, 만료: ${stale.length}개`);
-
-  for (const env of stale) {
-    // S3 오브젝트 삭제
-    let continuationToken: string | undefined;
-    do {
-      const list = await s3.send(new ListObjectsV2Command({
-        Bucket: config.previewBucket,
-        Prefix: env.prefix,
-        ContinuationToken: continuationToken,
-      }));
-
-      if (list.Contents?.length) {
-        await s3.send(new DeleteObjectsCommand({
-          Bucket: config.previewBucket,
-          Delete: {
-            Objects: list.Contents.map((obj) => ({ Key: obj.Key })),
-          },
-        }));
-      }
-      continuationToken = list.NextContinuationToken;
-    } while (continuationToken);
-
-    // CloudFront 무효화
-    await cf.send(new CreateInvalidationCommand({
-      DistributionId: config.distributionId,
-      InvalidationBatch: {
-        CallerReference: `cleanup-pr-${env.prNumber}-${Date.now()}`,
-        Paths: {
-          Quantity: 1,
-          Items: [`/pr-${env.prNumber}/*`],
+  // Cost Explorer 조회
+  const costResp = await ceClient.send(
+    new GetCostAndUsageCommand({
+      TimePeriod: {
+        Start: createdAt.toISOString().split("T")[0],
+        End: now.toISOString().split("T")[0],
+      },
+      Granularity: "DAILY",
+      Metrics: ["UnblendedCost"],
+      Filter: {
+        Tags: {
+          Key: "PRNumber",
+          Values: [String(prNumber)],
+          MatchOptions: ["EQUALS"],
         },
       },
-    }));
-
-    console.log(`정리 완료: PR #${env.prNumber} (${env.objectCount} objects)`);
-  }
-}
-
-// 실행
-cleanupStaleEnvironments({
-  previewBucket: process.env.PREVIEW_BUCKET!,
-  distributionId: process.env.CF_DISTRIBUTION_ID!,
-  maxAgeDays: 7,
-  region: "ap-northeast-2",
-});
-```
-
----
-
-## 4. 환경별 캐시 키 네임스페이스 분리 패턴
-
-### 4.1 캐시 키 구조
-
-각 환경의 캐시가 절대 충돌하지 않도록 네임스페이스를 분리한다.
-
-```
-캐시 키 = Distribution ID + Behavior Path + Cache Policy Headers + URI
-
-예시:
-  Production:  DIST123 + /* + /assets/main.a1b2c3.js
-  Beta 1:      DIST123 + /beta-1/* + X-Beta-Environment:beta-1 + /assets/main.d4e5f6.js
-  PR #42:      DIST123 + /pr-42/* + /assets/main.g7h8i9.js
-```
-
-### 4.2 CloudFront Function: 캐시 키 네임스페이스 주입
-
-```typescript
-// infra/lib/functions/cache-namespace.ts
-// CloudFront Function (JS 2.0) -- 빌드 시 인라인됨
-
-export const cacheNamespaceFunction = `
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-  var headers = request.headers;
-
-  // 환경 식별
-  var envMatch = uri.match(/^\\/(beta-[a-z0-9-]+|pr-[0-9]+)\\//);
-  var envName = envMatch ? envMatch[1] : 'production';
-
-  // 캐시 키 네임스페이스 헤더
-  headers['x-cache-namespace'] = { value: envName };
-
-  // 버전 태그 (배포 시점 식별)
-  var versionMatch = uri.match(/\\.([a-f0-9]{8,16})\\.(js|css|woff2?|png|jpg|webp|avif|svg)$/);
-  if (versionMatch) {
-    headers['x-asset-version'] = { value: versionMatch[1] };
-  }
-
-  // 환경 접두사 제거 후 오리진 전달
-  if (envMatch) {
-    request.uri = uri.substring(envMatch[0].length - 1);
-  }
-
-  // SPA fallback
-  if (!request.uri.includes('.')) {
-    request.uri = '/index.html';
-  }
-
-  return request;
-}`;
-```
-
-### 4.3 환경별 Cache-Control 헤더 전략
-
-```typescript
-// scripts/generate-cache-headers.ts
-interface EnvironmentCacheConfig {
-  env: "production" | "beta" | "preview";
-  pathPattern: string;
-  cacheControl: string;
-  cdnTtl: number;
-  browserTtl: number;
-  staleWhileRevalidate: number;
-}
-
-const CACHE_CONFIGS: EnvironmentCacheConfig[] = [
-  // Production: 해시된 에셋은 불변
-  {
-    env: "production",
-    pathPattern: "/assets/*.[hash].*",
-    cacheControl: "public, max-age=31536000, immutable",
-    cdnTtl: 31536000,
-    browserTtl: 31536000,
-    staleWhileRevalidate: 0,
-  },
-  {
-    env: "production",
-    pathPattern: "/index.html",
-    cacheControl: "public, max-age=0, s-maxage=60, stale-while-revalidate=30",
-    cdnTtl: 60,
-    browserTtl: 0,
-    staleWhileRevalidate: 30,
-  },
-  // Beta: 적극적 캐싱이되 빠른 무효화 가능
-  {
-    env: "beta",
-    pathPattern: "/beta-*/assets/*.[hash].*",
-    cacheControl: "public, max-age=86400, immutable",
-    cdnTtl: 86400,
-    browserTtl: 86400,
-    staleWhileRevalidate: 0,
-  },
-  {
-    env: "beta",
-    pathPattern: "/beta-*/index.html",
-    cacheControl: "public, max-age=0, s-maxage=300, stale-while-revalidate=60",
-    cdnTtl: 300,
-    browserTtl: 0,
-    staleWhileRevalidate: 60,
-  },
-  // Preview: 최소 캐싱 (빠른 피드백 루프 우선)
-  {
-    env: "preview",
-    pathPattern: "/pr-*/assets/*",
-    cacheControl: "public, max-age=300, stale-while-revalidate=60",
-    cdnTtl: 300,
-    browserTtl: 300,
-    staleWhileRevalidate: 60,
-  },
-  {
-    env: "preview",
-    pathPattern: "/pr-*/index.html",
-    cacheControl: "no-cache, s-maxage=60",
-    cdnTtl: 60,
-    browserTtl: 0,
-    staleWhileRevalidate: 0,
-  },
-];
-
-function getCacheConfigForPath(
-  path: string,
-  env: EnvironmentCacheConfig["env"],
-): EnvironmentCacheConfig | undefined {
-  return CACHE_CONFIGS.find(
-    (config) => config.env === env && matchPattern(path, config.pathPattern),
+      GroupBy: [{ Type: "DIMENSION", Key: "SERVICE" }],
+    }),
   );
-}
 
-function matchPattern(path: string, pattern: string): boolean {
-  const regex = new RegExp(
-    "^" + pattern
-      .replace(/\./g, "\\.")
-      .replace(/\[hash\]/g, "[a-f0-9]{6,16}")
-      .replace(/\*/g, ".*") + "$",
-  );
-  return regex.test(path);
-}
+  const breakdown: CostBreakdown[] = [];
+  let totalCost = 0;
 
-export { CACHE_CONFIGS, getCacheConfigForPath };
-export type { EnvironmentCacheConfig };
-```
+  for (const result of costResp.ResultsByTime ?? []) {
+    for (const group of result.Groups ?? []) {
+      const service = group.Keys?.[0] ?? "Unknown";
+      const amount = parseFloat(
+        group.Metrics?.UnblendedCost?.Amount ?? "0",
+      );
+      totalCost += amount;
 
----
-
-## 5. AI 프롬프트 5선
-
-### 프롬프트 1: 캐시 적중률 분석
-
-> ```
-> 다음은 멀티 베타 환경의 CloudFront 액세스 로그에서 추출한 캐시 적중률 분석 결과이다.
-> 환경별(production, beta-1, beta-2, pr-123)로 분리하여:
-> (1) 적중률이 낮은 경로 패턴의 원인을 추정하고,
-> (2) 환경 간 캐시 오염(cross-env cache pollution)이 발생했는지 확인하고,
-> (3) 각 환경에 적합한 최적 TTL을 권장해줘.
->
-> --- 분석 결과 ---
-> {여기에 환경별 캐시 적중률 데이터 붙여넣기}
->
-> --- 현재 캐시 정책 ---
-> {여기에 환경별 Cache-Control 헤더 붙여넣기}
-> ```
-
-### 프롬프트 2: TTL 최적화
-
-> ```
-> 아래 멀티 베타 환경의 경로별 트래픽 패턴과 콘텐츠 변경 주기를 분석하여,
-> AWS CDK(TypeScript)로 환경별 CloudFront CachePolicy를 정의하는 코드를 생성해줘.
-> 각 정책에 대해 TTL 결정 근거를 주석으로 설명해줘.
->
-> --- 환경 구성 ---
-> - Production: 일 50만 요청, 주 1회 배포
-> - Beta 1~3: 일 5만 요청, 일 3~5회 배포
-> - PR Preview: 일 500 요청, 커밋마다 배포
->
-> --- 경로별 트래픽 ---
-> {여기에 경로별 트래픽 데이터 붙여넣기}
-> ```
-
-### 프롬프트 3: 무효화 영향 분석
-
-> ```
-> CloudFront 캐시 무효화를 실행하려고 한다.
-> 다음 무효화 패턴에 대해:
-> (1) 영향받는 환경(production/beta/preview)을 식별하고,
-> (2) 예상되는 오리진 부하 증가량을 추정하고,
-> (3) 무효화 비용(요청 수 기준)을 계산하고,
-> (4) 단계적 무효화 전략을 제안해줘.
->
-> --- 무효화 대상 ---
-> /beta-1/assets/*
-> /pr-*/index.html
->
-> --- 현재 트래픽 ---
-> {여기에 분당 요청 수 데이터 붙여넣기}
-> ```
-
-### 프롬프트 4: 캐시 정책 설계
-
-> ```
-> 새로운 베타 환경(beta-4)을 추가하려고 한다.
-> 기존 멀티 베타 인프라 구성을 참고하여:
-> (1) CDK로 새 S3 버킷 + CloudFront Behavior를 추가하는 코드를 생성하고,
-> (2) 캐시 키 네임스페이스가 기존 환경과 충돌하지 않는지 검증하고,
-> (3) Origin Shield 설정 포함 여부를 비용 대비 판단하고,
-> (4) GitHub Actions 배포 워크플로우도 함께 생성해줘.
->
-> --- 기존 인프라 ---
-> {여기에 CDK 스택 코드 또는 CloudFormation 출력 붙여넣기}
-> ```
-
-### 프롬프트 5: 비용 분석
-
-> ```
-> 멀티 베타 환경의 CloudFront 비용을 분석해줘.
-> (1) 환경별(production, beta-1~3, preview) 요청 수와 데이터 전송량을 분리하고,
-> (2) Preview 환경의 수명 주기별 비용 패턴을 분석하고,
-> (3) 비용 절감을 위한 캐시 정책 최적화 방안을 제시하고,
-> (4) 월간 예상 비용을 환경별로 산출해줘.
->
-> --- CloudFront 사용량 ---
-> {여기에 AWS Cost Explorer 또는 CloudFront 보고서 데이터 붙여넣기}
->
-> --- 현재 환경 수 ---
-> Beta: 3개 (상시), Preview: 평균 12개 (동시)
-> ```
-
----
-
-## 6. CloudFront Functions: 멀티 베타 라우팅
-
-### 6.1 A/B 테스트 라우팅
-
-```typescript
-// infra/lib/functions/ab-routing.ts
-export const abRoutingFunction = `
-function handler(event) {
-  var request = event.request;
-  var headers = request.headers;
-  var cookies = request.cookies;
-
-  // 기존 A/B 쿠키 확인
-  var abGroup = cookies['x-ab-group'] ? cookies['x-ab-group'].value : null;
-
-  if (!abGroup) {
-    // 새 방문자: 가중치 기반 배정
-    var rand = Math.random();
-    if (rand < 0.8) {
-      abGroup = 'production';
-    } else if (rand < 0.9) {
-      abGroup = 'beta-1';
-    } else {
-      abGroup = 'beta-2';
+      const existing = breakdown.find((b) => b.service === service);
+      if (existing) {
+        existing.amount += amount;
+      } else {
+        breakdown.push({ service, amount, unit: "USD" });
+      }
     }
   }
 
-  // 캐시 키에 A/B 그룹 포함
-  headers['x-ab-group'] = { value: abGroup };
+  const durationDays = Math.ceil(
+    (now.getTime() - createdAt.getTime()) / 86400000,
+  );
 
-  // Beta 환경으로 라우팅
-  if (abGroup.startsWith('beta-')) {
-    request.uri = '/' + abGroup + request.uri;
-  }
+  const report = [
+    `## Preview Environment Cost Report -- PR #${prNumber}`,
+    "",
+    `| Item | Value |`,
+    `|------|-------|`,
+    `| Duration | ${durationDays} days |`,
+    `| Total Cost | $${totalCost.toFixed(4)} |`,
+    `| Daily Average | $${(totalCost / Math.max(durationDays, 1)).toFixed(4)} |`,
+    "",
+    "### Cost by Service",
+    "",
+    "| Service | Cost |",
+    "|---------|------|",
+    ...breakdown
+      .sort((a, b) => b.amount - a.amount)
+      .map((b) => `| ${b.service} | $${b.amount.toFixed(4)} |`),
+    "",
+    "---",
+    "_Auto-generated on stack cleanup_",
+  ].join("\n");
 
-  return request;
-}`;
+  fs.writeFileSync("cost-report.md", report);
+  console.log(`Cost report generated: $${totalCost.toFixed(4)} total`);
+}
+
+const prNumber = parseInt(process.argv[2], 10);
+if (!isNaN(prNumber)) {
+  generateCostReport(prNumber);
+}
 ```
 
-### 6.2 응답 헤더 함수
+### 4.3 고아 환경 탐지/정리
 
 ```typescript
-// infra/lib/functions/response-headers.ts
-export const responseHeadersFunction = `
-function handler(event) {
-  var response = event.response;
-  var headers = response.headers;
+// scripts/sweep-orphan-previews.ts
+import {
+  CloudFormationClient,
+  ListStacksCommand,
+  DeleteStackCommand,
+  DescribeStacksCommand,
+} from "@aws-sdk/client-cloudformation";
 
-  // 보안 헤더
-  headers['strict-transport-security'] = { value: 'max-age=63072000; includeSubDomains; preload' };
-  headers['x-content-type-options'] = { value: 'nosniff' };
-  headers['x-frame-options'] = { value: 'DENY' };
-  headers['referrer-policy'] = { value: 'strict-origin-when-cross-origin' };
-  headers['permissions-policy'] = { value: 'camera=(), microphone=(), geolocation=()' };
+async function sweepOrphanPreviews(): Promise<void> {
+  const client = new CloudFormationClient({});
+  const now = new Date();
 
-  // 환경 식별 헤더 (디버깅용)
-  var cacheStatus = response.headers['x-cache'] ? response.headers['x-cache'].value : 'unknown';
-  headers['x-served-by'] = { value: 'cloudfront-multi-beta' };
-  headers['x-cache-status'] = { value: cacheStatus };
+  const resp = await client.send(
+    new ListStacksCommand({
+      StackStatusFilter: [
+        "CREATE_COMPLETE",
+        "UPDATE_COMPLETE",
+        "UPDATE_ROLLBACK_COMPLETE",
+      ],
+    }),
+  );
 
-  return response;
-}`;
-```
+  const previewStacks = (resp.StackSummaries ?? []).filter((s) =>
+    s.StackName?.startsWith("PreviewStack-PR-"),
+  );
 
----
+  console.log(`Found ${previewStacks.length} preview stacks`);
 
-## 7. Origin Shield + 멀티 베타 최적화
+  for (const stack of previewStacks) {
+    const detail = await client.send(
+      new DescribeStacksCommand({ StackName: stack.StackName }),
+    );
 
-### 7.1 멀티 베타 환경에서 Origin Shield 전략
+    const tags = detail.Stacks?.[0]?.Tags ?? [];
+    const expiresAt = tags.find((t) => t.Key === "ExpiresAt")?.Value;
 
-```typescript
-// infra/lib/origin-shield-config.ts
-import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
-
-interface OriginShieldDecision {
-  environment: string;
-  enableShield: boolean;
-  region: string;
-  reason: string;
-}
-
-function decideOriginShield(
-  envType: "production" | "beta" | "preview",
-  dailyRequests: number,
-  originRegion: string,
-): OriginShieldDecision {
-  // Origin Shield 비용: 요청당 $0.0075/10,000건
-  // 오리진 보호 이점 vs 추가 비용 판단
-  const shieldRegionMap: Record<string, string> = {
-    "ap-northeast-2": "ap-northeast-2", // 서울 -> 서울
-    "us-east-1": "us-east-1",
-    "eu-west-1": "eu-west-1",
-  };
-
-  if (envType === "preview") {
-    return {
-      environment: envType,
-      enableShield: false,
-      region: originRegion,
-      reason: "Preview 환경은 트래픽이 적어 Origin Shield 비용 대비 이점 없음",
-    };
-  }
-
-  if (envType === "beta" && dailyRequests < 10000) {
-    return {
-      environment: envType,
-      enableShield: false,
-      region: originRegion,
-      reason: "일 1만 미만 트래픽의 베타 환경은 Shield 불필요",
-    };
-  }
-
-  return {
-    environment: envType,
-    enableShield: true,
-    region: shieldRegionMap[originRegion] ?? originRegion,
-    reason: "높은 트래픽으로 오리진 부하 분산 필요",
-  };
-}
-
-export { decideOriginShield };
-export type { OriginShieldDecision };
-```
-
----
-
-## 8. 실시간 로그 분석 파이프라인
-
-### 8.1 멀티 베타 환경별 로그 수집 및 분석
-
-```typescript
-// scripts/multi-beta-log-analysis.ts
-import { readFileSync } from "node:fs";
-
-interface AccessLogEntry {
-  timestamp: string;
-  edgeLocation: string;
-  statusCode: number;
-  uri: string;
-  cacheResult: "Hit" | "Miss" | "RefreshHit" | "Error" | "LimitExceeded";
-  timeTaken: number;
-  queryString: string;
-  contentType: string;
-  bytesOut: number;
-}
-
-interface EnvironmentMetrics {
-  environment: string;
-  totalRequests: number;
-  hitRatio: number;
-  avgLatency: number;
-  p99Latency: number;
-  totalBytesOut: number;
-  topMissedPaths: Array<{ path: string; missCount: number }>;
-}
-
-function parseAccessLog(logContent: string): AccessLogEntry[] {
-  return logContent
-    .split("\n")
-    .filter((line) => line && !line.startsWith("#"))
-    .map((line) => {
-      const fields = line.split("\t");
-      return {
-        timestamp: fields[0],
-        edgeLocation: fields[2],
-        statusCode: parseInt(fields[7], 10),
-        uri: fields[6],
-        cacheResult: fields[12] as AccessLogEntry["cacheResult"],
-        timeTaken: parseFloat(fields[17]),
-        queryString: fields[10],
-        contentType: fields[28] ?? "unknown",
-        bytesOut: parseInt(fields[3], 10),
-      };
-    });
-}
-
-function identifyEnvironment(uri: string): string {
-  const match = uri.match(/^\/(beta-[a-z0-9-]+|pr-[0-9]+)\//);
-  return match ? match[1] : "production";
-}
-
-function analyzeByEnvironment(entries: AccessLogEntry[]): EnvironmentMetrics[] {
-  const envMap = new Map<string, AccessLogEntry[]>();
-
-  for (const entry of entries) {
-    const env = identifyEnvironment(entry.uri);
-    const list = envMap.get(env) ?? [];
-    list.push(entry);
-    envMap.set(env, list);
-  }
-
-  return [...envMap.entries()].map(([env, envEntries]) => {
-    const hits = envEntries.filter(
-      (e) => e.cacheResult === "Hit" || e.cacheResult === "RefreshHit",
-    ).length;
-
-    const latencies = envEntries.map((e) => e.timeTaken).sort((a, b) => a - b);
-    const p99Index = Math.floor(latencies.length * 0.99);
-
-    const missedPaths = new Map<string, number>();
-    for (const entry of envEntries.filter((e) => e.cacheResult === "Miss")) {
-      const normalized = normalizePath(entry.uri);
-      missedPaths.set(normalized, (missedPaths.get(normalized) ?? 0) + 1);
+    if (expiresAt && new Date(expiresAt) < now) {
+      console.log(`Destroying expired stack: ${stack.StackName}`);
+      await client.send(
+        new DeleteStackCommand({ StackName: stack.StackName }),
+      );
     }
+  }
+}
 
-    return {
-      environment: env,
-      totalRequests: envEntries.length,
-      hitRatio: hits / envEntries.length,
-      avgLatency: latencies.reduce((a, b) => a + b, 0) / latencies.length,
-      p99Latency: latencies[p99Index] ?? 0,
-      totalBytesOut: envEntries.reduce((sum, e) => sum + e.bytesOut, 0),
-      topMissedPaths: [...missedPaths.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([path, missCount]) => ({ path, missCount })),
-    };
+sweepOrphanPreviews();
+```
+
+---
+
+## 5. S3 Express One Zone 성능 비교
+
+S3 Express One Zone은 단일 가용 영역에서 일관된 한 자릿수 밀리초 지연 시간을 제공한다. CloudFront 오리진으로 사용 시 TTFB(Time to First Byte)가 크게 개선된다.
+
+### 5.1 성능 비교 벤치마크
+
+| 지표 | S3 Standard | S3 Express One Zone | 차이 |
+|------|-------------|--------------------|----|
+| **TTFB (오리진 직접)** | 50-100ms | 3-8ms | 약 10배 개선 |
+| **소형 파일 GET (< 1KB)** | 20-40ms | 2-5ms | 약 8배 개선 |
+| **대형 파일 GET (> 10MB)** | 80-150ms | 10-30ms | 약 5배 개선 |
+| **PUT 지연** | 20-60ms | 3-10ms | 약 6배 개선 |
+| **비용 (GB/월)** | $0.023 | $0.16 | 약 7배 비쌈 |
+| **요청 비용 (GET 1만건)** | $0.0004 | $0.002 | 약 5배 비쌈 |
+
+### 5.2 도입 판단 기준
+
+| 시나리오 | 권장 | 이유 |
+|---------|------|------|
+| **프로덕션 정적 자산** | S3 Standard | CloudFront 캐시로 오리진 접근 빈도가 낮아 비용 대비 효과 미미 |
+| **Preview 환경 (짧은 TTL)** | S3 Express One Zone | 캐시 미스가 빈번하여 오리진 지연이 UX에 직접 영향 |
+| **빌드 아티팩트 중간 저장** | S3 Express One Zone | CI/CD 파이프라인에서 빈번한 읽기/쓰기 발생 |
+| **대용량 미디어 파일** | S3 Standard | 용량 비용이 지배적, CloudFront Origin Shield로 보완 |
+
+### 5.3 CDK에서 Express One Zone 오리진 구성
+
+```typescript
+// Express One Zone 디렉터리 버킷은 일반 S3 버킷과 다른 ARN 형식을 사용한다
+// 현재 CDK L2에서 직접 지원하지 않으므로 CfnBucket 사용
+import * as cdk from "aws-cdk-lib";
+import * as s3 from "aws-cdk-lib/aws-s3";
+
+function createExpressOneZoneBucket(
+  scope: Construct,
+  id: string,
+  azId: string, // 예: "use1-az4"
+): s3.CfnBucket {
+  return new s3.CfnBucket(scope, id, {
+    bucketName: `preview-express--${azId}--x-s3`,
+    bucketEncryption: {
+      serverSideEncryptionConfiguration: [
+        {
+          bucketKeyEnabled: true,
+          serverSideEncryptionByDefault: {
+            sseAlgorithm: "aws:kms:dsse",
+          },
+        },
+      ],
+    },
   });
 }
-
-function normalizePath(uri: string): string {
-  return uri
-    .replace(/\.[a-f0-9]{6,16}\.(js|css|woff2?|png|jpg|svg)$/i, ".[hash].$1")
-    .replace(/\/pr-\d+\//, "/pr-*/");
-}
-
-function generateEnvComparisonPrompt(metrics: EnvironmentMetrics[]): string {
-  const summary = metrics
-    .map((m) =>
-      `[${m.environment}] 요청: ${m.totalRequests}, 적중률: ${(m.hitRatio * 100).toFixed(1)}%, ` +
-      `평균 지연: ${m.avgLatency.toFixed(1)}ms, P99: ${m.p99Latency.toFixed(1)}ms`,
-    )
-    .join("\n");
-
-  return `멀티 베타 환경별 CloudFront 성능을 비교 분석해줘.
-환경 간 캐시 적중률 차이의 원인을 추정하고, 개선 방안을 제시해줘.
-
---- 환경별 메트릭 ---
-${summary}`;
-}
-
-// 실행
-const logContent = readFileSync("cloudfront-logs/combined.log", "utf-8");
-const entries = parseAccessLog(logContent);
-const metrics = analyzeByEnvironment(entries);
-console.log(generateEnvComparisonPrompt(metrics));
-
-export { parseAccessLog, analyzeByEnvironment, generateEnvComparisonPrompt };
-export type { AccessLogEntry, EnvironmentMetrics };
 ```
 
 ---
 
-## 9. 체크리스트
+## 6. Brotli vs Zstd 압축 전략
 
-### 인프라 구성
+2026년 기준 Zstd의 브라우저 지원이 확대되면서 압축 전략에 변화가 필요하다.
 
-- [ ] CDK 스택에 멀티 베타 S3 버킷 + CloudFront Behavior 정의
-- [ ] Preview 전용 S3 버킷 생성 (접두사 기반 분리)
-- [ ] CloudFront Function으로 환경 라우팅 + 캐시 키 네임스페이스 주입
-- [ ] 환경별 CachePolicy 분리 (Production / Beta / Preview)
-- [ ] Origin Shield 환경별 활성화 여부 결정
+### 6.1 압축 알고리즘 비교
 
-### CI/CD
+| 지표 | Gzip | Brotli | Zstd |
+|------|------|--------|------|
+| **압축률 (JS 번들)** | 65% | 75% | 73% |
+| **압축률 (HTML)** | 70% | 82% | 79% |
+| **압축 속도** | 빠름 | 느림 (정적 사전 프리빌드 필요) | 매우 빠름 |
+| **해제 속도** | 보통 | 보통 | 매우 빠름 |
+| **CloudFront 지원** | O | O | 제한적 (커스텀 오리진) |
+| **브라우저 지원** | 전체 | 전체 | Chrome 123+, Firefox 126+, Safari 18+ |
+| **CDN 엣지 실시간 압축** | O | O | X (사전 압축 필요) |
 
-- [ ] PR Open 시 Preview 환경 자동 배포 워크플로우
-- [ ] PR Close 시 Preview 환경 자동 정리 워크플로우
-- [ ] 스케줄 기반 만료 Preview 정리 스크립트 (cron)
-- [ ] Preview URL을 PR 코멘트에 자동 게시
+### 6.2 하이브리드 압축 전략
 
-### 캐시 전략
+```typescript
+// scripts/compress-assets.ts
+import * as fs from "fs";
+import * as path from "path";
+import * as zlib from "zlib";
+import { execSync } from "child_process";
 
-- [ ] 해시 기반 에셋 파일명 적용 (Vite content hash)
-- [ ] 환경별 Cache-Control 헤더 정책 문서화
-- [ ] 캐시 키 충돌 테스트 (환경 간 오염 방지 검증)
-- [ ] 무효화 비용 모니터링 알림 설정
+interface CompressionResult {
+  file: string;
+  original: number;
+  gzip: number;
+  brotli: number;
+  zstd: number;
+  bestFormat: string;
+}
 
-### AI 활용
+function compressFile(filePath: string): CompressionResult {
+  const content = fs.readFileSync(filePath);
+  const original = content.length;
 
-- [ ] 캐시 적중률 분석 프롬프트 팀 공유
-- [ ] TTL 최적화 주기적 검토 (분기 1회)
-- [ ] 환경별 비용 분석 대시보드 구축
+  // Gzip
+  const gzipped = zlib.gzipSync(content, { level: 9 });
+  fs.writeFileSync(`${filePath}.gz`, gzipped);
+
+  // Brotli
+  const brotlied = zlib.brotliCompressSync(content, {
+    params: {
+      [zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+      [zlib.constants.BROTLI_PARAM_SIZE_HINT]: original,
+    },
+  });
+  fs.writeFileSync(`${filePath}.br`, brotlied);
+
+  // Zstd (외부 CLI 사용)
+  execSync(`zstd -19 --force "${filePath}" -o "${filePath}.zst"`, {
+    stdio: "pipe",
+  });
+  const zstdSize = fs.statSync(`${filePath}.zst`).size;
+
+  const sizes = { gzip: gzipped.length, brotli: brotlied.length, zstd: zstdSize };
+  const bestFormat = Object.entries(sizes).sort(
+    ([, a], [, b]) => a - b,
+  )[0][0];
+
+  return {
+    file: path.basename(filePath),
+    original,
+    gzip: gzipped.length,
+    brotli: brotlied.length,
+    zstd: zstdSize,
+    bestFormat,
+  };
+}
+
+function compressDirectory(dir: string): void {
+  const extensions = [".js", ".css", ".html", ".json", ".svg", ".xml"];
+  const results: CompressionResult[] = [];
+
+  function walk(directory: string): void {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+        results.push(compressFile(fullPath));
+      }
+    }
+  }
+
+  walk(dir);
+
+  // 결과 요약
+  console.log("\n=== Compression Summary ===\n");
+  console.log(
+    "File".padEnd(40),
+    "Original".padEnd(12),
+    "Gzip".padEnd(12),
+    "Brotli".padEnd(12),
+    "Zstd".padEnd(12),
+    "Best",
+  );
+  console.log("-".repeat(100));
+
+  for (const r of results) {
+    console.log(
+      r.file.padEnd(40),
+      `${(r.original / 1024).toFixed(1)}KB`.padEnd(12),
+      `${(r.gzip / 1024).toFixed(1)}KB`.padEnd(12),
+      `${(r.brotli / 1024).toFixed(1)}KB`.padEnd(12),
+      `${(r.zstd / 1024).toFixed(1)}KB`.padEnd(12),
+      r.bestFormat,
+    );
+  }
+}
+
+const targetDir = process.argv[2] || "dist";
+compressDirectory(targetDir);
+```
+
+### 6.3 S3 업로드 시 Content-Encoding 분기
+
+```typescript
+// scripts/upload-compressed.ts
+import {
+  S3Client,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
+import * as fs from "fs";
+import * as path from "path";
+import * as mime from "mime-types";
+
+const s3 = new S3Client({});
+
+interface UploadConfig {
+  bucket: string;
+  distDir: string;
+  preferZstd: boolean;
+}
+
+async function uploadCompressedAssets(config: UploadConfig): Promise<void> {
+  const files = getAllFiles(config.distDir);
+
+  for (const file of files) {
+    // 원본 파일만 처리 (.gz, .br, .zst 는 건너뜀)
+    if (/\.(gz|br|zst)$/.test(file)) continue;
+
+    const key = path.relative(config.distDir, file);
+    const contentType = mime.lookup(file) || "application/octet-stream";
+
+    // 압축 버전 우선순위 결정
+    const candidates = config.preferZstd
+      ? [`${file}.zst`, `${file}.br`, `${file}.gz`]
+      : [`${file}.br`, `${file}.zst`, `${file}.gz`];
+
+    const encodingMap: Record<string, string> = {
+      ".zst": "zstd",
+      ".br": "br",
+      ".gz": "gzip",
+    };
+
+    let uploaded = false;
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        const ext = path.extname(candidate);
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: config.bucket,
+            Key: key,
+            Body: fs.readFileSync(candidate),
+            ContentType: contentType,
+            ContentEncoding: encodingMap[ext],
+            CacheControl: key.includes("assets/")
+              ? "public, max-age=31536000, immutable"
+              : "public, max-age=300",
+          }),
+        );
+        uploaded = true;
+        break;
+      }
+    }
+
+    // 압축 버전이 없으면 원본 업로드
+    if (!uploaded) {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: config.bucket,
+          Key: key,
+          Body: fs.readFileSync(file),
+          ContentType: contentType,
+          CacheControl: "public, max-age=300",
+        }),
+      );
+    }
+  }
+}
+
+function getAllFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...getAllFiles(fullPath));
+    } else {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+```
+
+---
+
+## 7. 장애/트러블슈팅 시나리오 기반 AI 프롬프트
+
+### 프롬프트 1: 캐시 무효화가 동작하지 않을 때
+
+```text
+CloudFront 캐시 무효화(invalidation)를 생성했는데 이전 콘텐츠가 계속 서빙되고 있어.
+
+[현재 상황]
+- Distribution ID: {DIST_ID}
+- 무효화 경로: {예: /assets/*, /index.html}
+- 무효화 생성 시간: {시간}
+- 현재까지 경과 시간: {분}
+
+[확인한 것]
+- S3 오리진에는 새 파일이 정상 업로드됨
+- curl -I 결과 X-Cache: Hit from cloudfront
+
+[분석 요청]
+1. 무효화가 반영되지 않는 가능한 원인 목록 (우선순위순)
+2. 각 원인별 확인 명령어 (AWS CLI)
+3. Cache-Control 헤더와 CloudFront 캐시 정책 간 우선순위 설명
+4. 브라우저 캐시 vs CDN 캐시 구분 방법
+5. 즉시 해결 방안과 재발 방지 대책
+```
+
+### 프롬프트 2: CloudFront 로그에서 4xx 에러 패턴 분석
+
+```text
+CloudFront 실시간 로그에서 4xx 에러가 급증하고 있어. 아래 로그 샘플을 분석해줘.
+
+[로그 샘플]
+{CloudFront 표준 로그 또는 실시간 로그 10-20줄 붙여넣기}
+
+[분석 요청]
+1. 에러 유형별 분류 (403 vs 404 vs 405 등)
+2. 에러가 집중되는 URI 패턴
+3. 특정 엣지 로케이션이나 클라이언트에서 집중되는지
+4. OAC(Origin Access Control) 설정 문제 가능성
+5. S3 버킷 정책과 CloudFront 오리진 설정 간 불일치 점검 항목
+6. 해결을 위한 단계별 조치 계획
+```
+
+### 프롬프트 3: 최적의 캐시 TTL 추천
+
+```text
+아래 서비스 특성에 맞는 CloudFront 캐시 TTL 전략을 추천해줘.
+
+[서비스 특성]
+- 타입: {SPA / SSR / 정적 사이트 / API 프록시}
+- 배포 빈도: {일 N회 / 주 N회}
+- 트래픽 규모: {일 평균 요청 수}
+- 파일 유형: {HTML, JS/CSS 번들, 이미지, API 응답 등}
+- 파일 해싱: {webpack contenthash 사용 여부}
+
+[요구사항]
+1. 파일 유형별 Cache-Control 헤더 권장값
+2. CloudFront 캐시 정책 설정 (DefaultTTL, MinTTL, MaxTTL)
+3. 해시 기반 immutable 자산 vs 동적 자산 분리 전략
+4. Origin Shield 사용 권장 여부와 지역 선택
+5. 캐시 히트율 목표치와 모니터링 방법
+6. stale-while-revalidate 패턴 적용 가능 여부
+```
+
+### 프롬프트 4: Continuous Deployment 롤백 판단
+
+```text
+CloudFront Continuous Deployment로 스테이징 Distribution에 5% 트래픽을 보내고 있는데 이상 징후가 감지됐어.
+
+[스테이징 메트릭]
+- 에러율: {Primary: 0.1%, Staging: 2.3%}
+- p99 응답 시간: {Primary: 120ms, Staging: 450ms}
+- 캐시 히트율: {Primary: 92%, Staging: 45%}
+- Core Web Vitals LCP: {Primary: 1.8s, Staging: 3.2s}
+
+[판단 요청]
+1. 이 메트릭 차이가 정상 범위인지 (새로운 배포의 콜드 캐시 영향 포함)
+2. 롤백해야 하는 임계값 기준 제안
+3. 콜드 캐시 워밍 전략 (스테이징의 낮은 캐시 히트율 원인 분석)
+4. 트래픽 비율을 올리기 전 추가로 확인해야 할 항목
+5. 프로모션 vs 롤백 최종 추천과 근거
+```
+
+### 프롬프트 5: Preview 환경 비용 최적화
+
+```text
+현재 멀티 베타 Preview 환경을 운영 중인데 비용이 예상보다 높아.
+
+[현재 상태]
+- 동시 활성 Preview 환경 수: {평균 N개}
+- 환경당 월 비용: {$X}
+- 주요 비용 항목: {CloudFront Distribution, S3 스토리지, Route53 레코드 등}
+
+[분석 요청]
+1. 비용 최적화를 위한 아키텍처 대안 비교
+   - 개별 Distribution vs 단일 Distribution + Behavior 분리
+   - 개별 S3 버킷 vs 단일 버킷 + 접두사 분리
+2. 각 대안의 장단점 (격리 수준, 비용, 관리 복잡도)
+3. TTL 기반 자동 정리 전략 최적화
+4. CloudFront Functions vs Lambda@Edge 비용 비교
+5. 월간 예상 비용 시뮬레이션 (환경 수별)
+```
+
+---
+
+## 8. 실시간 로그 분석 + 이상 탐지
+
+### 8.1 CloudFront 실시간 로그 파이프라인
+
+```typescript
+// infra/lib/log-analysis-stack.ts
+import * as cdk from "aws-cdk-lib";
+import * as kinesis from "aws-cdk-lib/aws-kinesis";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import type { Construct } from "constructs";
+
+interface LogAnalysisStackProps extends cdk.StackProps {
+  alertEmail: string;
+  errorRateThreshold: number; // 예: 5 (%)
+  latencyThresholdMs: number; // 예: 500
+}
+
+export class LogAnalysisStack extends cdk.Stack {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: LogAnalysisStackProps,
+  ) {
+    super(scope, id, props);
+
+    // Kinesis Data Stream (실시간 로그 수신)
+    const logStream = new kinesis.Stream(this, "CfLogStream", {
+      streamName: "cloudfront-realtime-logs",
+      shardCount: 2,
+      retentionPeriod: cdk.Duration.hours(24),
+      streamMode: kinesis.StreamMode.ON_DEMAND,
+    });
+
+    // 알림 토픽
+    const alertTopic = new sns.Topic(this, "AlertTopic", {
+      topicName: "cloudfront-anomaly-alerts",
+    });
+    alertTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription(props.alertEmail),
+    );
+
+    // 로그 분석 Lambda
+    const analyzerFn = new lambdaNode.NodejsFunction(this, "LogAnalyzer", {
+      entry: "lambda/log-analyzer/index.ts",
+      runtime: lambda.Runtime.NODEJS_22_X,
+      architecture: lambda.Architecture.ARM_64,
+      timeout: cdk.Duration.minutes(1),
+      memorySize: 512,
+      environment: {
+        ALERT_TOPIC_ARN: alertTopic.topicArn,
+        ERROR_RATE_THRESHOLD: String(props.errorRateThreshold),
+        LATENCY_THRESHOLD_MS: String(props.latencyThresholdMs),
+      },
+    });
+
+    alertTopic.grantPublish(analyzerFn);
+
+    // Kinesis -> Lambda 이벤트 소스
+    analyzerFn.addEventSourceMapping("LogStreamMapping", {
+      eventSourceArn: logStream.streamArn,
+      startingPosition: lambda.StartingPosition.LATEST,
+      batchSize: 100,
+      maxBatchingWindow: cdk.Duration.seconds(10),
+    });
+
+    logStream.grantRead(analyzerFn);
+
+    // CloudWatch 대시보드
+    const dashboard = new cloudwatch.Dashboard(this, "CfDashboard", {
+      dashboardName: "CloudFront-Operations",
+    });
+
+    dashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: "Error Rate by Distribution",
+        width: 12,
+        left: [
+          new cloudwatch.Metric({
+            namespace: "CloudFront/Custom",
+            metricName: "4xxRate",
+            statistic: "Average",
+            period: cdk.Duration.minutes(5),
+          }),
+          new cloudwatch.Metric({
+            namespace: "CloudFront/Custom",
+            metricName: "5xxRate",
+            statistic: "Average",
+            period: cdk.Duration.minutes(5),
+          }),
+        ],
+      }),
+      new cloudwatch.GraphWidget({
+        title: "Cache Hit Rate",
+        width: 12,
+        left: [
+          new cloudwatch.Metric({
+            namespace: "CloudFront/Custom",
+            metricName: "CacheHitRate",
+            statistic: "Average",
+            period: cdk.Duration.minutes(5),
+          }),
+        ],
+      }),
+    );
+  }
+}
+```
+
+### 8.2 로그 분석 Lambda 구현
+
+```typescript
+// lambda/log-analyzer/index.ts
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import {
+  CloudWatchClient,
+  PutMetricDataCommand,
+} from "@aws-sdk/client-cloudwatch";
+import type { KinesisStreamEvent, KinesisStreamRecord } from "aws-lambda";
+
+interface CloudFrontLogEntry {
+  timestamp: number;
+  distributionId: string;
+  status: number;
+  timeTaken: number;
+  uri: string;
+  cacheResult: string;
+  edgeLocation: string;
+}
+
+const sns = new SNSClient({});
+const cw = new CloudWatchClient({});
+const ALERT_TOPIC_ARN = process.env.ALERT_TOPIC_ARN!;
+const ERROR_RATE_THRESHOLD = parseFloat(
+  process.env.ERROR_RATE_THRESHOLD ?? "5",
+);
+const LATENCY_THRESHOLD_MS = parseFloat(
+  process.env.LATENCY_THRESHOLD_MS ?? "500",
+);
+
+export async function handler(event: KinesisStreamEvent): Promise<void> {
+  const entries: CloudFrontLogEntry[] = event.Records.flatMap(
+    (record: KinesisStreamRecord) => {
+      const payload = Buffer.from(record.kinesis.data, "base64").toString();
+      return payload
+        .split("\n")
+        .filter(Boolean)
+        .map(parseCfLogLine);
+    },
+  );
+
+  if (entries.length === 0) return;
+
+  // 에러율 계산
+  const totalRequests = entries.length;
+  const errorRequests = entries.filter((e) => e.status >= 400).length;
+  const errorRate = (errorRequests / totalRequests) * 100;
+
+  // 지연 시간 p99 계산
+  const sortedLatencies = entries
+    .map((e) => e.timeTaken)
+    .sort((a, b) => a - b);
+  const p99Index = Math.floor(sortedLatencies.length * 0.99);
+  const p99Latency = sortedLatencies[p99Index] ?? 0;
+
+  // 캐시 히트율 계산
+  const cacheHits = entries.filter(
+    (e) => e.cacheResult === "Hit" || e.cacheResult === "RefreshHit",
+  ).length;
+  const cacheHitRate = (cacheHits / totalRequests) * 100;
+
+  // CloudWatch 커스텀 메트릭 발행
+  await cw.send(
+    new PutMetricDataCommand({
+      Namespace: "CloudFront/Custom",
+      MetricData: [
+        {
+          MetricName: "4xxRate",
+          Value: (entries.filter((e) => e.status >= 400 && e.status < 500).length / totalRequests) * 100,
+          Unit: "Percent",
+        },
+        {
+          MetricName: "5xxRate",
+          Value: (entries.filter((e) => e.status >= 500).length / totalRequests) * 100,
+          Unit: "Percent",
+        },
+        {
+          MetricName: "CacheHitRate",
+          Value: cacheHitRate,
+          Unit: "Percent",
+        },
+        {
+          MetricName: "P99Latency",
+          Value: p99Latency,
+          Unit: "Milliseconds",
+        },
+      ],
+    }),
+  );
+
+  // 이상 탐지 알림
+  const anomalies: string[] = [];
+  if (errorRate > ERROR_RATE_THRESHOLD) {
+    anomalies.push(
+      `Error rate ${errorRate.toFixed(1)}% exceeds threshold ${ERROR_RATE_THRESHOLD}%`,
+    );
+  }
+  if (p99Latency > LATENCY_THRESHOLD_MS) {
+    anomalies.push(
+      `P99 latency ${p99Latency.toFixed(0)}ms exceeds threshold ${LATENCY_THRESHOLD_MS}ms`,
+    );
+  }
+
+  if (anomalies.length > 0) {
+    // 에러 집중 URI 패턴 추출
+    const errorUris = entries
+      .filter((e) => e.status >= 400)
+      .reduce<Record<string, number>>((acc, e) => {
+        acc[e.uri] = (acc[e.uri] ?? 0) + 1;
+        return acc;
+      }, {});
+
+    const topErrorUris = Object.entries(errorUris)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([uri, count]) => `  ${uri}: ${count} errors`)
+      .join("\n");
+
+    await sns.send(
+      new PublishCommand({
+        TopicArn: ALERT_TOPIC_ARN,
+        Subject: `CloudFront Anomaly Detected`,
+        Message: [
+          "CloudFront anomaly detected:",
+          "",
+          ...anomalies.map((a) => `- ${a}`),
+          "",
+          `Total requests analyzed: ${totalRequests}`,
+          `Cache hit rate: ${cacheHitRate.toFixed(1)}%`,
+          "",
+          "Top error URIs:",
+          topErrorUris,
+        ].join("\n"),
+      }),
+    );
+  }
+}
+
+function parseCfLogLine(line: string): CloudFrontLogEntry {
+  const fields = line.split("\t");
+  return {
+    timestamp: parseInt(fields[0], 10),
+    distributionId: fields[2] ?? "",
+    status: parseInt(fields[8], 10) || 0,
+    timeTaken: parseFloat(fields[18]) * 1000 || 0,
+    uri: fields[7] ?? "",
+    cacheResult: fields[13] ?? "",
+    edgeLocation: fields[4] ?? "",
+  };
+}
+```
+
+---
+
+## 9. 운영 체크리스트
+
+### 9.1 Continuous Deployment
+
+- [ ] 스테이징 Distribution이 프로덕션과 동일한 캐시 정책을 사용하는가
+- [ ] 트래픽 비율 전환 시 콜드 캐시 워밍을 고려하는가
+- [ ] 프로모션/롤백 자동화 스크립트가 검증되었는가
+- [ ] 스테이징 메트릭 모니터링 대시보드가 구성되었는가
+
+### 9.2 KeyValueStore Feature Flag
+
+- [ ] 모든 플래그에 만료일이 설정되었는가
+- [ ] KVS 변경에 대한 CloudTrail 감사 로그가 활성화되었는가
+- [ ] 플래그 비활성화 시 즉시 롤백 절차가 문서화되었는가
+- [ ] 동시 활성 플래그 수가 10개 이하인가
+
+### 9.3 Preview 환경
+
+- [ ] CDK L3 Construct에 자동 만료 태그가 포함되는가
+- [ ] PR 닫힘 시 자동 정리 워크플로우가 동작하는가
+- [ ] 고아 환경 탐지 스케줄이 설정되었는가
+- [ ] 비용 리포트가 PR 코멘트로 자동 게시되는가
+- [ ] OAC가 올바르게 구성되어 S3 직접 접근이 차단되는가
+
+### 9.4 압축 전략
+
+- [ ] 빌드 파이프라인에 Brotli 사전 압축이 포함되는가
+- [ ] Content-Encoding 헤더가 올바르게 설정되는가
+- [ ] 압축되지 않아야 할 파일(이미지, 동영상)이 제외되는가
+- [ ] 브라우저별 Accept-Encoding 폴백이 동작하는가
+
+### 9.5 로그 및 모니터링
+
+- [ ] 실시간 로그 → Kinesis → Lambda 파이프라인이 동작하는가
+- [ ] 에러율/지연 시간 임계값 알림이 설정되었는가
+- [ ] CloudWatch 대시보드에 핵심 메트릭이 포함되는가
+- [ ] 캐시 히트율이 90% 이상을 유지하는가
 
 ---
 
 ## 10. 참고 자료
 
-- [AWS CDK CloudFront Module](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront-readme.html)
-- [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html)
-- [CloudFront Cache Policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-the-cache-key.html)
-- [Origin Shield](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html)
-- [S3 Origin Access Control](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
+| 주제 | 링크 |
+|------|------|
+| CloudFront Continuous Deployment | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/continuous-deployment.html |
+| CloudFront KeyValueStore | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html |
+| CloudFront Functions JS 2.0 런타임 | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-javascript-runtime-features.html |
+| S3 Express One Zone | https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-express-one-zone.html |
+| Zstd Content-Encoding | https://www.rfc-editor.org/rfc/rfc8878 |
+| AWS CDK Constructs Library | https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html |
+| CloudFront 실시간 로그 | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/real-time-logs.html |
+
+---
+
+*본 문서는 범용 CloudFront 캐시 운영 가이드이며, 조직의 규모와 요구사항에 맞게 조정하여 사용할 수 있다.*
