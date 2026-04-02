@@ -1,975 +1,1027 @@
-# React 19 실전 가이드 — AI + 멀티 베타 환경 시대의 프론트엔드 (2026)
+# React 19.1 실전 마이그레이션 & 아키텍처 가이드 (2026)
 
 ## 목차
 
-1. [AI + React 19 개발 워크플로](#1-ai--react-19-개발-워크플로)
-2. [멀티 베타 환경 React 패턴](#2-멀티-베타-환경-react-패턴)
-3. [React Compiler](#3-react-compiler)
-4. [Server Components 심화](#4-server-components-심화)
-5. [Actions & Forms](#5-actions--forms)
-6. [use() Hook 심화](#6-use-hook-심화)
-7. [Next.js 15 통합](#7-nextjs-15-통합)
-8. [마이그레이션 전략 (React 18 → 19)](#8-마이그레이션-전략-react-18--19)
+1. [AI 기반 실전 마이그레이션 시나리오](#1-ai-기반-실전-마이그레이션-시나리오)
+2. [React 19.1 안정화 이후 변경점](#2-react-191-안정화-이후-변경점)
+3. [Server Functions 심화](#3-server-functions-심화)
+4. [멀티 베타: RSC 데이터 소스 팩토리](#4-멀티-베타-rsc-데이터-소스-팩토리)
+5. [멀티 베타: Preview Suspense 디버그 패널](#5-멀티-베타-preview-suspense-디버그-패널)
+6. [React Router v7 + React 19 통합](#6-react-router-v7--react-19-통합)
+7. [TanStack Start vs Next.js 15 비교](#7-tanstack-start-vs-nextjs-15-비교)
+8. [체크리스트](#8-체크리스트)
 
 ---
 
-## 1. AI + React 19 개발 워크플로
+## 1. AI 기반 실전 마이그레이션 시나리오
 
-AI 도구를 React 19 전용으로 튜닝하면, 단순 코드 생성을 넘어 아키텍처 설계 - 구현 - 리뷰 - 마이그레이션의 전 주기를 자동화할 수 있다.
+단순 코드 생성이 아닌, 실제 레거시 코드베이스를 React 19.1로 전환하는 시나리오별 프롬프트를 제공한다. 각 프롬프트는 입력(Before)과 기대 출력(After)을 함께 기술한다.
 
-### 1.1 Claude Code 프롬프트 5선
+### 1.1 클래스 컴포넌트 → React 19 함수형 전환
 
-#### 프롬프트 1: Server Component 생성
+**프롬프트:**
 
+```text
+아래 클래스 컴포넌트를 React 19.1 함수형으로 변환해줘.
+- lifecycle → useEffect/use() 훅으로 교체
+- this.state → useState/useReducer
+- componentDidCatch → ErrorBoundary 컴포넌트 분리
+- React Compiler가 최적화할 수 있도록 memo/useMemo/useCallback 제거
+- ref는 props로 직접 전달 (forwardRef 제거)
+- TypeScript strict 모드
+
+## 원본 코드
+```tsx
+// 여기에 클래스 컴포넌트 코드를 붙여넣기
 ```
-# Claude Code 프롬프트
-React 19 Server Component를 작성해줘.
-- 파일: src/components/dashboard/MetricsPanel.tsx
-- DB에서 대시보드 지표를 직접 조회 (prisma 사용)
-- searchParams로 기간/필터 수신
-- 하위 클라이언트 인터랙션 컴포넌트 분리 (ChartInteraction.tsx)
-- Suspense 경계와 loading fallback 포함
-- TypeScript strict, 에러 핸들링 포함
 ```
 
-생성 결과 예시:
+**변환 전/후 예시:**
 
 ```tsx
-// src/components/dashboard/MetricsPanel.tsx — Server Component
-import { Suspense } from "react";
-import { prisma } from "@/lib/db";
-import { ChartInteraction } from "./ChartInteraction";
-import { MetricsSkeleton } from "./MetricsSkeleton";
+// Before: 클래스 컴포넌트
+class UserDashboard extends React.Component<Props, State> {
+  state = { user: null, loading: true };
 
-interface DashboardSearchParams {
-  period?: "7d" | "30d" | "90d";
-  team?: string;
-}
-
-export async function MetricsPanel({
-  searchParams,
-}: {
-  searchParams: Promise<DashboardSearchParams>;
-}) {
-  const { period = "30d", team } = await searchParams;
-
-  const metrics = await prisma.metric.findMany({
-    where: {
-      createdAt: { gte: getStartDate(period) },
-      ...(team && { teamId: team }),
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return (
-    <section>
-      <h2>팀 대시보드</h2>
-      <Suspense fallback={<MetricsSkeleton />}>
-        <ChartInteraction initialData={metrics} period={period} />
-      </Suspense>
-    </section>
-  );
-}
-
-function getStartDate(period: string): Date {
-  const days = parseInt(period) || 30;
-  return new Date(Date.now() - days * 86400000);
-}
-```
-
-```tsx
-// src/components/dashboard/ChartInteraction.tsx
-"use client";
-
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import type { Metric } from "@prisma/client";
-
-interface Props {
-  initialData: Metric[];
-  period: string;
-}
-
-export function ChartInteraction({ initialData, period }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const handlePeriodChange = (newPeriod: string) => {
-    startTransition(() => {
-      router.push(`?period=${newPeriod}`);
-    });
-  };
-
-  return (
-    <div data-pending={isPending || undefined}>
-      <nav>
-        {["7d", "30d", "90d"].map((p) => (
-          <button
-            key={p}
-            onClick={() => handlePeriodChange(p)}
-            aria-pressed={p === period}
-          >
-            {p}
-          </button>
-        ))}
-      </nav>
-      <Chart data={initialData} />
-    </div>
-  );
-}
-```
-
-#### 프롬프트 2: Actions + Zod 폼 생성
-
-```
-# Claude Code 프롬프트
-React 19 Server Action 폼을 작성해줘.
-- useActionState + Zod 스키마 유효성 검증
-- Progressive Enhancement (JS 없이도 동작)
-- useOptimistic으로 즉각적 UI 피드백
-- 에러 상태를 필드별로 표시
-- 파일: src/app/settings/profile-form.tsx
-```
-
-생성 결과 예시:
-
-```tsx
-// src/app/settings/actions.ts
-"use server";
-
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
-
-const ProfileSchema = z.object({
-  displayName: z.string().min(2, "이름은 2자 이상이어야 합니다"),
-  email: z.string().email("올바른 이메일을 입력하세요"),
-  bio: z.string().max(500, "소개는 500자 이내로 작성하세요").optional(),
-});
-
-export type ProfileState = {
-  success: boolean;
-  errors?: Record<string, string[]>;
-  message?: string;
-};
-
-export async function updateProfile(
-  prevState: ProfileState,
-  formData: FormData,
-): Promise<ProfileState> {
-  const parsed = ProfileSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors,
-    };
+  async componentDidMount() {
+    const user = await fetchUser(this.props.userId);
+    this.setState({ user, loading: false });
   }
 
-  await prisma.user.update({
-    where: { id: getCurrentUserId() },
-    data: parsed.data,
-  });
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.userId !== this.props.userId) {
+      this.setState({ loading: true });
+      fetchUser(this.props.userId).then((user) =>
+        this.setState({ user, loading: false })
+      );
+    }
+  }
 
-  revalidatePath("/settings");
-  return { success: true, message: "프로필이 업데이트되었습니다" };
+  render() {
+    if (this.state.loading) return <Spinner />;
+    return <Profile user={this.state.user!} />;
+  }
 }
 ```
 
 ```tsx
-// src/app/settings/profile-form.tsx
-"use client";
+// After: React 19.1 — use() + Suspense
+import { use, Suspense } from "react";
 
-import { useActionState, useOptimistic } from "react";
-import { updateProfile, type ProfileState } from "./actions";
-
-interface Props {
-  user: { displayName: string; email: string; bio?: string };
-}
-
-export function ProfileForm({ user }: Props) {
-  const [state, formAction, isPending] = useActionState(updateProfile, {
-    success: false,
-  });
-
-  const [optimisticUser, setOptimisticUser] = useOptimistic(user);
-
+function UserDashboard({ userId }: { userId: string }) {
   return (
-    <form
-      action={(formData) => {
-        setOptimisticUser({
-          displayName: formData.get("displayName") as string,
-          email: formData.get("email") as string,
-          bio: formData.get("bio") as string,
-        });
-        formAction(formData);
-      }}
-    >
-      <fieldset disabled={isPending}>
-        <div>
-          <label htmlFor="displayName">이름</label>
-          <input
-            id="displayName"
-            name="displayName"
-            defaultValue={optimisticUser.displayName}
-            required
-          />
-          {state.errors?.displayName?.map((e) => (
-            <p key={e} role="alert">{e}</p>
-          ))}
-        </div>
-
-        <div>
-          <label htmlFor="email">이메일</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            defaultValue={optimisticUser.email}
-            required
-          />
-          {state.errors?.email?.map((e) => (
-            <p key={e} role="alert">{e}</p>
-          ))}
-        </div>
-
-        <div>
-          <label htmlFor="bio">소개</label>
-          <textarea
-            id="bio"
-            name="bio"
-            defaultValue={optimisticUser.bio ?? ""}
-          />
-        </div>
-
-        <button type="submit">
-          {isPending ? "저장 중..." : "저장"}
-        </button>
-      </fieldset>
-
-      {state.success && <p role="status">{state.message}</p>}
-    </form>
+    <Suspense fallback={<Spinner />}>
+      <UserDashboardContent userId={userId} />
+    </Suspense>
   );
 }
+
+function UserDashboardContent({ userId }: { userId: string }) {
+  // use()로 Promise를 직접 소비 — Suspense가 로딩 처리
+  const user = use(fetchUser(userId));
+  return <Profile user={user} />;
+}
 ```
 
-#### 프롬프트 3: use() Hook 패턴 생성
+### 1.2 useEffect 데이터 페칭 → Server Function 전환
 
+**프롬프트:**
+
+```text
+아래 useEffect 기반 데이터 페칭 코드를 React 19.1 Server Function으로 변환해줘.
+- 클라이언트 fetch 호출 → 서버에서 직접 DB/API 접근
+- loading/error 상태 → Suspense + ErrorBoundary로 교체
+- "use server" 지시어 사용
+- 반환 타입을 명시적으로 선언
+- 보안상 민감한 로직은 서버에만 존재하도록 분리
+
+## 원본 코드
+```tsx
+// 여기에 useEffect 데이터 페칭 코드를 붙여넣기
 ```
-# Claude Code 프롬프트
-React 19 use() Hook으로 데이터 페칭 패턴을 작성해줘.
-- 부모 Server Component에서 Promise를 생성하고 자식에 전달
-- use()로 Promise를 소비하는 Client Component
-- 워터폴 방지를 위한 병렬 프리페칭
-- Context를 use()로 조건부 소비하는 패턴 포함
-- Suspense/ErrorBoundary 경계 설계 포함
 ```
 
-생성 결과 예시:
+**변환 예시:**
 
 ```tsx
-// src/app/project/[id]/page.tsx — Server Component (Promise 생성)
+// Before: useEffect 기반
+function OrderList() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then((res) => res.json())
+      .then(setOrders)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Skeleton />;
+  if (error) return <ErrorMessage error={error} />;
+  return <OrderTable orders={orders} />;
+}
+```
+
+```tsx
+// After: Server Function + Suspense
+// src/actions/orders.ts
+"use server";
+
+import { db } from "@/lib/db";
+import type { Order } from "@/types/order";
+
+export async function getOrders(): Promise<Order[]> {
+  // 서버에서 직접 DB 접근 — API 라우트 불필요
+  return db.order.findMany({
+    where: { status: { not: "DELETED" } },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+}
+```
+
+```tsx
+// src/components/OrderList.tsx — Server Component
 import { Suspense } from "react";
-import { fetchProject, fetchMembers, fetchActivity } from "@/lib/api";
-import { ProjectDashboard } from "./ProjectDashboard";
+import { getOrders } from "@/actions/orders";
+import { OrderTable } from "./OrderTable";
+import { OrderSkeleton } from "./OrderSkeleton";
 
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-
-  // 병렬 프리페칭 - 워터폴 방지
-  const projectPromise = fetchProject(id);
-  const membersPromise = fetchMembers(id);
-  const activityPromise = fetchActivity(id);
-
+export default async function OrderList() {
+  const orders = await getOrders();
   return (
-    <Suspense fallback={<ProjectSkeleton />}>
-      <ProjectDashboard
-        projectPromise={projectPromise}
-        membersPromise={membersPromise}
-        activityPromise={activityPromise}
-      />
+    <Suspense fallback={<OrderSkeleton />}>
+      <OrderTable orders={orders} />
     </Suspense>
   );
 }
 ```
 
+### 1.3 폼 핸들링 → useActionState + Server Function
+
+**프롬프트:**
+
+```text
+아래 useState + onSubmit 기반 폼을 React 19.1 useActionState + Server Function으로 변환해줘.
+- useState로 관리하던 폼 상태 → useActionState로 교체
+- e.preventDefault() 제거, <form action={...}> 패턴 사용
+- useFormStatus()로 pending 상태 처리
+- 서버 유효성 검증 포함
+- 낙관적 업데이트가 필요하면 useOptimistic 사용 여부 판단
+
+## 원본 코드
 ```tsx
-// src/app/project/[id]/ProjectDashboard.tsx
-"use client";
+// 여기에 기존 폼 코드를 붙여넣기
+```
+```
 
-import { use } from "react";
-import type { Project, Member, Activity } from "@/types";
+**변환 예시:**
 
-interface Props {
-  projectPromise: Promise<Project>;
-  membersPromise: Promise<Member[]>;
-  activityPromise: Promise<Activity[]>;
-}
+```tsx
+// Before: useState + fetch
+function ContactForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-export function ProjectDashboard({
-  projectPromise,
-  membersPromise,
-  activityPromise,
-}: Props) {
-  const project = use(projectPromise);
-  const members = use(membersPromise);
-  const activity = use(activityPromise);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await fetch("/api/contact", {
+        method: "POST",
+        body: JSON.stringify({ name, email }),
+      });
+    } catch {
+      setError("전송 실패");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
+    <form onSubmit={handleSubmit}>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button disabled={submitting}>전송</button>
+      {error && <p>{error}</p>}
+    </form>
+  );
+}
+```
+
+```tsx
+// After: Server Function + useActionState
+"use server";
+
+import { z } from "zod";
+
+const ContactSchema = z.object({
+  name: z.string().min(1, "이름을 입력해주세요"),
+  email: z.string().email("올바른 이메일 형식이 아닙니다"),
+});
+
+export type ContactState = {
+  success: boolean;
+  errors?: Record<string, string[]>;
+};
+
+export async function submitContact(
+  prev: ContactState,
+  formData: FormData
+): Promise<ContactState> {
+  const parsed = ContactSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, errors: parsed.error.flatten().fieldErrors };
+  }
+
+  await db.contact.create({ data: parsed.data });
+  return { success: true };
+}
+```
+
+```tsx
+// ContactForm.tsx — Client Component
+"use client";
+
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import { submitContact, type ContactState } from "@/actions/contact";
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending}>
+      {pending ? "전송 중..." : "전송"}
+    </button>
+  );
+}
+
+export function ContactForm() {
+  const [state, action] = useActionState<ContactState, FormData>(
+    submitContact,
+    { success: false }
+  );
+
+  return (
+    <form action={action}>
+      <input name="name" required />
+      {state.errors?.name && <p>{state.errors.name[0]}</p>}
+      <input name="email" type="email" required />
+      {state.errors?.email && <p>{state.errors.email[0]}</p>}
+      <SubmitButton />
+      {state.success && <p>전송 완료</p>}
+    </form>
+  );
+}
+```
+
+### 1.4 forwardRef 제거 마이그레이션
+
+**프롬프트:**
+
+```text
+아래 forwardRef 컴포넌트를 React 19.1 방식으로 변환해줘.
+- forwardRef 제거, ref를 일반 props로 전달
+- displayName 제거 (더 이상 불필요)
+- 제네릭 타입이 있다면 보존
+
+## 원본 코드
+```tsx
+// 여기에 forwardRef 코드를 붙여넣기
+```
+```
+
+**변환 예시:**
+
+```tsx
+// Before
+const TextInput = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, ...props }, ref) => (
     <div>
-      <h1>{project.name}</h1>
-      <MemberList members={members} />
-      <ActivityFeed items={activity} />
+      <label>{label}</label>
+      <input ref={ref} {...props} />
+      {error && <span>{error}</span>}
+    </div>
+  )
+);
+TextInput.displayName = "TextInput";
+```
+
+```tsx
+// After: React 19.1 — ref는 일반 props
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+  ref?: React.Ref<HTMLInputElement>;
+}
+
+function TextInput({ label, error, ref, ...props }: InputProps) {
+  return (
+    <div>
+      <label>{label}</label>
+      <input ref={ref} {...props} />
+      {error && <span>{error}</span>}
     </div>
   );
 }
 ```
 
-#### 프롬프트 4: 마이그레이션 분석
+### 1.5 Context.Provider → Context 직접 사용
 
-```
-# Claude Code 프롬프트
-현재 프로젝트의 React 18 → 19 마이그레이션 영향도를 분석해줘.
-- forwardRef 사용처 모두 찾아서 제거 가능 여부 판단
-- useContext → use() 전환 대상 식별
-- ReactDOM.render 등 deprecated API 검출
-- 타사 라이브러리 호환성 체크 (package.json 기반)
-- 예상 작업량을 S/M/L로 분류한 리포트 작성
-```
+**프롬프트:**
 
-#### 프롬프트 5: 성능 최적화 분석
+```text
+아래 Context.Provider 패턴을 React 19.1의 <Context> 직접 렌더링으로 변환해줘.
+- MyContext.Provider → <MyContext value={...}> 형태로 교체
+- Provider 래퍼 컴포넌트가 있으면 함께 수정
 
+## 원본 코드
+```tsx
+// 여기에 Context.Provider 코드를 붙여넣기
 ```
-# Claude Code 프롬프트
-이 프로젝트의 React 19 성능 최적화 포인트를 찾아줘.
-- React Compiler가 최적화하지 못하는 패턴 탐지
-- 불필요한 수동 useMemo/useCallback 식별
-- Server Component로 전환 가능한 Client Component 찾기
-- Suspense 경계 배치 최적화 제안
-- use()로 개선 가능한 데이터 페칭 패턴 식별
-- 각 항목에 수정 코드 포함
 ```
 
-### 1.2 Copilot / Cursor React 19 워크플로
+**변환 예시:**
 
-#### .cursorrules 예시
+```tsx
+// Before
+const ThemeContext = createContext<Theme>("light");
 
-프로젝트 루트에 `.cursorrules` 파일을 두면 Cursor가 React 19 컨벤션을 자동으로 준수한다.
-
-```
-# .cursorrules — React 19 + Next.js 15 프로젝트
-
-## 아키텍처 원칙
-- 기본적으로 Server Component로 작성. 'use client'는 인터랙션이 필요한 최소 범위에만 사용
-- forwardRef 사용 금지 — React 19에서 ref는 일반 prop
-- useContext 대신 use(Context) 사용
-- 데이터 페칭은 Server Component에서 직접 수행, Client에서는 use()로 Promise 소비
-
-## Server Actions
-- 'use server' 지시어를 파일 최상단에 배치
-- 모든 Action은 Zod 스키마로 입력 검증
-- useActionState로 폼 상태 관리 (useFormState는 deprecated)
-
-## 성능
-- React Compiler가 자동 메모이제이션하므로 useMemo/useCallback/memo 사용 금지
-- 최적화 제외가 필요한 경우에만 'use no memo' 지시어 사용
-
-## 코드 스타일
-- TypeScript strict 모드
-- 컴포넌트 함수는 export function 선언 (export default 금지)
-- Props 인터페이스는 컴포넌트 파일 내에 정의
-
-## 파일 구조
-- page.tsx: Server Component (데이터 페칭, 레이아웃)
-- components/: UI 컴포넌트 (서버/클라이언트 분리)
-- actions/: Server Actions (Zod 스키마와 함께)
+function App() {
+  return (
+    <ThemeContext.Provider value="dark">
+      <Main />
+    </ThemeContext.Provider>
+  );
+}
 ```
 
-#### Copilot 커스텀 인스트럭션 (.github/copilot-instructions.md)
+```tsx
+// After: React 19.1 — Provider 불필요
+const ThemeContext = createContext<Theme>("light");
 
-```markdown
-## React 19 규칙
-- Server Component 우선. 'use client'는 최소 범위
-- ref는 일반 prop으로 전달 (forwardRef 금지)
-- useActionState + Zod로 폼 구현
-- 수동 메모이제이션 금지 (React Compiler 사용 중)
-- use()로 Context 및 Promise 소비
-```
-
-### 1.3 AI 기반 React 18 → 19 자동 마이그레이션 파이프라인
-
-CI에서 AI를 활용한 자동 마이그레이션 검증과 코드 변환을 수행한다.
-
-```yaml
-# .github/workflows/react19-migration.yml
-name: React 19 Migration Assistant
-
-on:
-  pull_request:
-    paths: ["src/**/*.tsx", "src/**/*.ts"]
-
-jobs:
-  migration-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run React 19 Codemods (Dry Run)
-        run: |
-          npx @react-codemod/cli --dry-run --print \
-            --transform react-19/replace-reactdom-render \
-            --transform react-19/remove-forward-ref \
-            --transform react-19/replace-use-context \
-            src/
-
-      - name: AI Migration Analysis
-        uses: anthropics/claude-code-action@v1
-        with:
-          prompt: |
-            변경된 파일들을 React 19 관점에서 분석해줘:
-            1. forwardRef → ref prop 전환이 필요한 곳
-            2. useContext → use() 전환 대상
-            3. ReactDOM.render 등 deprecated API
-            4. 서드파티 라이브러리 React 19 호환성
-            각 항목에 구체적 수정 코드를 PR 코멘트로 남겨줘.
-```
-
-### 1.4 AI 코드 리뷰에서 React 19 안티패턴 자동 탐지
-
-```yaml
-# .github/workflows/react19-review.yml
-name: React 19 Anti-pattern Review
-
-on:
-  pull_request:
-    paths: ["src/**/*.tsx"]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: AI Anti-pattern Detection
-        uses: anthropics/claude-code-action@v1
-        with:
-          prompt: |
-            PR의 변경된 TSX 파일에서 React 19 안티패턴을 탐지해줘:
-
-            [심각] 즉시 수정 필요:
-            - 'use client' 컴포넌트에서 직접 DB/API 호출
-            - forwardRef 사용 (React 19에서 불필요)
-            - ReactDOM.render 사용
-
-            [경고] 개선 권장:
-            - 수동 useMemo/useCallback (React Compiler가 처리)
-            - useContext 대신 use() 미사용
-            - Server Component로 전환 가능한 Client Component
-            - Suspense 경계 없는 비동기 데이터 소비
-
-            [정보] 최적화 기회:
-            - use()로 개선 가능한 데이터 페칭
-            - PPR 적용 가능한 페이지
-
-            파일별로 라인 번호와 수정 코드를 포함해서 리뷰해줘.
+function App() {
+  return (
+    <ThemeContext value="dark">
+      <Main />
+    </ThemeContext>
+  );
+}
 ```
 
 ---
 
-## 2. 멀티 베타 환경 React 패턴
+## 2. React 19.1 안정화 이후 변경점
 
-PR별 Preview, 스테이징, 카나리 등 여러 환경이 동시에 운영되는 구조에서 React 19의 기능을 활용하는 패턴이다.
+React 19.0(2024-12) 이후 19.1(2025-03 안정화)에서 확정된 변경사항을 정리한다.
 
-### 2.1 타입 안전한 Feature Flag Provider
+### 2.1 React Compiler 정식 출시
 
-```tsx
-// src/lib/feature-flags/types.ts
-export interface FeatureFlags {
-  newDashboard: boolean;
-  betaEditor: boolean;
-  experimentalSearch: boolean;
-  darkModeV2: boolean;
-}
-
-export const DEFAULT_FLAGS: FeatureFlags = {
-  newDashboard: false,
-  betaEditor: false,
-  experimentalSearch: false,
-  darkModeV2: false,
-};
-```
+React Compiler(구 React Forget)가 19.1에서 정식 포함되었다. `useMemo`, `useCallback`, `React.memo`를 수동으로 작성할 필요가 사라진다.
 
 ```tsx
-// src/lib/feature-flags/provider.tsx
-"use client";
-
-import { createContext, use, type ReactNode } from "react";
-import type { FeatureFlags } from "./types";
-import { DEFAULT_FLAGS } from "./types";
-
-const FeatureFlagContext = createContext<FeatureFlags>(DEFAULT_FLAGS);
-
-interface Props {
-  flags: FeatureFlags;
-  children: ReactNode;
-}
-
-export function FeatureFlagProvider({ flags, children }: Props) {
-  return (
-    <FeatureFlagContext value={flags}>
-      {children}
-    </FeatureFlagContext>
-  );
-}
-
-// use()로 조건부 컨텍스트 소비 (React 19)
-export function useFeatureFlag<K extends keyof FeatureFlags>(
-  flag: K,
-): FeatureFlags[K] {
-  const flags = use(FeatureFlagContext);
-  return flags[flag];
-}
-```
-
-```tsx
-// src/lib/feature-flags/components.tsx
-"use client";
-
-import { type ReactNode } from "react";
-import { useFeatureFlag } from "./provider";
-import type { FeatureFlags } from "./types";
-
-interface FeatureGateProps {
-  flag: keyof FeatureFlags;
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-export function FeatureGate({ flag, children, fallback = null }: FeatureGateProps) {
-  const enabled = useFeatureFlag(flag);
-  return enabled ? <>{children}</> : <>{fallback}</>;
-}
-```
-
-```tsx
-// src/app/layout.tsx — 환경별 플래그 주입
-import { FeatureFlagProvider } from "@/lib/feature-flags/provider";
-import { resolveFlags } from "@/lib/feature-flags/resolver";
-
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const flags = await resolveFlags(process.env.DEPLOY_ENV);
+// react-compiler가 자동 메모이제이션 — 수동 memo 불필요
+function ExpensiveList({ items, filter }: Props) {
+  // Compiler가 items/filter 의존성을 자동 추적하여
+  // 변경이 없으면 재계산하지 않음
+  const filtered = items.filter((item) => item.category === filter);
+  const sorted = filtered.sort((a, b) => b.score - a.score);
 
   return (
-    <html lang="ko">
-      <body>
-        <FeatureFlagProvider flags={flags}>
-          {children}
-        </FeatureFlagProvider>
-      </body>
-    </html>
+    <ul>
+      {sorted.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
   );
 }
 ```
 
-```tsx
-// src/lib/feature-flags/resolver.ts
-import type { FeatureFlags } from "./types";
-import { DEFAULT_FLAGS } from "./types";
+**Compiler 설정 (Vite 6):**
 
-type DeployEnv = "production" | "staging" | "preview" | "canary";
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-const ENV_FLAGS: Record<DeployEnv, Partial<FeatureFlags>> = {
-  production: {},
-  staging: { newDashboard: true },
-  canary: { newDashboard: true, betaEditor: true },
-  preview: { newDashboard: true, betaEditor: true, experimentalSearch: true },
-};
-
-export async function resolveFlags(
-  env?: string,
-): Promise<FeatureFlags> {
-  const deployEnv = (env as DeployEnv) || "production";
-  const envOverrides = ENV_FLAGS[deployEnv] ?? {};
-
-  return { ...DEFAULT_FLAGS, ...envOverrides };
-}
-```
-
-### 2.2 환경별 Server Component 데이터 소스 전환
-
-Server Component에서 환경에 따라 데이터 소스를 동적으로 전환한다.
-
-```tsx
-// src/lib/data-source/factory.ts
-interface DataSource {
-  getProducts(query: string): Promise<Product[]>;
-  getProduct(id: string): Promise<Product | null>;
-}
-
-class ProductionDataSource implements DataSource {
-  async getProducts(query: string) {
-    return prisma.product.findMany({ where: { name: { contains: query } } });
-  }
-  async getProduct(id: string) {
-    return prisma.product.findUnique({ where: { id } });
-  }
-}
-
-class PreviewDataSource implements DataSource {
-  private branchId: string;
-
-  constructor(branchId: string) {
-    this.branchId = branchId;
-  }
-
-  async getProducts(query: string) {
-    // Preview 환경: 브랜치별 격리된 DB 스키마 사용
-    return prisma.product.findMany({
-      where: {
-        name: { contains: query },
-        branchId: this.branchId,
+export default defineConfig({
+  plugins: [
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
       },
-    });
-  }
+    }),
+  ],
+});
+```
 
-  async getProduct(id: string) {
-    return prisma.product.findUnique({
-      where: { id, branchId: this.branchId },
-    });
-  }
+**Compiler가 최적화하지 못하는 패턴 (주의):**
+
+```tsx
+// 경고: 외부 뮤터블 변수를 읽는 패턴 — Compiler가 건너뜀
+let externalCounter = 0;
+
+function Counter() {
+  // Compiler는 이 컴포넌트를 최적화하지 않음
+  externalCounter++;
+  return <span>{externalCounter}</span>;
 }
 
-export function createDataSource(): DataSource {
-  const env = process.env.DEPLOY_ENV ?? "production";
-  const branchId = process.env.BRANCH_ID ?? "main";
-
-  switch (env) {
-    case "preview":
-      return new PreviewDataSource(branchId);
-    default:
-      return new ProductionDataSource();
-  }
+// 해결: 상태를 React 안으로 이동
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <span>{count}</span>;
 }
 ```
 
+### 2.2 Activity API (Preview)
+
+React 19.1에서 `<Activity>` API가 Preview로 도입되었다. 이전의 `<Offscreen>` 컨셉이 공식화된 것으로, 컴포넌트를 언마운트하지 않고 숨길 수 있다.
+
 ```tsx
-// src/app/products/page.tsx — Server Component에서 활용
-import { createDataSource } from "@/lib/data-source/factory";
+import { Activity } from "react";
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q = "" } = await searchParams;
-  const dataSource = createDataSource();
-  const products = await dataSource.getProducts(q);
-
+function TabPanel({ activeTab }: { activeTab: string }) {
   return (
-    <section>
-      <h1>상품 목록</h1>
-      <ul>
-        {products.map((p) => (
-          <li key={p.id}>{p.name}</li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-```
-
-### 2.3 PR별 Preview 환경에서의 A/B 테스트 컴포넌트
-
-```tsx
-// src/lib/ab-test/ABTestProvider.tsx
-"use client";
-
-import { createContext, use, type ReactNode } from "react";
-
-interface ABTestConfig {
-  experiments: Record<string, string>; // experimentId → variantId
-}
-
-const ABTestContext = createContext<ABTestConfig>({ experiments: {} });
-
-export function ABTestProvider({
-  config,
-  children,
-}: {
-  config: ABTestConfig;
-  children: ReactNode;
-}) {
-  return (
-    <ABTestContext value={config}>
-      {children}
-    </ABTestContext>
-  );
-}
-
-export function useExperiment(experimentId: string): string {
-  const { experiments } = use(ABTestContext);
-  return experiments[experimentId] ?? "control";
-}
-```
-
-```tsx
-// src/components/ABVariant.tsx
-"use client";
-
-import { type ReactNode } from "react";
-import { useExperiment } from "@/lib/ab-test/ABTestProvider";
-
-interface Props {
-  experimentId: string;
-  variants: Record<string, ReactNode>;
-  fallback?: ReactNode;
-}
-
-export function ABVariant({ experimentId, variants, fallback }: Props) {
-  const variant = useExperiment(experimentId);
-  return <>{variants[variant] ?? fallback ?? variants["control"]}</>;
-}
-```
-
-```tsx
-// Preview 환경에서의 사용 — 강제 variant 지정 가능
-// src/app/layout.tsx 내부
-import { ABTestProvider } from "@/lib/ab-test/ABTestProvider";
-
-// Preview 환경에서는 URL 파라미터로 variant 강제 지정 가능
-async function getABConfig(searchParams: Record<string, string>) {
-  const isPreview = process.env.DEPLOY_ENV === "preview";
-
-  if (isPreview && searchParams.ab_override) {
-    // ?ab_override=checkout_flow:variant_b,header:variant_a
-    const overrides = Object.fromEntries(
-      searchParams.ab_override.split(",").map((s) => s.split(":")),
-    );
-    return { experiments: overrides };
-  }
-
-  // 프로덕션: 원격 설정에서 할당된 variant 사용
-  return await fetchABConfig();
-}
-```
-
-### 2.4 동적 환경 설정 Context
-
-`window.__CONFIG__`를 React Context로 변환하여 타입 안전하게 사용한다.
-
-```tsx
-// src/lib/env-config/types.ts
-export interface EnvConfig {
-  apiBaseUrl: string;
-  cdnUrl: string;
-  sentryDsn: string;
-  environment: "production" | "staging" | "preview" | "canary";
-  featureApiEndpoint: string;
-  debugEnabled: boolean;
-}
-```
-
-```tsx
-// src/lib/env-config/provider.tsx
-"use client";
-
-import { createContext, use, type ReactNode } from "react";
-import type { EnvConfig } from "./types";
-
-const EnvConfigContext = createContext<EnvConfig | null>(null);
-
-export function EnvConfigProvider({
-  config,
-  children,
-}: {
-  config: EnvConfig;
-  children: ReactNode;
-}) {
-  return (
-    <EnvConfigContext value={config}>
-      {children}
-    </EnvConfigContext>
-  );
-}
-
-export function useEnvConfig(): EnvConfig {
-  const config = use(EnvConfigContext);
-  if (!config) {
-    throw new Error("useEnvConfig must be used within EnvConfigProvider");
-  }
-  return config;
-}
-```
-
-```tsx
-// src/lib/env-config/resolve.ts — Server에서 설정 조립
-import type { EnvConfig } from "./types";
-
-export function resolveEnvConfig(): EnvConfig {
-  const env = (process.env.DEPLOY_ENV ?? "production") as EnvConfig["environment"];
-
-  const configs: Record<EnvConfig["environment"], EnvConfig> = {
-    production: {
-      apiBaseUrl: "https://api.example.com",
-      cdnUrl: "https://cdn.example.com",
-      sentryDsn: process.env.SENTRY_DSN!,
-      environment: "production",
-      featureApiEndpoint: "https://features.example.com",
-      debugEnabled: false,
-    },
-    staging: {
-      apiBaseUrl: "https://api-staging.example.com",
-      cdnUrl: "https://cdn-staging.example.com",
-      sentryDsn: process.env.SENTRY_DSN!,
-      environment: "staging",
-      featureApiEndpoint: "https://features-staging.example.com",
-      debugEnabled: true,
-    },
-    preview: {
-      apiBaseUrl: `https://api-${process.env.BRANCH_ID}.example.com`,
-      cdnUrl: "https://cdn-staging.example.com",
-      sentryDsn: process.env.SENTRY_DSN!,
-      environment: "preview",
-      featureApiEndpoint: "https://features-staging.example.com",
-      debugEnabled: true,
-    },
-    canary: {
-      apiBaseUrl: "https://api-canary.example.com",
-      cdnUrl: "https://cdn.example.com",
-      sentryDsn: process.env.SENTRY_DSN!,
-      environment: "canary",
-      featureApiEndpoint: "https://features.example.com",
-      debugEnabled: false,
-    },
-  };
-
-  return configs[env];
-}
-```
-
-### 2.5 멀티 베타 환경별 에러 바운더리 격리
-
-환경에 따라 에러 보고 방식과 사용자 경험을 분리한다.
-
-```tsx
-// src/components/error/EnvErrorBoundary.tsx
-"use client";
-
-import { Component, type ReactNode } from "react";
-import { useEnvConfig } from "@/lib/env-config/provider";
-
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-interface State {
-  error: Error | null;
-}
-
-class ErrorBoundaryInner extends Component<
-  Props & { environment: string; debugEnabled: boolean },
-  State
-> {
-  state: State = { error: null };
-
-  static getDerivedStateFromError(error: Error): State {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    const { environment, debugEnabled } = this.props;
-
-    if (environment === "production" || environment === "canary") {
-      // 프로덕션/카나리: Sentry 리포트
-      reportToSentry(error, { environment, componentStack: info.componentStack });
-    }
-
-    if (debugEnabled) {
-      // 스테이징/프리뷰: 콘솔 출력
-      console.group(`[${environment}] React Error Boundary`);
-      console.error(error);
-      console.log("Component Stack:", info.componentStack);
-      console.groupEnd();
-    }
-  }
-
-  render() {
-    if (this.state.error) {
-      if (this.props.debugEnabled) {
-        return (
-          <div style={{ padding: 20, background: "#fee", border: "2px solid red" }}>
-            <h3>Error in {this.props.environment}</h3>
-            <pre>{this.state.error.message}</pre>
-            <pre>{this.state.error.stack}</pre>
-            <button onClick={() => this.setState({ error: null })}>
-              다시 시도
-            </button>
-          </div>
-        );
-      }
-      return this.props.fallback ?? <DefaultErrorUI />;
-    }
-    return this.props.children;
-  }
-}
-
-// use()로 Context를 소비한 뒤 클래스 컴포넌트에 전달
-export function EnvErrorBoundary({ children, fallback }: Props) {
-  const { environment, debugEnabled } = useEnvConfig();
-
-  return (
-    <ErrorBoundaryInner
-      environment={environment}
-      debugEnabled={debugEnabled}
-      fallback={fallback}
-    >
-      {children}
-    </ErrorBoundaryInner>
-  );
-}
-
-function DefaultErrorUI() {
-  return (
-    <div style={{ padding: 40, textAlign: "center" }}>
-      <h2>문제가 발생했습니다</h2>
-      <p>잠시 후 다시 시도해주세요.</p>
+    <div>
+      {/* mode="hidden"이면 DOM에서 숨기지만 상태를 유지 */}
+      <Activity mode={activeTab === "home" ? "visible" : "hidden"}>
+        <HomeTab />
+      </Activity>
+      <Activity mode={activeTab === "search" ? "visible" : "hidden"}>
+        <SearchTab />
+      </Activity>
+      <Activity mode={activeTab === "profile" ? "visible" : "hidden"}>
+        <ProfileTab />
+      </Activity>
     </div>
   );
 }
+```
 
-function reportToSentry(error: Error, context: Record<string, unknown>) {
-  // Sentry 리포트 구현
+**Activity의 핵심 특징:**
+
+| 특징 | 설명 |
+|------|------|
+| 상태 보존 | `mode="hidden"`이어도 useState 값 유지 |
+| Effect 제어 | hidden 전환 시 cleanup 실행, visible 복귀 시 setup 재실행 |
+| 우선순위 | hidden 컴포넌트의 렌더링은 낮은 우선순위로 처리 |
+| Suspense 연동 | hidden 상태에서도 사전 로딩(prerender) 가능 |
+
+### 2.3 기타 19.1 안정화 변경점
+
+| 항목 | 19.0 | 19.1 |
+|------|------|------|
+| `ref` cleanup | 도입 | 안정화 — cleanup 함수 반환 시 언마운트 때 실행 |
+| `use()` | 도입 | Promise/Context 패턴 확정, 에러 전파 방식 표준화 |
+| Document Metadata | `<title>`, `<meta>` 호이스팅 | `<link>` 호이스팅 추가, 중복 제거 로직 개선 |
+| Stylesheet 우선순위 | `precedence` prop | 충돌 해결 알고리즘 개선 |
+| Server Functions 명칭 | "Server Actions" | "Server Functions"로 공식 변경 (Actions는 mutation subset) |
+
+---
+
+## 3. Server Functions 심화
+
+React 19.1에서 "Server Actions"가 "Server Functions"로 공식 명칭이 변경되었다. mutation뿐 아니라 데이터 조회도 포함하는 넓은 개념이다.
+
+### 3.1 Server Functions vs Server Components 데이터 접근
+
+```tsx
+// Pattern 1: Server Component에서 직접 조회 (초기 로드)
+// src/components/ProductPage.tsx — Server Component
+import { db } from "@/lib/db";
+
+export default async function ProductPage({ id }: { id: string }) {
+  const product = await db.product.findUniqueOrThrow({ where: { id } });
+  return <ProductDetail product={product} />;
+}
+
+// Pattern 2: Server Function으로 후속 조회 (클라이언트 트리거)
+// src/actions/product.ts
+"use server";
+
+import { db } from "@/lib/db";
+
+export async function getRelatedProducts(
+  productId: string,
+  category: string
+): Promise<Product[]> {
+  return db.product.findMany({
+    where: { category, id: { not: productId } },
+    take: 8,
+  });
+}
+
+// Pattern 3: Server Function으로 mutation
+// src/actions/cart.ts
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
+
+export async function addToCart(
+  productId: string,
+  quantity: number
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) return { success: false, error: "로그인이 필요합니다" };
+
+  await db.cartItem.upsert({
+    where: {
+      userId_productId: { userId: session.user.id, productId },
+    },
+    create: { userId: session.user.id, productId, quantity },
+    update: { quantity: { increment: quantity } },
+  });
+
+  revalidatePath("/cart");
+  return { success: true };
 }
 ```
 
-### 2.6 Preview 환경 전용 디버그 패널 컴포넌트
-
-Preview/Staging 환경에서만 렌더링되는 디버그 정보 패널이다.
+### 3.2 Server Function 보안 패턴
 
 ```tsx
-// src/components/debug/DebugPanel.tsx
+// src/lib/server-fn-guard.ts
+"use server";
+
+import { auth } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { z, type ZodSchema } from "zod";
+
+type ServerFnResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export function createServerFn<TInput, TOutput>(config: {
+  schema: ZodSchema<TInput>;
+  requireAuth?: boolean;
+  rateLimit?: { window: number; max: number };
+  handler: (input: TInput, userId?: string) => Promise<TOutput>;
+}) {
+  return async (input: unknown): Promise<ServerFnResult<TOutput>> => {
+    // 1. 인증 확인
+    let userId: string | undefined;
+    if (config.requireAuth) {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return { success: false, error: "인증이 필요합니다" };
+      }
+      userId = session.user.id;
+    }
+
+    // 2. Rate limiting
+    if (config.rateLimit) {
+      const allowed = await rateLimit(
+        userId ?? "anonymous",
+        config.rateLimit.window,
+        config.rateLimit.max
+      );
+      if (!allowed) {
+        return { success: false, error: "요청이 너무 많습니다" };
+      }
+    }
+
+    // 3. 입력 검증
+    const parsed = config.schema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
+    // 4. 실행
+    try {
+      const data = await config.handler(parsed.data, userId);
+      return { success: true, data };
+    } catch (err) {
+      console.error("[ServerFn Error]", err);
+      return { success: false, error: "서버 오류가 발생했습니다" };
+    }
+  };
+}
+```
+
+```tsx
+// 사용 예
+"use server";
+
+import { createServerFn } from "@/lib/server-fn-guard";
+import { z } from "zod";
+
+export const updateProfile = createServerFn({
+  schema: z.object({
+    displayName: z.string().min(2).max(50),
+    bio: z.string().max(500).optional(),
+  }),
+  requireAuth: true,
+  rateLimit: { window: 60_000, max: 10 },
+  handler: async (input, userId) => {
+    return db.user.update({
+      where: { id: userId },
+      data: input,
+    });
+  },
+});
+```
+
+### 3.3 Server Function + useOptimistic 패턴
+
+```tsx
 "use client";
 
-import { useState } from "react";
-import { useEnvConfig } from "@/lib/env-config/provider";
-import { useFeatureFlag } from "@/lib/feature-flags/provider";
-import type { FeatureFlags } from "@/lib/feature-flags/types";
+import { useOptimistic, useTransition } from "react";
+import { toggleLike } from "@/actions/like";
 
-export function DebugPanel() {
-  const config = useEnvConfig();
-  const [isOpen, setIsOpen] = useState(false);
+interface LikeButtonProps {
+  postId: string;
+  liked: boolean;
+  likeCount: number;
+}
 
-  // 프로덕션에서는 렌더링하지 않음
-  if (!config.debugEnabled) return null;
+export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
+  const [isPending, startTransition] = useTransition();
+
+  const [optimistic, setOptimistic] = useOptimistic(
+    { liked, likeCount },
+    (current, action: "toggle") => ({
+      liked: !current.liked,
+      likeCount: current.liked
+        ? current.likeCount - 1
+        : current.likeCount + 1,
+    })
+  );
+
+  const handleClick = () => {
+    startTransition(async () => {
+      setOptimistic("toggle");
+      await toggleLike(postId);
+    });
+  };
+
+  return (
+    <button onClick={handleClick} disabled={isPending}>
+      {optimistic.liked ? "❤️" : "🤍"} {optimistic.likeCount}
+    </button>
+  );
+}
+```
+
+---
+
+## 4. 멀티 베타: RSC 데이터 소스 팩토리
+
+환경(production, staging, beta-a, beta-b, preview-PR-xxx)마다 서로 다른 데이터 소스를 RSC에 주입해야 할 때, 팩토리 패턴으로 일원화한다.
+
+### 4.1 데이터 소스 팩토리 구현
+
+```tsx
+// src/lib/data-source/factory.ts
+import type { DataSource } from "./types";
+
+export interface DataSourceConfig {
+  database: {
+    url: string;
+    pool: { min: number; max: number };
+  };
+  cache: {
+    provider: "redis" | "memory" | "none";
+    url?: string;
+    ttl: number;
+  };
+  featureFlags: {
+    provider: "launchdarkly" | "unleash" | "static";
+    sdkKey?: string;
+    overrides?: Record<string, boolean>;
+  };
+}
+
+const envConfigs: Record<string, () => DataSourceConfig> = {
+  production: () => ({
+    database: {
+      url: process.env.DATABASE_URL!,
+      pool: { min: 5, max: 20 },
+    },
+    cache: {
+      provider: "redis",
+      url: process.env.REDIS_URL!,
+      ttl: 300,
+    },
+    featureFlags: {
+      provider: "launchdarkly",
+      sdkKey: process.env.LD_SDK_KEY!,
+    },
+  }),
+
+  staging: () => ({
+    database: {
+      url: process.env.STAGING_DATABASE_URL!,
+      pool: { min: 2, max: 10 },
+    },
+    cache: {
+      provider: "redis",
+      url: process.env.STAGING_REDIS_URL!,
+      ttl: 60,
+    },
+    featureFlags: {
+      provider: "unleash",
+      sdkKey: process.env.UNLEASH_KEY!,
+    },
+  }),
+
+  preview: () => ({
+    database: {
+      url: process.env.PREVIEW_DATABASE_URL!,
+      pool: { min: 1, max: 3 },
+    },
+    cache: {
+      provider: "memory",
+      ttl: 30,
+    },
+    featureFlags: {
+      provider: "static",
+      overrides: JSON.parse(process.env.FF_OVERRIDES ?? "{}"),
+    },
+  }),
+};
+
+export function getDataSourceConfig(): DataSourceConfig {
+  const env = process.env.APP_ENV ?? "preview";
+  const factory = envConfigs[env] ?? envConfigs.preview;
+  return factory();
+}
+```
+
+### 4.2 RSC에서 팩토리 사용
+
+```tsx
+// src/lib/data-source/index.ts
+import { getDataSourceConfig, type DataSourceConfig } from "./factory";
+import { PrismaClient } from "@prisma/client";
+import { createCache, type CacheAdapter } from "./cache";
+import { createFlagClient, type FlagClient } from "./flags";
+
+export interface DataSource {
+  db: PrismaClient;
+  cache: CacheAdapter;
+  flags: FlagClient;
+}
+
+// 글로벌 싱글톤 (서버 프로세스 내)
+const globalForDs = globalThis as unknown as { __ds?: DataSource };
+
+export function getDataSource(): DataSource {
+  if (globalForDs.__ds) return globalForDs.__ds;
+
+  const config = getDataSourceConfig();
+
+  const ds: DataSource = {
+    db: new PrismaClient({
+      datasourceUrl: config.database.url,
+    }),
+    cache: createCache(config.cache),
+    flags: createFlagClient(config.featureFlags),
+  };
+
+  globalForDs.__ds = ds;
+  return ds;
+}
+```
+
+```tsx
+// src/components/ProductList.tsx — Server Component
+import { getDataSource } from "@/lib/data-source";
+
+export default async function ProductList({
+  category,
+}: {
+  category: string;
+}) {
+  const { db, cache, flags } = getDataSource();
+
+  // 환경별로 자동으로 다른 DB/캐시/피처플래그를 사용
+  const cacheKey = `products:${category}`;
+  let products = await cache.get<Product[]>(cacheKey);
+
+  if (!products) {
+    products = await db.product.findMany({
+      where: { category, active: true },
+      orderBy: { createdAt: "desc" },
+    });
+    await cache.set(cacheKey, products);
+  }
+
+  const showNewUI = await flags.isEnabled("new-product-card");
+
+  return (
+    <div>
+      {products.map((p) =>
+        showNewUI ? (
+          <NewProductCard key={p.id} product={p} />
+        ) : (
+          <ProductCard key={p.id} product={p} />
+        )
+      )}
+    </div>
+  );
+}
+```
+
+### 4.3 환경별 데이터 소스 자동 테스트
+
+```tsx
+// src/lib/data-source/__tests__/factory.test.ts
+import { describe, it, expect, beforeEach } from "vitest";
+import { getDataSourceConfig } from "../factory";
+
+describe("DataSource Factory", () => {
+  beforeEach(() => {
+    // 환경 변수 초기화
+    delete process.env.APP_ENV;
+  });
+
+  it("production 환경에서 Redis 캐시와 LaunchDarkly를 사용한다", () => {
+    process.env.APP_ENV = "production";
+    process.env.DATABASE_URL = "postgres://prod";
+    process.env.REDIS_URL = "redis://prod";
+    process.env.LD_SDK_KEY = "sdk-prod";
+
+    const config = getDataSourceConfig();
+    expect(config.cache.provider).toBe("redis");
+    expect(config.featureFlags.provider).toBe("launchdarkly");
+    expect(config.database.pool.max).toBe(20);
+  });
+
+  it("preview 환경에서 메모리 캐시와 정적 플래그를 사용한다", () => {
+    process.env.APP_ENV = "preview";
+    process.env.PREVIEW_DATABASE_URL = "postgres://preview";
+
+    const config = getDataSourceConfig();
+    expect(config.cache.provider).toBe("memory");
+    expect(config.featureFlags.provider).toBe("static");
+    expect(config.database.pool.max).toBe(3);
+  });
+
+  it("APP_ENV가 없으면 preview로 폴백한다", () => {
+    process.env.PREVIEW_DATABASE_URL = "postgres://preview";
+
+    const config = getDataSourceConfig();
+    expect(config.cache.provider).toBe("memory");
+  });
+});
+```
+
+---
+
+## 5. 멀티 베타: Preview Suspense 디버그 패널
+
+Preview/Beta 환경에서 Suspense 경계의 상태를 시각적으로 추적하는 디버그 패널을 제공한다. 프로덕션에서는 자동으로 비활성화된다.
+
+### 5.1 Suspense 래퍼 + 타이밍 수집
+
+```tsx
+// src/lib/debug/suspense-tracker.ts
+export interface SuspenseEvent {
+  id: string;
+  name: string;
+  status: "pending" | "resolved" | "error";
+  startedAt: number;
+  resolvedAt?: number;
+  duration?: number;
+  error?: string;
+}
+
+class SuspenseTracker {
+  private events = new Map<string, SuspenseEvent>();
+  private listeners = new Set<(events: SuspenseEvent[]) => void>();
+
+  track(id: string, name: string): void {
+    const event: SuspenseEvent = {
+      id,
+      name,
+      status: "pending",
+      startedAt: performance.now(),
+    };
+    this.events.set(id, event);
+    this.notify();
+  }
+
+  resolve(id: string): void {
+    const event = this.events.get(id);
+    if (!event) return;
+    event.status = "resolved";
+    event.resolvedAt = performance.now();
+    event.duration = event.resolvedAt - event.startedAt;
+    this.notify();
+  }
+
+  error(id: string, error: string): void {
+    const event = this.events.get(id);
+    if (!event) return;
+    event.status = "error";
+    event.error = error;
+    event.resolvedAt = performance.now();
+    event.duration = event.resolvedAt - event.startedAt;
+    this.notify();
+  }
+
+  subscribe(listener: (events: SuspenseEvent[]) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notify(): void {
+    const snapshot = Array.from(this.events.values());
+    this.listeners.forEach((fn) => fn(snapshot));
+  }
+}
+
+export const suspenseTracker = new SuspenseTracker();
+```
+
+### 5.2 TrackedSuspense 컴포넌트
+
+```tsx
+// src/components/debug/TrackedSuspense.tsx
+"use client";
+
+import { Suspense, useId, useEffect, type ReactNode } from "react";
+import { suspenseTracker } from "@/lib/debug/suspense-tracker";
+
+interface TrackedSuspenseProps {
+  name: string;
+  fallback: ReactNode;
+  children: ReactNode;
+}
+
+function TrackResolved({ id }: { id: string }) {
+  useEffect(() => {
+    suspenseTracker.resolve(id);
+  }, [id]);
+  return null;
+}
+
+export function TrackedSuspense({
+  name,
+  fallback,
+  children,
+}: TrackedSuspenseProps) {
+  const id = useId();
+
+  useEffect(() => {
+    suspenseTracker.track(id, name);
+  }, [id, name]);
+
+  // 프로덕션에서는 일반 Suspense로 동작
+  if (process.env.NODE_ENV === "production") {
+    return <Suspense fallback={fallback}>{children}</Suspense>;
+  }
+
+  return (
+    <Suspense fallback={fallback}>
+      <TrackResolved id={id} />
+      {children}
+    </Suspense>
+  );
+}
+```
+
+### 5.3 디버그 패널 UI
+
+```tsx
+// src/components/debug/SuspenseDebugPanel.tsx
+"use client";
+
+import { useState, useEffect, useSyncExternalStore } from "react";
+import {
+  suspenseTracker,
+  type SuspenseEvent,
+} from "@/lib/debug/suspense-tracker";
+
+function useTrackerEvents(): SuspenseEvent[] {
+  return useSyncExternalStore(
+    (cb) => suspenseTracker.subscribe(cb),
+    () => [] // getSnapshot — 초기값
+  );
+}
+
+export function SuspenseDebugPanel() {
+  const events = useTrackerEvents();
+  const [visible, setVisible] = useState(false);
+
+  // 프로덕션 환경에서는 렌더링하지 않음
+  if (process.env.NODE_ENV === "production") return null;
+
+  const pending = events.filter((e) => e.status === "pending");
+  const errors = events.filter((e) => e.status === "error");
+  const resolved = events.filter((e) => e.status === "resolved");
 
   return (
     <div
@@ -977,937 +1029,316 @@ export function DebugPanel() {
         position: "fixed",
         bottom: 16,
         right: 16,
-        zIndex: 9999,
+        zIndex: 99999,
+        fontFamily: "monospace",
+        fontSize: 12,
       }}
     >
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setVisible((v) => !v)}
         style={{
-          background: "#1a1a2e",
-          color: "#0f0",
-          border: "1px solid #0f0",
-          borderRadius: 8,
+          background: errors.length > 0 ? "#e74c3c" : "#2ecc71",
+          color: "white",
+          border: "none",
+          borderRadius: 20,
           padding: "8px 16px",
           cursor: "pointer",
-          fontFamily: "monospace",
         }}
       >
-        {isOpen ? "Close Debug" : `Debug [${config.environment}]`}
+        Suspense {pending.length}P / {errors.length}E / {resolved.length}R
       </button>
 
-      {isOpen && (
+      {visible && (
         <div
           style={{
-            position: "absolute",
-            bottom: 48,
-            right: 0,
-            width: 400,
-            maxHeight: "60vh",
-            overflow: "auto",
-            background: "#1a1a2e",
-            color: "#e0e0e0",
-            border: "1px solid #333",
-            borderRadius: 8,
+            background: "#1e1e1e",
+            color: "#d4d4d4",
             padding: 16,
-            fontFamily: "monospace",
-            fontSize: 12,
+            borderRadius: 8,
+            maxHeight: 400,
+            overflow: "auto",
+            marginTop: 8,
+            width: 360,
           }}
         >
-          <h4 style={{ color: "#0f0", margin: "0 0 12px" }}>
-            Environment: {config.environment}
+          <h4 style={{ margin: "0 0 8px", color: "#fff" }}>
+            Suspense 경계 상태
           </h4>
-
-          <Section title="Config">
-            <pre>{JSON.stringify(config, null, 2)}</pre>
-          </Section>
-
-          <Section title="Performance">
-            <PerformanceInfo />
-          </Section>
-
-          <Section title="React Info">
-            <p>React Version: {require("react").version}</p>
-          </Section>
+          {events.map((e) => (
+            <div
+              key={e.id}
+              style={{
+                padding: "4px 0",
+                borderBottom: "1px solid #333",
+                color:
+                  e.status === "error"
+                    ? "#e74c3c"
+                    : e.status === "pending"
+                    ? "#f39c12"
+                    : "#2ecc71",
+              }}
+            >
+              <strong>{e.name}</strong> — {e.status}
+              {e.duration != null && ` (${e.duration.toFixed(0)}ms)`}
+              {e.error && <div style={{ color: "#e74c3c" }}>{e.error}</div>}
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true);
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#88f",
-          cursor: "pointer",
-          fontFamily: "monospace",
-          padding: 0,
-        }}
-      >
-        {open ? "[-]" : "[+]"} {title}
-      </button>
-      {open && <div style={{ paddingLeft: 12, marginTop: 4 }}>{children}</div>}
-    </div>
-  );
-}
-
-function PerformanceInfo() {
-  if (typeof window === "undefined") return null;
-
-  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
-
-  return (
-    <ul style={{ listStyle: "none", padding: 0 }}>
-      <li>DOM Content Loaded: {Math.round(nav?.domContentLoadedEventEnd)}ms</li>
-      <li>Load Complete: {Math.round(nav?.loadEventEnd)}ms</li>
-      <li>TTFB: {Math.round(nav?.responseStart)}ms</li>
-    </ul>
-  );
-}
 ```
 
----
-
-## 3. React Compiler
-
-React Compiler는 빌드 타임에 컴포넌트를 분석하여 자동으로 메모이제이션을 적용한다. 수동 `useMemo`, `useCallback`, `React.memo`가 대부분 불필요해진다.
-
-### 3.1 설정
-
-```ts
-// next.config.ts
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  experimental: {
-    reactCompiler: true,
-  },
-};
-
-export default nextConfig;
-```
-
-```bash
-# 설치
-npm install -D babel-plugin-react-compiler
-```
-
-### 3.2 자동 메모이제이션 — Before / After
+### 5.4 레이아웃에 패널 통합
 
 ```tsx
-// Before: 수동 메모이제이션
-import { useMemo, useCallback, memo } from "react";
+// src/app/layout.tsx
+import { SuspenseDebugPanel } from "@/components/debug/SuspenseDebugPanel";
 
-const ExpensiveList = memo(function ExpensiveList({
-  items,
-  onSelect,
-}: {
-  items: Item[];
-  onSelect: (id: string) => void;
-}) {
-  const sorted = useMemo(
-    () => items.toSorted((a, b) => a.name.localeCompare(b.name)),
-    [items],
-  );
-
-  const handleClick = useCallback(
-    (id: string) => {
-      onSelect(id);
-    },
-    [onSelect],
-  );
-
-  return (
-    <ul>
-      {sorted.map((item) => (
-        <li key={item.id} onClick={() => handleClick(item.id)}>
-          {item.name}
-        </li>
-      ))}
-    </ul>
-  );
-});
-```
-
-```tsx
-// After: React Compiler가 자동 최적화
-function ExpensiveList({
-  items,
-  onSelect,
-}: {
-  items: Item[];
-  onSelect: (id: string) => void;
-}) {
-  const sorted = items.toSorted((a, b) => a.name.localeCompare(b.name));
-
-  return (
-    <ul>
-      {sorted.map((item) => (
-        <li key={item.id} onClick={() => onSelect(item.id)}>
-          {item.name}
-        </li>
-      ))}
-    </ul>
-  );
-}
-```
-
-### 3.3 'use no memo' 지시어
-
-특정 컴포넌트나 Hook을 Compiler 최적화에서 제외해야 하는 경우 사용한다.
-
-```tsx
-function RealTimeChart({ dataStream }: { dataStream: DataStream }) {
-  "use no memo"; // 매 렌더마다 새 참조가 필요한 경우
-
-  const latestData = dataStream.consume();
-
-  return <Canvas data={latestData} />;
-}
-```
-
-### 3.4 React Compiler 한계점
-
-| 상황 | Compiler 동작 | 대응 |
-|------|--------------|------|
-| 외부 뮤터블 스토어 참조 | 최적화 스킵 | `useSyncExternalStore` 사용 |
-| 렌더 중 사이드이펙트 | 최적화 스킵 | 순수 함수 리팩터링 |
-| 비표준 Hook 패턴 | 잘못된 최적화 가능 | `'use no memo'` 지시어 |
-| dynamic `this` 바인딩 | 분석 불가 | 클로저로 전환 |
-
-```tsx
-// 주의: Compiler가 최적화하지 못하는 패턴
-function ProblematicComponent() {
-  // 렌더 중 외부 상태 변경 — Compiler가 스킵
-  globalCounter++;
-
-  // 대신 useEffect로 분리
-  useEffect(() => {
-    globalCounter++;
-  });
-
-  return <div>{globalCounter}</div>;
-}
-```
-
----
-
-## 4. Server Components 심화
-
-### 4.1 Partial Prerendering (PPR)
-
-정적 셸은 빌드 타임에, 동적 부분은 요청 시 스트리밍한다.
-
-```ts
-// next.config.ts
-const nextConfig: NextConfig = {
-  experimental: {
-    reactCompiler: true,
-    ppr: "incremental", // 페이지별 점진 적용
-  },
-};
-```
-
-```tsx
-// src/app/products/page.tsx
-export const experimental_ppr = true;
-
-import { Suspense } from "react";
-import { StaticHeader } from "@/components/StaticHeader";
-import { DynamicProductList } from "@/components/DynamicProductList";
-import { ProductSkeleton } from "@/components/ProductSkeleton";
-
-export default function ProductsPage() {
-  return (
-    <>
-      {/* 정적 셸 — 빌드 타임에 프리렌더링 */}
-      <StaticHeader />
-      <nav>카테고리 필터 (정적)</nav>
-
-      {/* 동적 영역 — Suspense 경계가 PPR 분할 지점 */}
-      <Suspense fallback={<ProductSkeleton />}>
-        <DynamicProductList />
-      </Suspense>
-    </>
-  );
-}
-```
-
-### 4.2 Streaming과 Suspense 경계 설계
-
-```tsx
-// 나쁜 예: 최상위 단일 Suspense → 전체가 블록됨
-export default function Dashboard() {
-  return (
-    <Suspense fallback={<FullPageSpinner />}>
-      <MetricsPanel />  {/* 느림 */}
-      <ActivityFeed />  {/* 빠름 */}
-      <UserList />      {/* 중간 */}
-    </Suspense>
-  );
-}
-
-// 좋은 예: 독립적 Suspense 경계 → 준비된 것부터 스트리밍
-export default function Dashboard() {
-  return (
-    <div className="grid grid-cols-3 gap-4">
-      <Suspense fallback={<MetricsSkeleton />}>
-        <MetricsPanel />
-      </Suspense>
-      <Suspense fallback={<FeedSkeleton />}>
-        <ActivityFeed />
-      </Suspense>
-      <Suspense fallback={<UserSkeleton />}>
-        <UserList />
-      </Suspense>
-    </div>
-  );
-}
-```
-
-### 4.3 Server / Client 경계 설계 원칙
-
-```
-page.tsx (Server)
-├── Header.tsx (Server) — 정적 네비게이션
-├── SearchBar.tsx (Client) — 사용자 입력
-├── ProductGrid.tsx (Server) — DB 조회, 렌더링
-│   └── AddToCartButton.tsx (Client) — 인터랙션
-└── Footer.tsx (Server) — 정적
-```
-
-원칙:
-- Server Component를 기본으로 사용한다
-- `'use client'`는 인터랙션(이벤트 핸들러, 상태, 브라우저 API)이 필요한 최소 단위에만 적용한다
-- Client Component 내부에서 Server Component를 `children`으로 전달받을 수 있다
-- 데이터 페칭은 가능한 한 Server Component에서 수행한다
-
-```tsx
-// Client Component가 Server Component를 children으로 수용하는 패턴
-"use client";
-
-import { useState, type ReactNode } from "react";
-
-export function Tabs({ tabs }: { tabs: { label: string; content: ReactNode }[] }) {
-  const [active, setActive] = useState(0);
-
-  return (
-    <div>
-      <nav>
-        {tabs.map((tab, i) => (
-          <button key={i} onClick={() => setActive(i)}>
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-      {/* content는 Server Component일 수 있음 */}
-      <div>{tabs[active].content}</div>
-    </div>
-  );
-}
-```
-
----
-
-## 5. Actions & Forms
-
-### 5.1 useActionState + Zod 완전한 폼
-
-```tsx
-// src/app/contact/actions.ts
-"use server";
-
-import { z } from "zod";
-
-const ContactSchema = z.object({
-  name: z.string().min(1, "이름을 입력하세요"),
-  email: z.string().email("올바른 이메일을 입력하세요"),
-  message: z.string().min(10, "메시지는 10자 이상이어야 합니다"),
-  category: z.enum(["general", "support", "sales"], {
-    errorMap: () => ({ message: "카테고리를 선택하세요" }),
-  }),
-});
-
-export type ContactFormState = {
-  success: boolean;
-  errors?: Record<string, string[]>;
-  message?: string;
-};
-
-export async function submitContact(
-  prevState: ContactFormState,
-  formData: FormData,
-): Promise<ContactFormState> {
-  const raw = Object.fromEntries(formData);
-  const parsed = ContactSchema.safeParse(raw);
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors,
-    };
-  }
-
-  // DB 저장, 이메일 발송 등
-  await saveContact(parsed.data);
-
-  return { success: true, message: "문의가 접수되었습니다" };
-}
-```
-
-```tsx
-// src/app/contact/ContactForm.tsx
-"use client";
-
-import { useActionState } from "react";
-import { submitContact, type ContactFormState } from "./actions";
-
-const initialState: ContactFormState = { success: false };
-
-export function ContactForm() {
-  const [state, formAction, isPending] = useActionState(
-    submitContact,
-    initialState,
-  );
-
-  if (state.success) {
-    return <p role="status">{state.message}</p>;
-  }
-
-  return (
-    <form action={formAction}>
-      <div>
-        <label htmlFor="name">이름</label>
-        <input id="name" name="name" required />
-        <FieldError errors={state.errors?.name} />
-      </div>
-
-      <div>
-        <label htmlFor="email">이메일</label>
-        <input id="email" name="email" type="email" required />
-        <FieldError errors={state.errors?.email} />
-      </div>
-
-      <div>
-        <label htmlFor="category">카테고리</label>
-        <select id="category" name="category" required>
-          <option value="">선택</option>
-          <option value="general">일반</option>
-          <option value="support">지원</option>
-          <option value="sales">영업</option>
-        </select>
-        <FieldError errors={state.errors?.category} />
-      </div>
-
-      <div>
-        <label htmlFor="message">메시지</label>
-        <textarea id="message" name="message" rows={5} required />
-        <FieldError errors={state.errors?.message} />
-      </div>
-
-      <button type="submit" disabled={isPending}>
-        {isPending ? "전송 중..." : "전송"}
-      </button>
-    </form>
-  );
-}
-
-function FieldError({ errors }: { errors?: string[] }) {
-  if (!errors?.length) return null;
-  return (
-    <>
-      {errors.map((e) => (
-        <p key={e} role="alert" style={{ color: "red" }}>
-          {e}
-        </p>
-      ))}
-    </>
-  );
-}
-```
-
-### 5.2 useOptimistic 활용
-
-```tsx
-"use client";
-
-import { useOptimistic, useActionState } from "react";
-import { toggleTodo, type Todo } from "./actions";
-
-export function TodoList({ todos }: { todos: Todo[] }) {
-  const [optimisticTodos, setOptimisticTodo] = useOptimistic(
-    todos,
-    (current, toggledId: string) =>
-      current.map((t) =>
-        t.id === toggledId ? { ...t, completed: !t.completed } : t,
-      ),
-  );
-
-  return (
-    <ul>
-      {optimisticTodos.map((todo) => (
-        <li key={todo.id}>
-          <form
-            action={async () => {
-              setOptimisticTodo(todo.id);
-              await toggleTodo(todo.id);
-            }}
-          >
-            <button type="submit">
-              {todo.completed ? "v" : "o"} {todo.title}
-            </button>
-          </form>
-        </li>
-      ))}
-    </ul>
-  );
-}
-```
-
-### 5.3 Progressive Enhancement
-
-```tsx
-// Server Action 폼은 JS 없이도 동작
-// form action에 Server Action을 직접 전달하면
-// JS가 로드되기 전에도 네이티브 폼 제출로 동작한다
-
-// 핵심 원칙:
-// 1. <form action={serverAction}> — JS 없이 동작
-// 2. useActionState로 감싸면 — JS 있을 때 향상된 UX 제공
-// 3. useOptimistic 추가 — 즉각적 피드백
-
-// 점진적 향상 계층:
-// Layer 0: HTML <form> + Server Action → 동작함
-// Layer 1: + useActionState → pending 상태, 에러 표시
-// Layer 2: + useOptimistic → 즉각적 UI 업데이트
-// Layer 3: + useTransition → 네비게이션 중 상태 유지
-```
-
----
-
-## 6. use() Hook 심화
-
-### 6.1 Context 소비 — 조건부 사용 가능
-
-```tsx
-"use client";
-
-import { use, createContext } from "react";
-
-const ThemeContext = createContext<"light" | "dark">("light");
-const AuthContext = createContext<{ userId: string } | null>(null);
-
-function UserGreeting({ showTheme }: { showTheme: boolean }) {
-  // use()는 조건문 내에서 호출 가능 (useContext와의 핵심 차이)
-  const auth = use(AuthContext);
-
-  if (!auth) {
-    return <p>로그인이 필요합니다</p>;
-  }
-
-  // 조건부 Context 소비
-  if (showTheme) {
-    const theme = use(ThemeContext);
-    return (
-      <p className={theme}>
-        안녕하세요, {auth.userId}님 (테마: {theme})
-      </p>
-    );
-  }
-
-  return <p>안녕하세요, {auth.userId}님</p>;
-}
-```
-
-### 6.2 Promise 소비와 캐싱
-
-```tsx
-// Server Component에서 Promise 생성 후 Client로 전달
-// src/app/user/[id]/page.tsx
-import { Suspense } from "react";
-import { UserProfile } from "./UserProfile";
-
-async function fetchUser(id: string) {
-  const res = await fetch(`https://api.example.com/users/${id}`, {
-    next: { revalidate: 60 }, // 60초 캐싱
-  });
-  if (!res.ok) throw new Error("User not found");
-  return res.json();
-}
-
-export default async function UserPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-
-  // Promise를 생성만 하고 await하지 않음 — 즉시 전달
-  const userPromise = fetchUser(id);
-
-  return (
-    <Suspense fallback={<p>Loading...</p>}>
-      <UserProfile userPromise={userPromise} />
-    </Suspense>
-  );
-}
-```
-
-```tsx
-// src/app/user/[id]/UserProfile.tsx
-"use client";
-
-import { use } from "react";
-import type { User } from "@/types";
-
-export function UserProfile({
-  userPromise,
-}: {
-  userPromise: Promise<User>;
-}) {
-  const user = use(userPromise); // Suspense가 처리
-
-  return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.email}</p>
-    </div>
-  );
-}
-```
-
-### 6.3 워터폴 방지 — 병렬 프리페칭
-
-```tsx
-// 나쁜 예: 순차 실행 (워터폴)
-export default async function Page() {
-  const user = await fetchUser();       // 500ms
-  const posts = await fetchPosts();      // 300ms
-  const comments = await fetchComments(); // 200ms
-  // 총 1000ms
-
-  return <Dashboard user={user} posts={posts} comments={comments} />;
-}
-
-// 좋은 예: 병렬 실행
-export default async function Page() {
-  // Promise를 동시에 생성
-  const userPromise = fetchUser();        // 시작
-  const postsPromise = fetchPosts();      // 동시 시작
-  const commentsPromise = fetchComments(); // 동시 시작
-  // 총 ~500ms (가장 느린 것 기준)
-
-  return (
-    <>
-      <Suspense fallback={<UserSkeleton />}>
-        <UserSection userPromise={userPromise} />
-      </Suspense>
-      <Suspense fallback={<PostsSkeleton />}>
-        <PostsSection postsPromise={postsPromise} />
-      </Suspense>
-      <Suspense fallback={<CommentsSkeleton />}>
-        <CommentsSection commentsPromise={commentsPromise} />
-      </Suspense>
-    </>
-  );
-}
-```
-
----
-
-## 7. Next.js 15 통합
-
-### 7.1 App Router 핵심 패턴
-
-```
-src/app/
-├── layout.tsx          # 루트 레이아웃 (Server Component)
-├── page.tsx            # 홈 페이지
-├── loading.tsx         # 자동 Suspense fallback
-├── error.tsx           # 자동 ErrorBoundary ('use client')
-├── not-found.tsx       # 404 페이지
-├── (auth)/
-│   ├── layout.tsx      # 인증 그룹 레이아웃
-│   ├── login/page.tsx
-│   └── signup/page.tsx
-└── dashboard/
-    ├── layout.tsx      # 대시보드 레이아웃
-    ├── page.tsx
-    └── @sidebar/       # Parallel Route
-        └── page.tsx
-```
-
-```tsx
-// src/app/dashboard/layout.tsx — Parallel Routes
-export default function DashboardLayout({
+export default function RootLayout({
   children,
-  sidebar,
 }: {
   children: React.ReactNode;
-  sidebar: React.ReactNode; // @sidebar 슬롯
 }) {
   return (
-    <div className="flex">
-      <aside className="w-64">{sidebar}</aside>
-      <main className="flex-1">{children}</main>
+    <html lang="ko">
+      <body>
+        {children}
+        {/* 프로덕션 빌드에서 tree-shaking으로 제거됨 */}
+        {process.env.NODE_ENV !== "production" && <SuspenseDebugPanel />}
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## 6. React Router v7 + React 19 통합
+
+React Router v7이 Remix와 통합되면서, Next.js 없이도 Server Functions + RSC를 사용할 수 있다.
+
+### 6.1 기본 설정
+
+```ts
+// react-router.config.ts
+import type { Config } from "@react-router/dev/config";
+
+export default {
+  ssr: true,
+  future: {
+    unstable_optimizeDeps: true,
+  },
+} satisfies Config;
+```
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import { reactRouter } from "@react-router/dev/vite";
+import tsconfigPaths from "vite-tsconfig-paths";
+
+export default defineConfig({
+  plugins: [
+    reactRouter(),
+    tsconfigPaths(),
+  ],
+});
+```
+
+### 6.2 Loader + Server Function 통합
+
+```tsx
+// app/routes/products.$id.tsx
+import type { Route } from "./+types/products.$id";
+import { db } from "~/lib/db";
+
+// loader: 서버에서 데이터 로드 (GET)
+export async function loader({ params }: Route.LoaderArgs) {
+  const product = await db.product.findUniqueOrThrow({
+    where: { id: params.id },
+    include: { reviews: { take: 10 } },
+  });
+  return { product };
+}
+
+// action: Server Function (POST/mutation)
+export async function action({ request, params }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment"));
+
+  await db.review.create({
+    data: {
+      productId: params.id,
+      rating,
+      comment,
+    },
+  });
+
+  return { success: true };
+}
+
+// 컴포넌트
+export default function ProductPage({
+  loaderData,
+}: Route.ComponentProps) {
+  const { product } = loaderData;
+
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <p>{product.description}</p>
+
+      <section>
+        <h2>리뷰</h2>
+        {product.reviews.map((review) => (
+          <ReviewCard key={review.id} review={review} />
+        ))}
+      </section>
+
+      <ReviewForm productId={product.id} />
     </div>
   );
 }
 ```
 
-### 7.2 Turbopack
-
-```bash
-# 개발 서버 (Turbopack 기본 활성화 — Next.js 15)
-next dev --turbopack
-
-# 빌드 (Turbopack은 아직 개발 모드만 지원)
-next build
-```
-
-```ts
-// next.config.ts — Turbopack 커스텀 설정
-const nextConfig: NextConfig = {
-  turbopack: {
-    resolveAlias: {
-      "@components": "./src/components",
-      "@lib": "./src/lib",
-    },
-  },
-};
-```
-
-### 7.3 미들웨어
+### 6.3 React Router v7 타입 안전 라우팅
 
 ```tsx
-// src/middleware.ts
-import { NextResponse, type NextRequest } from "next/server";
+// app/routes.ts
+import {
+  type RouteConfig,
+  index,
+  layout,
+  route,
+} from "@react-router/dev/routes";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // 환경 정보 헤더 주입
-  const response = NextResponse.next();
-  response.headers.set("x-deploy-env", process.env.DEPLOY_ENV ?? "production");
-  response.headers.set("x-branch-id", process.env.BRANCH_ID ?? "main");
-
-  // 인증 체크
-  if (pathname.startsWith("/dashboard")) {
-    const token = request.cookies.get("auth-token");
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-  }
-
-  // Preview 환경: 디버그 헤더 추가
-  if (process.env.DEPLOY_ENV === "preview") {
-    response.headers.set("x-debug-enabled", "true");
-    response.headers.set("x-request-id", crypto.randomUUID());
-  }
-
-  return response;
-}
-
-export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-};
-```
-
-### 7.4 비동기 API 변경 (Next.js 15 Breaking Change)
-
-Next.js 15에서 `headers()`, `cookies()`, `params`, `searchParams`가 모두 비동기로 변경되었다.
-
-```tsx
-// Before (Next.js 14)
-import { headers, cookies } from "next/headers";
-
-export default function Page({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { q: string };
-}) {
-  const headerList = headers();
-  const cookieStore = cookies();
-  // 동기적 접근
-  const id = params.id;
-  const query = searchParams.q;
-}
+export default [
+  layout("layouts/main.tsx", [
+    index("routes/home.tsx"),
+    route("products", "routes/products.tsx"),
+    route("products/:id", "routes/products.$id.tsx"),
+    route("cart", "routes/cart.tsx"),
+  ]),
+  route("login", "routes/login.tsx"),
+] satisfies RouteConfig;
 ```
 
 ```tsx
-// After (Next.js 15)
-import { headers, cookies } from "next/headers";
+// 타입 안전 네비게이션
+import { useNavigate, type NavigateFunction } from "react-router";
+import { href } from "react-router";
 
-export default async function Page({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const headerList = await headers();
-  const cookieStore = await cookies();
-  const { id } = await params;
-  const { q } = await searchParams;
-}
-```
-
----
-
-## 8. 마이그레이션 전략 (React 18 → 19)
-
-### 8.1 4단계 계획
-
-```
-Phase 1: 준비 (1주)
-├── React 19 릴리스 노트 및 Breaking Changes 확인
-├── 서드파티 라이브러리 호환성 조사
-├── 자동 codemod 드라이런 실행
-└── 영향 범위 리포트 작성
-
-Phase 2: 자동 변환 (1주)
-├── npx @react-codemod/cli 실행
-├── forwardRef 제거
-├── useContext → use() 전환
-├── 타입 정의 업데이트 (ref prop)
-└── 자동 변환 결과 리뷰
-
-Phase 3: 수동 수정 (1-2주)
-├── Codemod가 처리하지 못한 패턴 수동 수정
-├── Server Action / useActionState 전환
-├── React Compiler 활성화 및 검증
-├── 테스트 스위트 실행 및 수정
-└── 성능 벤치마크 비교
-
-Phase 4: 검증 및 배포 (1주)
-├── 스테이징 환경 전체 테스트
-├── 카나리 배포 (5% → 25% → 100%)
-├── 성능 모니터링 (Core Web Vitals)
-└── 롤백 계획 확인
-```
-
-### 8.2 Codemod 실행
-
-```bash
-# forwardRef 제거
-npx @react-codemod/cli \
-  --transform react-19/remove-forward-ref \
-  src/
-
-# useContext → use() 전환
-npx @react-codemod/cli \
-  --transform react-19/replace-use-context \
-  src/
-
-# 전체 드라이런 (변경 없이 결과만 확인)
-npx @react-codemod/cli \
-  --dry-run --print \
-  --transform react-19/remove-forward-ref \
-  --transform react-19/replace-use-context \
-  src/
-```
-
-### 8.3 주요 Breaking Changes
-
-| 변경 사항 | React 18 | React 19 | 대응 |
-|-----------|----------|----------|------|
-| ref 전달 | `forwardRef()` 필수 | ref를 일반 prop으로 전달 | `forwardRef` 제거, ref를 prop으로 받기 |
-| Context 소비 | `useContext(Ctx)` | `use(Ctx)` | codemod로 일괄 변환 |
-| Context Provider | `<Ctx.Provider value={}>` | `<Ctx value={}>` | `.Provider` 제거 |
-| 폼 상태 관리 | `useFormState` (canary) | `useActionState` | 이름 변경 + 반환값에 `isPending` 추가 |
-| ref 콜백 클린업 | 지원 안 함 | 클린업 함수 반환 가능 | `ref={(el) => { setup(el); return () => cleanup(); }}` |
-| useDeferredValue | 초기값 없음 | `useDeferredValue(value, initialValue)` | 두 번째 인자 옵션 활용 |
-| 에러 처리 | `onRecoverableError` | 에러가 자동으로 `window.reportError`로 전달 | 글로벌 에러 핸들러 확인 |
-| 메타 태그 | `react-helmet` 등 | `<title>`, `<meta>` 직접 사용 | 서드파티 의존성 제거 가능 |
-
-### 8.4 호환성 체크리스트
-
-```tsx
-// 1. forwardRef 제거
-// Before
-const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  return <input ref={ref} {...props} />;
-});
-
-// After
-function Input({ ref, ...props }: InputProps & { ref?: React.Ref<HTMLInputElement> }) {
-  return <input ref={ref} {...props} />;
-}
-
-// 2. Context Provider 간소화
-// Before
-<ThemeContext.Provider value={theme}>
-  {children}
-</ThemeContext.Provider>
-
-// After
-<ThemeContext value={theme}>
-  {children}
-</ThemeContext>
-
-// 3. useContext → use()
-// Before
-import { useContext } from "react";
-const theme = useContext(ThemeContext);
-
-// After
-import { use } from "react";
-const theme = use(ThemeContext);
-
-// 4. ref 콜백 클린업
-// Before
-<div ref={(el) => {
-  if (el) observe(el);
-  // 클린업 불가
-}} />
-
-// After
-<div ref={(el) => {
-  observe(el);
-  return () => unobserve(el); // 클린업 함수 반환
-}} />
-
-// 5. Document Metadata
-// Before (react-helmet)
-<Helmet>
-  <title>My Page</title>
-  <meta name="description" content="..." />
-</Helmet>
-
-// After (React 19 내장)
-function Page() {
+function ProductLink({ id }: { id: string }) {
   return (
-    <>
-      <title>My Page</title>
-      <meta name="description" content="..." />
-      <div>페이지 내용</div>
-    </>
+    <a href={href("/products/:id", { id })}>
+      상품 보기
+    </a>
   );
 }
 ```
 
 ---
 
-## 부록: 빠른 참조 치트시트
+## 7. TanStack Start vs Next.js 15 비교
 
-```
-React 19 핵심 변경 요약
-========================
+2026년 기준 React 19.1을 지원하는 두 풀스택 프레임워크를 비교한다.
 
-Server Component    → 기본값. 'use client' 없으면 Server
-Client Component    → 'use client' 선언. 인터랙션 필요 시에만
-Server Action       → 'use server' 선언. 폼 처리, 데이터 변경
-React Compiler      → 자동 메모이제이션. useMemo/useCallback 불필요
-use()               → Context + Promise 소비. 조건부 호출 가능
-useActionState      → 폼 Action 상태 관리 (이전 useFormState)
-useOptimistic       → 낙관적 UI 업데이트
-ref as prop         → forwardRef 불필요. ref를 일반 prop으로
-PPR                 → Suspense 경계 기준으로 정적/동적 분할
+### 7.1 기능 비교표
+
+| 기능 | Next.js 15 | TanStack Start |
+|------|-----------|----------------|
+| React 버전 | 19.1 지원 | 19.1 지원 |
+| 서버 렌더링 | RSC 네이티브 | SSR + 스트리밍 (RSC는 별도 설정) |
+| 라우팅 | App Router (파일 기반) | TanStack Router (코드 기반 + 타입 안전) |
+| 데이터 페칭 | Server Components + fetch cache | TanStack Query 통합, loader 패턴 |
+| 서버 함수 | Server Functions 네이티브 | createServerFn() API |
+| 빌드 | Turbopack (Webpack 호환) | Vite + Nitro |
+| 배포 | Vercel 최적화, 셀프호스트 가능 | 어댑터 기반 (Node, Deno, CF Workers 등) |
+| 타입 안전 라우팅 | experimental typedRoutes | TanStack Router 네이티브 |
+| 번들 크기 | 큰 편 (프레임워크 오버헤드) | 작은 편 (트리셰이킹 공격적) |
+| 커뮤니티/생태계 | 매우 큼 | 성장 중 |
+
+### 7.2 TanStack Start 코드 예시
+
+```tsx
+// app/routes/products.$id.tsx (TanStack Start)
+import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start/server";
+import { z } from "zod";
+
+const fetchProduct = createServerFn({ method: "GET" })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const product = await db.product.findUniqueOrThrow({
+      where: { id: data.id },
+    });
+    return product;
+  });
+
+export const Route = createFileRoute("/products/$id")({
+  loader: ({ params }) => fetchProduct({ data: { id: params.id } }),
+  component: ProductPage,
+});
+
+function ProductPage() {
+  const product = Route.useLoaderData();
+
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <p>{product.description}</p>
+    </div>
+  );
+}
 ```
+
+### 7.3 선택 가이드
+
+| 상황 | 추천 |
+|------|------|
+| Vercel 배포 + 빠른 시작 | Next.js 15 |
+| 타입 안전 라우팅이 핵심 | TanStack Start |
+| 기존 SPA를 SSR로 전환 | TanStack Start (Vite 생태계 유지) |
+| RSC 적극 활용 | Next.js 15 |
+| Edge Runtime (CF Workers 등) | TanStack Start |
+| 대규모 엔터프라이즈, 안정성 우선 | Next.js 15 |
+| React Router v7에서 마이그레이션 | 둘 다 가능 (RR v7은 Remix 기반이므로 Next.js와 구조 유사) |
+
+---
+
+## 8. 체크리스트
+
+### 마이그레이션 체크리스트
+
+- [ ] `forwardRef` → ref를 일반 props로 전환
+- [ ] `Context.Provider` → `<Context value={...}>` 직접 렌더링
+- [ ] `useMemo`/`useCallback`/`React.memo` → React Compiler 도입 후 제거
+- [ ] useEffect 데이터 페칭 → Server Component 또는 Server Function
+- [ ] `e.preventDefault()` 폼 → `<form action={...}>` + `useActionState`
+- [ ] `react-helmet` → React 19 Document Metadata (`<title>`, `<meta>`)
+- [ ] `renderToString` → `renderToReadableStream`
+
+### React 19.1 신기능 도입 체크리스트
+
+- [ ] React Compiler 활성화 (babel-plugin-react-compiler)
+- [ ] Compiler 호환성 lint 룰 적용 (`eslint-plugin-react-compiler`)
+- [ ] `Activity` API 탐색 (탭/모달 상태 보존 시나리오)
+- [ ] Server Functions 보안 가드 패턴 적용
+- [ ] `useOptimistic` 도입 (mutation UX 개선)
+
+### 멀티 베타 환경 체크리스트
+
+- [ ] RSC 데이터 소스 팩토리 구현 (환경별 DB/캐시/플래그 분리)
+- [ ] Preview 환경 Suspense 디버그 패널 활성화
+- [ ] 환경별 DataSource 자동 테스트 작성
+- [ ] Preview 환경 리소스 풀 사이즈 제한 확인
+
+### 프레임워크 선택 체크리스트
+
+- [ ] React Router v7 / Next.js 15 / TanStack Start 비교 검토
+- [ ] 타입 안전 라우팅 요구사항 확인
+- [ ] 배포 타겟(Vercel, Edge, 셀프호스트) 결정
+- [ ] 기존 코드베이스와의 호환성 검증
