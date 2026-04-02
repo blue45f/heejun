@@ -1,5 +1,7 @@
 # Frontend Development Guide (2026)
 
+> https://heejun.store
+
 AI 시대의 프론트엔드 개발 종합 가이드 -- 실무 경험 기반, 2026 최신 트렌드 반영
 
 ## Overview
