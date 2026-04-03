@@ -1,1411 +1,1089 @@
-# CI/CD 파이프라인 가이드 (2026) -- AI 활용 + 멀티 베타 환경
+# CI/CD 파이프라인 가이드 (2026) -- AI 극대화 + 멀티 베타 + Supply Chain Security
 
 ## 목차
-1. [AI 기반 CI 최적화](#1-ai-기반-ci-최적화)
-2. [AI로 GitHub Actions 워크플로우 자동 생성 및 최적화](#2-ai로-github-actions-워크플로우-자동-생성-및-최적화)
-3. [AI 기반 보안 취약점 자동 스캔 및 수정 제안](#3-ai-기반-보안-취약점-자동-스캔-및-수정-제안)
-4. [멀티 베타 CI/CD 파이프라인](#4-멀티-베타-cicd-파이프라인)
-5. [PR별 Preview 자동 생성 (S3+CloudFront)](#5-pr별-preview-자동-생성-s3cloudfront)
-6. [모노레포 앱별 선별 빌드/배포](#6-모노레포-앱별-선별-빌드배포)
-7. [멀티 CDN 동시 배포](#7-멀티-cdn-동시-배포)
-8. [보안 파이프라인 (SAST/DAST/SCA, SBOM)](#8-보안-파이프라인-sastdastsca-sbom)
-9. [CI 메트릭스 -- DORA 4 Key Metrics](#9-ci-메트릭스--dora-4-key-metrics)
-10. [AI 프롬프트 모음](#10-ai-프롬프트-모음)
-11. [체크리스트](#11-체크리스트)
+
+1. [AI 프롬프트 5선](#1-ai-프롬프트-5선)
+2. [Immutable Actions -- SHA Pinning](#2-immutable-actions--sha-pinning)
+3. [Remote Cache -- Nx Cloud / Turborepo](#3-remote-cache--nx-cloud--turborepo)
+4. [Reusable Workflow -- N개 환경 동시 배포](#4-reusable-workflow--n개-환경-동시-배포)
+5. [Preview 자동 생성 + Lighthouse 비교](#5-preview-자동-생성--lighthouse-비교)
+6. [Supply Chain Security -- Sigstore / SLSA / npm provenance](#6-supply-chain-security--sigstore--slsa--npm-provenance)
+7. [CI 비용 최적화 -- Larger Runners vs Self-hosted](#7-ci-비용-최적화--larger-runners-vs-self-hosted)
+8. [종합 체크리스트](#8-종합-체크리스트)
 
 ---
 
-## 1. AI 기반 CI 최적화
+## 1. AI 프롬프트 5선
 
-> CI 파이프라인에서 AI를 활용하면 **변경 영향 범위를 분석하여 테스트를 선별 실행**하고, **빌드 캐시를 지능적으로 관리**하며, **플레이키 테스트를 자동 탐지**할 수 있다. 전체 CI 시간을 60% 이상 단축하는 것이 목표다.
+CI/CD 파이프라인 전 단계에서 AI를 적극 활용한다. 아래 5가지 프롬프트는 실무에서 즉시 사용할 수 있도록 설계되었다.
 
-### 1.1 AI 테스트 선별 실행 (Predictive Test Selection)
+### 1.1 CI 실패 분석 (Failure Root-Cause Analysis)
 
-변경된 코드의 의존성 그래프를 AI가 분석하여, 영향받는 테스트만 선별 실행한다.
+CI가 실패했을 때 로그를 AI에 넘겨 근본 원인을 빠르게 파악한다.
 
 ```typescript
-// ai-test-selector.ts
-interface TestSelectionResult {
-  selectedTests: string[];
-  skippedTests: string[];
+// ci-failure-analyzer.ts
+interface CIFailureReport {
+  rootCause: string;
+  category: 'flaky' | 'dependency' | 'code' | 'infra' | 'config';
+  suggestedFix: string;
   confidence: number;
-  reasoning: string;
+  relatedCommits: string[];
 }
 
-interface ChangedFile {
-  path: string;
-  diff: string;
-  changeType: 'added' | 'modified' | 'deleted';
-}
+async function analyzeCIFailure(
+  log: string,
+  recentCommits: { sha: string; message: string; files: string[] }[],
+): Promise<CIFailureReport> {
+  const prompt = `
+당신은 CI/CD 전문 SRE 엔지니어다. 아래 CI 실패 로그를 분석하라.
 
-async function selectTestsWithAI(
-  changedFiles: ChangedFile[],
-  allTests: string[],
-  dependencyGraph: Map<string, string[]>,
-): Promise<TestSelectionResult> {
-  // 1단계: 정적 의존성 분석으로 후보 축소
-  const staticCandidates = new Set<string>();
-  for (const file of changedFiles) {
-    const dependents = dependencyGraph.get(file.path) ?? [];
-    dependents.forEach((t) => staticCandidates.add(t));
-  }
+## CI 로그 (마지막 200줄)
+\`\`\`
+${log.split('\n').slice(-200).join('\n')}
+\`\`\`
 
-  // 2단계: AI로 실제 영향 범위 정밀 분석
-  const prompt = buildTestSelectionPrompt(changedFiles, [...staticCandidates]);
-  const response = await callAI(prompt);
-
-  return {
-    selectedTests: response.tests,
-    skippedTests: allTests.filter((t) => !response.tests.includes(t)),
-    confidence: response.confidence,
-    reasoning: response.reasoning,
-  };
-}
-
-function buildTestSelectionPrompt(
-  changedFiles: ChangedFile[],
-  candidateTests: string[],
-): string {
-  return `
-다음 코드 변경사항을 분석하고, 실제로 실행이 필요한 테스트만 선별하라.
-
-## 변경된 파일
-${changedFiles.map((f) => `- ${f.path} (${f.changeType})\n\`\`\`diff\n${f.diff}\n\`\`\``).join('\n')}
-
-## 후보 테스트 목록
-${candidateTests.map((t) => `- ${t}`).join('\n')}
+## 최근 커밋
+${recentCommits.map((c) => `- ${c.sha.slice(0, 7)}: ${c.message} (${c.files.join(', ')})`).join('\n')}
 
 ## 분석 기준
-1. 변경된 함수/컴포넌트를 직접 사용하는 테스트는 반드시 포함
-2. 타입 정의만 변경된 경우 런타임 테스트는 제외 가능
-3. 설정 파일 변경 시 전체 통합 테스트 포함
-4. CSS/스타일만 변경된 경우 스냅샷 테스트만 포함
+1. 에러 메시지 핵심 키워드 추출
+2. flaky test 여부 판단 (이전 성공 이력 대비)
+3. dependency 충돌 / lock 파일 불일치 탐지
+4. OOM, 타임아웃 등 인프라 이슈 분류
+5. 가장 가능성 높은 원인 커밋 지목
 
-JSON 형식으로 응답:
-{ "tests": [...], "confidence": 0.0~1.0, "reasoning": "..." }
+JSON 형식 응답:
+{
+  "rootCause": "구체적 원인 설명",
+  "category": "flaky | dependency | code | infra | config",
+  "suggestedFix": "수정 방법",
+  "confidence": 0.0~1.0,
+  "relatedCommits": ["sha1", "sha2"]
+}
 `.trim();
+
+  return callAI<CIFailureReport>(prompt);
 }
 ```
 
-### 1.2 AI 빌드 캐시 최적화
+### 1.2 빌드 최적화 (Build Performance Advisor)
+
+빌드 설정과 실행 시간 데이터를 넘겨 병목을 찾고 최적화 방안을 제안받는다.
 
 ```typescript
-// ai-cache-optimizer.ts
-interface CacheStrategy {
-  layers: CacheLayer[];
-  estimatedSavings: number;
-  invalidationRules: InvalidationRule[];
+// build-optimizer-prompt.ts
+interface BuildOptimizationAdvice {
+  bottlenecks: { step: string; duration: number; suggestion: string }[];
+  cacheRecommendations: string[];
+  parallelizationOpportunities: string[];
+  estimatedImprovement: string;
 }
 
-interface CacheLayer {
-  name: string;
-  key: string;
-  paths: string[];
-  ttlHours: number;
-  priority: number;
-}
-
-interface InvalidationRule {
-  trigger: string;
-  targets: string[];
-}
-
-async function optimizeBuildCache(
-  buildHistory: BuildRecord[],
-  currentConfig: CacheStrategy,
-): Promise<CacheStrategy> {
-  const cacheStats = analyzeCacheEfficiency(buildHistory);
-
-  const prompt = `
-빌드 캐시 전략을 최적화하라.
-
-## 현재 캐시 히트율
-${JSON.stringify(cacheStats, null, 2)}
-
-## 최근 빌드 패턴
-- 평균 빌드 시간: ${cacheStats.avgBuildTime}초
-- 캐시 히트율: ${cacheStats.hitRate}%
-- 불필요한 무효화 비율: ${cacheStats.unnecessaryInvalidationRate}%
-
-## 최적화 방향
-1. 의존성 변경 빈도에 따른 캐시 레이어 분리
-2. 불필요한 캐시 무효화 제거
-3. 원격 캐시 공유 전략 (팀원 간 캐시 재사용)
-4. 멀티 베타 환경별 캐시 키 분리 전략
-
-JSON으로 최적화된 CacheStrategy를 반환하라.
-`.trim();
-
-  return await callAI<CacheStrategy>(prompt);
-}
-
-function analyzeCacheEfficiency(
-  history: BuildRecord[],
-): CacheEfficiencyStats {
-  const totalBuilds = history.length;
-  const cacheHits = history.filter((b) => b.cacheHit).length;
-  const avgBuildTime =
-    history.reduce((sum, b) => sum + b.duration, 0) / totalBuilds;
-
-  return {
-    hitRate: Math.round((cacheHits / totalBuilds) * 100),
-    avgBuildTime: Math.round(avgBuildTime),
-    unnecessaryInvalidationRate: calculateUnnecessaryInvalidations(history),
-    layerBreakdown: groupByLayer(history),
-  };
-}
-```
-
-### 1.3 AI 플레이키 테스트 자동 탐지
-
-```typescript
-// flaky-test-detector.ts
-interface FlakyTestReport {
-  testName: string;
-  flakyScore: number;
-  pattern: 'timing' | 'ordering' | 'resource' | 'environment' | 'unknown';
-  suggestedFix: string;
-  recentResults: { passed: number; failed: number; total: number };
-}
-
-async function detectFlakyTests(
-  testHistory: TestRunRecord[],
-): Promise<FlakyTestReport[]> {
-  const inconsistent = findInconsistentTests(testHistory);
-
-  const reports: FlakyTestReport[] = [];
-  for (const test of inconsistent) {
-    const prompt = `
-이 테스트의 실패 패턴을 분석하고 플레이키 원인을 추정하라.
-
-## 테스트: ${test.name}
-## 최근 30일 결과
-- 성공: ${test.passed}회 / 실패: ${test.failed}회
-- 실패 시간대 분포: ${JSON.stringify(test.failureTimeDistribution)}
-- 실패 시 에러 메시지 상위 3개:
-${test.topErrors.map((e) => `  - ${e}`).join('\n')}
-
-## 패턴 분류
-- timing: setTimeout/setInterval, 네트워크 지연, 애니메이션 대기
-- ordering: 테스트 실행 순서 의존, 공유 상태 오염
-- resource: 메모리 부족, 파일 핸들 누수, 포트 충돌
-- environment: 환경 변수, OS 차이, 타임존
-
-원인 패턴과 수정 방안을 제안하라.
-`.trim();
-
-    const analysis = await callAI(prompt);
-    reports.push({
-      testName: test.name,
-      flakyScore: test.failed / (test.passed + test.failed),
-      pattern: analysis.pattern,
-      suggestedFix: analysis.fix,
-      recentResults: {
-        passed: test.passed,
-        failed: test.failed,
-        total: test.passed + test.failed,
-      },
-    });
-  }
-
-  return reports.sort((a, b) => b.flakyScore - a.flakyScore);
-}
-```
-
----
-
-## 2. AI로 GitHub Actions 워크플로우 자동 생성 및 최적화
-
-> AI에게 프로젝트 구조와 요구사항을 제공하면, 최적화된 GitHub Actions 워크플로우를 자동 생성할 수 있다.
-
-### 2.1 AI 워크플로우 생성기
-
-```typescript
-// ai-workflow-generator.ts
-interface WorkflowRequirements {
-  projectType: 'next' | 'react' | 'vue' | 'node-api' | 'monorepo';
-  packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun';
-  testFramework: 'vitest' | 'jest' | 'playwright';
-  deployTargets: DeployTarget[];
-  features: WorkflowFeature[];
-  multiBeta: MultiBetaConfig;
-}
-
-type WorkflowFeature =
-  | 'preview-deploy'
-  | 'matrix-deploy'
-  | 'canary-release'
-  | 'security-scan'
-  | 'performance-audit'
-  | 'auto-merge-dependabot'
-  | 'multi-cdn'
-  | 'monorepo-affected';
-
-interface DeployTarget {
-  environment: string;
-  provider: 'aws-s3' | 'cloudflare-pages' | 'vercel' | 'netlify' | 'fastly';
-  autoPromote: boolean;
-}
-
-interface MultiBetaConfig {
-  maxEnvironments: number;
-  previewPerPR: boolean;
-  autoCleanupDays: number;
-  cdnProviders: string[];
-}
-
-async function generateWorkflow(
-  requirements: WorkflowRequirements,
-): Promise<string> {
-  const projectStructure = await scanProjectStructure();
-
-  const prompt = `
-다음 프로젝트에 맞는 GitHub Actions 워크플로우를 생성하라.
-
-## 프로젝트 정보
-- 타입: ${requirements.projectType}
-- 패키지 매니저: ${requirements.packageManager}
-- 테스트 프레임워크: ${requirements.testFramework}
-- 배포 대상: ${requirements.deployTargets.map((t) => `${t.environment} (${t.provider})`).join(', ')}
-- 필요 기능: ${requirements.features.join(', ')}
-
-## 멀티 베타 요구사항
-- 최대 동시 환경 수: ${requirements.multiBeta.maxEnvironments}
-- PR별 Preview: ${requirements.multiBeta.previewPerPR}
-- 자동 정리 주기: ${requirements.multiBeta.autoCleanupDays}일
-- CDN 프로바이더: ${requirements.multiBeta.cdnProviders.join(', ')}
-
-## 프로젝트 구조
-${projectStructure}
-
-## 요구사항
-1. Build Once, Deploy Everywhere 원칙 준수
-2. 멀티 베타 환경 매트릭스 배포 지원
-3. 보안: OIDC 기반 인증, 시크릿 최소 노출
-4. 병렬화: 독립 작업은 최대 병렬 실행
-5. 실패 시 Slack 알림 포함
-6. concurrency 설정으로 중복 실행 방지
-7. 멀티 CDN 동시 배포 (CloudFront + Cloudflare + Fastly)
-
-YAML 형식으로 워크플로우를 반환하라.
-`.trim();
-
-  return await callAI<string>(prompt);
-}
-```
-
-### 2.2 AI 워크플로우 최적화 분석
-
-```typescript
-// workflow-optimizer.ts
-interface WorkflowAnalysis {
-  currentDuration: number;
-  optimizedDuration: number;
-  savings: OptimizationSaving[];
-  securityIssues: SecurityIssue[];
-  updatedWorkflow: string;
-}
-
-async function analyzeAndOptimizeWorkflow(
+async function adviseBuildOptimization(
   workflowYaml: string,
-  runHistory: WorkflowRunRecord[],
-): Promise<WorkflowAnalysis> {
-  const avgDurations = calculateStepDurations(runHistory);
-
+  timingData: { step: string; avgDuration: number; p95Duration: number }[],
+  cacheHitRate: number,
+): Promise<BuildOptimizationAdvice> {
   const prompt = `
-이 GitHub Actions 워크플로우를 분석하고 최적화하라.
+당신은 GitHub Actions 빌드 최적화 전문가다. 아래 워크플로우의 성능을 분석하라.
 
-## 워크플로우
+## 워크플로우 YAML
 \`\`\`yaml
 ${workflowYaml}
 \`\`\`
 
-## 각 스텝 평균 소요 시간
-${avgDurations.map((s) => `- ${s.name}: ${s.avgSeconds}초`).join('\n')}
+## Step별 실행 시간 (최근 30일 평균 / P95)
+${timingData.map((t) => `- ${t.step}: avg ${t.avgDuration}s / p95 ${t.p95Duration}s`).join('\n')}
 
-## 최적화 관점
-1. 불필요한 직렬 실행을 병렬화
-2. 캐시 미스율이 높은 캐시 키 개선
-3. 무거운 액션을 경량 대안으로 교체
-4. 조건부 스텝 실행 (변경 파일 기반)
-5. runner 사이즈 최적화 (ubuntu-latest vs larger runners)
-6. 보안 문제: 과도한 permissions, pinning 안 된 action, 시크릿 노출
-7. 멀티 베타 환경 매트릭스 최적화 (불필요한 환경 제외)
+## 현재 캐시 히트율: ${(cacheHitRate * 100).toFixed(1)}%
 
-최적화된 YAML과 각 개선 항목별 예상 절감 시간을 반환하라.
+## 분석 항목
+1. 가장 느린 step 3개와 각각의 최적화 방안
+2. 캐시 전략 개선 (dependency cache, build cache, docker layer cache)
+3. 병렬 실행 가능한 step 조합 (needs 의존성 재배치)
+4. 불필요한 step 제거 또는 조건부 실행 전환
+5. Larger Runner / Self-hosted Runner 전환 효과 추정
+
+JSON 형식 응답:
+{
+  "bottlenecks": [{ "step": "...", "duration": 0, "suggestion": "..." }],
+  "cacheRecommendations": ["..."],
+  "parallelizationOpportunities": ["..."],
+  "estimatedImprovement": "전체 빌드 시간 X% 단축 예상"
+}
 `.trim();
 
-  return await callAI<WorkflowAnalysis>(prompt);
+  return callAI<BuildOptimizationAdvice>(prompt);
 }
 ```
 
----
+### 1.3 워크플로우 자동 생성 (Workflow Generator)
 
-## 3. AI 기반 보안 취약점 자동 스캔 및 수정 제안
-
-> CI 파이프라인에 AI 보안 스캔을 통합하면, 코드 변경 시점에 취약점을 탐지하고 즉각적인 수정 코드를 제안받을 수 있다.
-
-### 3.1 AI 보안 스캐너 통합
+프로젝트 구조를 분석하여 최적의 GitHub Actions 워크플로우를 자동 생성한다.
 
 ```typescript
-// ai-security-scanner.ts
-interface SecurityScanResult {
-  vulnerabilities: Vulnerability[];
-  fixes: AutoFix[];
-  riskScore: number;
-  summary: string;
-}
-
-interface Vulnerability {
-  id: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  type: 'xss' | 'injection' | 'auth-bypass' | 'ssrf' | 'dependency' | 'secret-leak';
-  file: string;
-  line: number;
-  description: string;
-  cweId: string;
-}
-
-interface AutoFix {
-  vulnerabilityId: string;
-  originalCode: string;
-  fixedCode: string;
+// workflow-generator-prompt.ts
+interface GeneratedWorkflow {
+  filename: string;
+  content: string;
   explanation: string;
-  confidence: number;
+  securityNotes: string[];
 }
 
-async function scanWithAI(
-  changedFiles: ChangedFile[],
-  projectContext: ProjectContext,
-): Promise<SecurityScanResult> {
+async function generateWorkflow(
+  packageJson: Record<string, unknown>,
+  projectStructure: string[],
+  requirements: string,
+): Promise<GeneratedWorkflow> {
   const prompt = `
-보안 관점에서 다음 코드 변경을 분석하라.
+당신은 GitHub Actions 전문가다. 아래 프로젝트에 맞는 CI/CD 워크플로우를 생성하라.
 
-## 변경 파일
-${changedFiles.map((f) => `### ${f.path}\n\`\`\`diff\n${f.diff}\n\`\`\``).join('\n\n')}
+## package.json (scripts 섹션)
+\`\`\`json
+${JSON.stringify(packageJson.scripts, null, 2)}
+\`\`\`
 
-## 프로젝트 컨텍스트
-- 프레임워크: ${projectContext.framework}
-- 인증 방식: ${projectContext.authMethod}
-- 외부 API 통신: ${projectContext.externalApis.join(', ')}
+## 프로젝트 구조 (주요 디렉토리)
+${projectStructure.map((p) => `- ${p}`).join('\n')}
 
-## 점검 항목
-1. XSS: dangerouslySetInnerHTML, URL 파라미터 미검증
-2. SSRF: 사용자 입력 URL로 서버 요청
-3. 인증 우회: 권한 체크 누락, JWT 검증 미흡
-4. 시크릿 노출: 하드코딩된 키, 토큰
-5. 의존성: 알려진 CVE가 있는 패키지
-6. Prototype Pollution, ReDoS
+## 요구사항
+${requirements}
 
-각 취약점에 대해 수정 코드도 함께 제공하라.
+## 필수 규칙
+1. 모든 third-party actions는 SHA pinning 사용 (태그 금지)
+2. permissions는 최소 권한 원칙 (contents: read 기본)
+3. 시크릿은 환경 변수로만 참조 (하드코딩 금지)
+4. concurrency 설정으로 중복 실행 방지
+5. timeout-minutes 명시
+6. Node 버전은 매트릭스 또는 .node-version 파일 참조
+
+YAML 워크플로우 파일 전체를 생성하라.
+응답 형식:
+{
+  "filename": "ci.yml",
+  "content": "yaml 내용",
+  "explanation": "워크플로우 설명",
+  "securityNotes": ["보안 관련 참고사항"]
+}
 `.trim();
 
-  return await callAI<SecurityScanResult>(prompt);
+  return callAI<GeneratedWorkflow>(prompt);
 }
 ```
 
-### 3.2 CI 파이프라인 보안 스캔 워크플로우
+### 1.4 보안 스캔 결과 분석 (Security Scan Triage)
 
-```yaml
-# .github/workflows/security-scan.yml
-name: AI Security Scan
+SAST/SCA 스캔 결과를 AI에 넘겨 실제 위험도를 재평가하고 우선순위를 정한다.
 
-on:
-  pull_request:
-    types: [opened, synchronize]
+```typescript
+// security-scan-triage-prompt.ts
+interface TriagedFinding {
+  id: string;
+  originalSeverity: string;
+  adjustedSeverity: string;
+  exploitability: 'confirmed' | 'likely' | 'unlikely' | 'false-positive';
+  reason: string;
+  remediation: string;
+}
 
-permissions:
-  contents: read
-  pull-requests: write
-  security-events: write
+async function triageSecurityFindings(
+  findings: { id: string; severity: string; title: string; file: string; snippet: string }[],
+  projectContext: string,
+): Promise<TriagedFinding[]> {
+  const prompt = `
+당신은 애플리케이션 보안(AppSec) 전문가다. 아래 보안 스캔 결과를 분석하라.
 
-jobs:
-  ai-security-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+## 프로젝트 컨텍스트
+${projectContext}
 
-      - name: Get changed files
-        id: changed
-        run: |
-          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx')
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+## 스캔 결과 (${findings.length}건)
+${findings.map((f) => `
+### ${f.id}: ${f.title} [${f.severity}]
+파일: ${f.file}
+\`\`\`
+${f.snippet}
+\`\`\`
+`).join('\n')}
 
-      - name: AI Security Analysis
-        id: scan
-        run: |
-          npx ai-security-scanner \
-            --files "${{ steps.changed.outputs.files }}" \
-            --format sarif \
-            --output results.sarif
+## 분석 기준
+1. 실제 공격 가능성 (네트워크 노출 여부, 입력값 도달 경로)
+2. false positive 여부 (프레임워크의 내장 보호, 이미 적용된 방어)
+3. 비즈니스 임팩트 (데이터 유출 가능성, 권한 상승 등)
+4. 수정 난이도와 구체적 코드 수정 방안
 
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
+각 finding에 대해 JSON 배열로 응답:
+[{
+  "id": "...",
+  "originalSeverity": "...",
+  "adjustedSeverity": "critical | high | medium | low | info",
+  "exploitability": "confirmed | likely | unlikely | false-positive",
+  "reason": "판단 근거",
+  "remediation": "구체적 수정 코드 또는 설정 변경"
+}]
+`.trim();
 
-      - name: Comment PR with findings
-        if: steps.scan.outputs.has-findings == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const sarif = JSON.parse(fs.readFileSync('results.sarif', 'utf8'));
-            const findings = sarif.runs[0].results;
-            const critical = findings.filter(f => f.properties?.severity === 'critical');
+  return callAI<TriagedFinding[]>(prompt);
+}
+```
 
-            let body = '## AI Security Scan Results\n\n';
-            body += `Found **${findings.length}** issues (${critical.length} critical)\n\n`;
-            findings.forEach(f => {
-              body += `- **[${f.properties?.severity}]** ${f.message.text} (${f.locations[0]?.physicalLocation?.artifactLocation?.uri})\n`;
-            });
+### 1.5 CI 비용 분석 (Cost Analysis)
 
-            await github.rest.issues.createComment({
-              ...context.repo,
-              issue_number: context.issue.number,
-              body,
-            });
+GitHub Actions 사용량 데이터를 분석하여 비용 절감 방안을 제안받는다.
+
+```typescript
+// ci-cost-analyzer-prompt.ts
+interface CostAnalysisResult {
+  monthlyCost: number;
+  topConsumers: { workflow: string; minutes: number; cost: number }[];
+  savingOpportunities: { action: string; estimatedSaving: number; effort: string }[];
+  runnerRecommendation: string;
+}
+
+async function analyzeCICost(
+  usageData: {
+    workflow: string;
+    runs: number;
+    avgMinutes: number;
+    runnerType: string;
+    cacheHitRate: number;
+  }[],
+  currentPlan: string,
+): Promise<CostAnalysisResult> {
+  const prompt = `
+당신은 GitHub Actions 비용 최적화 전문가다. 아래 사용량 데이터를 분석하라.
+
+## 현재 플랜: ${currentPlan}
+
+## 워크플로우별 사용량 (최근 30일)
+${usageData
+  .map(
+    (w) =>
+      `- ${w.workflow}: ${w.runs}회 실행, 평균 ${w.avgMinutes}분, ` +
+      `러너: ${w.runnerType}, 캐시 히트: ${(w.cacheHitRate * 100).toFixed(0)}%`,
+  )
+  .join('\n')}
+
+## 분석 항목
+1. 총 월간 비용 산출 (러너 타입별 분당 단가 적용)
+2. 비용 상위 3개 워크플로우 상세 분석
+3. 비용 절감 방안 (캐시 개선, 조건부 실행, 러너 전환 등)
+4. GitHub Larger Runners vs Self-hosted ARM64 비용 비교
+5. Spot 인스턴스 활용 시 절감 효과
+
+JSON 형식 응답:
+{
+  "monthlyCost": 0,
+  "topConsumers": [{ "workflow": "...", "minutes": 0, "cost": 0 }],
+  "savingOpportunities": [{ "action": "...", "estimatedSaving": 0, "effort": "low|medium|high" }],
+  "runnerRecommendation": "추천 러너 구성"
+}
+`.trim();
+
+  return callAI<CostAnalysisResult>(prompt);
+}
 ```
 
 ---
 
-## 4. 멀티 베타 CI/CD 파이프라인
+## 2. Immutable Actions -- SHA Pinning
 
-> "Build Once, Deploy to N Environments" -- 단일 빌드 아티팩트를 N개 베타 환경에 동시 배포한다. GitHub Actions matrix를 활용하여 환경별 런타임 설정만 교체한다.
+Actions를 태그(예: `@v4`)로 참조하면 공급망 공격에 노출될 수 있다. **반드시 커밋 SHA 전체(40자)를 고정**한다.
 
-### 4.1 전체 파이프라인 아키텍처
-
-```
-PR 생성       ->  Preview Deploy (per PR, S3+CloudFront 자동 프로비저닝)
-                    |
-main 머지     ->  Build (단일)
-                    |
-              +-----+-----+----------+----------+
-              v     v     v          v          v
-            dev  beta-1 beta-2 ... beta-N   production
-              |     |      |                    |
-              |     +------+                    |
-              |     멀티 베타 매트릭스           |
-              |     헬스체크 + AI 검증           |
-              |            |                    |
-              |     검증 통과?                   |
-              |            v                    |
-              |     자동 프로모션 ------------->
-```
-
-### 4.2 N개 환경 동시 배포 매트릭스
+### 2.1 SHA Pinning 규칙
 
 ```yaml
-# .github/workflows/multi-beta-deploy.yml
-name: Build & Multi-Beta Deploy
+# .github/workflows/ci.yml
+name: CI
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      target-envs:
-        description: '배포 대상 환경'
-        type: choice
-        options:
-          - dev-only
-          - dev-and-betas
-          - all
-        default: 'all'
-      beta-count:
-        description: '베타 환경 수'
-        type: number
-        default: 3
+  pull_request:
 
 permissions:
-  id-token: write
   contents: read
-
-env:
-  NODE_VERSION: '22'
-  PNPM_VERSION: '9'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    outputs:
-      artifact-id: ${{ steps.upload.outputs.artifact-id }}
-      build-hash: ${{ steps.hash.outputs.hash }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      # SHA pinning -- 태그 대신 전체 커밋 해시 사용
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-
-      - name: Compute build hash
-        id: hash
-        run: echo "hash=$(find dist -type f -exec sha256sum {} \; | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
-      - name: Upload build artifact
-        id: upload
-        uses: actions/upload-artifact@v4
+      - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          name: build-output-${{ github.sha }}
-          path: dist/
-          retention-days: 3
-
-  # 매트릭스 기반 N개 환경 동시 배포
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 5
-      matrix:
-        environment:
-          - dev
-          - beta-1
-          - beta-2
-          - beta-3
-          - staging
-          - production
-        exclude:
-          - environment: ${{ github.event.inputs.target-envs == 'dev-only' && 'beta-1' || 'none' }}
-          - environment: ${{ github.event.inputs.target-envs == 'dev-only' && 'beta-2' || 'none' }}
-          - environment: ${{ github.event.inputs.target-envs == 'dev-only' && 'beta-3' || 'none' }}
-          - environment: ${{ github.event.inputs.target-envs == 'dev-only' && 'staging' || 'none' }}
-          - environment: ${{ github.event.inputs.target-envs == 'dev-only' && 'production' || 'none' }}
-    environment:
-      name: ${{ matrix.environment }}
-      url: ${{ steps.deploy.outputs.url }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-output-${{ github.sha }}
-          path: dist/
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
-
-      - name: Inject runtime config
-        run: |
-          cat > dist/config.js << SCRIPT
-          window.__RUNTIME_CONFIG__ = {
-            API_URL: "${{ vars.API_URL }}",
-            ENV: "${{ matrix.environment }}",
-            BUILD_HASH: "${{ needs.build.outputs.build-hash }}",
-            FEATURE_FLAGS_ENDPOINT: "${{ vars.FF_ENDPOINT }}",
-            CDN_PROVIDER: "${{ vars.CDN_PROVIDER }}",
-          };
-          SCRIPT
-
-      - name: Deploy to ${{ matrix.environment }}
-        id: deploy
-        run: |
-          aws s3 sync dist/ s3://${{ vars.S3_BUCKET }}/ \
-            --delete \
-            --cache-control "public, max-age=31536000, immutable" \
-            --exclude "index.html" \
-            --exclude "config.js"
-
-          aws s3 cp dist/index.html s3://${{ vars.S3_BUCKET }}/index.html \
-            --cache-control "no-cache, no-store, must-revalidate"
-
-          aws s3 cp dist/config.js s3://${{ vars.S3_BUCKET }}/config.js \
-            --cache-control "no-cache, no-store, must-revalidate"
-
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/index.html" "/config.js"
-
-          echo "url=https://${{ vars.DOMAIN }}" >> $GITHUB_OUTPUT
-
-      - name: AI Health Check
-        run: |
-          npx ai-health-checker \
-            --url "https://${{ vars.DOMAIN }}" \
-            --checks "status,performance,console-errors,visual-regression" \
-            --threshold 0.95
-
-  # 매트릭스 배포 결과 집계
-  deploy-summary:
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Summarize deployment results
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const jobs = ${{ toJSON(needs.deploy) }};
-            let body = '## Multi-Beta Deployment Summary\n\n';
-            body += `| Environment | Status |\n|---|---|\n`;
-            // 매트릭스 결과를 집계하여 PR/커밋에 코멘트
-            body += `| Overall | ${jobs.result} |\n`;
-            console.log(body);
+          path: |
+            node_modules
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 ```
 
-### 4.3 동적 매트릭스 생성 (N개 환경 자동 구성)
+### 2.2 SHA 자동 갱신 (Renovate / Dependabot)
 
-```typescript
-// scripts/generate-deploy-matrix.ts
-interface BetaEnvironment {
-  name: string;
-  s3Bucket: string;
-  cfDistributionId: string;
-  domain: string;
-  apiUrl: string;
-  featureFlags: Record<string, boolean>;
-}
-
-async function generateDeployMatrix(
-  betaCount: number,
-  projectName: string,
-): Promise<BetaEnvironment[]> {
-  const environments: BetaEnvironment[] = [];
-
-  for (let i = 1; i <= betaCount; i++) {
-    environments.push({
-      name: `beta-${i}`,
-      s3Bucket: `${projectName}-beta-${i}`,
-      cfDistributionId: `CF_DIST_BETA_${i}`,
-      domain: `beta-${i}.${projectName}.example.com`,
-      apiUrl: `https://api-beta-${i}.${projectName}.example.com`,
-      featureFlags: {},
-    });
-  }
-
-  return environments;
-}
-
-// GitHub Actions에서 동적 매트릭스로 사용
-async function outputMatrix(): Promise<void> {
-  const envs = await generateDeployMatrix(
-    parseInt(process.env.BETA_COUNT ?? '3'),
-    process.env.PROJECT_NAME ?? 'app',
-  );
-
-  // GitHub Actions output으로 매트릭스 전달
-  const matrix = { include: envs.map((e) => ({ environment: e.name, ...e })) };
-  console.log(`matrix=${JSON.stringify(matrix)}`);
+```json5
+// renovate.json -- Actions SHA 자동 업데이트
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "commitMessagePrefix": "ci: ",
+      "groupName": "github-actions minor/patch"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["ci", "breaking"]
+    }
+  ]
 }
 ```
+
+### 2.3 SHA Pinning Lint (CI에서 강제)
 
 ```yaml
-# 동적 매트릭스 워크플로우
-jobs:
-  generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate dynamic matrix
-        id: matrix
-        run: |
-          MATRIX=$(npx tsx scripts/generate-deploy-matrix.ts)
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-        env:
-          BETA_COUNT: ${{ github.event.inputs.beta-count || '3' }}
-          PROJECT_NAME: my-app
+# .github/workflows/lint-actions.yml
+name: Lint Action Refs
 
-  deploy:
-    needs: [build, generate-matrix]
-    strategy:
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-    # ... 배포 스텝
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  check-sha-pinning:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      # uses: 라인에서 @sha가 아닌 @v* 태그 사용 시 실패
+      - name: Check SHA pinning
+        run: |
+          VIOLATIONS=$(grep -rn 'uses:.*@v[0-9]' .github/workflows/ || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Tag references detected. Use SHA pinning instead."
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "All action references use SHA pinning."
 ```
 
 ---
 
-## 5. PR별 Preview 자동 생성 (S3+CloudFront)
+## 3. Remote Cache -- Nx Cloud / Turborepo
 
-> PR이 열릴 때마다 독립된 S3 버킷 경로 + CloudFront Behavior를 동적으로 생성하고, PR 코멘트에 Preview URL을 자동으로 게시한다.
+모노레포에서 Remote Cache를 활용하면 이미 빌드된 태스크를 다른 CI 러너와 로컬 개발 환경에서 재사용할 수 있다. CI 시간을 50-80% 단축한다.
 
-### 5.1 S3+CloudFront 동적 프로비저닝 Preview
+### 3.1 Nx Cloud 설정
+
+```typescript
+// nx.json
+{
+  "nxCloudId": "TEAM_NX_CLOUD_ID",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx-cloud",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint", "e2e"],
+        "parallel": 4,
+        "useDaemonProcess": true
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
+      "cache": true
+    },
+    "test": {
+      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
+      "cache": true
+    },
+    "lint": {
+      "inputs": ["default", "{workspaceRoot}/.eslintrc.json", "{workspaceRoot}/eslint.config.mjs"],
+      "cache": true
+    }
+  }
+}
+```
 
 ```yaml
-# .github/workflows/pr-preview-s3-cf.yml
-name: PR Preview (S3 + CloudFront)
+# .github/workflows/ci-nx.yml -- Nx Cloud + affected 명령어
+name: CI (Nx Cloud)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  NX_BRANCH: ${{ github.event.pull_request.number || github.ref_name }}
+
+jobs:
+  main:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+
+      # SHAs 설정 -- affected 범위 계산에 사용
+      - uses: nrwl/nx-set-shas@e2e59b8eb7383c8a80e45134a48ed35a1f2e1fea # v4.3.0
+
+      # affected 프로젝트만 lint/test/build
+      - run: npx nx affected -t lint test build --parallel=4
+```
+
+### 3.2 Turborepo Remote Cache 설정
+
+```json5
+// turbo.json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "ui": "stream",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tsconfig.json", "package.json"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tests/**", "vitest.config.*"],
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "lint": {
+      "inputs": ["src/**", "eslint.config.*"],
+      "outputs": [],
+      "cache": true
+    }
+  }
+}
+```
+
+```yaml
+# .github/workflows/ci-turbo.yml
+name: CI (Turborepo)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+
+      # --filter로 변경된 패키지만 빌드 (Remote Cache 자동 활용)
+      - run: npx turbo run lint test build --filter='...[origin/main]'
+```
+
+---
+
+## 4. Reusable Workflow -- N개 환경 동시 배포
+
+하나의 Reusable Workflow를 정의하고, 매트릭스로 dev/staging/beta-1/beta-2/production 등 N개 환경에 동시 배포한다.
+
+### 4.1 Reusable Workflow 정의
+
+```yaml
+# .github/workflows/reusable-deploy.yml
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: '배포 대상 환경 (dev, staging, beta-1, beta-2, production)'
+      ref:
+        required: true
+        type: string
+        description: '배포할 Git ref (branch, tag, SHA)'
+      skip-smoke-test:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      AWS_ROLE_ARN:
+        required: true
+      DEPLOY_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write   # OIDC
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment }}
+      url: https://${{ inputs.environment }}.example.com
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false   # 배포는 취소하지 않음
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      # OIDC로 AWS 인증 (장기 키 사용 안 함)
+      - uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+
+      - name: Build with environment config
+        run: npm run build
+        env:
+          DEPLOY_ENV: ${{ inputs.environment }}
+
+      - name: Deploy to ${{ inputs.environment }}
+        run: |
+          npx cdk deploy --require-approval never \
+            --context env=${{ inputs.environment }}
+
+      - name: Smoke test
+        if: ${{ !inputs.skip-smoke-test }}
+        run: |
+          npx wait-on https://${{ inputs.environment }}.example.com --timeout 60000
+          npx playwright test tests/smoke/ --project=chromium
+        env:
+          BASE_URL: https://${{ inputs.environment }}.example.com
+```
+
+### 4.2 N개 환경 동시 호출
+
+```yaml
+# .github/workflows/deploy-multi.yml
+name: Multi-Environment Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environments:
+        description: '배포 환경 (콤마 구분: dev,staging,beta-1,beta-2,production)'
+        required: true
+        default: 'dev,staging'
+
+permissions:
+  contents: read
+
+jobs:
+  # 동적 매트릭스 생성
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ENVS='["dev","staging","beta-1","beta-2","production"]'
+          else
+            INPUT="${{ github.event.inputs.environments }}"
+            ENVS=$(echo "$INPUT" | jq -Rc 'split(",")')
+          fi
+          echo "matrix={\"environment\":$ENVS}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: prepare
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      fail-fast: false   # 한 환경 실패해도 나머지 계속
+      max-parallel: 3
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: ${{ matrix.environment }}
+      ref: ${{ github.sha }}
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets[format('AWS_ROLE_ARN_{0}', matrix.environment)] }}
+      DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+  # 전체 배포 완료 후 통합 알림
+  notify:
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summary
+        run: |
+          echo "## Deploy Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environment | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ref: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+```
+
+---
+
+## 5. Preview 자동 생성 + Lighthouse 비교
+
+PR마다 Preview 환경을 자동 생성하고, Lighthouse 점수를 main 브랜치와 비교하여 PR 코멘트로 남긴다.
+
+### 5.1 Preview 배포 + Lighthouse CI
+
+```yaml
+# .github/workflows/preview.yml
+name: Preview + Lighthouse
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
 
 permissions:
-  id-token: write
   contents: read
   pull-requests: write
+  id-token: write
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-env:
-  NODE_VERSION: '22'
-  PNPM_VERSION: '9'
-  PREVIEW_BUCKET: my-app-previews
-  CF_DISTRIBUTION_ID: ${{ vars.PREVIEW_CF_DISTRIBUTION_ID }}
-
 jobs:
-  deploy-preview:
-    if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    environment:
-      name: preview
-      url: ${{ steps.deploy.outputs.preview_url }}
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      preview-url: ${{ steps.deploy.outputs.url }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: npm ci --prefer-offline
+
+      - name: Build
+        run: npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: /pr-${{ github.event.pull_request.number }}
+          DEPLOY_ENV: preview
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
 
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      # S3 + CloudFront로 Preview 배포
+      - uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
-          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
           aws-region: ap-northeast-2
 
-      - name: Deploy to S3 (PR prefix)
-        id: deploy
+      - id: deploy
+        name: Deploy Preview
         run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-          PREFIX="pr-${PR_NUM}"
-
-          # PR별 S3 경로에 업로드
-          aws s3 sync dist/ "s3://${PREVIEW_BUCKET}/${PREFIX}/" \
-            --delete \
-            --cache-control "public, max-age=300"
-
-          # CloudFront 캐시 무효화
+          BUCKET="preview-${{ github.repository_owner }}"
+          PREFIX="pr-${{ github.event.pull_request.number }}"
+          aws s3 sync dist/ "s3://${BUCKET}/${PREFIX}/" --delete
           aws cloudfront create-invalidation \
-            --distribution-id "${CF_DISTRIBUTION_ID}" \
+            --distribution-id "${{ secrets.PREVIEW_CF_ID }}" \
             --paths "/${PREFIX}/*"
+          URL="https://preview.example.com/${PREFIX}/"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
 
-          PREVIEW_URL="https://preview.example.com/${PREFIX}/"
-          echo "preview_url=${PREVIEW_URL}" >> $GITHUB_OUTPUT
+  lighthouse:
+    needs: preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Comment PR with Preview URL
-        uses: actions/github-script@v7
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+
+      # PR Preview에 Lighthouse 실행
+      - name: Lighthouse -- PR
+        run: |
+          npx @lhci/cli collect \
+            --url="${{ needs.preview.outputs.preview-url }}" \
+            --numberOfRuns=3 \
+            --settings.preset=desktop
+          npx @lhci/cli upload \
+            --target=filesystem \
+            --outputDir=./lhci-pr
+
+      # main(Production)에 Lighthouse 실행
+      - name: Lighthouse -- Production
+        run: |
+          npx @lhci/cli collect \
+            --url="https://www.example.com" \
+            --numberOfRuns=3 \
+            --settings.preset=desktop
+          npx @lhci/cli upload \
+            --target=filesystem \
+            --outputDir=./lhci-prod
+
+      # 점수 비교 및 PR 코멘트
+      - name: Compare & Comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const prNumber = context.issue.number;
-            const url = '${{ steps.deploy.outputs.preview_url }}';
-            const sha = context.sha.slice(0, 7);
-            const body = [
-              '## Preview Deployment',
-              '',
-              `| Item | Value |`,
-              `|------|-------|`,
-              `| URL | [${url}](${url}) |`,
-              `| Commit | \`${sha}\` |`,
-              `| Status | Deployed |`,
-              '',
-              '_Preview는 PR이 닫히면 자동으로 정리됩니다._',
-            ].join('\n');
+            const fs = require('fs');
+
+            function readScores(dir) {
+              const manifest = JSON.parse(
+                fs.readFileSync(`${dir}/manifest.json`, 'utf8')
+              );
+              const results = manifest.map((entry) => {
+                const lhr = JSON.parse(fs.readFileSync(entry.jsonPath, 'utf8'));
+                return {
+                  performance: lhr.categories.performance.score * 100,
+                  accessibility: lhr.categories.accessibility.score * 100,
+                  bestPractices: lhr.categories['best-practices'].score * 100,
+                  seo: lhr.categories.seo.score * 100,
+                };
+              });
+              // 중앙값 반환
+              const mid = Math.floor(results.length / 2);
+              return Object.fromEntries(
+                Object.keys(results[0]).map((key) => {
+                  const sorted = results.map((r) => r[key]).sort((a, b) => a - b);
+                  return [key, sorted[mid]];
+                })
+              );
+            }
+
+            const pr = readScores('./lhci-pr');
+            const prod = readScores('./lhci-prod');
+            const delta = (key) => {
+              const diff = pr[key] - prod[key];
+              const sign = diff >= 0 ? '+' : '';
+              const emoji = diff >= 0 ? ':white_check_mark:' : ':warning:';
+              return `${emoji} ${sign}${diff.toFixed(0)}`;
+            };
+
+            const body = `## Lighthouse Comparison
+
+            | Category | Production | PR Preview | Delta |
+            | --- | --- | --- | --- |
+            | Performance | ${prod.performance} | ${pr.performance} | ${delta('performance')} |
+            | Accessibility | ${prod.accessibility} | ${pr.accessibility} | ${delta('accessibility')} |
+            | Best Practices | ${prod.bestPractices} | ${pr.bestPractices} | ${delta('bestPractices')} |
+            | SEO | ${prod.seo} | ${pr.seo} | ${delta('seo')} |
+
+            Preview: ${{ needs.preview.outputs.preview-url }}`.replace(/^            /gm, '');
 
             const { data: comments } = await github.rest.issues.listComments({
-              ...context.repo,
-              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
             });
-            const existing = comments.find(c =>
-              c.body?.includes('Preview Deployment') &&
-              c.user?.login === 'github-actions[bot]'
+            const existing = comments.find(
+              (c) => c.user.type === 'Bot' && c.body.includes('Lighthouse Comparison')
             );
 
             if (existing) {
               await github.rest.issues.updateComment({
-                ...context.repo,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
                 comment_id: existing.id,
                 body,
               });
             } else {
               await github.rest.issues.createComment({
-                ...context.repo,
-                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
                 body,
               });
             }
 
-  cleanup-preview:
+  # PR 닫힐 때 Preview 정리
+  cleanup:
     if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
-          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
           aws-region: ap-northeast-2
 
-      - name: Delete preview from S3
-        run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-          aws s3 rm "s3://${PREVIEW_BUCKET}/pr-${PR_NUM}/" --recursive
-
-          aws cloudfront create-invalidation \
-            --distribution-id "${CF_DISTRIBUTION_ID}" \
-            --paths "/pr-${PR_NUM}/*"
-
-      - name: Comment PR cleanup
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              ...context.repo,
-              issue_number: context.issue.number,
-              body: '## Preview Deployment\n\nPreview 환경이 정리되었습니다.',
-            });
-```
-
-### 5.2 CloudFront Behavior 동적 생성 (CDK)
-
-```typescript
-// infra/preview-cloudfront.ts
-import * as cdk from 'aws-cdk-lib';
-import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
-import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { Construct } from 'constructs';
-
-interface PreviewCloudfrontProps extends cdk.StackProps {
-  previewBucket: s3.IBucket;
-  maxPreviews: number;
-}
-
-export class PreviewCloudfrontStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: PreviewCloudfrontProps) {
-    super(scope, id, props);
-
-    // PR 경로를 라우팅하는 CloudFront Function
-    const routerFunction = new cloudfront.Function(this, 'PreviewRouter', {
-      code: cloudfront.FunctionCode.fromInline(`
-        function handler(event) {
-          var request = event.request;
-          var uri = request.uri;
-
-          // /pr-{number}/ 패턴 매칭
-          var match = uri.match(/^\\/pr-(\\d+)(\\/.*)?$/);
-          if (match) {
-            var prNum = match[1];
-            var path = match[2] || '/index.html';
-            if (path === '/' || !path.includes('.')) {
-              path = '/index.html';
-            }
-            request.uri = '/pr-' + prNum + path;
-          }
-          return request;
-        }
-      `),
-    });
-
-    // 단일 Distribution으로 N개 Preview 서빙
-    new cloudfront.Distribution(this, 'PreviewDistribution', {
-      defaultBehavior: {
-        origin: origins.S3BucketOrigin.withOriginAccessControl(props.previewBucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: new cloudfront.CachePolicy(this, 'PreviewCachePolicy', {
-          defaultTtl: cdk.Duration.minutes(5),
-          maxTtl: cdk.Duration.hours(1),
-          enableAcceptEncodingGzip: true,
-          enableAcceptEncodingBrotli: true,
-        }),
-        functionAssociations: [{
-          function: routerFunction,
-          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-        }],
-      },
-      defaultRootObject: 'index.html',
-      errorResponses: [{
-        httpStatus: 404,
-        responseHttpStatus: 200,
-        responsePagePath: '/index.html',
-        ttl: cdk.Duration.minutes(1),
-      }],
-    });
-  }
-}
+      - run: |
+          aws s3 rm "s3://preview-${{ github.repository_owner }}/pr-${{ github.event.pull_request.number }}/" --recursive
 ```
 
 ---
 
-## 6. 모노레포 앱별 선별 빌드/배포
+## 6. Supply Chain Security -- Sigstore / SLSA / npm provenance
 
-> 모노레포에서 변경된 패키지(affected)만 감지하여 빌드/배포한다. 공유 패키지 변경 시 의존하는 모든 앱을 자동으로 빌드한다.
+소프트웨어 공급망 보안을 위한 3중 방어 체계를 구축한다.
 
-### 6.1 Affected 감지 + 선별 빌드
+### 6.1 Sigstore 서명 (컨테이너 이미지)
 
 ```yaml
-# .github/workflows/monorepo-affected.yml
-name: Monorepo Affected Build & Deploy
+# .github/workflows/sign-image.yml
+name: Build, Push & Sign Container Image
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write   # Sigstore OIDC
+
+jobs:
+  build-sign:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+
+      - id: build-push
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249420afd # v6.10.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      # Keyless 서명 (Sigstore Fulcio + Rekor)
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+
+      # 서명 검증 (CI에서 검증 가능 확인)
+      - name: Verify signature
+        run: |
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}
+```
+
+### 6.2 SLSA Provenance (빌드 출처 증명)
+
+```yaml
+# .github/workflows/slsa-provenance.yml
+name: SLSA Build Provenance
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      digest: ${{ steps.hash.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+      - run: npm run build
+
+      # 빌드 아티팩트 해시 생성
+      - id: hash
+        name: Generate artifact hash
+        run: |
+          DIGEST=$(sha256sum dist/app.zip | cut -d' ' -f1)
+          echo "digest=sha256:${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@ea165f8d65b6db9b8a1f7c0b7b2fe98ca28edf28 # v4.6.0
+        with:
+          name: build-artifact
+          path: dist/app.zip
+
+      # GitHub Attestation (SLSA Level 3)
+      - uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184b89e6d0e87 # v1.4.4
+        with:
+          subject-name: ${{ github.repository }}-app
+          subject-digest: ${{ steps.hash.outputs.digest }}
+```
+
+### 6.3 npm provenance (패키지 출처 증명)
+
+```yaml
+# .github/workflows/npm-publish.yml
+name: Publish to npm with Provenance
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write   # npm provenance에 필요
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci --prefer-offline
+      - run: npm run build
+
+      # --provenance 플래그로 SLSA provenance 자동 첨부
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
+### 6.4 SBOM 생성 + 취약점 자동 스캔
+
+```yaml
+# .github/workflows/sbom.yml
+name: SBOM & Vulnerability Scan
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
-
-env:
-  NODE_VERSION: '22'
-  PNPM_VERSION: '9'
-
-jobs:
-  detect-affected:
-    runs-on: ubuntu-latest
-    outputs:
-      affected-apps: ${{ steps.affected.outputs.apps }}
-      affected-count: ${{ steps.affected.outputs.count }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Detect affected packages
-        id: affected
-        run: |
-          # Turborepo dry-run으로 affected 패키지 감지
-          AFFECTED=$(pnpm turbo build --dry-run=json --filter='...[origin/main]' \
-            | jq -r '[.packages[] | select(. != "//") ] | unique')
-
-          echo "apps=${AFFECTED}" >> $GITHUB_OUTPUT
-          echo "count=$(echo $AFFECTED | jq length)" >> $GITHUB_OUTPUT
-          echo "Affected packages: ${AFFECTED}"
-
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            web:
-              - 'apps/web/**'
-              - 'packages/shared/**'
-              - 'packages/ui/**'
-            admin:
-              - 'apps/admin/**'
-              - 'packages/shared/**'
-            docs:
-              - 'apps/docs/**'
-            storybook:
-              - 'packages/ui/**'
-
-  build-deploy:
-    needs: detect-affected
-    if: needs.detect-affected.outputs.affected-count != '0'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJson(needs.detect-affected.outputs.affected-apps) }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build affected app
-        run: pnpm turbo build --filter=${{ matrix.app }}
-
-      - name: Deploy ${{ matrix.app }}
-        if: github.ref == 'refs/heads/main'
-        run: |
-          # 앱별 배포 타겟 매핑
-          case "${{ matrix.app }}" in
-            web)    BUCKET="${{ vars.WEB_S3_BUCKET }}" ;;
-            admin)  BUCKET="${{ vars.ADMIN_S3_BUCKET }}" ;;
-            docs)   BUCKET="${{ vars.DOCS_S3_BUCKET }}" ;;
-          esac
-
-          aws s3 sync "apps/${{ matrix.app }}/dist/" "s3://${BUCKET}/" --delete
-```
-
-### 6.2 Affected 감지 유틸리티
-
-```typescript
-// scripts/detect-affected.ts
-interface PackageInfo {
-  name: string;
-  path: string;
-  dependencies: string[];
-  deployConfig: {
-    s3Bucket: string;
-    cfDistributionId: string;
-    environments: string[];
-  };
-}
-
-interface AffectedResult {
-  directlyChanged: string[];
-  transitivelyAffected: string[];
-  allAffected: string[];
-  deployMatrix: Array<{ app: string; environment: string }>;
-}
-
-function detectAffected(
-  changedFiles: string[],
-  packages: PackageInfo[],
-): AffectedResult {
-  const directlyChanged: Set<string> = new Set();
-  const transitivelyAffected: Set<string> = new Set();
-
-  // 1. 직접 변경된 패키지 감지
-  for (const file of changedFiles) {
-    for (const pkg of packages) {
-      if (file.startsWith(pkg.path)) {
-        directlyChanged.add(pkg.name);
-      }
-    }
-  }
-
-  // 2. 의존성 그래프를 따라 전이적으로 영향받는 패키지 감지
-  const dependencyGraph = buildReverseDependencyGraph(packages);
-  const queue = [...directlyChanged];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const dependents = dependencyGraph.get(current) ?? [];
-    for (const dep of dependents) {
-      if (!directlyChanged.has(dep) && !transitivelyAffected.has(dep)) {
-        transitivelyAffected.add(dep);
-        queue.push(dep);
-      }
-    }
-  }
-
-  const allAffected = [...directlyChanged, ...transitivelyAffected];
-
-  // 3. 배포 매트릭스 생성 (앱 x 환경)
-  const deployMatrix = allAffected.flatMap((app) => {
-    const pkg = packages.find((p) => p.name === app);
-    return (pkg?.deployConfig.environments ?? []).map((env) => ({
-      app,
-      environment: env,
-    }));
-  });
-
-  return {
-    directlyChanged: [...directlyChanged],
-    transitivelyAffected: [...transitivelyAffected],
-    allAffected,
-    deployMatrix,
-  };
-}
-
-function buildReverseDependencyGraph(
-  packages: PackageInfo[],
-): Map<string, string[]> {
-  const graph = new Map<string, string[]>();
-  for (const pkg of packages) {
-    for (const dep of pkg.dependencies) {
-      const existing = graph.get(dep) ?? [];
-      existing.push(pkg.name);
-      graph.set(dep, existing);
-    }
-  }
-  return graph;
-}
-```
-
----
-
-## 7. 멀티 CDN 동시 배포
-
-> CloudFront, Cloudflare, Fastly에 동시 배포하여 가용성을 극대화하고, DNS 기반 Failover로 장애 시 자동 전환한다.
-
-### 7.1 멀티 CDN 동시 배포 워크플로우
-
-```yaml
-# .github/workflows/multi-cdn-deploy.yml
-name: Multi-CDN Simultaneous Deploy
-
-on:
-  workflow_call:
-    inputs:
-      build-artifact:
-        required: true
-        type: string
-      environment:
-        required: true
-        type: string
-
-jobs:
-  deploy-all-cdns:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cdn:
-          - name: cloudfront
-            provider: aws
-          - name: cloudflare
-            provider: cloudflare
-          - name: fastly
-            provider: fastly
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.build-artifact }}
-          path: dist/
-
-      # CloudFront 배포
-      - name: Deploy to CloudFront
-        if: matrix.cdn.name == 'cloudfront'
-        run: |
-          aws s3 sync dist/ s3://${{ vars.CF_S3_BUCKET }}/ --delete
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
-            --paths "/*"
-
-      # Cloudflare Pages 배포
-      - name: Deploy to Cloudflare
-        if: matrix.cdn.name == 'cloudflare'
-        run: |
-          npx wrangler pages deploy dist/ \
-            --project-name=${{ vars.CLOUDFLARE_PROJECT }} \
-            --branch=${{ inputs.environment }}
-
-      # Fastly 배포
-      - name: Deploy to Fastly
-        if: matrix.cdn.name == 'fastly'
-        run: |
-          # Fastly Compute@Edge 또는 S3 Origin 배포
-          aws s3 sync dist/ s3://${{ vars.FASTLY_ORIGIN_BUCKET }}/ --delete
-          curl -X POST "https://api.fastly.com/service/${{ vars.FASTLY_SERVICE_ID }}/purge_all" \
-            -H "Fastly-Key: ${{ secrets.FASTLY_API_TOKEN }}"
-
-      - name: Health Check
-        run: |
-          case "${{ matrix.cdn.name }}" in
-            cloudfront)  URL="${{ vars.CLOUDFRONT_URL }}" ;;
-            cloudflare)  URL="${{ vars.CLOUDFLARE_URL }}" ;;
-            fastly)      URL="${{ vars.FASTLY_URL }}" ;;
-          esac
-
-          for i in {1..5}; do
-            STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
-            if [ "$STATUS" = "200" ]; then
-              echo "Health check passed for ${{ matrix.cdn.name }}"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Health check failed for ${{ matrix.cdn.name }}"
-          exit 1
-```
-
-### 7.2 멀티 CDN 오케스트레이터
-
-```typescript
-// multi-cdn-orchestrator.ts
-interface CDNProvider {
-  name: string;
-  endpoint: string;
-  healthCheckUrl: string;
-  weight: number;
-  priority: number;
-  region: string;
-}
-
-interface MultiCDNConfig {
-  providers: CDNProvider[];
-  failoverStrategy: 'active-passive' | 'active-active' | 'latency-based';
-  healthCheck: {
-    intervalSeconds: number;
-    thresholdCount: number;
-    timeoutSeconds: number;
-  };
-  syncValidation: {
-    enabled: boolean;
-    checksumVerification: boolean;
-    contentSampling: boolean;
-  };
-}
-
-const multiCDNConfig: MultiCDNConfig = {
-  providers: [
-    {
-      name: 'cloudfront',
-      endpoint: 'dxxx.cloudfront.net',
-      healthCheckUrl: 'https://dxxx.cloudfront.net/health',
-      weight: 60,
-      priority: 1,
-      region: 'global',
-    },
-    {
-      name: 'cloudflare',
-      endpoint: 'app.pages.dev',
-      healthCheckUrl: 'https://app.pages.dev/health',
-      weight: 30,
-      priority: 2,
-      region: 'global',
-    },
-    {
-      name: 'fastly',
-      endpoint: 'app.global.ssl.fastly.net',
-      healthCheckUrl: 'https://app.global.ssl.fastly.net/health',
-      weight: 10,
-      priority: 3,
-      region: 'global',
-    },
-  ],
-  failoverStrategy: 'active-active',
-  healthCheck: {
-    intervalSeconds: 30,
-    thresholdCount: 3,
-    timeoutSeconds: 5,
-  },
-  syncValidation: {
-    enabled: true,
-    checksumVerification: true,
-    contentSampling: true,
-  },
-};
-
-async function validateMultiCDNSync(
-  config: MultiCDNConfig,
-  samplePaths: string[],
-): Promise<SyncValidationResult> {
-  const results: Map<string, Map<string, string>> = new Map();
-
-  for (const path of samplePaths) {
-    const checksums = new Map<string, string>();
-    for (const provider of config.providers) {
-      const response = await fetch(`https://${provider.endpoint}${path}`);
-      const body = await response.text();
-      checksums.set(provider.name, hashContent(body));
-    }
-    results.set(path, checksums);
-  }
-
-  // 모든 CDN의 콘텐츠가 동일한지 검증
-  const outOfSync = [...results.entries()].filter(([, checksums]) => {
-    const values = [...checksums.values()];
-    return new Set(values).size > 1;
-  });
-
-  return {
-    inSync: outOfSync.length === 0,
-    outOfSyncPaths: outOfSync.map(([path]) => path),
-    details: Object.fromEntries(results),
-  };
-}
-```
-
----
-
-## 8. 보안 파이프라인 (SAST/DAST/SCA, SBOM)
-
-### 8.1 통합 보안 스캔 워크플로우
-
-```yaml
-# .github/workflows/security-pipeline.yml
-name: Security Pipeline
-
-on:
-  pull_request:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: '0 6 * * 1'  # 매주 월요일 06:00 UTC
 
 permissions:
   contents: read
   security-events: write
 
 jobs:
-  sast:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-
-      - uses: github/codeql-action/analyze@v3
-
-      - name: Semgrep SAST
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/typescript
-            p/react
-            p/nextjs
-            p/owasp-top-ten
-
-  sca:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Dependency Review (PR only)
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          deny-licenses: GPL-3.0, AGPL-3.0
-
-      - name: Trivy Vulnerability Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-
   sbom:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Generate SBOM (CycloneDX)
-        run: |
-          npx @cyclonedx/cyclonedx-npm --output-file sbom.json --spec-version 1.5
+      # SBOM 생성 (CycloneDX 형식)
+      - name: Generate SBOM
+        run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json
 
-      - uses: actions/upload-artifact@v4
+      # Grype로 취약점 스캔
+      - uses: anchore/scan-action@2c901ab7378897c01b8efaa2d0c9bf519cc64b9e # v5.3.0
+        id: scan
+        with:
+          sbom: sbom.json
+          fail-build: true
+          severity-cutoff: high
+
+      # 결과를 GitHub Security 탭에 업로드
+      - uses: github/codeql-action/upload-sarif@4dd16135b69cb9d56b0d6f37f0c559cee5a2ef00 # v3.28.0
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+
+      - uses: actions/upload-artifact@ea165f8d65b6db9b8a1f7c0b7b2fe98ca28edf28 # v4.6.0
         with:
           name: sbom
           path: sbom.json
@@ -1413,213 +1091,221 @@ jobs:
 
 ---
 
-## 9. CI 메트릭스 -- DORA 4 Key Metrics
+## 7. CI 비용 최적화 -- Larger Runners vs Self-hosted
 
-| 지표 | 측정 방법 | 목표 |
-|------|----------|------|
-| **배포 빈도** | main 브랜치 배포 횟수/주 | 일 1회 이상 |
-| **변경 리드 타임** | 커밋 -> 프로덕션 배포 소요 시간 | 1시간 이내 |
-| **변경 실패율** | 롤백 또는 핫픽스 비율 | 5% 미만 |
-| **복구 시간** | 장애 감지 -> 복구 완료 시간 | 30분 이내 |
+### 7.1 러너 타입별 비용 비교 (2026 기준)
 
-```typescript
-// dora-metrics-collector.ts
-interface DORAMetrics {
-  deploymentFrequency: {
-    deploysPerWeek: number;
-    trend: 'improving' | 'stable' | 'declining';
-  };
-  leadTimeForChanges: {
-    avgMinutes: number;
-    p50Minutes: number;
-    p95Minutes: number;
-  };
-  changeFailureRate: {
-    percentage: number;
-    rollbackCount: number;
-    hotfixCount: number;
-  };
-  timeToRestore: {
-    avgMinutes: number;
-    incidentCount: number;
-  };
+| 러너 타입 | vCPU | RAM | 분당 단가 (USD) | 적합한 용도 |
+| --- | --- | --- | --- | --- |
+| `ubuntu-latest` (GitHub 제공) | 4 | 16 GB | $0.008 | 일반 CI |
+| `ubuntu-24.04-16core` (Larger) | 16 | 64 GB | $0.064 | 대형 빌드, E2E |
+| `ubuntu-24.04-32core` (Larger) | 32 | 128 GB | $0.128 | 모노레포 전체 빌드 |
+| Self-hosted (ARM64 Graviton) | 16 | 32 GB | ~$0.02* | 상시 CI, 커스텀 도구 |
+| Self-hosted (Spot ARM64) | 16 | 32 GB | ~$0.008* | 비핵심 태스크 |
+
+*Self-hosted 단가는 EC2 비용 기준 추정치. 관리 비용 별도.
+
+### 7.2 비용 최적화 전략 워크플로우
+
+```yaml
+# .github/workflows/cost-optimized-ci.yml
+name: Cost-Optimized CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # 빠른 체크 -- 기본 러너 (저비용)
+  quick-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+      - run: npm run typecheck
+      - run: npm run lint
+
+  # 유닛 테스트 -- 기본 러너 (저비용)
+  unit-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+      - run: npm run test -- --shard=${{ strategy.job-index + 1 }}/${{ strategy.job-total }}
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+
+  # E2E 테스트 -- Larger Runner (고비용이지만 빠름)
+  e2e-test:
+    needs: [quick-checks]
+    runs-on: ubuntu-24.04-16core  # Larger Runner
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+      - run: npx playwright install --with-deps chromium
+
+      - name: E2E Tests (parallel on 16 cores)
+        run: npx playwright test --workers=8
+
+      - uses: actions/upload-artifact@ea165f8d65b6db9b8a1f7c0b7b2fe98ca28edf28 # v4.6.0
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # 빌드 -- 조건부 러너 선택
+  build:
+    needs: [quick-checks]
+    runs-on: ${{ github.ref == 'refs/heads/main' && 'ubuntu-24.04-16core' || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci --prefer-offline
+      - run: npm run build
+
+      - uses: actions/upload-artifact@ea165f8d65b6db9b8a1f7c0b7b2fe98ca28edf28 # v4.6.0
+        with:
+          name: build-output
+          path: dist/
+          retention-days: 3
+```
+
+### 7.3 Self-hosted Runner 구성 (Terraform)
+
+```hcl
+# infra/ci-runners/main.tf
+module "github_runner" {
+  source  = "philips-labs/github-runner/aws"
+  version = "~> 6.0"
+
+  # Graviton ARM64 -- x86 대비 비용 40% 절감, 성능 동등
+  instance_types = ["m7g.4xlarge"]  # 16 vCPU, 64 GB
+  ami_filter = {
+    name = ["ubuntu/images/hvm-ssd-gp3/ubuntu-*-24.04-arm64-server-*"]
+  }
+
+  # Spot 인스턴스로 추가 60-70% 절감
+  market_options = {
+    market_type = "spot"
+    spot_options = {
+      max_price = "0.25"  # On-demand 대비 상한
+    }
+  }
+
+  runners_maximum_count = 10
+  runners_minimum_count = 1   # warm pool
+  scale_down_schedule    = "cron(0 20 ? * MON-FRI *)"  # 퇴근 후 축소
+  scale_up_schedule      = "cron(0 8 ? * MON-FRI *)"   # 출근 시 확장
+
+  # Runner 라벨
+  runner_extra_labels = ["self-hosted", "arm64", "spot"]
+
+  # 캐시용 EBS 볼륨
+  block_device_mappings = [{
+    device_name = "/dev/sda1"
+    ebs = {
+      volume_size = 100
+      volume_type = "gp3"
+      iops        = 6000
+      throughput  = 400
+    }
+  }]
 }
-
-async function collectDORAMetrics(
-  period: { start: Date; end: Date },
-): Promise<DORAMetrics> {
-  const deployments = await getDeploymentHistory(period);
-  const incidents = await getIncidentHistory(period);
-  const commits = await getCommitHistory(period);
-
-  return {
-    deploymentFrequency: {
-      deploysPerWeek: calculateDeploysPerWeek(deployments, period),
-      trend: determineTrend(deployments),
-    },
-    leadTimeForChanges: {
-      avgMinutes: calculateAvgLeadTime(commits, deployments),
-      p50Minutes: calculatePercentileLeadTime(commits, deployments, 50),
-      p95Minutes: calculatePercentileLeadTime(commits, deployments, 95),
-    },
-    changeFailureRate: {
-      percentage: calculateFailureRate(deployments),
-      rollbackCount: deployments.filter((d) => d.rolledBack).length,
-      hotfixCount: deployments.filter((d) => d.isHotfix).length,
-    },
-    timeToRestore: {
-      avgMinutes: calculateAvgRestoreTime(incidents),
-      incidentCount: incidents.length,
-    },
-  };
-}
 ```
 
 ---
 
-## 10. AI 프롬프트 모음
+## 8. 종합 체크리스트
 
-### 프롬프트 1: CI 파이프라인 병목 분석 + 멀티 베타 최적화
+### Actions & Workflow
 
-```text
-우리 CI 파이프라인의 최근 빌드 로그를 분석하고 멀티 베타 환경 최적화를 제안해줘.
+- [ ] 모든 third-party actions에 SHA pinning 적용 (태그 참조 금지)
+- [ ] Renovate 또는 Dependabot으로 SHA 자동 갱신 설정
+- [ ] `permissions`를 job 레벨에서 최소 권한으로 명시
+- [ ] `timeout-minutes`를 모든 job에 명시
+- [ ] `concurrency` 설정으로 중복 실행 방지
+- [ ] `persist-credentials: false`를 checkout에 명시
 
-## 현재 상황
-- 평균 CI 시간: 18분 (목표: 8분 이내)
-- 테스트 단계: 12분 (전체의 67%)
-- 빌드 단계: 4분
-- 린트/타입체크: 2분
-- 멀티 베타 배포: 5개 환경 순차 배포 중
+### Remote Cache
 
-## 요청
-1. 테스트 병렬화 전략 (GitHub Actions matrix 활용)
-2. 변경 영향 범위 기반 테스트 선별 실행 방안
-3. 빌드 캐시 최적화 (node_modules, turbo cache)
-4. 멀티 베타 배포 매트릭스 병렬화 전략
-5. 각 최적화 적용 시 예상 시간 절감량
-```
+- [ ] Nx Cloud 또는 Turborepo Remote Cache 연동
+- [ ] `affected` / `filter` 명령어로 변경분만 빌드
+- [ ] cache hit rate 80% 이상 달성 여부 모니터링
 
-### 프롬프트 2: 플레이키 테스트 근본 원인 분석
+### 멀티 환경 배포
 
-```text
-아래 테스트가 간헐적으로 실패한다. 근본 원인을 분석하고 수정 방안을 제안해줘.
+- [ ] Reusable Workflow로 N개 환경 매트릭스 배포 구성
+- [ ] 환경별 GitHub Environment + 승인 규칙 설정
+- [ ] OIDC 인증 사용 (장기 시크릿 키 금지)
+- [ ] fail-fast: false로 한 환경 실패 시 나머지 계속 배포
 
-## 테스트 정보
-- 파일: src/components/DataTable.test.tsx
-- 테스트명: "정렬 버튼 클릭 시 데이터가 정렬된다"
-- 최근 30일: 성공 47회 / 실패 8회
+### Preview & Lighthouse
 
-## 실패 시 에러
-- "Unable to find element with text: 가나다순"
-- 주로 CI 환경에서 실패, 로컬에서는 재현 어려움
-- 멀티 베타 환경 중 beta-2에서만 집중적으로 실패
+- [ ] PR별 Preview 환경 자동 생성
+- [ ] PR 닫힘 시 Preview 자동 정리
+- [ ] Lighthouse 점수 main 대비 비교, PR 코멘트 자동 게시
+- [ ] Performance 점수 하락 시 경고 또는 블로킹 설정
 
-## 분석 요청
-1. 비동기 상태 업데이트 누락 여부
-2. waitFor/findByText 사용 필요 여부
-3. 환경별 차이 (beta-2 특이 사항) 분석
-4. 수정된 테스트 코드 제공
-```
+### Supply Chain Security
 
-### 프롬프트 3: GitHub Actions 매트릭스 전략 최적화
+- [ ] 컨테이너 이미지 Sigstore(Cosign) keyless 서명
+- [ ] SLSA Provenance 생성 및 GitHub Attestation 활용
+- [ ] npm publish 시 `--provenance` 플래그 사용
+- [ ] SBOM(CycloneDX) 생성 및 Grype 취약점 스캔
+- [ ] 주간 정기 스캔 스케줄 설정
 
-```text
-멀티 베타 환경 배포를 위한 GitHub Actions 매트릭스 전략을 최적화해줘.
+### CI 비용
 
-## 현재 구성
-- 5개 베타 환경 (beta-1 ~ beta-5)
-- 3개 CDN (CloudFront, Cloudflare, Fastly)
-- 모노레포 3개 앱 (web, admin, docs)
-- 총 매트릭스: 5 x 3 x 3 = 45 조합
+- [ ] 러너 타입별 비용 대비 성능 분석 완료
+- [ ] Lint/Typecheck는 기본 러너, E2E/빌드는 Larger Runner 분리
+- [ ] main 브랜치만 Larger Runner 사용하는 조건부 분기 적용
+- [ ] Self-hosted 고려 시 Graviton ARM64 + Spot 인스턴스 검토
+- [ ] 아티팩트 retention-days 최소화 (기본값 90일 -> 3-7일)
 
-## 문제
-- 45개 조합 전체 실행 시 비용과 시간 과다
-- GitHub Actions 동시 runner 제한에 걸림
+### AI 활용
 
-## 요청
-1. 매트릭스 최적화: 필수 조합만 선별하는 전략
-2. 변경 감지 기반 동적 매트릭스 축소
-3. 비용 대비 효과적인 CDN 배포 전략
-4. GitHub Actions YAML 코드로 제공
-```
-
-### 프롬프트 4: PR Preview 환경 자동화
-
-```text
-PR별 Preview 환경을 S3+CloudFront로 자동 프로비저닝하는 시스템을 설계해줘.
-
-## 요구사항
-- PR 생성 시 자동으로 Preview 환경 생성
-- PR 업데이트 시 동일 URL로 재배포
-- PR 종료 시 리소스 자동 정리
-- PR 코멘트에 Preview URL 자동 게시
-- 최대 동시 Preview 환경: 20개
-- 비용 최적화: 단일 CloudFront Distribution + S3 prefix 분리
-
-## 기술 스택
-- GitHub Actions
-- AWS S3 + CloudFront
-- OIDC 인증
-
-## 제공 형식
-- GitHub Actions 워크플로우 YAML
-- CloudFront Function (라우팅)
-- CDK 스택 코드 (TypeScript)
-```
-
-### 프롬프트 5: AI CI 최적화 -- 빌드 시간 단축
-
-```text
-AI를 활용하여 CI 파이프라인의 빌드 시간을 단축하는 전략을 제안해줘.
-
-## 현재 CI 파이프라인
-- 총 소요 시간: 25분
-- install: 3분, lint: 2분, type-check: 3분, test: 10분, build: 5분, deploy(5 betas): 12분
-
-## 환경
-- 모노레포 (Turborepo)
-- pnpm workspace
-- 멀티 베타 환경 5개
-- 멀티 CDN 3개
-
-## 요청
-1. AI 기반 테스트 선별 실행 (변경 영향 범위 분석)
-2. 빌드 캐시 지능적 관리 (캐시 히트율 개선)
-3. 플레이키 테스트 자동 탐지 및 격리
-4. 병렬화 전략 (테스트 shard, 매트릭스 최적화)
-5. TypeScript 코드로 각 전략의 구현 예시 제공
-```
-
----
-
-## 11. 체크리스트
-
-### CI/CD 기본
-
-- [ ] GitHub Actions 워크플로우에 `concurrency` 설정
-- [ ] OIDC 기반 AWS 인증 (장기 시크릿 제거)
-- [ ] 빌드 아티팩트 캐시 전략 수립
-- [ ] 보안 스캔 (SAST/SCA) 파이프라인 통합
-- [ ] DORA 메트릭 수집 자동화
-
-### 멀티 베타 환경
-
-- [ ] N개 환경 동시 배포 매트릭스 구성
-- [ ] PR별 Preview 자동 생성/정리 파이프라인
-- [ ] 모노레포 affected 감지 + 선별 빌드
-- [ ] 멀티 CDN 동시 배포 (CloudFront + Cloudflare + Fastly)
-- [ ] 환경별 런타임 설정 주입 (config.js)
-- [ ] 동적 매트릭스 생성 (환경 수 조절 가능)
-- [ ] 배포 후 AI 헬스체크 자동 실행
-
-### AI CI 최적화
-
-- [ ] AI 테스트 선별 실행 (Predictive Test Selection)
-- [ ] AI 빌드 캐시 최적화
-- [ ] AI 플레이키 테스트 자동 탐지
-- [ ] AI 보안 취약점 스캔 + 자동 수정 제안
-- [ ] AI 워크플로우 생성 및 최적화
-
----
-
-*본 문서는 범용 CI/CD 파이프라인 가이드이며, 조직의 규모와 인프라에 맞게 조정하여 사용할 수 있다.*
+- [ ] CI 실패 시 AI 자동 분석 파이프라인 구축
+- [ ] 보안 스캔 결과 AI triage로 false positive 필터링
+- [ ] 월간 CI 비용 AI 분석 리포트 자동화
+- [ ] 새 프로젝트 워크플로우 생성 시 AI 프롬프트 활용
