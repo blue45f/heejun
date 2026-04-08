@@ -48,7 +48,7 @@ async function fetchUser(id: string): Promise<User> {
 
 ## 2. Branded Types: 논리적 구분 강화
 
-실수로 `UserId` 변수에 `ProductId`를 대입하는 사고를 방지하기 위해 **Branded Types**를 사용합니다.
+실수로 `UserId` 변수에 `EntityId`를 대입하는 사고를 방지하기 위해 **Branded Types**를 사용합니다.
 
 ### 2.1 브랜드 타입 구현 예시
 ```typescript
@@ -57,7 +57,7 @@ type Brand<K, T> = K & { __brand: T };
 
 // 고유 타입 정의
 type UserId = Brand<string, "UserId">;
-type ProductId = Brand<string, "ProductId">;
+type EntityId = Brand<string, "EntityId">;
 
 // 실제 값 생성 (Type Guard 활용)
 function asUserId(id: string): UserId {
@@ -68,9 +68,9 @@ function asUserId(id: string): UserId {
 function deleteUser(id: UserId) { /* ... */ }
 
 const myUserId = asUserId("user-123");
-const myProductId = "prod-999" as ProductId;
+const myEntityId = "prod-999" as EntityId;
 
-// deleteUser(myProductId); // Error: ProductId는 UserId에 할당될 수 없습니다!
+// deleteUser(myEntityId); // Error: EntityId는 UserId에 할당될 수 없습니다!
 ```
 
 ---

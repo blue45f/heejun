@@ -61,7 +61,7 @@ claude "이 프로젝트의 페이지 유형별로 JSON-LD 구조화 데이터�
 페이지 유형별 스키마:
 1) 메인 페이지 → Organization + WebSite + SearchAction
 2) 블로그 글 → Article + BreadcrumbList
-3) 제품 페이지 → Product + Offer + AggregateRating
+3) 비즈니스 객체(Entity) 페이지 → Entity + Offer + AggregateRating
 4) FAQ 페이지 → FAQPage
 5) 프로필 페이지 → Person + ProfilePage
 
@@ -108,7 +108,7 @@ claude "이 프로젝트에 동적 OG 이미지 생성 시스템을 구축해줘
 
 요구사항:
 1) @vercel/og (ImageResponse) 기반
-2) 페이지 유형별 템플릿 (블로그, 제품, 기본)
+2) 페이지 유형별 템플릿 (블로그, 비즈니스 객체(Entity), 기본)
 3) 제목, 설명, 로고, 배경 동적 렌더링
 4) 환경별 분기: Preview에서는 'PREVIEW' 워터마크 표시
 5) 한글 폰트 지원 (Pretendard 등)
