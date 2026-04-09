@@ -1,4 +1,16 @@
-# PWA & 오프라인 전략 가이드 2026 - AI-First + 멀티 베타 Edition
+# 26. PWA & 오프라인 전략 가이드 (2025-2026 Edition)
+
+| 분류 | 핵심 기술 | 상태 | Stable |
+| :--- | :--- | :--- | :--- |
+| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CloudFront](./12_CloudFront_캐시_전략.md) | **AI 도구** | Workbox, Serwist, Claude Code |
+| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync | **Update** | 2026.04 |
+
+---
+
+> **"PWA는 더 이상 네이티브 앱의 대안이 아니라, 웹의 기본 배포 형태다. 2026년의 Service Worker는 AI가 설계하고, 개발자는 오프라인 UX 품질만 관리한다."**
+> 본 가이드는 Workbox 6 / Serwist 기반의 Service Worker 설정부터 캐싱 전략, 오프라인 UX, Background Sync, Web Push까지 PWA 전체 파이프라인을 다룹니다.
+
+---
 
 ## 목차
 
@@ -21,6 +33,9 @@
 7. [Web Push Notifications](#7-web-push-notifications)
 8. [App Manifest & 설치 프롬프트](#8-app-manifest--설치-프롬프트)
 9. [Background Sync & Periodic Sync](#9-background-sync--periodic-sync)
+10. [Serwist (Next.js PWA 대안)](#10-serwist-nextjs-pwa-대안)
+11. [PWA 디버깅 & 트러블슈팅](#11-pwa-디버깅--트러블슈팅)
+12. [체크리스트](#12-체크리스트)
 
 ---
 
@@ -2325,3 +2340,308 @@ export function useSyncStatus(): SyncStatus {
   return { pendingCount, isSyncing, lastSyncResult, syncNow };
 }
 ```
+
+---
+
+## 10. Serwist (Next.js PWA 대안)
+
+Next.js 프로젝트에서는 `next-pwa`가 유지보수 중단 상태이므로, 포크인 **Serwist**를 사용한다. Serwist는 Workbox 위에 Next.js App Router / Server Actions 호환 레이어를 제공한다.
+
+### 10.1 설치 및 기본 설정
+
+```bash
+# Serwist 설치
+pnpm add @serwist/next
+pnpm add -D serwist
+```
+
+```typescript
+// next.config.ts
+import withSerwist from '@serwist/next';
+
+const nextConfig = {
+  // ... 기존 Next.js 설정
+};
+
+export default withSerwist({
+  swSrc: 'src/sw.ts',        // Service Worker 소스 경로
+  swDest: 'public/sw.js',    // 빌드 결과물 경로
+  cacheOnNavigation: true,   // 네비게이션 요청 캐싱 활성화
+  reloadOnOnline: true,      // 온라인 복귀 시 자동 새로고침
+  disable: process.env.NODE_ENV === 'development', // 개발 환경 비활성화
+})(nextConfig);
+```
+
+### 10.2 Serwist Service Worker 작성
+
+```typescript
+// src/sw.ts - Serwist 기반 Service Worker
+import { defaultCache } from '@serwist/next/worker';
+import { Serwist } from 'serwist';
+
+declare const self: ServiceWorkerGlobalScope;
+
+const serwist = new Serwist({
+  // Serwist가 빌드 시점에 프리캐시 매니페스트를 주입
+  precacheEntries: self.__SW_MANIFEST,
+  precacheOptions: {
+    cleanupOutdatedCaches: true,  // 오래된 캐시 자동 정리
+    concurrency: 10,              // 프리캐시 병렬 다운로드 수
+  },
+  skipWaiting: true,
+  clientsClaim: true,
+  navigationPreload: true,
+  // 기본 런타임 캐시 규칙 (Next.js 정적/동적 자원)
+  runtimeCaching: defaultCache,
+  // 오프라인 폴백 설정
+  fallbacks: {
+    entries: [
+      {
+        url: '/offline',            // App Router 오프라인 페이지
+        matcher: ({ request }) => request.destination === 'document',
+      },
+    ],
+  },
+});
+
+serwist.addEventListeners();
+```
+
+### 10.3 Serwist vs Workbox 직접 사용 비교
+
+| 항목 | Serwist (Next.js) | Workbox + vite-plugin-pwa |
+|------|-------------------|--------------------------|
+| **프레임워크** | Next.js 전용 | Vite / 프레임워크 무관 |
+| **App Router 호환** | 네이티브 지원 | 수동 설정 필요 |
+| **프리캐시 매니페스트** | `self.__SW_MANIFEST` 자동 주입 | `self.__WB_MANIFEST` 자동 주입 |
+| **런타임 캐시 기본값** | `defaultCache` 제공 | 직접 설정 필수 |
+| **오프라인 폴백** | `fallbacks` 옵션 내장 | `setCatchHandler` 수동 설정 |
+| **업데이트 감지** | `@serwist/next` 자동 | `virtual:pwa-register` 사용 |
+| **번들 크기** | Workbox 하위 호환 (동일) | 동일 |
+
+---
+
+## 11. PWA 디버깅 & 트러블슈팅
+
+### 11.1 Chrome DevTools 활용
+
+```typescript
+// 개발 시 Service Worker 상태를 콘솔에서 확인하는 유틸리티
+// src/utils/sw-debug.ts
+
+export async function debugServiceWorker(): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[SW Debug] Service Worker 미지원 브라우저');
+    return;
+  }
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  console.group('[SW Debug] Service Worker 상태');
+
+  for (const reg of registrations) {
+    console.log('스코프:', reg.scope);
+    console.log('활성 SW:', reg.active?.state ?? '없음');
+    console.log('대기 SW:', reg.waiting?.state ?? '없음');
+    console.log('설치 중 SW:', reg.installing?.state ?? '없음');
+  }
+
+  // 캐시 스토리지 현황
+  const cacheNames = await caches.keys();
+  console.log('캐시 목록:', cacheNames);
+
+  for (const name of cacheNames) {
+    const cache = await caches.open(name);
+    const keys = await cache.keys();
+    console.log(`  ${name}: ${keys.length}개 항목`);
+  }
+
+  // 스토리지 사용량 확인
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    const estimate = await navigator.storage.estimate();
+    const usedMB = ((estimate.usage ?? 0) / (1024 * 1024)).toFixed(2);
+    const quotaMB = ((estimate.quota ?? 0) / (1024 * 1024)).toFixed(2);
+    console.log(`스토리지: ${usedMB}MB / ${quotaMB}MB 사용`);
+  }
+
+  console.groupEnd();
+}
+
+// 캐시 강제 초기화 (트러블슈팅용)
+export async function purgeAllCaches(): Promise<void> {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map((name) => caches.delete(name)));
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((reg) => reg.unregister()));
+
+  console.info('[SW Debug] 모든 캐시 및 SW 등록 해제 완료. 새로고침하세요.');
+}
+```
+
+### 11.2 자주 발생하는 문제와 해결
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| SW 업데이트가 반영되지 않음 | `skipWaiting` 미호출, 탭이 열린 상태 | `skipWaiting()` + `clients.claim()` 확인, 또는 사용자에게 새로고침 유도 |
+| 캐시가 계속 커짐 | `ExpirationPlugin` 미설정 | `maxEntries`, `maxAgeSeconds` 반드시 설정 |
+| CORS 리소스 캐시 실패 | `CacheableResponsePlugin`에 `statuses: [0]` 누락 | opaque 응답(status 0) 허용 추가 |
+| 오프라인 폴백이 작동하지 않음 | `/offline.html`이 프리캐시에 미포함 | `includeAssets`에 `offline.html` 추가 |
+| iOS Safari에서 PWA 동작 이상 | iOS는 Service Worker 수명 제한이 있음 | 중요 데이터는 IndexedDB에 저장, SW 재활성화 대비 |
+| `navigator.serviceWorker`가 `undefined` | HTTP 환경 또는 iframe 내부 | HTTPS 확인, `localhost` 예외 활용, `isSecureContext` 체크 |
+
+### 11.3 Playwright를 활용한 PWA E2E 테스트
+
+```typescript
+// tests/pwa.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('PWA 오프라인 기능', () => {
+  test('오프라인 폴백 페이지가 정상적으로 표시된다', async ({ page, context }) => {
+    // 먼저 온라인 상태에서 페이지 방문하여 SW 등록 & 캐시
+    await page.goto('/');
+    await page.waitForFunction(() =>
+      navigator.serviceWorker.ready.then(() => true),
+    );
+
+    // 오프라인 전환
+    await context.setOffline(true);
+
+    // 캐시되지 않은 페이지로 이동 시 오프라인 폴백 노출
+    await page.goto('/non-cached-page');
+    await expect(page.locator('text=오프라인')).toBeVisible();
+
+    // 온라인 복귀
+    await context.setOffline(false);
+  });
+
+  test('Service Worker가 정상 등록된다', async ({ page }) => {
+    await page.goto('/');
+
+    const swRegistered = await page.evaluate(async () => {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      return registrations.length > 0;
+    });
+
+    expect(swRegistered).toBe(true);
+  });
+
+  test('캐시된 정적 리소스가 오프라인에서 로드된다', async ({ page, context }) => {
+    // 온라인에서 페이지 로드 (캐시 워밍)
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // 오프라인 전환 후 같은 페이지 새로고침
+    await context.setOffline(true);
+    await page.reload();
+
+    // 앱 셸이 정상 렌더링되는지 확인
+    await expect(page.locator('#root')).toBeVisible();
+  });
+
+  test('오프라인에서 작성한 데이터가 온라인 복귀 시 동기화된다', async ({ page, context }) => {
+    await page.goto('/');
+    await page.waitForFunction(() =>
+      navigator.serviceWorker.ready.then(() => true),
+    );
+
+    // 오프라인 전환
+    await context.setOffline(true);
+
+    // 오프라인 상태에서 데이터 작성 (IndexedDB 큐에 저장됨)
+    await page.fill('[data-testid="input-field"]', '오프라인 테스트 데이터');
+    await page.click('[data-testid="submit-button"]');
+
+    // 온라인 복귀
+    await context.setOffline(false);
+
+    // 동기화 완료 대기
+    await page.waitForSelector('[data-testid="sync-complete"]', {
+      timeout: 10000,
+    });
+  });
+});
+```
+
+---
+
+## 12. 체크리스트
+
+### 12.1 Service Worker 기본
+
+- [ ] Service Worker가 HTTPS(또는 localhost)에서 등록된다
+- [ ] `skipWaiting()` + `clientsClaim()`으로 즉시 활성화 설정
+- [ ] `cleanupOutdatedCaches()`로 이전 버전 캐시 자동 정리
+- [ ] SW 파일에 `self.__WB_MANIFEST` (또는 `self.__SW_MANIFEST`) 프리캐시 매니페스트 포함
+- [ ] Navigation Preload 활성화 (`self.registration.navigationPreload.enable()`)
+- [ ] SW 업데이트 감지 및 사용자 알림 UI 구현
+- [ ] 에러 핸들링: 모든 fetch 핸들러에 try-catch + 폴백 응답
+
+### 12.2 캐싱 전략
+
+- [ ] 페이지 유형별 캐싱 전략 매핑 완료 (Cache First / Network First / SWR / Network Only)
+- [ ] 모든 런타임 캐시에 `ExpirationPlugin` 설정 (`maxEntries`, `maxAgeSeconds`)
+- [ ] `CacheableResponsePlugin`으로 유효한 응답만 캐시 (`statuses: [0, 200]`)
+- [ ] 캐시 이름에 버전 프리픽스 포함 (`v${VERSION}-cache-name`)
+- [ ] API 응답 캐시의 TTL이 비즈니스 요구사항에 맞게 설정됨
+- [ ] CDN 리소스에 Stale While Revalidate 적용
+- [ ] 인증/결제 경로는 Network Only 처리
+
+### 12.3 오프라인 UX
+
+- [ ] 오프라인 폴백 페이지(`/offline.html` 또는 `/offline`)가 프리캐시에 포함
+- [ ] 네트워크 상태 감지 훅(`useNetworkStatus`) 구현 및 UI 배너 표시
+- [ ] 오프라인에서 작성한 데이터가 IndexedDB 큐에 저장됨
+- [ ] 온라인 복귀 시 자동 동기화 + 진행률 표시
+- [ ] 오프라인 사용 가능/불가능 기능을 UI에서 시각적으로 구분
+- [ ] 충돌 발생 시 3-way merge UI 또는 서버 우선 전략 적용
+- [ ] `Connection` 타입에 따른 적응형 로딩 (Slow 3G 시 이미지 축소 등)
+
+### 12.4 Web Push Notification
+
+- [ ] VAPID 키 생성 및 `.env`에 안전하게 보관
+- [ ] 클라이언트 구독(subscribe) / 해제(unsubscribe) 플로우 구현
+- [ ] SW `push` 이벤트에서 알림 표시 (제목, 본문, 아이콘, 배지)
+- [ ] `notificationclick`에서 해당 URL로 포커스 또는 새 창 열기
+- [ ] 태그(`tag`) 기반 중복 알림 방지
+- [ ] 환경별 Push 토픽 분리 (프로덕션 알림이 테스트 사용자에게 전달되지 않도록)
+
+### 12.5 Background Sync
+
+- [ ] `sync` 이벤트 핸들러에서 오프라인 큐 처리
+- [ ] 지수 백오프(exponential backoff) 재시도 로직 구현
+- [ ] 최대 재시도 횟수 초과 시 에러 큐로 분리
+- [ ] 동기화 결과를 `postMessage`로 클라이언트에 알림
+- [ ] Periodic Background Sync 등록 시 브라우저 지원 여부 확인
+
+### 12.6 App Manifest
+
+- [ ] `manifest.json`에 `name`, `short_name`, `start_url`, `display`, `theme_color` 포함
+- [ ] 아이콘: 192x192 + 512x512 필수, maskable 아이콘 별도 포함
+- [ ] `display_override`로 Window Controls Overlay 지원 (선택)
+- [ ] `screenshots` 포함 (wide + narrow 각 최소 1장)
+- [ ] `shortcuts` 3개 이상 등록 (빈번한 사용자 액션)
+- [ ] `share_target` 설정으로 Web Share Target 지원 (선택)
+- [ ] `<meta name="theme-color">` 태그가 HTML `<head>`에 존재
+
+### 12.7 멀티 환경 & 배포
+
+- [ ] 환경별(Production/Staging/Canary/Preview) Service Worker 캐시 전략 분리
+- [ ] Preview 환경에서 `beforeinstallprompt` 차단
+- [ ] 환경별 매니페스트 동적 생성 (앱 이름에 환경 태그 포함)
+- [ ] SW 버전 충돌 감지 및 자동 해결 (캐시 전체 삭제 + 재등록)
+- [ ] Feature Flag로 오프라인 기능 점진적 롤아웃
+- [ ] Lighthouse CI에서 PWA 점수 90+ 유지 ([08. 성능 최적화 가이드](./08_성능_최적화_가이드.md) 참조)
+- [ ] [12. CloudFront 캐시 전략](./12_CloudFront_캐시_전략.md)과 SW 캐시 간 TTL 정합성 확인
+
+### 12.8 테스트
+
+- [ ] Playwright로 오프라인 폴백 E2E 테스트 작성
+- [ ] SW 등록/갱신 테스트 자동화
+- [ ] 네트워크 에뮬레이션(오프라인, Slow 3G, Fast 3G) 시나리오 포함
+- [ ] Background Sync 큐잉/전송 검증 테스트
+- [ ] 캐시 스토리지 용량 초과 시 LRU 제거 검증
+- [ ] CI 파이프라인(GitHub Actions)에 PWA 테스트 통합 ([11. CI/CD 파이프라인 표준](./11_CICD_파이프라인_표준.md) 참조)
+
+---
+
+> **다음 단계**: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다. [12. CloudFront 캐시 전략](./12_CloudFront_캐시_전략.md)에서 CDN 레벨의 캐시 무효화 및 TTL 설정을 함께 확인하세요. 성능 지표 모니터링은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참조하세요.

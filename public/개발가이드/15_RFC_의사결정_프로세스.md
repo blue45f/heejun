@@ -1,6 +1,11 @@
-# RFC 프로세스 가이드 -- GitHub Discussions 기반 비동기 + AI 의사결정 지원
+# 15. RFC 의사결정 프로세스 (2025-2026 Edition)
 
-> GitHub Discussions 기반 비동기 RFC 프로세스, AI 의사결정 지원 프롬프트, RFC 제안을 Preview 환경에서 자동 검증하는 PoC 파이프라인, AI 기반 영향도 자동 분석과 투표/점수화를 통합한 2026년형 RFC 운영 가이드.
+| 분류 | 핵심 기술 | 상태 | Stable |
+| :--- | :--- | :--- | :--- |
+| **연관 가이드** | [16. AI 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [17. 온보딩](./17_신규_입사자_온보딩_가이드.md) | **AI 도구** | GitHub Discussions, Claude Code |
+| **핵심 테마** | RFC 라이프사이클, AI 영향도 분석, PoC 자동 생성, ADR | **Update** | 2026.04 |
+
+> GitHub Discussions 기반 비동기 RFC 프로세스, AI 의사결정 지원 프롬프트, RFC 제안을 Preview 환경에서 자동 검증하는 PoC 파이프라인, AI 기반 영향도 자동 분석과 투표/점수화를 통합한 2025-2026년형 RFC 운영 가이드.
 
 ---
 
@@ -15,6 +20,7 @@
 7. [RFC 작성 템플릿](#7-rfc-작성-템플릿)
 8. [RACI 거버넌스 + AI 역할](#8-raci-거버넌스--ai-역할)
 9. [실전 RFC 예시](#9-실전-rfc-예시)
+10. [RFC 프로세스 체크리스트](#10-rfc-프로세스-체크리스트)
 
 ---
 
@@ -36,20 +42,24 @@ RFC 전체 라이프사이클을 GitHub Discussions에서 운영한다. 이슈�
 
 ```typescript
 // scripts/create-rfc-discussion.ts
+// GitHub Discussions에 RFC를 자동 생성하는 스크립트
+// RFC 번호를 자동 채번하고, 메타 정보 테이블과 리뷰 체크리스트를 포함한 본문을 구성한다.
 import { Octokit } from "@octokit/rest";
 
+// RFC 생성 시 필요한 입력 데이터 타입
 interface RfcInput {
-  title: string;
-  body: string;
-  author: string;
-  size: "small" | "medium" | "large";
-  relatedIssues: number[];
+  title: string; // RFC 제목
+  body: string; // RFC 본문 (마크다운)
+  author: string; // 작성자 GitHub 아이디
+  size: "small" | "medium" | "large"; // RFC 규모 (리뷰 기간, 승인 요건에 영향)
+  relatedIssues: number[]; // 관련 이슈 번호 목록
 }
 
+// Discussion 생성 결과 반환 타입
 interface DiscussionResult {
-  discussionNumber: number;
-  url: string;
-  labels: string[];
+  discussionNumber: number; // 생성된 Discussion/Issue 번호
+  url: string; // Discussion URL
+  labels: string[]; // 부여된 라벨 목록
 }
 
 async function createRfcDiscussion(
@@ -57,19 +67,22 @@ async function createRfcDiscussion(
   repo: string,
   input: RfcInput,
 ): Promise<DiscussionResult> {
+  // GitHub API 클라이언트 초기화 (환경 변수에서 토큰 읽기)
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-  // RFC 번호 채번 (기존 RFC Discussion 수 + 1)
+  // RFC 번호 채번: 기존 RFC 라벨이 붙은 이슈 수 + 1로 순차 번호 생성
   const existingRfcs = await octokit.rest.issues.listForRepo({
     owner,
     repo,
     labels: "rfc",
-    state: "all",
+    state: "all", // 닫힌 RFC도 포함하여 번호 중복 방지
   });
   const rfcNumber = existingRfcs.data.length + 1;
+  // RFC-0001 형태의 4자리 패딩 ID 생성
   const rfcId = `RFC-${String(rfcNumber).padStart(4, "0")}`;
 
-  // Discussion 본문 구성
+  // Discussion 본문을 마크다운으로 구성
+  // 메타 정보 테이블, 본문, 리뷰 체크리스트를 포함
   const discussionBody = [
     `# ${rfcId}: ${input.title}`,
     "",
@@ -100,7 +113,7 @@ async function createRfcDiscussion(
     "- [ ] PoC environment validated (if applicable)",
   ].join("\n");
 
-  // GitHub Issue로 생성 (Discussion API는 GraphQL 필요)
+  // GitHub Issue로 생성 (Discussion API는 GraphQL이 필요하므로 REST API의 Issue를 활용)
   const issue = await octokit.rest.issues.create({
     owner,
     repo,
@@ -109,7 +122,7 @@ async function createRfcDiscussion(
     labels: ["rfc", `rfc-${input.size}`, "rfc-draft"],
   });
 
-  // 관련 이슈 링크
+  // 관련 이슈에 RFC 링크를 코멘트로 추가하여 양방향 추적 보장
   for (const relatedIssue of input.relatedIssues) {
     await octokit.rest.issues.createComment({
       owner,
@@ -129,23 +142,37 @@ async function createRfcDiscussion(
 export { createRfcDiscussion };
 ```
 
+**실전 사용 예시 -- CLI에서 RFC 생성:**
+
+```bash
+# RFC 생성 스크립트 실행 예시
+# 환경 변수로 GitHub 토큰을 전달하고, ts-node로 직접 실행한다.
+GITHUB_TOKEN=ghp_xxxx npx ts-node scripts/create-rfc-discussion.ts \
+  --title "상태관리 라이브러리를 Zustand에서 Jotai로 마이그레이션" \
+  --size medium \
+  --issues 123,145
+```
+
 ### 1.3 Discussion -> ADR 자동 변환
 
 ```typescript
 // scripts/convert-rfc-to-adr.ts
+// 승인된 RFC Discussion을 ADR(Architecture Decision Record) 마크다운으로 자동 변환하는 스크립트
+// RFC 본문에서 각 섹션을 추출하고, 논의 이력 요약을 포함한 ADR 파일을 생성한다.
 import { Octokit } from "@octokit/rest";
 import * as fs from "fs";
 import * as path from "path";
 
+// ADR에 포함될 내용 구조
 interface AdrContent {
-  rfcNumber: string;
-  title: string;
-  status: "accepted" | "rejected" | "superseded";
-  context: string;
-  decision: string;
-  consequences: string;
-  alternatives: string;
-  votingResult: string;
+  rfcNumber: string; // RFC 번호 (예: RFC-0012)
+  title: string; // RFC 제목
+  status: "accepted" | "rejected" | "superseded"; // 최종 상태
+  context: string; // 배경/맥락 섹션
+  decision: string; // 결정 사항 섹션
+  consequences: string; // 결과/영향 섹션
+  alternatives: string; // 검토된 대안 섹션
+  votingResult: string; // 투표 결과 요약
 }
 
 async function convertToAdr(
@@ -162,7 +189,7 @@ async function convertToAdr(
     issue_number: issueNumber,
   });
 
-  // 댓글 (논의 이력) 조회
+  // 댓글 (논의 이력) 조회 -- ADR에 논의 요약을 포함하기 위함
   const comments = await octokit.rest.issues.listComments({
     owner,
     repo,
@@ -170,9 +197,11 @@ async function convertToAdr(
   });
 
   const rfcBody = issue.data.body ?? "";
+  // 제목에서 "[RFC] " 접두사 제거
   const rfcTitle = issue.data.title.replace(/^\[RFC\]\s*/, "");
 
-  // ADR 마크다운 생성
+  // ADR 마크다운 본문 구성
+  // Michael Nygard의 ADR 형식(Status, Context, Decision, Consequences)을 따른다.
   const adrContent = [
     `# ${rfcTitle}`,
     "",
@@ -186,30 +215,35 @@ async function convertToAdr(
     "",
     "## Context",
     "",
+    // RFC 본문에서 "동기" 또는 "Motivation" 섹션을 추출
     extractSection(rfcBody, "동기", "제안") ||
       extractSection(rfcBody, "Motivation", "Proposal") ||
       "See original RFC discussion.",
     "",
     "## Decision",
     "",
+    // RFC 본문에서 "제안" 또는 "Proposal" 섹션을 추출
     extractSection(rfcBody, "제안", "대안") ||
       extractSection(rfcBody, "Proposal", "Alternatives") ||
       "See original RFC discussion.",
     "",
     "## Consequences",
     "",
+    // RFC 본문에서 "영향도" 또는 "Impact" 섹션을 추출
     extractSection(rfcBody, "영향도", "성공 지표") ||
       extractSection(rfcBody, "Impact", "Success") ||
       "See original RFC discussion.",
     "",
     "## Alternatives Considered",
     "",
+    // RFC 본문에서 "대안" 또는 "Alternatives" 섹션을 추출
     extractSection(rfcBody, "대안", "영향도") ||
       extractSection(rfcBody, "Alternatives", "Impact") ||
       "See original RFC discussion.",
     "",
     "## Discussion Summary",
     "",
+    // 전체 코멘트 수와 최근 5개 코멘트 요약을 포함
     `Total comments: ${comments.data.length}`,
     "",
     ...comments.data.slice(-5).map(
@@ -222,17 +256,18 @@ async function convertToAdr(
     `${issue.data.html_url}`,
   ].join("\n");
 
-  // ADR 파일 저장
+  // ADR 파일을 docs/adr 디렉토리에 저장
   const adrDir = path.join(process.cwd(), "docs", "adr");
   if (!fs.existsSync(adrDir)) {
     fs.mkdirSync(adrDir, { recursive: true });
   }
 
+  // 파일명: 이슈 번호를 4자리로 패딩 + 슬러그화된 제목
   const adrNumber = String(issueNumber).padStart(4, "0");
   const adrPath = path.join(adrDir, `${adrNumber}-${slugify(rfcTitle)}.md`);
   fs.writeFileSync(adrPath, adrContent);
 
-  // RFC Issue에 ADR 링크 코멘트
+  // RFC Issue에 ADR 생성 완료 코멘트 게시
   await octokit.rest.issues.createComment({
     owner,
     repo,
@@ -240,7 +275,7 @@ async function convertToAdr(
     body: `ADR generated: \`${path.basename(adrPath)}\`\n\nThis RFC has been accepted and converted to an Architecture Decision Record.`,
   });
 
-  // 라벨 변경
+  // 라벨 변경: rfc-review 제거 -> adr, rfc-accepted 추가
   await octokit.rest.issues.removeLabel({
     owner,
     repo,
@@ -257,6 +292,11 @@ async function convertToAdr(
   console.log(`ADR created: ${adrPath}`);
 }
 
+/**
+ * 마크다운 본문에서 특정 섹션을 추출하는 유틸리티 함수
+ * startHeading과 endHeading 사이의 텍스트를 반환한다.
+ * 한글/영문 헤딩 모두 지원하며, 숫자 접두사(## 2.1 동기)도 처리한다.
+ */
 function extractSection(
   body: string,
   startHeading: string,
@@ -268,11 +308,16 @@ function extractSection(
   );
   const match = body.match(regex);
   if (!match) return "";
+  // 헤딩 라인 자체를 제거하고 본문만 반환
   return match[0]
     .replace(/^##\s*\d*\.?\s*\S+/m, "")
     .trim();
 }
 
+/**
+ * 텍스트를 URL-safe 슬러그로 변환하는 유틸리티
+ * 한글, 영문 소문자, 숫자만 남기고 나머지는 하이픈으로 치환한다.
+ */
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -283,6 +328,16 @@ function slugify(text: string): string {
 export { convertToAdr };
 ```
 
+**실전 사용 예시 -- 승인된 RFC를 ADR로 변환:**
+
+```bash
+# RFC #42가 투표를 통해 승인된 후 ADR로 변환
+GITHUB_TOKEN=ghp_xxxx npx ts-node scripts/convert-rfc-to-adr.ts 42
+
+# 생성 결과 확인
+# docs/adr/0042-상태관리-zustand-에서-jotai-마이그레이션.md 파일이 생성됨
+```
+
 ---
 
 ## 2. RFC 라이프사이클: 이슈 -> Discussion -> ADR
@@ -291,62 +346,62 @@ export { convertToAdr };
 
 ```
 Issue (문제 식별)
-  │
-  ├── 이슈에서 문제/필요성 기록
-  ├── 라벨: needs-rfc
-  │
-  ▼
+  |
+  +-- 이슈에서 문제/필요성 기록
+  +-- 라벨: needs-rfc
+  |
+  v
 Discussion: RFC-Draft (초안)
-  │
-  ├── AI로 RFC 초안 자동 생성
-  ├── AI 영향도 자동 분석 실행
-  ├── 챔피언(Champion) 지정
-  ├── (선택) PoC 환경 자동 생성
-  │
-  ▼
+  |
+  +-- AI로 RFC 초안 자동 생성
+  +-- AI 영향도 자동 분석 실행
+  +-- 챔피언(Champion) 지정
+  +-- (선택) PoC 환경 자동 생성
+  |
+  v
 Discussion: RFC-Review (리뷰)
-  │
-  ├── 비동기 코멘트 수집 (최소 3-10영업일)
-  ├── AI 리뷰 + 점수화 결과 공유
-  ├── PoC 환경 검증 결과 공유
-  ├── 쟁점 발생 시 동기 회의 (30분 타임박싱)
-  │
-  ▼
+  |
+  +-- 비동기 코멘트 수집 (최소 3-10영업일)
+  +-- AI 리뷰 + 점수화 결과 공유
+  +-- PoC 환경 검증 결과 공유
+  +-- 쟁점 발생 시 동기 회의 (30분 타임박싱)
+  |
+  v
 Discussion: RFC-Voting (투표)
-  │
-  ├── AI 점수 + 사람 투표 통합 평가
-  ├── 의사결정 매트릭스 최종 확정
-  │
-  ▼
+  |
+  +-- AI 점수 + 사람 투표 통합 평가
+  +-- 의사결정 매트릭스 최종 확정
+  |
+  v
 ADR (아키텍처 결정 기록)
-  │
-  ├── Discussion -> ADR 마크다운 자동 변환
-  ├── Git 저장소에 ADR 커밋
-  ├── 구현 추적 이슈 자동 생성
-  │
-  ▼
+  |
+  +-- Discussion -> ADR 마크다운 자동 변환
+  +-- Git 저장소에 ADR 커밋
+  +-- 구현 추적 이슈 자동 생성
+  |
+  v
 Implemented (구현 완료)
-  │
-  ├── 성공 지표 측정 및 기록
-  └── 회고 Discussion 생성
+  |
+  +-- 성공 지표 측정 및 기록
+  +-- 회고 Discussion 생성
 ```
 
 ### 2.2 상태별 라벨 체계
 
-| 라벨 | 색상 | 의미 |
-|------|------|------|
-| `rfc` | 파란색 | RFC 이슈/Discussion 식별자 |
-| `rfc-draft` | 회색 | 초안 작성 중 |
-| `rfc-review` | 노란색 | 공식 리뷰 진행 중 |
-| `rfc-voting` | 주황색 | 투표 진행 중 |
-| `rfc-accepted` | 초록색 | 승인됨 |
-| `rfc-rejected` | 빨간색 | 기각됨 |
-| `rfc-withdrawn` | 회색 | 작성자 철회 |
-| `rfc-small` | 연파란색 | 소규모 변경 |
-| `rfc-medium` | 연노란색 | 중규모 변경 |
-| `rfc-large` | 연빨간색 | 대규모 변경 |
-| `adr` | 보라색 | ADR로 확정됨 |
-| `needs-poc` | 청록색 | PoC 환경 검증 필요 |
+| 라벨 | 색상 | 의미 | 적용 시점 |
+|------|------|------|----------|
+| `rfc` | 파란색 | RFC 이슈/Discussion 식별자 | RFC 생성 시 자동 부여 |
+| `rfc-draft` | 회색 | 초안 작성 중 | RFC 생성 시 자동 부여 |
+| `rfc-review` | 노란색 | 공식 리뷰 진행 중 | 작성자가 리뷰 요청 시 변경 |
+| `rfc-voting` | 주황색 | 투표 진행 중 | 리뷰 기간 종료 후 챔피언이 변경 |
+| `rfc-accepted` | 초록색 | 승인됨 | 투표 결과 승인 시 자동 변경 |
+| `rfc-rejected` | 빨간색 | 기각됨 | 투표 결과 기각 시 자동 변경 |
+| `rfc-withdrawn` | 회색 | 작성자 철회 | 작성자 요청 시 수동 변경 |
+| `rfc-small` | 연파란색 | 소규모 변경 | RFC 생성 시 규모에 따라 부여 |
+| `rfc-medium` | 연노란색 | 중규모 변경 | RFC 생성 시 규모에 따라 부여 |
+| `rfc-large` | 연빨간색 | 대규모 변경 | RFC 생성 시 규모에 따라 부여 |
+| `adr` | 보라색 | ADR로 확정됨 | ADR 변환 시 자동 부여 |
+| `needs-poc` | 청록색 | PoC 환경 검증 필요 | 리뷰 중 PoC 필요 판단 시 수동 부여 |
 
 ### 2.3 타임라인 가이드
 
@@ -356,16 +411,38 @@ Implemented (구현 완료)
 | Medium | 5영업일 | 3명 | 영향도 + 리스크 | 권장 |
 | Large | 10영업일 | 5명 + 아키텍트 | 전체 분석 + 투표 | 필수 |
 
+**규모 판단 기준:**
+
+| 규모 | 변경 범위 | 예시 |
+|------|----------|------|
+| Small | 단일 모듈, 기존 패턴 내 변경 | 유틸 함수 교체, 린트 규칙 추가, 소규모 리팩토링 |
+| Medium | 복수 모듈, 새 라이브러리 도입 | 상태관리 라이브러리 교체, API 클라이언트 변경, 테스트 전략 변경 |
+| Large | 아키텍처 수준, 전체 워크플로우 변경 | 마이크로 프론트엔드 도입, 모노레포 전환, 배포 파이프라인 재설계 |
+
+### 2.4 RFC 상태 전환 규칙
+
+RFC 상태 전환은 다음 조건을 만족해야 진행할 수 있다.
+
+| 전환 | 조건 | 실행자 |
+|------|------|--------|
+| Draft -> Review | 체크리스트 항목 70% 이상 완료, 챔피언 지정 | 작성자 |
+| Review -> Voting | 리뷰 기간 경과, 미해결 블로커 없음, AI 분석 완료 | 챔피언 |
+| Voting -> Accepted | 승인 요건 충족 (규모별 기준 참고) | 승인권자 |
+| Voting -> Rejected | 과반 반대 또는 재논의 후 기각 합의 | 승인권자 |
+| 모든 상태 -> Withdrawn | 작성자 철회 의사 표명 | 작성자 |
+
 ---
 
 ## 3. AI 기반 RFC 영향도 자동 분석
 
-RFC가 Draft 상태로 전환되면 AI가 코드베이스를 스캔하여 변경 범위를 자동 예측한다.
+RFC가 Draft 상태로 전환되면 AI가 코드베이스를 스캔하여 변경 범위를 자동 예측한다. 이 결과는 리뷰어가 RFC의 실질적 영향 범위를 파악하는 데 활용된다.
 
 ### 3.1 영향도 분석 GitHub Actions
 
 ```yaml
 # .github/workflows/rfc-impact-analysis.yml
+# RFC 이슈에 rfc-draft 또는 rfc-review 라벨이 붙으면
+# AI가 코드베이스를 분석하여 영향도 보고서를 자동 생성하고 코멘트로 게시한다.
 name: RFC Impact Analysis
 on:
   issues:
@@ -377,12 +454,13 @@ permissions:
 
 jobs:
   analyze-impact:
+    # rfc-draft 또는 rfc-review 라벨이 부여될 때만 실행
     if: github.event.label.name == 'rfc-draft' || github.event.label.name == 'rfc-review'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # 전체 히스토리 필요 (변경 빈도 분석용)
 
       - uses: actions/setup-node@v4
         with:
@@ -390,6 +468,7 @@ jobs:
 
       - run: npm ci
 
+      # AI 영향도 분석 스크립트 실행
       - name: Run AI Impact Analysis
         id: analysis
         env:
@@ -397,6 +476,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: npx ts-node scripts/rfc-impact-analyzer.ts ${{ github.event.issue.number }}
 
+      # 분석 결과를 RFC Discussion 코멘트로 게시
       - name: Post analysis result
         uses: actions/github-script@v7
         with:
@@ -415,44 +495,50 @@ jobs:
 
 ```typescript
 // scripts/rfc-impact-analyzer.ts
+// RFC 내용을 AI에게 전달하여 코드베이스 영향도를 자동 분석하는 엔진
+// 프로젝트 구조, 의존성, 설정 파일을 수집하여 AI가 구체적인 파일 단위로 영향 범위를 예측한다.
 import { Octokit } from "@octokit/rest";
 import Anthropic from "@anthropic-ai/sdk";
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
 
+// 코드베이스 영향 영역 타입
 interface ImpactArea {
-  area: string;
-  severity: "high" | "medium" | "low";
-  files: string[];
-  description: string;
+  area: string; // 영향 영역 이름 (예: "상태관리 레이어", "API 통신 모듈")
+  severity: "high" | "medium" | "low"; // 영향 심각도
+  files: string[]; // 영향받는 파일 경로 목록
+  description: string; // 영향 설명
 }
 
+// 의존성 영향 타입
 interface DependencyImpact {
-  package: string;
-  currentVersion: string;
-  affectedModules: string[];
-  breakingChanges: boolean;
+  package: string; // 패키지 이름
+  currentVersion: string; // 현재 버전
+  affectedModules: string[]; // 영향받는 모듈 목록
+  breakingChanges: boolean; // 호환성 깨짐 여부
 }
 
+// 전체 영향도 보고서 타입
 interface ImpactReport {
-  summary: string;
-  codebaseImpact: ImpactArea[];
-  dependencyImpact: DependencyImpact[];
-  estimatedLinesChanged: number;
-  affectedTests: string[];
-  riskScore: number; // 1-10
-  recommendations: string[];
+  summary: string; // 1-2문장 요약
+  codebaseImpact: ImpactArea[]; // 코드베이스 영향 영역 목록
+  dependencyImpact: DependencyImpact[]; // 의존성 영향 목록
+  estimatedLinesChanged: number; // 예상 변경 라인 수
+  affectedTests: string[]; // 영향받는 테스트 파일 목록
+  riskScore: number; // 전체 리스크 점수 (1-10)
+  recommendations: string[]; // 실행 가능한 권고사항 목록
 }
 
 async function analyzeRfcImpact(issueNumber: number): Promise<void> {
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
   const anthropic = new Anthropic();
 
-  // RFC 내용 조회
+  // 환경 변수에서 리포지토리 정보 추출
   const owner = process.env.GITHUB_REPOSITORY?.split("/")[0] ?? "";
   const repo = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "";
 
+  // RFC 이슈 내용 조회
   const issue = await octokit.rest.issues.get({
     owner,
     repo,
@@ -461,21 +547,23 @@ async function analyzeRfcImpact(issueNumber: number): Promise<void> {
 
   const rfcContent = issue.data.body ?? "";
 
-  // 코드베이스 구조 수집
+  // 프로젝트의 TypeScript/TSX 파일 구조를 수집 (최대 200개)
+  // AI가 구체적 파일 경로를 식별할 수 있도록 한다.
   const projectStructure = execSync(
     'find src -type f -name "*.ts" -o -name "*.tsx" | head -200',
     { encoding: "utf-8" },
   );
 
-  // package.json 의존성 수집
+  // package.json에서 의존성 정보 수집
   const packageJson = fs.readFileSync("package.json", "utf-8");
 
-  // tsconfig 수집
+  // TypeScript 컴파일러 설정 수집
   const tsconfig = fs.existsSync("tsconfig.json")
     ? fs.readFileSync("tsconfig.json", "utf-8")
     : "{}";
 
-  // AI 영향도 분석 실행
+  // AI에게 영향도 분석 요청
+  // 프로젝트 구조와 RFC 내용을 함께 전달하여 구체적 영향 범위를 예측한다.
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
@@ -510,10 +598,11 @@ Focus on practical, specific impacts. Identify exact file paths where possible.`
     ],
   });
 
+  // AI 응답에서 텍스트 추출
   const analysisText =
     response.content[0].type === "text" ? response.content[0].text : "";
 
-  // JSON 추출
+  // JSON 블록 추출 (AI 응답에 마크다운 래퍼가 있을 수 있으므로 정규식으로 추출)
   const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error("Failed to parse AI response as JSON");
@@ -521,14 +610,19 @@ Focus on practical, specific impacts. Identify exact file paths where possible.`
 
   const report: ImpactReport = JSON.parse(jsonMatch[0]);
 
-  // 마크다운 리포트 생성
+  // 마크다운 리포트 파일 생성 (GitHub Actions 후속 스텝에서 코멘트로 게시)
   const markdown = generateImpactMarkdown(report);
   fs.writeFileSync("impact-report.md", markdown);
 
   console.log(`Impact analysis complete. Risk score: ${report.riskScore}/10`);
 }
 
+/**
+ * ImpactReport 객체를 GitHub 코멘트용 마크다운으로 변환하는 함수
+ * 리스크 점수에 따라 HIGH/MEDIUM/LOW 표시를 추가한다.
+ */
 function generateImpactMarkdown(report: ImpactReport): string {
+  // 리스크 수준 텍스트 결정 (7점 이상 HIGH, 4점 이상 MEDIUM, 그 외 LOW)
   const riskEmoji =
     report.riskScore >= 7
       ? "HIGH"
@@ -576,11 +670,24 @@ function generateImpactMarkdown(report: ImpactReport): string {
   ].join("\n");
 }
 
+// CLI 진입점: 첫 번째 인자로 이슈 번호를 받아 분석 실행
 const issueNumber = parseInt(process.argv[2], 10);
 if (!isNaN(issueNumber)) {
   analyzeRfcImpact(issueNumber);
 }
 ```
+
+### 3.3 영향도 보고서 해석 가이드
+
+AI가 생성한 영향도 보고서를 올바르게 해석하고 활용하는 방법:
+
+| 리스크 점수 | 해석 | 권장 행동 |
+|------------|------|----------|
+| 1-3 (LOW) | 변경 범위가 제한적이고 기존 패턴 내에서 처리 가능 | 일반 리뷰 프로세스 진행 |
+| 4-6 (MEDIUM) | 복수 모듈에 영향, 테스트 업데이트 필요 | AI 권고사항 반영 여부 확인, PoC 권장 |
+| 7-10 (HIGH) | 아키텍처 수준 변경, 장애 가능성 있음 | PoC 필수, 단계적 마이그레이션 계획 수립, 롤백 전략 상세화 |
+
+> 관련: [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md)에서 모듈 간 의존 관계를, [09. 장애 대응 및 Sentry 표준](./09_장애_대응_및_Sentry_표준.md)에서 롤백 전략 패턴을 참고할 수 있다.
 
 ---
 
@@ -592,6 +699,9 @@ Large 규모 RFC에서 제안한 변경을 승인 전에 Preview 환경에서 �
 
 ```yaml
 # .github/workflows/rfc-poc-environment.yml
+# RFC Discussion에서 /poc 명령어를 코멘트로 입력하면
+# 지정된 브랜치를 빌드하여 AWS에 Preview 환경을 자동 배포한다.
+# 테스트와 벤치마크를 선택적으로 실행하고, 결과를 RFC Discussion에 게시한다.
 name: RFC PoC Environment
 on:
   issue_comment:
@@ -604,18 +714,20 @@ permissions:
 
 jobs:
   create-poc:
+    # RFC 라벨이 있는 이슈에서 /poc 명령어가 입력된 경우에만 실행
     if: |
       contains(github.event.issue.labels.*.name, 'rfc') &&
       startsWith(github.event.comment.body, '/poc')
     runs-on: ubuntu-latest
     steps:
+      # /poc 명령어 파싱: 브랜치명과 옵션 플래그 추출
       - name: Parse PoC command
         id: parse
         uses: actions/github-script@v7
         with:
           script: |
             const body = context.payload.comment.body;
-            // /poc branch-name [--run-tests] [--benchmark]
+            // 사용법: /poc <브랜치명> [--run-tests] [--benchmark]
             const match = body.match(/\/poc\s+(\S+)(\s+.*)?/);
             if (!match) {
               core.setFailed('Usage: /poc <branch-name> [--run-tests] [--benchmark]');
@@ -638,18 +750,21 @@ jobs:
 
       - run: npm ci
 
+      # PoC 모드 환경 변수를 설정하여 빌드
       - name: Build PoC
         run: npm run build
         env:
           VITE_POC_MODE: "true"
           VITE_RFC_NUMBER: ${{ github.event.issue.number }}
 
+      # AWS 자격증명 설정 (OIDC 기반 역할 전환)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
           aws-region: us-east-1
 
+      # CDK로 PoC 전용 인프라 스택 배포 (S3 + CloudFront + OAC + Route53)
       - name: Deploy PoC CDK Stack
         id: deploy
         run: |
@@ -659,14 +774,17 @@ jobs:
             --require-approval never \
             --outputs-file cdk-outputs.json
 
+          # CDK 출력에서 Preview URL 추출
           POC_URL=$(jq -r '.[].PreviewUrl' cdk-outputs.json)
           echo "poc_url=$POC_URL" >> "$GITHUB_OUTPUT"
 
+      # 빌드 산출물을 S3에 동기화
       - name: Sync build to S3
         run: |
           BUCKET=$(jq -r '.[].BucketName' cdk-outputs.json)
           aws s3 sync dist/ "s3://${BUCKET}/" --delete
 
+      # 테스트 실행 (--run-tests 플래그가 있을 때만)
       - name: Run tests (if requested)
         if: steps.parse.outputs.run_tests == 'true'
         id: tests
@@ -674,6 +792,7 @@ jobs:
           npm test -- --reporter=json > test-results.json 2>&1 || true
           echo "test_passed=$(jq '.success' test-results.json)" >> "$GITHUB_OUTPUT"
 
+      # Lighthouse 벤치마크 실행 (--benchmark 플래그가 있을 때만)
       - name: Run benchmark (if requested)
         if: steps.parse.outputs.benchmark == 'true'
         id: benchmark
@@ -684,6 +803,7 @@ jobs:
             --chrome-flags="--headless --no-sandbox"
           echo "lh_performance=$(jq '.categories.performance.score' lighthouse.json)" >> "$GITHUB_OUTPUT"
 
+      # PoC 배포 결과를 RFC Discussion 코멘트로 게시
       - name: Post PoC result to RFC
         uses: actions/github-script@v7
         with:
@@ -710,6 +830,7 @@ jobs:
               lines.push(`| Lighthouse Score | ${(parseFloat(lhScore) * 100).toFixed(0)} |`);
             }
 
+            // PoC 환경은 7일 후 자동 만료
             lines.push(
               '',
               `Expires: ${new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}`,
@@ -724,6 +845,7 @@ jobs:
               body: lines.join('\n'),
             });
 
+  # PoC 환경 수동 제거 작업
   destroy-poc:
     if: |
       contains(github.event.issue.labels.*.name, 'rfc') &&
@@ -737,6 +859,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_PREVIEW_ROLE_ARN }}
           aws-region: us-east-1
 
+      # CDK 스택 강제 삭제로 모든 리소스 정리
       - name: Destroy PoC Stack
         run: |
           npx cdk destroy "PocStack-RFC-${{ github.event.issue.number }}" --force
@@ -753,6 +876,24 @@ jobs:
             });
 ```
 
+**PoC 명령어 사용 예시:**
+
+```
+# RFC Discussion 코멘트에서 사용하는 명령어 예시
+
+# 기본 PoC 배포 (빌드 + 배포만)
+/poc feature/rfc-0012-preview-poc
+
+# 테스트 포함 PoC 배포
+/poc feature/rfc-0012-preview-poc --run-tests
+
+# 테스트 + Lighthouse 벤치마크 포함 PoC 배포
+/poc feature/rfc-0012-preview-poc --run-tests --benchmark
+
+# PoC 환경 수동 삭제
+/poc-destroy
+```
+
 ### 4.2 PoC 검증 결과 통합
 
 | 검증 항목 | 자동화 수준 | 결과 게시 위치 |
@@ -763,6 +904,8 @@ jobs:
 | E2E 테스트 | 반자동 (수동 트리거) | RFC Discussion 코멘트 |
 | UX 리뷰 | 수동 | PoC URL 공유 후 코멘트 |
 | 접근성 검사 | 완전 자동 | RFC Discussion 코멘트 |
+
+> 관련: PoC 환경의 인프라 구성은 [10. 인프라 및 AWS CDK 가이드](./10_인프라_및_AWS_CDK_가이드.md)를, 성능 벤치마크 기준은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참고한다. CI/CD 파이프라인 통합은 [11. CI/CD 파이프라인 표준](./11_CICD_파이프라인_표준.md)을 참고한다.
 
 ---
 
@@ -784,25 +927,29 @@ RFC 평가에 AI 점수를 참고 지표로 활용한다. AI 점수는 의사결
 
 ```typescript
 // scripts/rfc-ai-scoring.ts
+// RFC를 5개 차원으로 AI가 자동 평가하고, 결과를 RFC Discussion 코멘트로 게시하는 스크립트
+// AI 점수는 참고 지표로만 활용하며, 최종 결정은 사람이 내린다.
 import Anthropic from "@anthropic-ai/sdk";
 import { Octokit } from "@octokit/rest";
 import * as fs from "fs";
 
+// 개별 평가 차원의 점수와 근거를 담는 타입
 interface ScoringDimension {
-  name: string;
-  weight: number;
-  score: number; // 1-10
-  rationale: string;
-  concerns: string[];
+  name: string; // 차원 이름 (예: "기술 적합성")
+  weight: number; // 가중치 (0.0 ~ 1.0)
+  score: number; // 점수 (1-10)
+  rationale: string; // 점수 부여 근거
+  concerns: string[]; // 해당 차원에서의 우려사항 목록
 }
 
+// AI 투표 결과 전체를 담는 타입
 interface AiVote {
-  overallScore: number;
-  recommendation: "approve" | "revise" | "reject";
-  dimensions: ScoringDimension[];
-  keyStrengths: string[];
-  keyWeaknesses: string[];
-  questionsForAuthors: string[];
+  overallScore: number; // 가중 평균 점수 (1-10)
+  recommendation: "approve" | "revise" | "reject"; // AI 권고 의견
+  dimensions: ScoringDimension[]; // 5개 차원별 상세 점수
+  keyStrengths: string[]; // 핵심 강점 3가지
+  keyWeaknesses: string[]; // 핵심 약점 3가지
+  questionsForAuthors: string[]; // 작성자에게 던지는 질문 목록
 }
 
 async function scoreRfc(issueNumber: number): Promise<void> {
@@ -812,7 +959,7 @@ async function scoreRfc(issueNumber: number): Promise<void> {
   const owner = process.env.GITHUB_REPOSITORY?.split("/")[0] ?? "";
   const repo = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "";
 
-  // RFC 내용 + 전체 코멘트 수집
+  // RFC 본문과 전체 코멘트(논의 이력) 수집
   const issue = await octokit.rest.issues.get({
     owner,
     repo,
@@ -826,6 +973,7 @@ async function scoreRfc(issueNumber: number): Promise<void> {
   });
 
   const rfcContent = issue.data.body ?? "";
+  // 각 코멘트를 "작성자: 내용(500자 제한)" 형식으로 요약
   const discussionSummary = comments.data
     .map(
       (c) =>
@@ -833,7 +981,7 @@ async function scoreRfc(issueNumber: number): Promise<void> {
     )
     .join("\n\n");
 
-  // AI 점수화 실행
+  // AI에게 5개 차원으로 RFC 점수화 요청
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
@@ -866,6 +1014,7 @@ Return JSON with:
     ],
   });
 
+  // AI 응답에서 JSON 추출
   const responseText =
     response.content[0].type === "text" ? response.content[0].text : "";
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -873,7 +1022,7 @@ Return JSON with:
 
   const vote: AiVote = JSON.parse(jsonMatch[0]);
 
-  // 결과를 마크다운으로 변환
+  // 마크다운 형식으로 변환하여 RFC Discussion에 게시
   const markdown = [
     "## AI Scoring Report",
     "",
@@ -922,7 +1071,7 @@ Return JSON with:
     "_Auto-generated by AI RFC Scorer_",
   ].join("\n");
 
-  // Discussion에 게시
+  // Discussion에 점수 보고서 게시
   await octokit.rest.issues.createComment({
     owner,
     repo,
@@ -935,6 +1084,7 @@ Return JSON with:
   );
 }
 
+// CLI 진입점
 const issueNumber = parseInt(process.argv[2], 10);
 if (!isNaN(issueNumber)) {
   scoreRfc(issueNumber);
@@ -950,6 +1100,16 @@ if (!isNaN(issueNumber)) {
 | **사람 투표 동점** | 승인 (AI 긍정 기준) | 챔피언 결정권 | 기각 |
 
 > 원칙: AI 점수는 참고 지표다. AI가 높은 점수를 주더라도 사람 과반이 반대하면 반드시 재논의하며, AI 점수가 낮더라도 팀이 합의하면 승인할 수 있다. 단, AI 우려사항에 대한 해소 근거를 반드시 기록한다.
+
+### 5.4 AI 점수와 사람 투표 불일치 처리
+
+AI 점수와 사람 투표 결과가 크게 다른 경우, 반드시 아래 절차를 따른다.
+
+| 불일치 유형 | 처리 절차 | 기록 요구사항 |
+|------------|----------|-------------|
+| AI 8+ / 사람 반대 | AI가 간과한 맥락(팀 문화, 정치적 요인 등)을 ADR에 기록 | "AI 불일치 사유" 섹션 필수 |
+| AI 3- / 사람 찬성 | AI 우려사항 각각에 대한 해소 근거를 ADR에 기록 | 각 우려사항별 해소 근거 명시 |
+| AI revise / 사람 즉시 승인 | AI가 제기한 수정 요청 사항의 수용/기각 근거 기록 | 수정 요청별 판단 근거 명시 |
 
 ---
 
@@ -981,6 +1141,30 @@ if (!isNaN(issueNumber)) {
 3. 가중 총점과 함께 민감도 분석 (가중치를 +-10% 변경했을 때 결론이 뒤집히는지)
 4. 각 기술 선택 시의 1년 후 예상 시나리오 (최선/최악/현실적)
 5. 최종 추천과 그 근거 (1-2문장)
+```
+
+**사용 예시 -- Zustand vs Jotai 비교:**
+
+```text
+아래 두 기술 중 우리 상황에 더 적합한 것을 분석해줘.
+
+[기술 A]
+- 이름: Zustand v5
+- 주요 특징: 단순한 API, 미들웨어 지원, Redux DevTools 호환, 번들 크기 2KB
+
+[기술 B]
+- 이름: Jotai v2
+- 주요 특징: 원자적 상태 관리, React Suspense 네이티브 지원, 파생 상태 자동 추적, 번들 크기 3KB
+
+[우리 상황]
+- 팀 규모: 6명 (주니어 2, 미드 3, 시니어 1)
+- 기존 기술 스택: React 19, TypeScript, Vite, TanStack Query
+- 서비스 특성: B2B SaaS, 복잡한 폼 + 대시보드, 동시접속 500명
+- 주요 제약: 3개월 내 마이그레이션 완료, 기존 Zustand 스토어 35개
+- 우선순위: 유지보수성 > 개발 속도 > 성능
+
+[분석 요청]
+1~5번 모두 수행
 ```
 
 ### 프롬프트 2: RFC 리스크 평가
@@ -1100,6 +1284,32 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 5. 마이그레이션 스크립트가 필요한 경우 개요
 6. 예상 총 변경 라인 수와 소요 시간 (인원수별)
 ```
+
+### 프롬프트 6: RFC 초안 자동 생성
+
+```text
+아래 문제에 대한 RFC 초안을 작성해줘. 이 문서의 RFC 작성 템플릿(섹션 7) 형식을 따라줘.
+
+[문제 상황]
+{현재 겪고 있는 문제를 2-3문장으로 설명}
+
+[기존 시도]
+{이미 시도했거나 검토한 접근법이 있으면 기술}
+
+[제약 조건]
+- 팀 규모: {N명}
+- 일정: {가용 기간}
+- 기술 스택: {현재 사용 중인 기술}
+- 예산: {인프라/라이선스 예산 제약}
+
+[출력 요청]
+- RFC 작성 템플릿의 모든 섹션을 채워줘
+- 대안은 최소 3개를 비교하고, 의사결정 매트릭스를 포함해줘
+- 각 대안의 PoC 검증 범위도 제안해줘
+- 성공 지표는 정량적으로 측정 가능하게 작성해줘
+```
+
+> 관련: AI 프롬프트 활용에 대한 추가 가이드는 [18. AI 개발 워크플로우 종합](./18_AI_개발_워크플로우_종합.md)을 참고한다.
 
 ---
 
@@ -1252,7 +1462,17 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 
 > R: Responsible / A: Accountable / C: Consulted / I: Informed
 
-### 8.2 승인 기준
+### 8.2 역할별 상세 책임
+
+| 역할 | 누가 맡는가 | 핵심 책임 |
+|------|------------|----------|
+| **작성자 (Author)** | RFC를 제안하는 엔지니어 | RFC 초안 작성, 리뷰 피드백 반영, PoC 구현, 구현 추적 |
+| **챔피언 (Champion)** | 작성자가 지정한 시니어 엔지니어 | RFC 품질 보증, 리뷰 프로세스 진행, 쟁점 중재, 일정 관리 |
+| **리뷰어 (Reviewer)** | 팀원 (규모별 최소 인원 충족) | 비동기 코멘트, 기술적 검증, 투표 참여 |
+| **승인권자 (Approver)** | 규모별 상이 (챔피언/테크리드/CTO) | 최종 승인/기각 결정, ADR 확정 |
+| **AI** | Claude Code, GitHub Actions | 자동 분석, 점수화, ADR 변환, PoC 환경 관리 |
+
+### 8.3 승인 기준
 
 | RFC 규모 | 승인 요건 | 승인권자 | AI 점수 조건 |
 |---------|----------|---------|------------|
@@ -1260,12 +1480,14 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 | Medium | 리뷰어 3명 승인 + 시니어 1명 | 테크 리드 | 4점 미만 시 재논의 |
 | Large | 리뷰어 5명 승인 + 아키텍처 리뷰 + PoC 검증 | 아키텍트 / CTO | 4점 미만 시 반드시 AI 우려사항 해소 기록 |
 
-### 8.3 분쟁 해결
+### 8.4 분쟁 해결
 
 1. **1단계**: 작성자-리뷰어 간 Discussion 스레드 논의
 2. **2단계**: AI에게 교착 상태 해소 분석 요청 (프롬프트 4 활용)
 3. **3단계**: 챔피언 중재 (동기 회의, 30분 제한)
 4. **4단계**: 테크 리드 최종 결정 (결정 사유 기록 필수)
+
+> 관련: 코드 리뷰 과정에서의 분쟁 해결은 [16. AI 협업 코드리뷰 가이드](./16_AI_협업_코드리뷰_가이드.md)를, 신규 입사자의 RFC 프로세스 온보딩은 [17. 신규 입사자 온보딩 가이드](./17_신규_입사자_온보딩_가이드.md)를 참고한다.
 
 ---
 
@@ -1372,4 +1594,69 @@ CDK L3 Construct (PreviewEnvironment)로 S3 + CloudFront + OAC + Route53을
 
 ---
 
-*본 문서는 범용 RFC 프로세스 가이드이며, 조직의 규모와 문화에 맞게 조정하여 사용할 수 있다.*
+## 10. RFC 프로세스 체크리스트
+
+### 10.1 RFC 작성자 체크리스트
+
+**RFC 제출 전 (Draft):**
+
+- [ ] 문제 상황을 정량적 데이터와 함께 기술했는가
+- [ ] 최소 3개 이상의 대안을 비교했는가 ("아무것도 하지 않는" 옵션 포함)
+- [ ] 의사결정 매트릭스의 가중치 근거를 명시했는가
+- [ ] 민감도 분석을 수행했는가 (가중치 +-10% 변경 시 결론 변화 여부)
+- [ ] 롤백 계획을 구체적으로 기술했는가
+- [ ] 성공 지표가 정량적이고 측정 가능한가
+- [ ] 비목표(Non-goals)를 명시하여 범위를 한정했는가
+- [ ] RFC 규모(Small/Medium/Large)를 적절히 판단했는가
+- [ ] 챔피언을 지정했는가
+
+**리뷰 단계 (Review):**
+
+- [ ] AI 영향도 분석 결과를 검토하고 보완했는가
+- [ ] 리뷰어 코멘트에 모두 응답했는가
+- [ ] 미해결 블로커가 없는가
+- [ ] PoC 검증이 필요한 경우 PoC를 수행했는가
+- [ ] AI 점수 보고서의 우려사항에 대한 해소 근거를 기록했는가
+
+**승인 후 (Accepted):**
+
+- [ ] ADR이 자동 생성되었는가 (또는 수동으로 작성했는가)
+- [ ] 구현 추적 이슈가 생성되었는가
+- [ ] 구현 일정이 프로젝트 보드에 반영되었는가
+
+### 10.2 챔피언 체크리스트
+
+- [ ] RFC 초안의 품질이 리뷰에 충분한 수준인가
+- [ ] 적절한 리뷰어가 지정되었는가 (규모별 최소 인원 충족)
+- [ ] 리뷰 기간이 규모에 맞게 설정되었는가 (Small 3일, Medium 5일, Large 10일)
+- [ ] AI 분석 결과가 Discussion에 게시되었는가
+- [ ] 쟁점이 있는 경우 동기 회의를 30분 이내로 타임박싱했는가
+- [ ] 투표 결과와 AI 점수를 통합하여 의사결정 기준에 따라 처리했는가
+- [ ] 불일치 사유(AI vs 사람)가 있는 경우 ADR에 기록했는가
+
+### 10.3 리뷰어 체크리스트
+
+- [ ] RFC의 문제 정의가 명확하고 데이터 기반인가
+- [ ] 제안된 해결책이 문제를 실제로 해결하는가
+- [ ] 대안 분석이 공정하게 이루어졌는가 (확증 편향 없는가)
+- [ ] 영향 범위가 정확히 파악되었는가
+- [ ] 리스크와 대응 전략이 현실적인가
+- [ ] 구현 일정이 현실적인가
+- [ ] 성공 지표가 적절한가
+
+### 10.4 프로세스 건강성 지표
+
+팀 RFC 프로세스의 건강성을 주기적으로 점검하는 지표:
+
+| 지표 | 건강한 범위 | 경고 신호 |
+|------|-----------|----------|
+| RFC 평균 리뷰 기간 | 규모별 가이드라인 +-2일 | 가이드라인 2배 초과 |
+| RFC 승인률 | 50-80% | 90% 초과 (기준 너무 낮음) 또는 30% 미만 (기준 너무 높음) |
+| 리뷰어 참여율 | 지정된 리뷰어 80% 이상 참여 | 50% 미만 참여 |
+| ADR 변환 완료율 | 승인 후 3영업일 이내 100% | 1주 이상 미변환 ADR 존재 |
+| RFC 대비 구현 완료율 | 승인된 RFC 80% 이상 구현 | 6개월 이상 미구현 RFC 존재 |
+| AI 분석 실행률 | 100% (자동) | CI 오류로 분석 누락 |
+
+---
+
+*본 문서는 범용 RFC 프로세스 가이드이며, 조직의 규모와 문화에 맞게 조정하여 사용할 수 있다. 관련 가이드: [00. 종합 가이드 목차](./00_종합_가이드_목차.md) | [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md) | [14. 배포 프로세스 체크리스트](./14_배포_프로세스_체크리스트.md) | [16. AI 협업 코드리뷰 가이드](./16_AI_협업_코드리뷰_가이드.md)*
