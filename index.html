@@ -376,14 +376,7 @@
       <div>• 연락처: 010-3873-4197</div><br>
       <div>• GitHub(개인): <a href="https://github.com/blue45f" target="_blank" rel="noopener noreferrer">https://github.com/blue45f</a></div><br>
       <div>• GitHub(스터디): <a href="https://github.com/develuv/study" target="_blank" rel="noopener noreferrer">https://github.com/develuv/study</a></div><br>
-      <div>• 개인 사이트: <a href="https://resume-gongbang.vercel.app/resumes/4f657dfe-d73e-476a-828c-10240f85e162/preview" target="_blank" rel="noopener noreferrer">https://resume-gongbang.vercel.app/resumes/4f657dfe-d73e-476a-828c-10240f85e162/preview</a> (이력서 공방 - 개인 작업 중)</div><br>
-      <div>• 개인 사이트 GitHub: <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer">https://github.com/blue45f/resume</a></div><br>
-      <div>• 디자인 시스템(Orbit UI): <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer">https://orbit-ui-pink.vercel.app/</a> (개인 작업 중)</div><br>
-      <div>• Orbit UI GitHub: <a href="https://github.com/blue45f/orbit-ui" target="_blank" rel="noopener noreferrer">https://github.com/blue45f/orbit-ui</a></div><br>
-      <div>• 원격 디버깅 플랫폼(Remote DevTools): <a href="https://remote-devtools.vercel.app" target="_blank" rel="noopener noreferrer">https://remote-devtools.vercel.app</a> (개인 작업 중)</div><br>
-      <div>• Remote DevTools GitHub: <a href="https://github.com/blue45f/remote-devtools" target="_blank" rel="noopener noreferrer">https://github.com/blue45f/remote-devtools</a></div><br>
-      <div>• SPA 다이내믹 렌더링 게이트웨이(SPA SEO Gateway): <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer">https://spa-seo-gateway.vercel.app</a> (개인 작업 중)</div><br>
-      <div>• SPA SEO Gateway GitHub: <a href="https://github.com/blue45f/spa-seo-gateway" target="_blank" rel="noopener noreferrer">https://github.com/blue45f/spa-seo-gateway</a></div><br>
+      <div>• 개인 프로젝트: 본문의 <strong>"개인 프로젝트"</strong> 섹션 참고 (이력서 공방, Orbit UI, Remote DevTools, SPA SEO Gateway)</div><br>
       <div>• 생년: 1981년</div><br>
       <div>• 주소: 서울 송파구 방이동</div>
     </div>
@@ -853,6 +846,100 @@
   </section>
 
   <section class="section">
+    <h2>개인 프로젝트</h2>
+    <div style="color: var(--color-text-light); margin-bottom: 20px;">
+      퇴근 후 / 주말에 직접 기획·설계·구현한 개인 프로젝트입니다. 모두 라이브 데모와 오픈 소스 코드를 공개하고 있습니다.
+    </div>
+
+    <div class="project-card">
+      <h3>이력서 공방 -- AI 기반 이력서 관리 SaaS</h3>
+      <div class="job-period">Personal Project | 2025 - 현재 | Full-stack 단독 개발</div>
+      <div>
+        • 42개 데이터 모델, 46개 페이지, 97개 컴포넌트, 22개 NestJS 모듈, 15개 이력서 테마로 구성된 풀스택 SaaS<br>
+        • <strong>멀티 LLM 자동 Fallback</strong>(Gemini → Groq → Claude)으로 무료 프로바이더 우선 후 유료 대체 -- 비용·가용성 동시 확보<br>
+        • AI 기능: 이력서 자동 생성(26개 직종 템플릿), 양식 변환 8종(SSE 스트리밍), JD 매칭 분석, 모의 면접 시뮬레이터, ATS 호환성 점검, 자기소개서 생성, 다국어 번역<br>
+        • <strong>FSD(Feature-Sliced Design)</strong> 아키텍처 적용, React Query + Zod 기반 타입 안전 데이터 레이어<br>
+        • 공유 링크(비밀번호/만료/QR), 버전 스냅샷 복원, 이력서 diff, PDF/MD/JSON 내보내기, 공개 URL 슬러그(<code>/@username/slug</code>)<br>
+        • Tiptap 에디터 + DOMPurify XSS 방지, JWT 인증, Helmet, Rate Limiting 등 보안 기본기 구비
+      </div>
+      <div class="tech-stack">
+        <strong>기술 스택</strong>: <span>React 19, TypeScript 5.9, Vite 8, TailwindCSS 4, NestJS 11, Prisma 6, PostgreSQL(Neon), Cloudinary, JWT, Tiptap, Swagger, pnpm</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <a href="https://resume-gongbang.vercel.app/resumes/4f657dfe-d73e-476a-828c-10240f85e162/preview" target="_blank" rel="noopener noreferrer">Live Demo</a>
+        &nbsp;|&nbsp;
+        <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <h3>Orbit UI -- Headless React 디자인 시스템</h3>
+      <div class="job-period">Personal Project | 2024 - 현재 | Architect & Maintainer</div>
+      <div>
+        • <strong>3-Tier Headless 아키텍처</strong>(Primitives → Core → Theme) 설계 -- 스타일과 로직 완전 분리<br>
+        • 50+ 프로덕션 레디 컴포넌트, WAI-ARIA 접근성 표준 준수, Light/Dark 테마 실시간 전환<br>
+        • <strong>Layer Primitive</strong> 시스템(Container/State/Border/Content) 도입으로 스타일 합성 일관성 확보<br>
+        • <strong>Compound Component 패턴</strong> 적용 (예: <code>SolidButton.Leading / Center / Trailing</code>)<br>
+        • <strong>Reference → Semantic → Component</strong> 3단 디자인 토큰 계층, CSS Variable 기반 동적 테마 전환<br>
+        • npm 배포: <code>@heejun-com/core</code>, <code>@heejun-com/theme-eclipse</code> -- Storybook으로 컴포넌트 카탈로그 운영
+      </div>
+      <div class="tech-stack">
+        <strong>기술 스택</strong>: <span>React 18/19, TypeScript 5.7, Storybook, CSS Variables, WAI-ARIA, npm 배포</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer">Storybook Live</a>
+        &nbsp;|&nbsp;
+        <a href="https://github.com/blue45f/orbit-ui" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <h3>Remote DevTools -- 원격 웹 디버깅 플랫폼</h3>
+      <div class="job-period">Personal Project | 2025 - 현재 | Full-stack 단독 개발</div>
+      <div>
+        • <strong>Chrome DevTools Protocol(CDP)</strong> 기반 원격 웹앱 네트워크·콘솔·DOM 실시간 모니터링<br>
+        • <strong>rrweb 기반 DOM 녹화 + CDP 데이터 저장</strong>으로 세션 타임라인 재생 (DevTools UI 자체 구현)<br>
+        • <strong>SDK 네트워크 리라이트</strong> -- 실서비스에서 API 응답을 모킹하여 시나리오 테스트<br>
+        • Jira REST API v3 연동 (디버깅 정보가 포함된 티켓 자동 생성), Slack 알림, Google Sheets 테스트 케이스 템플릿, AWS S3 자동 백업, Figma 플러그인<br>
+        • Helmet · Rate Limiting · CORS · Exception Filters 3중 에러 처리 · class-validator 입력 검증 · Nginx 보안 헤더 · Docker non-root 멀티스테이지 빌드<br>
+        • Vitest 230+ 테스트 케이스, GitHub Actions CI
+      </div>
+      <div class="tech-stack">
+        <strong>기술 스택</strong>: <span>NestJS 11, React 19, TypeScript, TypeORM, PostgreSQL, Vite, Tailwind CSS, Chrome DevTools Protocol, rrweb, AWS S3, Docker, Nginx, pnpm 9+</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <a href="https://remote-devtools.vercel.app" target="_blank" rel="noopener noreferrer">Live Demo</a>
+        &nbsp;|&nbsp;
+        <a href="https://github.com/blue45f/remote-devtools" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <h3>SPA SEO Gateway -- 다이내믹 렌더링 게이트웨이 (npm 배포)</h3>
+      <div class="job-period">Personal Project | 2025 - 현재 | Architect & Maintainer</div>
+      <div>
+        • Google Dynamic Rendering 가이드의 OSS 구현 -- <strong>Rendertron / Prerender.io 의 자리를 대체</strong>하는 범용 게이트웨이<br>
+        • SPA 가 만드는 동적 콘텐츠를 봇 요청 시점에 <strong>헤드리스 Chromium</strong> 으로 on-demand 렌더링하여 봇에는 완성된 HTML, 사람에는 원본 SPA 전달<br>
+        • <strong>3가지 운영 모드</strong> 단일 바이너리 (<code>render-only</code> / <code>cms</code> / <code>saas</code>) -- 환경변수 하나로 단일 사이트 ↔ multi-tenant SaaS 전환<br>
+        • <strong>2-tier 캐시</strong>(메모리 LRU + Redis) + Brotli 압축 + SWR + In-flight Dedup로 응답 지연 최소화<br>
+        • puppeteer-cluster 기반 고성능 풀, 자동 재시작(메모리 누수 방어), 이미지/폰트/광고 도메인 리소스 차단으로 평균 렌더 50-70% 단축<br>
+        • soft 404 / 빈 페이지 자동 감지, Circuit breaker(opossum), <strong>SSRF 방어</strong>(DNS resolve 후 사설 IP/loopback 차단), Sitemap 사전 워밍, Prometheus <code>/metrics</code> 관측성<br>
+        • pnpm workspace 모노레포 (core / admin-ui / multi-tenant / cms / gateway), 95+ 테스트 통과, npm <code>@heejun/spa-seo-gateway-core</code> 배포
+      </div>
+      <div class="tech-stack">
+        <strong>기술 스택</strong>: <span>Node.js, TypeScript, Fastify, Puppeteer, Redis, LRU Cache, Alpine.js, TailwindCSS, Prometheus, isbot, opossum, pnpm workspace</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer">Live Demo</a>
+        &nbsp;|&nbsp;
+        <a href="https://github.com/blue45f/spa-seo-gateway" target="_blank" rel="noopener noreferrer">GitHub</a>
+        &nbsp;|&nbsp;
+        <a href="https://www.npmjs.com/package/@heejun/spa-seo-gateway-core" target="_blank" rel="noopener noreferrer">npm</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
     <h2>리더십 & 기술 공유</h2>
 
     <h3>전사 웹표준 개발환경 RFC</h3>
@@ -959,13 +1046,10 @@
   </section>
 
   <section class="section">
-    <h2>오픈소스 및 기술 활동</h2>
+    <h2>기술 활동 및 기여</h2>
     <div>
-      • <strong>이력서 공방 (개인 사이트)</strong>: <a href="https://resume-gongbang.vercel.app/resumes/4f657dfe-d73e-476a-828c-10240f85e162/preview" target="_blank" rel="noopener noreferrer">https://resume-gongbang.vercel.app/resumes/4f657dfe-d73e-476a-828c-10240f85e162/preview</a> | <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer">github.com/blue45f/resume</a><br>
-      • <strong>Orbit UI (디자인 시스템)</strong>: <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer">https://orbit-ui-pink.vercel.app/</a> | <a href="https://github.com/blue45f/orbit-ui" target="_blank" rel="noopener noreferrer">github.com/blue45f/orbit-ui</a><br>
-      • <strong>Remote DevTools (원격 디버깅 플랫폼)</strong>: <a href="https://remote-devtools.vercel.app" target="_blank" rel="noopener noreferrer">https://remote-devtools.vercel.app</a> | <a href="https://github.com/blue45f/remote-devtools" target="_blank" rel="noopener noreferrer">github.com/blue45f/remote-devtools</a> -- NestJS 11 + React 19, Chrome DevTools Protocol(CDP) 기반 실시간 모니터링 · rrweb 세션 녹화/재생 · Jira/Slack/S3/Figma 연동<br>
-      • <strong>SPA SEO Gateway (다이내믹 렌더링 게이트웨이)</strong>: <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer">https://spa-seo-gateway.vercel.app</a> | <a href="https://github.com/blue45f/spa-seo-gateway" target="_blank" rel="noopener noreferrer">github.com/blue45f/spa-seo-gateway</a> -- 헤드리스 Chromium 기반 봇 전용 on-demand 렌더링, 2-tier 캐시(LRU + Redis) · SWR · multi-tenant SaaS 모드 (Rendertron/Prerender.io 대체)<br>
-      • <strong>GitHub Study Group</strong>: https://github.com/develuv/study<br>
+      • <strong>개인 프로젝트</strong>는 본문의 <strong>"개인 프로젝트"</strong> 섹션을 참고 (이력서 공방, Orbit UI, Remote DevTools, SPA SEO Gateway)<br>
+      • <strong>GitHub Study Group</strong>: <a href="https://github.com/develuv/study" target="_blank" rel="noopener noreferrer">https://github.com/develuv/study</a><br>
       • 사내 디자인 시스템 TF 참여<br>
       • 사내 기술 출판물 검수 활동<br>
       • <strong>FSD(Feature-Sliced Design) 아키텍처</strong> 검토 및 팀 내 공유<br>
