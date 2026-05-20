@@ -1,9 +1,9 @@
-# 12. CloudFront 캐시 전략 (2025-2026 Edition)
+# 12. CloudFront 캐시 전략 (2026 Edition)
 
 | 분류 | 인프라 & CI/CD | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [10. 인프라](./10_인프라_및_AWS_CDK_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포 프로세스](./14_배포_프로세스_체크리스트.md) | **AI 도구** | CloudFront, Brotli |
-| **핵심 테마** | Edge Computing, Cache Policy, Invalidation, Compression, Multi-Origin | **Update** | 2025.04 |
+| **연관 가이드** | [10. 인프라](./10_인프라_및_AWS_CDK_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포 프로세스](./14_배포_프로세스_체크리스트.md) | **AI 도구** | CloudFront, Brotli, KeyValueStore |
+| **핵심 테마** | Edge Computing, Cache Policy, KeyValueStore, Continuous Deployment, Origin Shield, Multi-Origin | **Update** | 2026.05 |
 
 ---
 
@@ -223,7 +223,115 @@ function handler(event) {
 }
 ```
 
-### 2.3 리다이렉트 함수
+### 2.3 KeyValueStore와 결합한 동적 엣지 로직 (2026)
+
+CloudFront Functions JS 2.0 + **KeyValueStore(KVS)** 조합은 2026년 엣지 컴퓨팅의 표준 패턴입니다. KVS는 전역 분산 저장소로, 키-값을 업데이트하면 **재배포 없이 수 초 내에 전 PoP에 전파**됩니다. 피처 플래그, A/B 테스트, 리다이렉트 맵, 짧은 URL 같은 동적 설정에 이상적입니다.
+
+#### 활용 사례
+
+| 사례 | 키 | 값 |
+| :--- | :--- | :--- |
+| 피처 플래그 | `flag:checkout-v2` | `{"enabled": true, "rollout": 30}` |
+| 리다이렉트 맵 | `redirect:/old-blog` | `/blog` |
+| A/B 테스트 분기 | `experiment:hero-banner` | `{"control": 50, "variant": 50}` |
+| 단축 URL | `short:abc123` | `https://example.com/products/1234` |
+| 봇/IP 차단 | `block:192.168.1.0/24` | `true` |
+| 지오 라우팅 | `geo:KR` | `kr-origin.example.com` |
+
+#### CDK에서 KeyValueStore + Function 연결
+
+```typescript
+// lib/cloudfront-kvs-stack.ts
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+
+// 1) KeyValueStore 생성 (계정당 최대 5개)
+const kvs = new cloudfront.KeyValueStore(this, 'EdgeConfigKVS', {
+  keyValueStoreName: 'edge-config',
+  comment: '피처 플래그 + 리다이렉트 맵',
+  // 초기 데이터 (선택, JSON 파일에서 import 가능)
+  source: cloudfront.ImportSource.fromInline(JSON.stringify({
+    data: [
+      { key: 'flag:checkout-v2', value: '{"enabled":true,"rollout":30}' },
+      { key: 'redirect:/old-blog', value: '/blog' },
+    ],
+  })),
+});
+
+// 2) Function에서 KVS 참조 (JS 2.0 필수)
+const edgeFunction = new cloudfront.Function(this, 'EdgeRouter', {
+  functionName: 'edge-router-with-kvs',
+  runtime: cloudfront.FunctionRuntime.JS_2_0,
+  // KVS 연결 — 함수에서 cf.kvs() 호출 가능
+  keyValueStore: kvs,
+  code: cloudfront.FunctionCode.fromFile({
+    filePath: 'cloudfront-functions/edge-router.js',
+  }),
+});
+```
+
+#### 함수 코드: 리다이렉트 + 피처 플래그
+
+```javascript
+// cloudfront-functions/edge-router.js
+import cf from 'cloudfront';
+
+// KVS 핸들 (배포 시 자동 주입)
+const kvsHandle = cf.kvs();
+
+async function handler(event) {
+  const request = event.request;
+  const uri = request.uri;
+
+  // 1) 리다이렉트 맵 조회 (없으면 catch에서 무시)
+  try {
+    const redirectTo = await kvsHandle.get(`redirect:${uri}`);
+    if (redirectTo) {
+      return {
+        statusCode: 301,
+        statusDescription: 'Moved Permanently',
+        headers: { location: { value: redirectTo } },
+      };
+    }
+  } catch (e) {
+    // 키가 없으면 KvsKeyNotFound — 무시하고 계속
+  }
+
+  // 2) 피처 플래그 — checkout-v2가 활성이면 신규 경로로 리라이트
+  if (uri.startsWith('/checkout')) {
+    try {
+      const flagJson = await kvsHandle.get('flag:checkout-v2');
+      const flag = JSON.parse(flagJson);
+      // 단순 비결정 분기 (실 운영에선 userId 해시 권장)
+      if (flag.enabled && Math.random() * 100 < flag.rollout) {
+        request.uri = '/checkout-v2' + uri.slice('/checkout'.length);
+      }
+    } catch (e) {
+      // 플래그 미존재 시 기본 경로 유지
+    }
+  }
+
+  return request;
+}
+```
+
+#### KVS 값 업데이트 (재배포 없이 수 초 내 반영)
+
+```bash
+# Etag를 먼저 조회 — 낙관적 동시성 제어용
+ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store \
+  --kvs-arn "$KVS_ARN" --query 'ETag' --output text)
+
+# 피처 플래그 롤아웃 비율을 30% → 70%로 즉시 변경
+aws cloudfront-keyvaluestore put-key \
+  --kvs-arn "$KVS_ARN" \
+  --if-match "$ETAG" \
+  --key 'flag:checkout-v2' \
+  --value '{"enabled":true,"rollout":70}'
+```
+
+> **주의 / 한계**: KVS는 함수당 **읽기 전용**(쓰기는 외부 API로만 가능)이며, 한 함수 호출 안에서 **최대 1MB까지 읽기**, 호출 시간은 평균 1ms 미만입니다. Lambda@Edge로 가야 할 무거운 로직을 KVS + Functions로 대체하면 비용·지연 모두 크게 줄어듭니다.
+
+### 2.4 리다이렉트 함수
 
 특정 조건(국가, 경로 패턴)에 따라 다른 URL로 리다이렉트합니다.
 
@@ -711,6 +819,275 @@ const distribution = new cloudfront.Distribution(this, 'MultiOriginDist', {
 
 ---
 
+## 6.5 CloudFront Continuous Deployment (CFCD)
+
+CloudFront의 **Continuous Deployment**는 배포 자체를 카나리화합니다. **Staging Distribution**을 생성해 전체 트래픽의 일부(가중치 기반 또는 헤더 기반)만 검증한 뒤, 문제가 없으면 한 번에 프로모션합니다. Route 53 DNS 전환과 달리 **DNS 변경 없이** 동작하므로 캐시 워밍업 효과까지 그대로 유지됩니다.
+
+### 6.5.1 동작 원리
+
+```
+                  Production Distribution (현재 안정 버전)
+                          ▲
+                          │ 90% 트래픽
+사용자  ── Continuous ────┤
+        Deployment Policy │ 10% 트래픽 (또는 헤더 매칭)
+                          ▼
+                  Staging Distribution (신규 설정 검증 중)
+                          │
+                          └─► 검증 OK → Promote 호출 시
+                              스테이징 설정이 프로덕션으로 1회성 복사
+```
+
+### 6.5.2 CDK 코드 (Distribution 설정 변경을 안전하게 롤아웃)
+
+```typescript
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+
+// 1) 기존 프로덕션 Distribution
+const prodDistribution = new cloudfront.Distribution(this, 'ProdDist', {
+  // ... (정상 운영 중인 설정)
+});
+
+// 2) Staging Distribution — 동일한 도메인/오리진, 설정만 다름
+const stagingDistribution = new cloudfront.Distribution(this, 'StagingDist', {
+  // 변경하려는 신규 설정 (예: 새 캐시 정책, 새 Function)
+});
+
+// 3) Continuous Deployment Policy
+const cdPolicy = new cloudfront.CfnContinuousDeploymentPolicy(this, 'CDPolicy', {
+  continuousDeploymentPolicyConfig: {
+    enabled: true,
+    stagingDistributionDnsNames: [stagingDistribution.distributionDomainName],
+
+    // 옵션 A: 가중치 기반 (예: 10% 트래픽만 staging으로)
+    trafficConfig: {
+      type: 'SingleWeight',
+      singleWeightConfig: {
+        weight: 0.10,
+        sessionStickinessConfig: {
+          // 세션 고정 (5분 동안 같은 사용자는 같은 버전)
+          idleTtl: 300,
+          maximumTtl: 3600,
+        },
+      },
+    },
+
+    // 옵션 B: 헤더 기반 (특정 헤더가 있는 요청만 staging으로)
+    // trafficConfig: {
+    //   type: 'SingleHeader',
+    //   singleHeaderConfig: {
+    //     header: 'x-canary',
+    //     value: 'true',
+    //   },
+    // },
+  },
+});
+
+// 4) 프로덕션 Distribution에 CD Policy 연결
+const cfnProd = prodDistribution.node.defaultChild as cloudfront.CfnDistribution;
+cfnProd.addPropertyOverride(
+  'DistributionConfig.ContinuousDeploymentPolicyId',
+  cdPolicy.attrId,
+);
+```
+
+### 6.5.3 검증 후 프로모션
+
+```bash
+# 1) Staging Distribution 상태 확인 (X-Amz-Cf-Id 헤더로 추적)
+curl -H "x-canary: true" -I https://app.example.com/
+
+# 2) CloudWatch에서 staging 메트릭 모니터링
+# - 4xx/5xx 에러율
+# - 캐시 적중률
+# - 오리진 응답 시간
+
+# 3) 문제 없으면 Promote (Staging 설정을 Production으로 1회성 복사)
+aws cloudfront update-distribution-with-staging-config \
+  --id "$PROD_DIST_ID" \
+  --staging-distribution-id "$STAGING_DIST_ID"
+
+# 4) 문제 있으면 CD Policy를 disable — 100% 프로덕션으로 복귀
+aws cloudfront update-continuous-deployment-policy \
+  --id "$CD_POLICY_ID" \
+  --continuous-deployment-policy-config '{...,"Enabled":false}'
+```
+
+### 6.5.4 CFCD vs Route 53 가중치 라우팅 비교
+
+| 항목 | CloudFront Continuous Deployment | Route 53 가중치 |
+| :--- | :--- | :--- |
+| **DNS 변경** | 불필요 | 필요 (TTL 캐시 영향) |
+| **세션 고정** | 기본 지원 (`sessionStickinessConfig`) | 직접 구현 필요 |
+| **헤더 기반 분기** | 지원 (`x-canary` 등) | 미지원 |
+| **프로모션** | API 한 번 (`update-distribution-with-staging-config`) | DNS 가중치 재조정 |
+| **사용 영역** | CloudFront **설정 변경** (Function/Origin/Cache Policy) | 전혀 다른 두 인프라 간 트래픽 분배 |
+
+> **언제 쓰나**: CloudFront 설정 자체를 바꿀 때(새 Function 적용, 캐시 정책 교체, Origin 변경)는 CFCD가 1순위입니다. 두 개의 완전히 다른 백엔드(예: V1 / V2 SPA) 간 분배는 Route 53 가중치가 적합합니다.
+
+---
+
+## 6.6 Origin Shield와 멀티 리전 가속
+
+### Origin Shield 개요
+
+CloudFront Edge → Regional Edge Cache → **Origin Shield(중앙 캐시 계층)** → Origin 순으로 동작합니다. Shield를 켜면 다음 효과가 있습니다.
+
+| 효과 | 설명 |
+| :--- | :--- |
+| **오리진 부하 감소** | 전 세계 Edge 캐시 미스를 단일 PoP가 통합 → 같은 객체 요청이 한 번만 오리진으로 |
+| **캐시 적중률 향상** | 콜드 캐시 상태에서도 Shield가 hot copy 제공 |
+| **TCP 연결 절감** | Shield ↔ Origin 사이에 연결 풀 재사용 |
+| **비용 절감** | DataTransfer-Out from Origin(가장 비싼 항목) 감소 |
+
+### CDK 설정
+
+```typescript
+const s3Origin = origins.S3BucketOrigin.withOriginAccessControl(siteBucket, {
+  // 오리진과 같은 리전 또는 사용자가 많은 리전 선택
+  originShieldRegion: 'ap-northeast-2', // 서울
+  originShieldEnabled: true,
+});
+
+const apiOrigin = new origins.HttpOrigin('api.example.com', {
+  originShieldRegion: 'us-east-1',
+  // ALB가 us-east-1에 있다면 같은 리전을 Shield로
+});
+```
+
+> **Shield 리전 선택 가이드**: 일반적으로 **오리진과 같은 리전**을 선택합니다. 단, 트래픽이 특정 대륙에 집중되어 있으면 그 대륙의 PoP를 선택하는 것이 적중률에 유리할 수 있습니다.
+
+### CloudFront SaaS Manager (멀티 테넌트)
+
+여러 도메인을 관리하는 SaaS 서비스라면 **CloudFront SaaS Manager**(2024 출시, 2026 GA 확장)를 검토하세요.
+
+| 티어 | 포함 기능 |
+| :--- | :--- |
+| **Basic** | 멀티 도메인 일괄 관리, 공통 캐시 정책 |
+| **Premium** | + Origin Shield, 멀티 오리진 라우팅 |
+| **Enterprise** | + AWS WAF Bot Control, Shield Advanced 연동 |
+
+> **언제 쓰나**: 100개 이상의 커스텀 도메인을 다루는 화이트라벨 SaaS, 마켓플레이스 입점사별 분리된 도메인 등.
+
+---
+
+## 6.7 WAF v2와 콘텐츠 보호
+
+### WAF Web ACL 연결
+
+```typescript
+import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
+
+// AWS Managed Rules — OWASP Top 10 + Bot Control
+const webAcl = new wafv2.CfnWebACL(this, 'EdgeWaf', {
+  scope: 'CLOUDFRONT',   // 반드시 CLOUDFRONT
+  defaultAction: { allow: {} },
+  visibilityConfig: {
+    sampledRequestsEnabled: true,
+    cloudWatchMetricsEnabled: true,
+    metricName: 'edgeWaf',
+  },
+  rules: [
+    // 1) AWS Managed: Core Rule Set (OWASP Top 10)
+    {
+      name: 'AWSCommonRules',
+      priority: 0,
+      overrideAction: { none: {} },
+      statement: {
+        managedRuleGroupStatement: {
+          vendorName: 'AWS',
+          name: 'AWSManagedRulesCommonRuleSet',
+        },
+      },
+      visibilityConfig: {
+        sampledRequestsEnabled: true,
+        cloudWatchMetricsEnabled: true,
+        metricName: 'awsCommonRules',
+      },
+    },
+    // 2) Bot Control (Enterprise 옵션 — 비용 검토 필수)
+    {
+      name: 'BotControl',
+      priority: 1,
+      overrideAction: { none: {} },
+      statement: {
+        managedRuleGroupStatement: {
+          vendorName: 'AWS',
+          name: 'AWSManagedRulesBotControlRuleSet',
+        },
+      },
+      visibilityConfig: {
+        sampledRequestsEnabled: true,
+        cloudWatchMetricsEnabled: true,
+        metricName: 'botControl',
+      },
+    },
+    // 3) 요청 빈도 제한 (Rate-based) — 1분당 IP당 1,000요청 초과 시 차단
+    {
+      name: 'RateLimit',
+      priority: 2,
+      action: { block: {} },
+      statement: {
+        rateBasedStatement: {
+          limit: 1000,
+          aggregateKeyType: 'IP',
+        },
+      },
+      visibilityConfig: {
+        sampledRequestsEnabled: true,
+        cloudWatchMetricsEnabled: true,
+        metricName: 'rateLimit',
+      },
+    },
+  ],
+});
+```
+
+### Signed URL / Signed Cookies (유료 콘텐츠 보호)
+
+다운로드 페이지, 프리미엄 비디오 등 인증된 사용자만 접근해야 하는 자산은 **Signed URL**(개별 객체) 또는 **Signed Cookies**(여러 객체)로 보호합니다.
+
+```typescript
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+
+// 1) Public Key 등록 (RSA 2048 권장)
+const pubKey = new cloudfront.PublicKey(this, 'SigningPublicKey', {
+  encodedKey: process.env.CF_SIGNING_PUBLIC_KEY!,
+});
+
+// 2) Key Group으로 묶어서 Distribution에 연결
+const keyGroup = new cloudfront.KeyGroup(this, 'SigningKeyGroup', {
+  items: [pubKey],
+});
+
+const distribution = new cloudfront.Distribution(this, 'PrivateDist', {
+  defaultBehavior: {
+    origin: origins.S3BucketOrigin.withOriginAccessControl(privateBucket),
+    viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+    // 트러스트된 Key Group의 서명만 허용
+    trustedKeyGroups: [keyGroup],
+  },
+});
+```
+
+서버에서 Signed URL을 생성하는 코드는 다음과 같습니다.
+
+```typescript
+import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+
+// 인증된 사용자에게만 1시간짜리 URL 발급
+const signedUrl = getSignedUrl({
+  url: `https://cdn.example.com/${objectKey}`,
+  keyPairId: process.env.CF_KEY_PAIR_ID!,
+  privateKey: process.env.CF_PRIVATE_KEY!,
+  dateLessThan: new Date(Date.now() + 3600 * 1000).toISOString(),
+});
+```
+
+> **선택 기준**: 한 파일만 보호하면 Signed URL, 한 폴더(예: `/premium/*`) 전체를 보호하면 Signed Cookies가 유리합니다. CloudFront Functions에서 JWT 검증 후 즉시 Signed URL을 발급하는 패턴도 일반적입니다.
+
+---
+
 ## 7. 캐시 디버깅 및 모니터링
 
 ### 7.1 x-cache 헤더로 캐시 적중 확인
@@ -1042,6 +1419,22 @@ AI(Claude Code)에게 캐시 효율 분석을 요청하세요.
 - [ ] SPA 라우팅을 위한 URL 리라이트가 CloudFront Function에서 처리되나요?
 - [ ] CloudFront Function 런타임이 JS 2.0으로 설정되었나요?
 - [ ] www → apex 리다이렉트 등 필요한 리다이렉트 규칙이 적용되었나요?
+- [ ] 피처 플래그/리다이렉트 맵을 KeyValueStore(KVS)로 관리하나요? (재배포 없이 갱신)
+- [ ] Lambda@Edge에 있던 가벼운 로직을 CloudFront Functions + KVS로 마이그레이션했나요?
+
+### Continuous Deployment & Origin Shield (2026 신규)
+
+- [ ] CloudFront 설정 변경 시 Continuous Deployment Policy를 활용하나요?
+- [ ] 카나리 검증에 `sessionStickinessConfig`로 세션 고정을 적용하나요?
+- [ ] 트래픽 집중 오리진에 Origin Shield가 활성화되어 있나요?
+- [ ] Shield 리전이 오리진 또는 주요 트래픽 대륙과 일치하나요?
+
+### WAF & 콘텐츠 보호
+
+- [ ] WAF Web ACL에 AWS Managed Common Rule Set이 적용되어 있나요?
+- [ ] Rate-based 규칙으로 비정상 요청 빈도가 자동 차단되나요?
+- [ ] 유료/사적 콘텐츠는 Signed URL 또는 Signed Cookies로 보호되나요?
+- [ ] 100개 이상 도메인을 다룬다면 CloudFront SaaS Manager를 검토했나요?
 
 ### 보안 헤더
 

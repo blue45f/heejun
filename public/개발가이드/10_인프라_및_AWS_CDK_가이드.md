@@ -1,9 +1,9 @@
-# 10. 인프라 및 AWS CDK 가이드 (2025-2026 Edition)
+# 10. 인프라 및 AWS CDK 가이드 (2026 Edition)
 
 | 분류 | 인프라 & CI/CD | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [11. CI/CD](./11_CICD_파이프라인_표준.md), [08. 성능](./08_성능_최적화_가이드.md), [12. CloudFront 캐시](./12_CloudFront_캐시_전략.md), [14. 배포 체크리스트](./14_배포_프로세스_체크리스트.md) | **AI 도구** | AWS CDK, Claude Code |
-| **핵심 테마** | PR별 Preview 환경, CloudFront OAC, GitHub OIDC, FinOps, WAF, 도메인 관리 | **Update** | 2025.04 |
+| **핵심 테마** | PR별 Preview 환경, CloudFront OAC, GitHub OIDC, FinOps, WAF, 도메인 관리, IaC 거버넌스 | **Update** | 2026.05 |
 
 ---
 
@@ -879,6 +879,115 @@ describe('PreviewStack', () => {
 | **태그 일괄 적용** | `cdk.Tags.of(this).add()`로 스택 레벨에서 태그 관리 |
 | **환경변수로 설정 주입** | 하드코딩 대신 `process.env`나 `cdk.json`의 context 활용 |
 
+### 5.5 CDK 2026 신규 기능: Mixins, Toolkit Library, EKS v2
+
+2026년에 CDK 생태계에 합류한 주요 기능들을 정리합니다.
+
+| 신규 기능 | 도입 시점 | 활용 사례 |
+| :--- | :--- | :--- |
+| **CDK Mixins** | 2026.03 GA | L1/L2/커스텀 Construct에 보안·태그·로깅 같은 횡단 관심사를 후처리로 주입 (`Mixins.of(scope).add(...)`) |
+| **`@aws-cdk/toolkit-lib`** | 2026 stable | `cdk` CLI를 프로그램에서 직접 호출 — Preview 환경 배포·삭제를 GitHub Actions 외부에서도 SDK 형태로 호출 가능 |
+| **`aws-eks-v2-alpha`** | 2026 Alpha | 기존 EKS L2를 대체하는 차세대 L2 — IRSA, Pod Identity, Addon 관리가 1급 시민으로 들어옴 |
+| **MediaPackage V2 L2** | 2026 | HLS/DASH/LL-HLS, DRM, manifest 필터링이 type-safe 하게 제공 (스트리밍 부가 서비스에 유용) |
+
+**CDK Mixins 예시 — 모든 S3 버킷에 보안 기본값 적용:**
+
+```typescript
+// lib/mixins/secure-defaults.ts
+import { Mixins, Mixin } from 'aws-cdk-lib';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
+// 스택 내 모든 S3 버킷에 SSL 강제 + 퍼블릭 차단 적용
+Mixins.of(this).add(
+  Mixin.forResource(s3.CfnBucket, (bucket) => {
+    bucket.publicAccessBlockConfiguration = {
+      blockPublicAcls: true,
+      blockPublicPolicy: true,
+      ignorePublicAcls: true,
+      restrictPublicBuckets: true,
+    };
+  })
+);
+```
+
+> **Mixins vs Aspect**: 기존 `Aspects`가 합성(synth) 단계에서 트리 전체를 탐색했다면, Mixins는 **타입-안전 + 합성형(composition)** 으로 동작합니다. cdk-nag/cdk-monitoring과 결합 시 보일러플레이트를 크게 줄여 줍니다.
+
+### 5.6 cdk-nag와 IaC 보안 게이트 (Checkov, OPA)
+
+배포 전에 보안·컴플라이언스 위반을 자동으로 차단합니다. cdk-nag 2.38 이상 기준 권장 셋업입니다.
+
+```typescript
+// bin/app.ts
+import { Aspects } from 'aws-cdk-lib';
+import { AwsSolutionsChecks, NIST80053R5Checks, HIPAASecurityChecks } from 'cdk-nag';
+
+const app = new cdk.App();
+
+// 모든 스택에 AWS Solutions 룰팩 적용 (필수 권장)
+Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
+
+// 컴플라이언스 요구가 있는 경우 추가 룰팩 사용
+if (process.env.COMPLIANCE === 'nist') {
+  Aspects.of(app).add(new NIST80053R5Checks());
+}
+if (process.env.COMPLIANCE === 'hipaa') {
+  Aspects.of(app).add(new HIPAASecurityChecks());
+}
+```
+
+| 도구 | 검사 대상 | 실행 단계 | 비고 |
+| :--- | :--- | :--- | :--- |
+| **cdk-nag 2.x** | CDK 코드 + 합성 후 CloudFormation | `cdk synth` 시점 (사전 차단) | AWS Solutions / HIPAA / NIST 800-53 / PCI 룰팩 포함 |
+| **Checkov** | CloudFormation, Terraform, Helm 등 멀티 IaC | CI 단계 | 1,500+ 정책, SARIF 출력으로 GitHub Code Scanning 연동 |
+| **OPA / Conftest** | 합성된 CFN/JSON에 Rego 정책 | CI 게이트 | 회사 고유 정책(태그 강제, 리전 제한 등)에 강점 |
+| **AWS Config Rules** | 배포 후 런타임 자원 | 사후 감지 | Drift 발견 시 SNS/SSM Automation 트리거 |
+
+**GitHub Actions에서 cdk-nag + Checkov 더블 게이트 예시:**
+
+```yaml
+# .github/workflows/iac-security.yml
+jobs:
+  iac-security-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: CDK Synth (cdk-nag 자동 실행)
+        run: bunx cdk synth --strict
+
+      - name: Checkov 정책 검사
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: cdk.out/
+          framework: cloudformation
+          output_format: sarif
+          output_file_path: checkov.sarif
+
+      - name: SARIF 업로드 (GitHub Security 탭 연동)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov.sarif
+```
+
+> **권장 정책**: `--strict` 모드로 cdk-nag 위반을 빌드 실패로 처리하고, 예외가 필요한 리소스에는 `NagSuppressions.addResourceSuppressions()`로 근거(JIRA 티켓 ID 등)를 명시해 두세요.
+
+### 5.7 CDK 대안 IaC 도구 비교 (2026)
+
+CDK 외 선택지를 검토할 때 참고할 표입니다.
+
+| 도구 | 언어 | 멀티 클라우드 | 상태 관리 | CDK 대비 강점 |
+| :--- | :--- | :--- | :--- | :--- |
+| **AWS CDK v2** | TS/Py/Go/Java/C# | AWS 전용 | CloudFormation | AWS 신규 서비스 L2 가장 빠른 지원 |
+| **SST v3 (Ion)** | TypeScript | AWS 중심 (Pulumi 엔진) | Pulumi state | 풀스택 TS 앱(Next.js, Astro 등)에 특화 |
+| **Pulumi** | TS/Py/Go/Java/.NET | AWS/GCP/Azure 등 150+ | Pulumi Cloud / 백엔드 자유 | 멀티 클라우드, SST v3 내부 엔진과 동일 |
+| **Terraform 1.10** | HCL | 4,000+ 프로바이더 | Terraform Cloud / S3 등 | 시장 표준, 풍부한 모듈 생태계 |
+| **OpenTofu** | HCL | Terraform 호환 | 동일 | MPL-2.0 라이선스(Linux Foundation), BSL 우려 회피 |
+| **AWS Solutions Constructs** | TS/Py | AWS | CDK 기반 | 검증된 패턴(예: `aws-cloudfront-s3`) 한 줄로 사용 |
+
+> **선택 기준**: 단일 AWS 계정·프론트엔드 위주라면 **CDK**, Next.js/Remix 풀스택은 **SST v3**, 멀티 클라우드·기존 Terraform 자산이 많다면 **OpenTofu 또는 Pulumi**가 무난합니다.
+
 ---
 
 ## 6. WAF 설정으로 Preview 환경 보호
@@ -1247,11 +1356,12 @@ AI(Claude Code)에게 인프라 코드를 요청할 때 다음과 같은 맥락�
 
 | 제공할 정보 | 예시 |
 | :--- | :--- |
-| **CDK 버전** | "CDK v2.170.0 사용 중" |
-| **보안 요구사항** | "OAC 필수, OAI 사용 금지" |
+| **CDK 버전** | "CDK v2.190.x + cdk-nag 2.38 사용 중, Mixins API 활용 가능" |
+| **보안 요구사항** | "OAC 필수, OAI 사용 금지, cdk-nag AwsSolutions 룰팩 100% 통과" |
 | **비용 제약** | "Preview 환경이라 RemovalPolicy.DESTROY 필수" |
 | **네이밍 규칙** | "스택 이름은 `PreviewStack-PR-{번호}` 형식" |
 | **기존 인프라** | "Route 53에 example.com 호스팅 영역이 이미 있음" |
+| **IaC 거버넌스** | "Checkov + OPA(Conftest) 게이트 통과 필수, SARIF로 GitHub Code Scanning 연동" |
 
 ---
 
@@ -1281,6 +1391,14 @@ AI(Claude Code)에게 인프라 코드를 요청할 때 다음과 같은 맥락�
 - [ ] CDK Bootstrap이 대상 계정/리전에 완료되었나요?
 - [ ] Stack Drift를 주기적으로 점검하고 있나요?
 - [ ] Lambda@Edge 함수 삭제 시 복제본 정리 대기 프로세스가 있나요?
+
+### IaC 거버넌스 (2026 신규)
+- [ ] cdk-nag `AwsSolutionsChecks`가 모든 스택에 Aspect로 적용되어 있나요?
+- [ ] Checkov 또는 OPA(Conftest)가 CI에서 합성 결과(cdk.out)를 검사하고 있나요?
+- [ ] cdk-nag 위반 예외에는 `NagSuppressions`로 근거(JIRA ID 등)가 명시되어 있나요?
+- [ ] 보안 스캔 결과를 SARIF 포맷으로 GitHub Code Scanning에 업로드하고 있나요?
+- [ ] CDK Mixins로 횡단 관심사(SSL 강제, 태그 자동 부여)를 일괄 적용하고 있나요?
+- [ ] cdk-nag/cdk-cli 버전을 분기마다 점검하고 `aws-cdk-lib`과 함께 갱신하나요?
 
 ### 참고 가이드
 - [11. CI/CD 파이프라인 표준](./11_CICD_파이프라인_표준.md) - 배포 파이프라인 설정

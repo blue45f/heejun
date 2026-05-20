@@ -1,18 +1,27 @@
-# 09. 장애 대응 및 Sentry 표준 (2025-2026 Edition)
+# 09. 장애 대응 및 Sentry 표준 (2026 Edition)
 
 | 분류 | 품질 & 성능 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [07. 테스팅](./07_테스팅_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md), [08. 성능 최적화](./08_성능_최적화_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **AI 도구** | Sentry AI, Claude Code |
-| **핵심 테마** | Error Tracking, AI Post-mortem, Session Replay, Alerting, Performance Monitoring | **Update** | 2025.04 |
+| **연관 가이드** | [07. 테스팅](./07_테스팅_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md), [08. 성능 최적화](./08_성능_최적화_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **AI 도구** | Sentry Seer, Claude Code, incident.io / Rootly AI |
+| **핵심 테마** | Sentry SDK v9, Seer Autofix, Session Replay, OpenTelemetry RUM, AI Postmortem | **Update** | 2026.05 |
 
 ---
 
 > **"장애는 예방하는 것이 아니라, 관리하는 것이다. 빠른 탐지와 정확한 분석이 서비스의 신뢰를 만든다."**
-> 본 가이드는 Sentry를 활용하여 장애를 모니터링하고, AI와 협업하여 근본 원인을 신속하게 파악하는 표준 프로세스를 다룹니다.
+> 본 가이드는 Sentry SDK v9와 Seer Autofix를 활용한 모니터링·자동 디버깅, OpenTelemetry 기반 RUM 옵션, 그리고 incident.io / Rootly의 AI 포스트모템 도구까지 포함한 2026년 표준 프로세스를 다룹니다.
 
 ---
 
-## 1. 에러 트래킹: Sentry SDK v8 최신 설정
+## 1. 에러 트래킹: Sentry SDK v9 최신 설정
+
+2026년 5월 기준 권장 버전은 **Sentry JavaScript SDK v9**입니다. v8 → v9의 주요 변경점은 다음과 같습니다:
+
+- **TypeScript 5.0.4+ 필요**, ES2020 기본 타깃 (OpenTelemetry SDK v2 준비)
+- **metrics API 제거**: 베타 종료로 `Sentry.metrics.*` 호출은 모두 삭제
+- **`beforeSendSpan`에서 span drop 불가**: 샘플링은 `tracesSampler`로 일원화
+- **`captureConsoleIntegration` + `attachStacktrace: true` 사용 시 unhandled로 표시되지 않음** (handled: true로 변경)
+- **`startSpan`에 전달한 scope는 clone되어 콜백 내에서만 활성** — 노드/브라우저 동작 일관성 확보
+- **PII 토큰화**: 서버 측 Data Scrubbing이 신용카드/JWT/API 토큰 패턴을 사전에 인식해 토큰화된 형태로 저장 (raw 값은 서버에 도달하지 않음)
 
 프로덕션 환경에서의 에러를 추적하기 위해 소스 맵 연동과 세션 리플레이를 활성화합니다.
 
@@ -152,9 +161,29 @@ export default defineConfig({
 
 ---
 
-## 2. AI 기반 장애 분석: AI 포스트모템 (Post-mortem)
+## 2. AI 기반 장애 분석: Seer Autofix & AI 포스트모템
 
-Sentry에서 제공하는 AI 도구를 활용하여 에러의 원인과 해결책을 자동으로 도출합니다.
+Sentry에서 제공하는 AI 에이전트 **Seer**와 외부 인시던트 관리 플랫폼(**incident.io**, **Rootly**)의 AI 기능을 결합해, 탐지 → 근본 원인 분석 → 핫픽스 코드 → 포스트모템 초안까지의 흐름을 자동화합니다.
+
+### 2.0 Sentry Seer Autofix (2026)
+
+**Seer**는 Sentry가 제공하는 AI 디버깅 에이전트로, 에러 스택 트레이스와 연결된 코드베이스를 함께 분석해 다음 3단계를 자동 수행합니다.
+
+| 단계 | 동작 |
+| :--- | :--- |
+| 1. Root Cause Analysis | 이슈 컨텍스트와 코드베이스를 교차 분석해 근본 원인 도출 |
+| 2. Solution Identification | 수정 방향과 영향 범위를 요약, PR 생성 가능 여부 판단 |
+| 3. Coding Agent Handoff | **Claude Code** 또는 **Cursor Cloud Agents**에 자동 위임하여 PR 작성 |
+
+**활용 시나리오:**
+- **로컬 개발**: Sentry MCP 서버로 IDE의 코딩 에이전트가 raw 이벤트와 Seer 결과에 접근
+- **코드 리뷰**: PR 단계에서 Seer가 잠재 버그를 사전 식별 (스타일이 아닌 운영 영향 위주)
+- **프로덕션**: 신뢰도 높은 이슈는 자동으로 코딩 에이전트 핸드오프
+
+```bash
+# Sentry MCP 서버 연결 (Claude Code / Cursor)
+npx -y @sentry/mcp-server@latest --org=$SENTRY_ORG --project=$SENTRY_PROJECT
+```
 
 ### 2.1 AI 분석 워크플로우
 
@@ -176,25 +205,32 @@ Sentry에서 제공하는 AI 도구를 활용하여 에러의 원인과 해결�
               ┌────────────┴────────────┐
               ▼                         ▼
    ┌─────────────────┐      ┌─────────────────────┐
-   │ 2a. Sentry AI   │      │ 2b. Claude Code     │
-   │  Insight 분석    │      │  심층 코드 분석       │
-   │  - 유사 이슈 매칭 │      │  - 근본 원인 파악     │
-   │  - 자동 요약     │      │  - 수정 코드 제안     │
+   │ 2a. Sentry Seer │      │ 2b. Claude Code MCP │
+   │  Autofix 실행    │      │  심층 코드 분석       │
+   │  - 근본 원인 분석 │      │  - PR 자동 작성       │
+   │  - Solution 도출 │      │  - 테스트 동반 작성    │
    └────────┬────────┘      └──────────┬──────────┘
             │                          │
             └────────────┬─────────────┘
                          ▼
               ┌─────────────────────┐
-              │ 3. 수정 PR 생성      │
-              │  - 핫픽스 코드       │
-              │  - 방어 로직 추가     │
-              │  - 테스트 코드 포함   │
+              │ 3. 수정 PR 자동 생성  │
+              │  - Seer → Cursor/    │
+              │    Claude Code 핸드오프│
+              │  - 핫픽스 + 테스트     │
               └──────────┬──────────┘
                          ▼
               ┌─────────────────────┐
-              │ 4. 배포 및 검증      │
+              │ 4. 포스트모템 자동 초안│
+              │  (incident.io/Rootly)│
+              │  - 타임라인·기여요인·  │
+              │    팔로업 자동 정리   │
+              └──────────┬──────────┘
+                         ▼
+              ┌─────────────────────┐
+              │ 5. 배포 및 모니터링    │
               │  - Sentry 이슈 해결  │
-              │  - 모니터링 지속     │
+              │  - Web Vitals 추적   │
               └─────────────────────┘
 ```
 
@@ -793,18 +829,31 @@ function App() {
 ### 7.3 Web Vitals 자동 수집
 
 ```typescript
-// Sentry SDK v8은 browserTracingIntegration에서 자동으로 수집합니다.
-// 별도 설정 없이 다음 지표가 Sentry Performance 탭에 표시됩니다:
-// - LCP (Largest Contentful Paint)
-// - FID (First Input Delay)
+// Sentry SDK v9는 browserTracingIntegration에서 다음 지표를 자동 수집합니다.
+// (FID는 2024년 폐기되어 더 이상 보고되지 않습니다.)
+// - LCP (Largest Contentful Paint) — 2026년부터 Good 기준 ≤ 2.0s
+// - INP (Interaction to Next Paint) — 핵심 랭킹 시그널, p75 ≤ 200ms
 // - CLS (Cumulative Layout Shift)
 // - FCP (First Contentful Paint)
 // - TTFB (Time to First Byte)
-// - INP (Interaction to Next Paint)
 
 // 커스텀 Web Vitals 임계값 기반 알람을 설정하려면
-// Sentry 대시보드 > Performance > Web Vitals 에서 구성합니다.
+// Sentry 대시보드 > Insights > Web Vitals 에서 구성합니다.
+// (참고: 2026년 갱신된 임계값을 알람 규칙에 동기화해야 합니다.)
 ```
+
+### 7.4 OpenTelemetry 기반 RUM 옵션
+
+Sentry 외 대안/병행 수집을 고려할 때 2026년 권장되는 옵션은 다음과 같습니다.
+
+| 도구 | 특징 | 적합 상황 |
+| :--- | :--- | :--- |
+| **Grafana Faro** | OSS Web SDK, OTel 컨벤션 네이티브, Grafana Cloud로 자연스럽게 흘러감 | OSS/자체 호스팅 관측 스택, 멀티 백엔드 |
+| **Datadog RUM** | 프론트→백엔드 end-to-end trace, APM/Log와 단일 화면 | 풀스택 Datadog 사용 중인 조직 |
+| **OTel Browser SDK** | 표준 기반, 벤더 lock-in 최소화 | 장기적 이식성 우선 |
+| **Sentry SDK v9** | 에러+RUM+Replay+Seer를 단일 SDK로 | 한 곳에서 디버깅까지 끝내려는 팀 |
+
+Sentry SDK v9는 OpenTelemetry SDK v2와의 통합을 위해 TypeScript 5.0.4 이상을 요구하므로, OTel 도입 시점에 SDK 버전 정렬을 함께 검토해야 합니다.
 
 ---
 
@@ -928,6 +977,13 @@ Sentry.setUser({
 // - "Scrub data" 활성화
 // - "Scrub IP addresses" 활성화
 // - 커스텀 필드 추가: password, token, secret, authorization
+
+// ✅ Sentry SDK v9의 자동 토큰화 PII 보호 활용
+// v9 서버측 Data Scrubber는 신용카드 번호, JWT, API 토큰, 한국 주민번호 등
+// 일반 패턴을 자동 인식하여 raw 값을 저장하지 않고 토큰화된 표현으로 대체합니다.
+// (예: "credit_card: 4242-4242-4242-4242" → "credit_card: [Filtered]")
+//
+// SDK 측 사전 필터링은 여전히 권장됩니다 — 네트워크 비용/유출 면적을 모두 줄이는 다층 방어입니다.
 ```
 
 ### 9.4 과도한 이벤트 볼륨 (할당량 초과)
@@ -964,7 +1020,8 @@ Sentry.init({
 ## ✅ 체크리스트
 
 ### SDK 설정
-- [ ] `@sentry/react` 및 `@sentry/vite-plugin`이 최신 버전(v8+)으로 설치되어 있나요?
+- [ ] `@sentry/react` 및 `@sentry/vite-plugin`이 최신 버전(**v9+**)으로 설치되어 있나요?
+- [ ] v8 → v9 마이그레이션 시 `metrics` API 제거, `beforeSendSpan` span drop 불가, TypeScript 5.0.4+ 요구 등 breaking change를 반영했나요?
 - [ ] 환경별(`production`, `staging`, `development`) 샘플링 비율이 적절하게 설정되어 있나요?
 - [ ] `ignoreErrors`에 무의미한 브라우저 에러 패턴이 등록되어 있나요?
 
@@ -977,11 +1034,15 @@ Sentry.init({
 - [ ] 에러 발생 시 사용자의 행동을 재현할 수 있는 **Session Replay**가 켜져 있나요?
 - [ ] `httpClientIntegration`으로 4xx/5xx HTTP 에러가 추적되고 있나요?
 - [ ] 주요 비즈니스 트랜잭션에 커스텀 성능 측정이 적용되어 있나요?
+- [ ] 2026 갱신된 Core Web Vitals 임계값(LCP 2.0s, INP 200ms)으로 Sentry 알람 룰을 동기화했나요?
+- [ ] Grafana Faro / Datadog RUM / OTel Browser SDK 중 어떤 옵션을 병행할지 결정하고 SDK 버전을 정렬했나요?
 
 ### 알람 및 대응
 - [ ] 에러의 우선순위(P0~P3)에 따라 알람 채널이 분리되어 있나요?
 - [ ] P0 장애 시 PagerDuty 또는 동등한 온콜 시스템이 연동되어 있나요?
 - [ ] 장애 대응 5단계 프로세스가 팀원 전체에게 공유되어 있나요?
+- [ ] **Sentry Seer Autofix**가 활성화되어 있고, Claude Code / Cursor Cloud Agents 핸드오프가 구성되어 있나요?
+- [ ] incident.io 또는 Rootly의 AI 포스트모템 기능으로 타임라인·기여요인 초안을 자동 생성하나요?
 
 ### 에러 처리
 - [ ] 주요 페이지 및 기능별로 **Error Boundary**가 적용되어 있나요?
@@ -992,4 +1053,5 @@ Sentry.init({
 - [ ] 민감한 사용자 정보가 Sentry 로그에 노출되지 않도록 마스킹 처리가 되었나요?
 - [ ] `Sentry.setUser`에 평문 이메일/이름 대신 해시값 또는 ID만 사용하고 있나요?
 - [ ] Sentry 프로젝트 설정에서 Data Scrubbing이 활성화되어 있나요?
+- [ ] SDK v9의 **자동 토큰화 PII 보호**를 신뢰하지 말고, SDK 측 `beforeSend` 사전 필터링도 병행하고 있나요? (다층 방어)
 - [ ] `beforeSend`에서 쿠키 등 민감 정보를 제거하고 있나요?

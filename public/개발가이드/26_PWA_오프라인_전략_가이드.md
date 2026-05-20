@@ -1,14 +1,22 @@
-# 26. PWA & 오프라인 전략 가이드 (2025-2026 Edition)
+# 26. PWA & 오프라인 전략 가이드 (2026 Edition)
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CloudFront](./12_CloudFront_캐시_전략.md) | **AI 도구** | Workbox, Serwist, Claude Code |
-| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync | **Update** | 2026.04 |
+| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CloudFront](./12_CloudFront_캐시_전략.md) | **AI 도구** | Workbox 8, Serwist, Claude Code |
+| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, iOS Web Push, OPFS | **Update** | 2026.05 |
 
 ---
 
 > **"PWA는 더 이상 네이티브 앱의 대안이 아니라, 웹의 기본 배포 형태다. 2026년의 Service Worker는 AI가 설계하고, 개발자는 오프라인 UX 품질만 관리한다."**
-> 본 가이드는 Workbox 6 / Serwist 기반의 Service Worker 설정부터 캐싱 전략, 오프라인 UX, Background Sync, Web Push까지 PWA 전체 파이프라인을 다룹니다.
+> 본 가이드는 Workbox 8 / Serwist 기반의 Service Worker 설정부터 캐싱 전략, 오프라인 UX, Background Sync, Web Push까지 PWA 전체 파이프라인을 다룹니다.
+>
+> **2026년 5월 핵심 변화 요약**
+> - **Workbox 8**: Vite/Next.js/webpack 빌드 파이프라인 네이티브 연동, ESM 우선, TypeScript 5.4+ 타입 정의 강화. 2025년 말 v8 정식 릴리즈.
+> - **iOS 18 / Safari 18 Web Push**: 홈 화면에 설치된 PWA에서만 Web Push가 동작한다는 제한은 유지되지만, EU의 DMA 적용 외 지역에서는 안정적으로 운영 가능. 사용자 제스처 기반 권한 요청 필수.
+> - **EU 지역 PWA 제한**: 2024년부터 적용된 Apple의 EU 지역 PWA 다운그레이드(브라우저 탭으로 강제) 정책은 2026년에도 일부 유지되어, 해당 시장은 Push/Standalone 미지원 폴백이 필요.
+> - **File System Access / OPFS / Storage Buckets API**: Chromium 계열에서 Baseline, Safari WebKit은 OPFS만 지원. 대용량 오프라인 데이터 저장 패턴이 IndexedDB + OPFS 혼합으로 정착.
+> - **Capacitor 7**: 2026년 초 릴리즈, Web Push + iOS 네이티브 통합, Live Updates 안정화. PWA → 네이티브 어셈블 시 표준.
+> - **PWABuilder 2026**: 새 Microsoft Store / App Store 메타데이터 마법사 제공, manifest validation 강화.
 
 ---
 
@@ -27,11 +35,12 @@
    - [2.5 Feature Flag 오프라인 기능 점진적 롤아웃](#25-feature-flag-오프라인-기능-점진적-롤아웃)
    - [2.6 Service Worker 버전 충돌 방지](#26-service-worker-버전-충돌-방지)
 3. [Service Worker 라이프사이클](#3-service-worker-라이프사이클)
-4. [Workbox 6 + Vite PWA 설정](#4-workbox-6--vite-pwa-설정)
+4. [Workbox 8 + Vite PWA 설정](#4-workbox-8--vite-pwa-설정)
 5. [캐싱 전략 4종 비교](#5-캐싱-전략-4종-비교)
 6. [오프라인 UX 패턴](#6-오프라인-ux-패턴)
-7. [Web Push Notifications](#7-web-push-notifications)
+7. [Web Push Notifications (iOS Safari 포함)](#7-web-push-notifications)
 8. [App Manifest & 설치 프롬프트](#8-app-manifest--설치-프롬프트)
+8.5 [File System Access / OPFS / Storage Buckets API (2026)](#85-file-system-access--opfs--storage-buckets-api-2026)
 9. [Background Sync & Periodic Sync](#9-background-sync--periodic-sync)
 10. [Serwist (Next.js PWA 대안)](#10-serwist-nextjs-pwa-대안)
 11. [PWA 디버깅 & 트러블슈팅](#11-pwa-디버깅--트러블슈팅)
@@ -48,10 +57,10 @@ AI를 PWA 개발의 보조가 아닌 **설계 및 구현 엔진**으로 활용�
 #### 프롬프트 1: Service Worker 생성
 
 ```
-이 Vite + React + TypeScript 프로젝트에 Workbox 기반 Service Worker를 설정해줘.
+이 Vite + React + TypeScript 프로젝트에 Workbox 8 기반 Service Worker를 설정해줘.
 
 요구사항:
-- vite-plugin-pwa의 injectManifest 모드 사용
+- vite-plugin-pwa의 injectManifest 모드 사용 (Workbox 8 ESM 빌드)
 - 캐싱 전략:
   (1) 앱 셸 (HTML, JS, CSS): Cache First, 빌드마다 revision 갱신
   (2) API 응답 (/api/*): Network First, 5분 TTL
@@ -178,8 +187,8 @@ Copilot 또는 Cursor에서 Service Worker를 효율적으로 생성하기 위�
 # PWA Service Worker 코드 생성 규칙
 
 ## 필수 준수 사항
-- 모든 Service Worker 코드는 TypeScript로 작성
-- Workbox 6 라이브러리 사용 (workbox-* 패키지)
+- 모든 Service Worker 코드는 TypeScript 5.4+로 작성
+- Workbox 8 라이브러리 사용 (workbox-* 패키지 ESM 빌드)
 - self.__WB_MANIFEST 프리캐시 매니페스트 반드시 포함
 - 캐시 이름에 반드시 버전 프리픽스 포함: `v${APP_VERSION}-`
 - 환경 변수로 캐싱 전략 분기 (import.meta.env.MODE)
@@ -1196,9 +1205,16 @@ async function handleNavigation(event: FetchEvent): Promise<Response> {
 
 ---
 
-## 4. Workbox 6 + Vite PWA 설정
+## 4. Workbox 8 + Vite PWA 설정
 
-injectManifest 모드로 Workbox를 설정하여 Service Worker를 완전히 제어한다.
+> **Workbox 8 주요 변경 사항 (2025년 말 릴리즈)**
+> - ESM 우선 빌드(`workbox-*` 패키지 모두 ESM 기본). 레거시 UMD는 deprecated.
+> - TypeScript 5.4+ 타입 정의 강화: `Strategy`, `RouteHandler`가 제네릭으로 응답 타입 추론 가능.
+> - `precacheAndRoute`가 빌드 파이프라인(Vite/webpack/Next.js)과 더 긴밀하게 통합.
+> - `BroadcastUpdate` 플러그인 v2: 클라이언트별 채널 분리 옵션.
+> - Workbox 6 → 8 마이그레이션 가이드 제공 (대부분 import 경로 변경만 필요).
+
+injectManifest 모드로 Workbox 8을 설정하여 Service Worker를 완전히 제어한다.
 
 ```typescript
 // vite.config.ts
@@ -1237,6 +1253,12 @@ export default defineConfig(({ mode }) => ({
   ],
 }));
 ```
+
+> **Workbox 6 → 8 마이그레이션 핵심 포인트**
+> - 패키지: `workbox-precaching`, `workbox-routing` 등 패키지 이름은 동일. 메이저만 `^8.0.0`으로 올린다.
+> - `precacheAndRoute(self.__WB_MANIFEST)` 시그니처는 유지.
+> - `registerRoute()` 의 두 번째 인자가 클래스 인스턴스에서 **클래스 또는 함수** 모두 허용으로 확대.
+> - 더 이상 사용하지 않는 `workbox-google-analytics`는 v8에서 제거 → GA4는 `gtag` 직접 호출로 전환.
 
 #### SW 등록 및 업데이트 관리
 
@@ -1799,6 +1821,35 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 
 ## 7. Web Push Notifications
 
+> **2026년 iOS Safari Web Push 핵심 제약**
+> - Push API는 **홈 화면에 설치된 PWA (`display: standalone`)** 에서만 동작한다. Safari 탭에서는 권한 요청 자체가 거부된다.
+> - 권한 요청은 **사용자 제스처(클릭/탭) 직후에만** 호출 가능. `useEffect`나 페이지 로드 시 자동 호출 금지.
+> - manifest의 `display`가 `standalone` 또는 `fullscreen`이어야 한다. `minimal-ui`/`browser`로 폴백되면 Push 비활성화.
+> - EU 지역(DMA 적용)에서는 Apple이 PWA를 Safari 탭으로 강제하므로 Push가 동작하지 않는다 — 이를 감지하여 알림 권한 UI 자체를 숨기는 폴백이 필요.
+> - VAPID 키는 서버/클라이언트 동일하게 관리(P-256 ECDSA). 키 교체 시 모든 구독을 무효화한다.
+>
+> **iOS PWA Push 활성화 사전 체크**
+> ```ts
+> function canRequestPushOnIos(): { eligible: boolean; reason?: string } {
+>   const ua = navigator.userAgent;
+>   const isIos = /iPhone|iPad|iPod/.test(ua);
+>   if (!isIos) return { eligible: true };
+>
+>   // 홈 화면 설치 확인 (standalone)
+>   const isStandalone =
+>     window.matchMedia('(display-mode: standalone)').matches ||
+>     // iOS Safari 비표준 속성
+>     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+>     ((window.navigator as any).standalone === true);
+>   if (!isStandalone) return { eligible: false, reason: 'home-screen-required' };
+>
+>   if (!('Notification' in window) || !('PushManager' in window)) {
+>     return { eligible: false, reason: 'unsupported' };
+>   }
+>   return { eligible: true };
+> }
+> ```
+
 ### 7.1 VAPID 키 생성
 
 ```typescript
@@ -2119,6 +2170,110 @@ export async function runPWAAudit(): Promise<void> {
     }
   }
   console.groupEnd();
+}
+```
+
+---
+
+## 8.5 File System Access / OPFS / Storage Buckets API (2026)
+
+2026년 PWA의 오프라인 저장 옵션은 IndexedDB만이 아니다. 대용량/구조적 데이터를 더 빠르고 안전하게 저장할 수 있는 API들이 Baseline에 합류했다.
+
+| API | 지원 (2026.05) | 용도 | 영속성 |
+|---|---|---|---|
+| **IndexedDB** | 모든 브라우저 | 구조적 JSON/Blob | 쿼터 내 영속 |
+| **Cache Storage** | 모든 브라우저 | Request/Response 캐싱 | 쿼터 내 영속 |
+| **Origin Private File System (OPFS)** | Chromium/Safari/Firefox 모두 | 대용량 파일 IO (수GB), 동기 read/write 핸들 | 영속 (`navigator.storage.persist`) |
+| **File System Access API (user-visible)** | Chromium 정식, Safari 부분 | 사용자가 선택한 폴더에 R/W | 권한 부여 시 영속 |
+| **Storage Buckets API** | Chrome/Edge 안정, Safari/Firefox 진행 중 | 도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료 | 버킷별 정책 |
+| **Web Locks API** | 모든 브라우저 | 탭/SW 간 동시성 제어 | - |
+
+### 8.5.1 OPFS로 대용량 오프라인 파일 저장
+
+```typescript
+// src/services/opfs-storage.ts
+// OPFS는 사용자에게 보이지 않는 origin 전용 파일 시스템 -- 가장 빠른 IO 성능
+
+export async function writeBlobToOpfs(path: string, blob: Blob): Promise<void> {
+  const root = await navigator.storage.getDirectory();
+  // 경로 분할 -- 'video/2026/clip.mp4' 같은 중첩 경로 지원
+  const segments = path.split('/').filter(Boolean);
+  const fileName = segments.pop()!;
+
+  let dir = root;
+  for (const segment of segments) {
+    dir = await dir.getDirectoryHandle(segment, { create: true });
+  }
+
+  const fileHandle = await dir.getFileHandle(fileName, { create: true });
+  // 워커에서는 createSyncAccessHandle()로 동기 IO 가능 (성능 우수)
+  const writable = await fileHandle.createWritable();
+  await writable.write(blob);
+  await writable.close();
+}
+
+export async function readBlobFromOpfs(path: string): Promise<Blob | null> {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const segments = path.split('/').filter(Boolean);
+    const fileName = segments.pop()!;
+    let dir = root;
+    for (const segment of segments) {
+      dir = await dir.getDirectoryHandle(segment);
+    }
+    const fileHandle = await dir.getFileHandle(fileName);
+    const file = await fileHandle.getFile();
+    return file;
+  } catch {
+    return null;
+  }
+}
+```
+
+### 8.5.2 Storage Buckets로 오프라인 데이터 격리
+
+```typescript
+// src/services/storage-buckets.ts
+// 사용자 워크스페이스/프로젝트마다 버킷을 분리해 만료 정책을 다르게 적용
+// 2026년 Chromium 정식, Safari/Firefox는 progressive enhancement
+
+interface StorageBucketOptions {
+  durability?: 'strict' | 'relaxed';
+  persisted?: boolean;
+  quota?: number;
+  expires?: number; // epoch ms
+}
+
+interface BrowserStorageManager extends StorageManager {
+  getBucket?: (name: string) => Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  openOrCreate?: (name: string, options?: StorageBucketOptions) => Promise<any>;
+}
+
+export async function getProjectBucket(projectId: string) {
+  const manager = navigator.storage as BrowserStorageManager;
+  if (!manager.openOrCreate) {
+    // 미지원 브라우저 -- 글로벌 IndexedDB로 폴백
+    return null;
+  }
+  // 30일 만료, 쿼터 200MB
+  return manager.openOrCreate(`project-${projectId}`, {
+    durability: 'strict',
+    persisted: true,
+    expires: Date.now() + 30 * 86_400_000,
+  });
+}
+```
+
+### 8.5.3 영속성 확보 (Storage Persistence)
+
+```ts
+// 사용자에게 보이지 않게 영속성 요청 (브라우저는 사용자 참여도/북마크 등으로 자동 부여하기도 함)
+async function ensurePersistentStorage(): Promise<boolean> {
+  if (navigator.storage && navigator.storage.persist) {
+    return navigator.storage.persist();
+  }
+  return false;
 }
 ```
 
@@ -2604,6 +2759,10 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] `notificationclick`에서 해당 URL로 포커스 또는 새 창 열기
 - [ ] 태그(`tag`) 기반 중복 알림 방지
 - [ ] 환경별 Push 토픽 분리 (프로덕션 알림이 테스트 사용자에게 전달되지 않도록)
+- [ ] iOS Safari 18+ 호환성: 홈 화면 설치(`standalone`) 상태에서만 권한 요청 호출
+- [ ] 권한 요청이 사용자 제스처 직후에만 발생하도록 가드 구현
+- [ ] EU 지역 사용자(DMA 적용)에 대한 Push 미지원 폴백 UI 제공
+- [ ] VAPID 키 교체(rotation) 절차 문서화 -- 교체 시 구독 무효화
 
 ### 12.5 Background Sync
 
@@ -2612,6 +2771,14 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] 최대 재시도 횟수 초과 시 에러 큐로 분리
 - [ ] 동기화 결과를 `postMessage`로 클라이언트에 알림
 - [ ] Periodic Background Sync 등록 시 브라우저 지원 여부 확인
+
+### 12.6 2026 신규 저장 API (Storage)
+
+- [ ] 대용량 파일 저장에 OPFS(`navigator.storage.getDirectory()`) 활용 검토
+- [ ] 사용자 폴더 R/W 필요 시 File System Access API + Persistent Permissions(Chrome 122+)
+- [ ] 워크스페이스/프로젝트별로 Storage Buckets API로 데이터 격리(Chromium 지원)
+- [ ] `navigator.storage.persist()`로 영속성 확보, 미지원 환경 폴백 처리
+- [ ] Web Locks API로 SW ↔ 탭 간 동시 쓰기 충돌 방지
 
 ### 12.6 App Manifest
 

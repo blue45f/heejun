@@ -1,14 +1,19 @@
-# 02. React 19 실무 가이드 (2025-2026 Edition)
+# 02. React 19 실무 가이드 (2026 Edition)
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [03. 상태 관리](./03_상태관리_패턴_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md) | **AI 도구** | Claude Code, Cursor |
-| **핵심 테마** | Actions, Server Functions, useActionState, useOptimistic, Ref as Props, React Compiler | **Update** | 2026.04 |
+| **핵심 테마** | Actions, Server Functions, useActionState, useOptimistic, Ref as Props, React Compiler 1.0, Activity, useEffectEvent | **Update** | 2026.05 |
 
 ---
 
 > **"React 19은 클라이언트와 서버의 경계를 허물고, 비동기 데이터 흐름을 프레임워크 수준에서 네이티브하게 처리한다."**
 > 본 가이드는 수동으로 관리하던 비동기 상태를 React 엔진에 맡기고, 더 간결하고 안전한 코드를 작성하는 방법을 다룹니다.
+>
+> **2026년 5월 기준 메이저 마일스톤**
+> - **React 19.2 (2025-10 릴리스)**: `<Activity>` 컴포넌트, `useEffectEvent`, `cacheSignal`, Suspense SSR 배칭, Partial Pre-rendering, Node 환경 `renderToReadableStream` 안정화
+> - **React Compiler 1.0 (2025-10 GA)**: Meta Quest Store, Instagram 등 프로덕션 검증 완료. `babel-plugin-react-compiler` 안정 채널 배포 (Vite/Next.js/Expo 공식 어댑터 제공)
+> - `<ViewTransition>` 은 아직 **canary**입니다(2026-05 기준). `useDeferredValue`/`startTransition`/Suspense 콜백 ↔ 콘텐츠 전환에서만 트리거됩니다.
 
 ---
 
@@ -584,9 +589,12 @@ function LikeButton({ articleId, initialLiked, initialCount }: LikeButtonProps) 
 
 ---
 
-## 6. React Compiler 시대의 변화
+## 6. React Compiler 1.0 시대의 변화
 
 React Compiler(구 React Forget)는 빌드 타임에 컴포넌트를 자동 메모이제이션합니다. 수동으로 `memo`, `useMemo`, `useCallback`을 작성할 필요가 사라집니다.
+
+> **2025년 10월: React Compiler 1.0 안정화 (GA)**
+> Meta Quest Store, Instagram 등에서 프로덕션 검증을 거쳤습니다. Meta 측 측정 기준으로 **초기 로딩과 페이지 간 이동이 최대 12% 빨라졌고, 특정 인터랙션은 2.5배 이상 빨라졌다**고 보고됐습니다. 1.0에서는 옵셔널 체이닝/배열 인덱스 의존성 분석, 라이브러리 호환성, 점진적 롤아웃 가이드가 정식화됐습니다.
 
 ### 6.1 무엇이 바뀌나
 
@@ -638,29 +646,46 @@ function ListItem({ item, onSelect }: ItemProps) {
 }
 ```
 
-### 6.2 React Compiler 도입 가이드
+### 6.2 React Compiler 1.0 도입 가이드
+
+```bash
+# 1.0 안정 채널 설치 (실험 플래그 불필요)
+npm install -D babel-plugin-react-compiler eslint-plugin-react-compiler
+```
 
 ```ts
-// babel.config.js 또는 next.config.js
-// Next.js 15+에서 활성화
+// Next.js 15+ (App Router 권장)
+// next.config.ts — experimental 키가 아닌 최상위 옵션으로 승격됨
 const nextConfig = {
-  experimental: {
-    reactCompiler: true,
-  },
+  reactCompiler: true,
+};
+
+// Vite — @vitejs/plugin-react 또는 plugin-react-swc 모두 지원
+// vite.config.ts
+import react from "@vitejs/plugin-react";
+export default {
+  plugins: [
+    react({
+      babel: { plugins: [["babel-plugin-react-compiler", {}]] },
+    }),
+  ],
 };
 ```
 
-**React Compiler가 처리하는 것:**
+**React Compiler 1.0이 처리하는 것:**
 - 컴포넌트 리렌더링 스킵 (`memo` 대체)
 - 계산값 캐싱 (`useMemo` 대체)
 - 콜백 참조 안정성 (`useCallback` 대체)
 - JSX 엘리먼트 캐싱
+- **옵셔널 체이닝 / 배열 인덱스도 의존성으로 자동 추적** (1.0 신규)
 
 **React Compiler가 처리하지 않는 것:**
-- 부수 효과 (`useEffect`)는 여전히 수동 관리
+- 부수 효과 (`useEffect`)는 여전히 수동 관리 → `useEffectEvent` 활용 권장 (7장 참고)
 - 외부 스토어 구독 (`useSyncExternalStore`)
 - 의도적인 매번 재계산이 필요한 경우
 
+> **점진적 롤아웃 (공식 권장)**: 디렉터리 단위로 `"use no memo"` 디렉티브를 활용하여 일부 모듈만 컴파일러 적용을 제외할 수 있습니다. 새 화면부터 점진 적용 → `eslint-plugin-react-compiler`로 안티패턴 모니터링 → 전사 적용 순서가 일반적입니다.
+>
 > **마이그레이션 전략**: 기존 `memo`/`useMemo`/`useCallback`은 즉시 제거할 필요 없습니다. React Compiler가 활성화되면 중복 최적화가 될 뿐 오류는 발생하지 않습니다. 새 코드부터 작성하지 않으면 됩니다.
 
 ---
@@ -718,20 +743,135 @@ function ProductDetail({ product }: { product: Product }) {
 
 ---
 
-## 8. 마이그레이션 가이드: React 18 → 19
+## 8. React 19.2 신규 안정 기능 (2025-10 릴리스)
 
-### 8.1 단계별 업그레이드
+React 19.2는 19.x 라인의 메이저 기능 추가 릴리스로, 그동안 실험적이었던 **Activity API**, **useEffectEvent**, **cacheSignal**, **SSR Suspense 배칭**, **Partial Pre-rendering** 등이 한꺼번에 안정화됐습니다.
 
-```bash
-# 1단계: 패키지 업그레이드
-npm install react@19 react-dom@19
-npm install -D @types/react@19 @types/react-dom@19
+### 8.1 `useEffectEvent`: 이벤트 로직과 반응형 Effect 분리
 
-# 2단계: (선택) React Compiler 설치
-npm install -D babel-plugin-react-compiler
+`useEffect` 안에서 최신 props/state를 읽고 싶지만, 그 값 때문에 의존성에 포함하면 Effect가 매번 재실행되는 문제가 있었습니다. `useEffectEvent`는 **"이벤트성 로직"** 만 추출해 항상 최신 값을 보장하면서도, 의존성으로 추가할 필요가 없게 만듭니다.
+
+```tsx
+import { useEffect } from "react";
+import { useEffectEvent } from "react"; // 19.2부터 안정 export
+
+function ChatRoom({ roomId, theme }: { roomId: string; theme: "light" | "dark" }) {
+  // theme은 변할 수 있지만, 이 변경 때문에 채팅방 재연결이 일어나서는 안 됨
+  const onConnected = useEffectEvent((connectedRoomId: string) => {
+    // 항상 최신 theme/roomId를 읽지만, 의존성에 들어가지 않음
+    showNotification(`${connectedRoomId} 입장`, theme);
+  });
+
+  useEffect(() => {
+    const conn = createConnection(roomId);
+    conn.on("connected", () => onConnected(roomId));
+    conn.connect();
+    return () => conn.disconnect();
+    // ✅ theme이 deps에 없어도 ESLint 경고 없음 (eslint-plugin-react-hooks 5.x+ 대응)
+  }, [roomId]);
+
+  return <h1>방 {roomId}</h1>;
+}
 ```
 
-### 8.2 주요 Breaking Changes 대응
+> **린트 규칙**: React 19.2와 함께 출시된 `eslint-plugin-react-hooks` 업데이트가 `useEffectEvent` 반환값을 의존성 배열에 강제하지 않도록 수정됐습니다. 구버전 린트를 쓰는 팀은 업데이트를 잊지 마세요.
+
+### 8.2 `<Activity>`: 상태를 보존한 채로 UI 숨기기
+
+`<Activity mode="hidden">`은 자식 트리를 **언마운트하지 않고 화면에서 감추면서, 이펙트는 일시 정지하고 우선순위를 낮춥니다.** 탭 전환, 단계형 폼, 모달 캐싱 등 "다시 돌아왔을 때 상태가 살아 있어야 하는" 패턴에 적합합니다.
+
+```tsx
+import { Activity, useState } from "react";
+
+function TabbedDashboard() {
+  const [active, setActive] = useState<"overview" | "analytics" | "settings">("overview");
+
+  return (
+    <>
+      <Tabs current={active} onChange={setActive} />
+
+      {/* 탭을 바꿔도 상태/스크롤/입력값이 살아 있음 */}
+      <Activity mode={active === "overview" ? "visible" : "hidden"}>
+        <OverviewPanel />
+      </Activity>
+      <Activity mode={active === "analytics" ? "visible" : "hidden"}>
+        <AnalyticsPanel />
+      </Activity>
+      <Activity mode={active === "settings" ? "visible" : "hidden"}>
+        <SettingsPanel />
+      </Activity>
+    </>
+  );
+}
+```
+
+- `mode="hidden"`: Effect를 정리(cleanup)하고 렌더링 우선순위를 낮춥니다. state는 보존됩니다.
+- `mode="visible"`: 다시 Effect를 실행하고 정상 우선순위로 렌더링됩니다.
+- 단순 `display: none`과의 차이: 자식의 비동기 작업/Effect가 정확히 일시정지되어 자원 낭비가 없습니다.
+
+### 8.3 `cacheSignal`: Server Component 캐시 라이프사이클에 AbortSignal 연결
+
+React Server Components의 `cache()`로 메모이즈된 함수 안에서, **해당 캐시 항목이 폐기될 때 함께 취소되는 `AbortSignal`** 을 받아올 수 있습니다. 요청별 비용이 큰 외부 호출(LLM, 결제 API 등)을 안전하게 중단할 수 있습니다.
+
+```ts
+// app/lib/recommend.ts (RSC)
+import { cache, cacheSignal } from "react";
+
+export const getRecommendations = cache(async (userId: string) => {
+  const signal = cacheSignal(); // 이 캐시 엔트리의 수명에 묶인 AbortSignal
+  const res = await fetch(`https://ml.example.com/recommend?u=${userId}`, { signal });
+  return res.json();
+});
+```
+
+### 8.4 SSR Suspense 배칭 & Partial Pre-rendering
+
+- **SSR Suspense 배칭**: 19.2부터 거의 동시에 해소되는 Suspense 경계를 묶어 한 번에 노출합니다. 깜빡임이 줄어 클라이언트 동작과 일관됩니다. LCP가 2.5초 근처에 도달하면 자동으로 배칭을 중단하여 코어 웹 바이탈을 보호합니다.
+- **Partial Pre-rendering (PPR)**: 정적 셸을 CDN/엣지에서 즉시 응답하고, 동적 영역만 스트리밍으로 채워 넣는 방식이 React 코어에 정식 들어왔습니다. Next.js 15.x에서 가장 먼저 활용됩니다.
+- **Node `renderToReadableStream`**: 19.2부터 Node 환경에서도 Web Streams 기반 SSR이 안정 지원됩니다. Edge 런타임과 코드를 공유하기 쉬워졌습니다.
+
+### 8.5 `<ViewTransition>` (canary, 2026-05 기준 미안정)
+
+`<ViewTransition>` 컴포넌트는 여전히 **canary 채널**에 머물러 있습니다. 다만 트리거 조건이 명확히 정리됐습니다.
+
+- `setState` 즉시 업데이트는 트랜지션을 발동시키지 **않음**
+- `startTransition`, `useDeferredValue`, Action, Suspense fallback → content 전환만 발동
+- 브라우저 요구사항: Chromium 111+, Firefox 144+, Safari 18.2+
+- Next.js 15.x에서는 `<ViewTransition>` 활용 가이드가 별도 문서로 제공됩니다.
+
+```tsx
+// 안정 채널로 진입 전까지는 react@canary, react-dom@canary 사용 필요
+import { unstable_ViewTransition as ViewTransition, useDeferredValue } from "react";
+
+function Gallery({ id }: { id: string }) {
+  const deferredId = useDeferredValue(id);
+  return (
+    <ViewTransition>
+      <Photo id={deferredId} />
+    </ViewTransition>
+  );
+}
+```
+
+---
+
+## 9. 마이그레이션 가이드: React 18 → 19
+
+### 9.1 단계별 업그레이드
+
+```bash
+# 1단계: 패키지 업그레이드 (19.2가 현재 안정 라인)
+npm install react@^19.2 react-dom@^19.2
+npm install -D @types/react@^19 @types/react-dom@^19
+
+# 2단계: React Compiler 1.0 도입 (안정 채널)
+npm install -D babel-plugin-react-compiler eslint-plugin-react-compiler
+
+# 3단계: 린트 규칙 업데이트 (useEffectEvent 호환)
+npm install -D eslint-plugin-react-hooks@latest
+```
+
+### 9.2 주요 Breaking Changes 대응
 
 | 변경 사항 | React 18 | React 19 | 대응 방법 |
 | :--- | :--- | :--- | :--- |
@@ -742,7 +882,7 @@ npm install -D babel-plugin-react-compiler
 | `ref` 콜백 반환값 | 무시됨 | 클린업 함수로 사용 | ref 콜백에서 의도치 않은 return 제거 |
 | `string ref` | deprecated | **제거됨** | `useRef` 또는 콜백 ref로 전환 |
 
-### 8.3 Codemod 활용
+### 9.3 Codemod 활용
 
 ```bash
 # React 공식 codemod로 자동 변환
@@ -755,19 +895,20 @@ npx @react-codemod/v19 ./src
 # - string ref → useRef
 ```
 
-### 8.4 점진적 마이그레이션 전략
+### 9.4 점진적 마이그레이션 전략
 
-1. **1주차**: 패키지 업그레이드 + codemod 실행 + 빌드 오류 해결
+1. **1주차**: 패키지 업그레이드 + codemod 실행 + 빌드 오류 해결 (React 19.2 라인)
 2. **2주차**: `forwardRef` 제거 (새 코드부터 적용, 기존 코드는 lint 규칙으로 점진 전환)
 3. **3주차**: `useActionState` 도입 (폼 관련 컴포넌트 우선)
 4. **4주차**: `use` Hook, `useOptimistic` 적용 (데이터 패칭 레이어)
-5. **5주차 이후**: React Compiler 실험적 도입 + `memo`/`useMemo`/`useCallback` 점진적 제거
+5. **5주차**: `useEffectEvent` 도입으로 까다로운 `useEffect` 정리, `<Activity>` 로 탭/모달 상태 캐싱
+6. **6주차 이후**: React Compiler **1.0** 안정 채널 도입 → `memo`/`useMemo`/`useCallback` 점진적 제거
 
 ---
 
-## 9. 주의사항 및 흔한 실수
+## 10. 주의사항 및 흔한 실수
 
-### 9.1 `use(promise)`에서 무한 Suspense
+### 10.1 `use(promise)`에서 무한 Suspense
 
 ```tsx
 // 잘못된 예: 렌더링마다 새 Promise 생성 → 무한 Suspense
@@ -790,7 +931,7 @@ const fetchUser = cache(async (userId: string) => {
 });
 ```
 
-### 9.2 `useFormStatus`를 form 바깥에서 호출
+### 10.2 `useFormStatus`를 form 바깥에서 호출
 
 ```tsx
 // 잘못된 예: form을 렌더링하는 컴포넌트에서 직접 호출
@@ -819,7 +960,7 @@ function SubmitButton() {
 }
 ```
 
-### 9.3 Server Action에서 민감한 정보 노출
+### 10.3 Server Action에서 민감한 정보 노출
 
 ```tsx
 // 잘못된 예: 서버 에러를 그대로 클라이언트에 전달
@@ -846,7 +987,7 @@ export async function safeAction(formData: FormData) {
 }
 ```
 
-### 9.4 `useActionState`의 초기값 타입 불일치
+### 10.4 `useActionState`의 초기값 타입 불일치
 
 ```tsx
 // 잘못된 예: 초기값 null인데 state를 바로 접근
@@ -857,6 +998,27 @@ return <p>{state.message}</p>; // TypeError: Cannot read property 'message' of n
 const [state, action, isPending] = useActionState(myAction, null);
 return state ? <p>{state.message}</p> : null;
 ```
+
+### 10.5 `useEffectEvent`를 일반 콜백처럼 외부에 전달
+
+`useEffectEvent`가 반환하는 함수는 **Effect 내부에서만 호출해야 합니다.** props로 자식에 전달하거나 이벤트 핸들러로 직접 쓰면 렌더링 단계에서의 안정성이 보장되지 않습니다.
+
+```tsx
+// ❌ 잘못된 예: 자식 컴포넌트에 props로 전달
+const onLog = useEffectEvent(() => log(value));
+return <Child onLog={onLog} />; // ❌ 권장하지 않음
+
+// ✅ 올바른 예: Effect 안에서만 호출
+const onLog = useEffectEvent(() => log(value));
+useEffect(() => {
+  const id = setInterval(onLog, 1000);
+  return () => clearInterval(id);
+}, []);
+```
+
+### 10.6 `<Activity mode="hidden">` 의 Effect 정지를 일반 데이터 패칭에 의존
+
+`mode="hidden"` 으로 진입하면 자식의 `useEffect` cleanup이 호출됩니다. 즉, **WebSocket/SSE 같은 장기 연결은 자동으로 끊기고 다시 visible될 때 재연결**됩니다. 이를 영구 연결 유지로 오해하지 마세요. 영구 유지가 필요하면 상위 컴포넌트나 store 레벨에 두어야 합니다.
 
 ---
 
@@ -890,10 +1052,17 @@ return state ? <p>{state.message}</p> : null;
 - [ ] Document Metadata를 컴포넌트 내에서 직접 관리하고 있나요?
 
 ### 성능 및 마이그레이션
-- [ ] React Compiler 도입 가능성을 검토했나요? (기존 `memo`/`useMemo`/`useCallback` 점진적 제거 계획)
+- [ ] React Compiler **1.0**(안정 채널)을 도입했고, `eslint-plugin-react-compiler`로 안티패턴을 모니터링하나요?
 - [ ] `use(promise)`에서 렌더링마다 새 Promise를 생성하지 않도록 주의했나요?
 - [ ] `ReactDOM.render`, `string ref` 등 제거된 API를 사용하고 있지 않나요?
 - [ ] React 18 → 19 codemod를 실행하여 자동 마이그레이션을 완료했나요?
+
+### React 19.2 신규 기능
+- [ ] 최신 props/state를 읽어야 하지만 재실행은 막고 싶은 Effect에 `useEffectEvent`를 적용했나요?
+- [ ] 탭/마법사/모달처럼 상태 보존이 필요한 화면에 `<Activity>` 도입을 검토했나요?
+- [ ] RSC의 `cache()` 안에서 외부 호출을 할 때 `cacheSignal`로 취소 가능성을 확보했나요?
+- [ ] SSR Suspense 배칭과 Partial Pre-rendering(PPR)이 LCP에 미치는 영향을 측정했나요?
+- [ ] `<ViewTransition>`은 아직 canary임을 인지하고, 안정 채널이 아닌 곳에서만 실험하고 있나요?
 
 ---
 

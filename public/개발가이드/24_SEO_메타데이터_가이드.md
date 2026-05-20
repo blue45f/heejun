@@ -1,14 +1,21 @@
-# 24. SEO 및 메타데이터 가이드 (2025-2026 Edition)
+# 24. SEO 및 메타데이터 가이드 (2026 Edition)
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [23. 국제화](./23_국제화_가이드.md), [08. 성능](./08_성능_최적화_가이드.md), [19. 접근성](./19_웹_접근성_가이드.md) | **AI 도구** | Next.js Metadata, @vercel/og |
-| **핵심 테마** | 구조화 데이터, 동적 OG 이미지, 사이트맵, Core Web Vitals | **Update** | 2026.04 |
+| **연관 가이드** | [23. 국제화](./23_국제화_가이드.md), [08. 성능](./08_성능_최적화_가이드.md), [19. 접근성](./19_웹_접근성_가이드.md) | **AI 도구** | Next.js Metadata, @vercel/og, AI Overviews |
+| **핵심 테마** | 구조화 데이터, 동적 OG 이미지, AI Overviews/SGE 대응, Core Web Vitals, IndexNow | **Update** | 2026.05 |
 
 ---
 
-> **"SEO는 마케팅이 아니라 엔지니어링이다. 2026년의 SEO는 메타데이터 자동화, 구조화 데이터 타입 안전성, 환경별 격리까지 코드로 보장한다."**
+> **"SEO는 마케팅이 아니라 엔지니어링이다. 2026년의 SEO는 메타데이터 자동화, 구조화 데이터 타입 안전성, 환경별 격리, 그리고 AI 검색(Generative AI Overviews) 대응까지 코드로 보장한다."**
 > 본 가이드는 Next.js 15 App Router 기반의 SEO 전략과 멀티 베타 환경에서의 검색 엔진 격리를 다룹니다.
+>
+> **2026년 5월 핵심 변화 요약**
+> - 2026년 5월 15일 Google은 공식 가이드에서 "AI SEO는 별도 분야가 아니라 동일한 SEO"라고 정리했다. Generative AI Overviews(구 SGE)는 일반 Google Search와 같은 인덱스/품질 신호를 사용한다.
+> - Google은 `llms.txt`, AI 전용 스키마, 콘텐츠 청킹을 공식적으로 권장하지 않으며 사용하지도 않는다. 사이트 제어는 여전히 `robots.txt` + Googlebot 디렉티브가 표준이다.
+> - Google은 IndexNow를 채택하지 않았지만, Bing/Yandex/Naver/Seznam이 사용한다(2026년 일일 50억+ 제출). AI 검색 발견성에는 IndexNow가 여전히 유효한 가속기다.
+> - 2026년 2월 Google Discover Core Update로 엔터티 검증된 저자 권위가 기술 콘텐츠 노출에 결정적인 변수가 되었다(일부 기술 매체 트래픽 -40~-70%).
+> - Google 크롤러 IP 범위 파일이 2026년에 이전되었으므로 방화벽/SSR 보호 규칙을 다시 검증해야 한다.
 
 ---
 
@@ -24,7 +31,8 @@
 8. [Core Web Vitals와 SEO](#8-core-web-vitals와-seo)
 9. [국제화 SEO (hreflang)](#9-국제화-seo-hreflang)
 10. [SEO 모니터링 및 자동화 테스트](#10-seo-모니터링-및-자동화-테스트)
-11. [체크리스트](#11-체크리스트)
+11. [Generative AI Overviews & IndexNow 대응](#11-generative-ai-overviews--indexnow-대응)
+12. [체크리스트](#12-체크리스트)
 
 ---
 
@@ -299,6 +307,8 @@ export default function robots(): MetadataRoute.Robots {
   }
 
   // Production: 선택적 허용
+  // 2026년 5월 기준 권장 -- Google AI Overviews는 Googlebot/Google-Extended로 제어한다.
+  // 별도의 llms.txt나 AI 전용 디렉티브는 Google이 공식적으로 사용하지 않는다.
   return {
     rules: [
       {
@@ -307,8 +317,25 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/_next/', '/auth/'],
       },
       {
+        // Google-Extended: AI Overviews / Gemini 학습 제어 (Search 노출에는 영향 없음)
+        userAgent: 'Google-Extended',
+        disallow: '/',
+      },
+      {
         userAgent: 'GPTBot',
-        disallow: '/', // AI 크롤러 차단 (선택)
+        disallow: '/', // OpenAI 학습 차단 (선택)
+      },
+      {
+        userAgent: 'ClaudeBot',
+        disallow: '/', // Anthropic 학습 차단 (선택)
+      },
+      {
+        userAgent: 'PerplexityBot',
+        disallow: '/', // Perplexity 답변 인용 차단 (선택)
+      },
+      {
+        userAgent: 'CCBot',
+        disallow: '/', // Common Crawl 차단 (선택)
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
@@ -1705,7 +1732,177 @@ jobs:
 
 ---
 
-## 11. 체크리스트
+## 11. Generative AI Overviews & IndexNow 대응
+
+2026년 5월 기준 Google은 Generative AI Overviews(구 SGE)에 대해 다음을 공식화했다.
+
+- AI Overviews는 Google Search와 동일한 인덱스, 크롤러, 품질 신호를 사용한다.
+- `llms.txt`, AI 전용 청킹, AI 전용 스키마는 Google이 사용하지 않는다.
+- AI Overviews 인용은 클릭 가능한 출처로 표시되며 일반 검색 결과 클릭과 유사하게 추적된다.
+
+> John Mueller 및 Google Search Central 공식 가이드: "There is no separate AI SEO. Optimize for users, not for LLMs."
+
+### 11.1 AI Overviews에 인용되기 위한 콘텐츠 신호
+
+| 신호 | 권장 구현 | 위반 시 영향 |
+|---|---|---|
+| **명확한 답변 구조** | H2/H3 질문형 → 짧은 답변 → 근거 | AI가 페이지를 인용 후보로 평가하기 어려움 |
+| **엔터티 검증된 저자(E-E-A-T)** | `Person`/`Organization` JSON-LD + `sameAs` 링크 | Discover/AIO 노출 감소 |
+| **`article:modified_time`** | OG/Schema 양쪽 동기화 | 신선도 신호 약화 |
+| **인용 가능한 사실/숫자** | 출처 링크와 함께 명시 | 인용 우선순위 하락 |
+| **사용자 의도 정렬** | "How do I…", "What is…" 등 질문 키워드 매칭 | AIO 매칭 후보 감소 |
+
+### 11.2 AI 검색 크롤러 정책 매트릭스
+
+| 크롤러 | 용도 | 권장 정책 |
+|---|---|---|
+| `Googlebot` | Search + AI Overviews | 허용 (필수) |
+| `Google-Extended` | Gemini/AI Overviews 학습 | 허용 또는 차단 (브랜드 정책) |
+| `GPTBot` | OpenAI 모델 학습 | 일반적으로 차단 |
+| `OAI-SearchBot` | ChatGPT Search 실시간 인용 | 허용 권장 (트래픽 유입) |
+| `ClaudeBot` | Anthropic 학습 | 차단 |
+| `Claude-User`, `Claude-SearchBot` | Claude.ai 실시간 인용 | 허용 권장 |
+| `PerplexityBot`, `Perplexity-User` | Perplexity 답변 인용 | 허용/차단 분리 가능 |
+| `CCBot` | Common Crawl | 정책에 따라 차단 |
+
+> 학습용 크롤러(`*Bot`)와 실시간 인용용 크롤러(`*-User`, `*-SearchBot`)를 구분하면 학습은 거부하면서도 답변 인용 트래픽은 유지할 수 있다.
+
+### 11.3 Web Crawler Verification
+
+2026년 Google은 크롤러 IP 범위 파일 위치를 변경했다. 사칭 봇으로부터 서버를 보호하기 위해 다음 두 가지 방법 중 하나를 자동화한다.
+
+```typescript
+// lib/seo/verify-crawler.ts
+// 1) DNS 역조회 + 정조회 -- 단발 확인용
+// 2) Google이 공개한 IP 범위 JSON과 매칭 -- 대규모 트래픽용
+
+const GOOGLE_IP_RANGES_URL = 'https://developers.google.com/static/search/apis/ipranges/googlebot.json';
+const SPECIAL_CRAWLERS_URL = 'https://developers.google.com/static/search/apis/ipranges/special-crawlers.json';
+
+interface IpRange {
+  ipv6Prefix?: string;
+  ipv4Prefix?: string;
+}
+
+interface IpRangeFile {
+  creationTime: string;
+  prefixes: IpRange[];
+}
+
+let cachedRanges: { ts: number; data: IpRange[] } | null = null;
+
+async function loadGoogleIpRanges(): Promise<IpRange[]> {
+  // 24시간 캐시
+  if (cachedRanges && Date.now() - cachedRanges.ts < 86_400_000) {
+    return cachedRanges.data;
+  }
+  const [googlebot, special] = await Promise.all([
+    fetch(GOOGLE_IP_RANGES_URL).then((r) => r.json() as Promise<IpRangeFile>),
+    fetch(SPECIAL_CRAWLERS_URL).then((r) => r.json() as Promise<IpRangeFile>),
+  ]);
+  const merged = [...googlebot.prefixes, ...special.prefixes];
+  cachedRanges = { ts: Date.now(), data: merged };
+  return merged;
+}
+
+export async function isVerifiedGoogleCrawler(remoteIp: string): Promise<boolean> {
+  const ranges = await loadGoogleIpRanges();
+  return ranges.some((r) => ipMatchesPrefix(remoteIp, r));
+}
+
+// 실제 prefix 매칭은 ipaddr.js 등 라이브러리 사용 권장
+function ipMatchesPrefix(_ip: string, _range: IpRange): boolean {
+  // 구현 생략 -- prod에서는 'ip-cidr' 또는 'ipaddr.js' 사용
+  return false;
+}
+```
+
+### 11.4 IndexNow 통합
+
+Google은 IndexNow를 채택하지 않았지만, Bing/Yandex/Naver/Seznam이 사용한다. 2026년 일 평균 50억+ URL이 IndexNow로 제출되며, AI 검색 발견성에는 여전히 의미가 있다.
+
+```typescript
+// app/api/indexnow/route.ts
+// CMS 웹훅 또는 빌드 후 호출 -- 갱신된 URL을 IndexNow에 통보
+
+import { NextRequest, NextResponse } from 'next/server';
+
+const INDEXNOW_ENDPOINTS = [
+  'https://www.bing.com/indexnow',
+  'https://yandex.com/indexnow',
+  'https://searchadvisor.naver.com/indexnow',
+];
+
+export async function POST(request: NextRequest) {
+  const secret = request.headers.get('x-indexnow-secret');
+  if (secret !== process.env.INDEXNOW_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { urls }: { urls: string[] } = await request.json();
+  const host = new URL(process.env.NEXT_PUBLIC_SITE_URL!).host;
+  const key = process.env.INDEXNOW_KEY!;
+
+  const payload = {
+    host,
+    key,
+    keyLocation: `${process.env.NEXT_PUBLIC_SITE_URL}/${key}.txt`,
+    urlList: urls,
+  };
+
+  // 동일 페이로드를 여러 엔드포인트에 병렬 전송
+  const results = await Promise.allSettled(
+    INDEXNOW_ENDPOINTS.map((endpoint) =>
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }),
+    ),
+  );
+
+  return NextResponse.json({
+    submitted: urls.length,
+    endpoints: results.map((r, i) => ({
+      endpoint: INDEXNOW_ENDPOINTS[i],
+      status: r.status === 'fulfilled' ? r.value.status : 'rejected',
+    })),
+  });
+}
+```
+
+> **주의**: IndexNow 키 파일(`/{key}.txt`)을 사이트 루트에 정확히 동일한 텍스트로 배포해야 검증을 통과한다.
+
+### 11.5 Open Graph 운영 가이드 (2026 기준)
+
+OpenGraph Protocol(ogp.me) 사양 자체는 2010년 이후 변경되지 않았으나, **소비 주체가 사람에서 AI로 확장**되었다. 2026년에는 GPTBot, ClaudeBot, PerplexityBot, Google AI 크롤러가 `og:title`, `og:description`, `article:modified_time`을 답변 후보 선정 신호로 활용한다.
+
+| 권장 사항 | 이유 |
+|---|---|
+| `og:title`은 H1과 의미적으로 동일 유지 | AI가 동일성 점수로 신뢰도 평가 |
+| `article:modified_time` ISO8601 정확히 기재 | AIO/Discover 신선도 신호 |
+| `og:image:alt` 항상 작성 | 이미지 인용 시 시각 임베딩 후보 |
+| OG 본문과 페이지 본문 일치 | 'Manipulative metadata' 페널티 회피 |
+| `theme-color` 메타와 brand 색상 일관 | 모바일/Sidebar 미리보기 품질 |
+
+> ogp.me 사양은 1.0 그대로지만, 일부 커뮤니티(특히 env.dev 등)에서 비공식적으로 "Open Graph 1.2"라고 부르는 확장 권장 사항(article:author 다중, video:tag 등)이 통용된다. 표준은 아니므로 검색 엔진/소셜 플랫폼 호환성을 우선한다.
+
+### 11.6 Schema.org 신규/주목 타입
+
+CLDR 48 / Schema.org 27.x 기준 다음 타입이 자주 활용된다.
+
+| 타입 | 용도 |
+|---|---|
+| `LearningResource` | 강의/튜토리얼/문서 페이지 |
+| `Quotation` | 인용 가능한 인사이트 카드 |
+| `OccupationalCredential` | 자격증/뱃지 |
+| `Specialty` (Person.knowsAbout 확장) | 저자 전문 분야 명시 → AIO E-E-A-T 신호 |
+| `Trip` / `Itinerary` | 여행 콘텐츠 |
+| `Dataset` + `SoftwareApplication` | 오픈 데이터·API 페이지 (Google Dataset Search 노출) |
+
+---
+
+## 12. 체크리스트
 
 ### 기본 SEO
 
@@ -1770,6 +1967,18 @@ jobs:
 - [ ] OG 태그 완성도 검증이 자동화되어 있는가
 - [ ] JSON-LD 유효성 검증이 자동화되어 있는가
 - [ ] 배포 후 사이트맵 갱신이 자동화되어 있는가
+
+### AI 검색 / Generative AI Overviews 대응
+
+- [ ] `robots.txt`에 AI 크롤러(`Google-Extended`, `GPTBot`, `ClaudeBot`, `PerplexityBot` 등) 정책이 명시되어 있는가
+- [ ] 학습 봇(`*Bot`)과 실시간 인용 봇(`*-User`, `*-SearchBot`)을 분리하여 정책을 정했는가
+- [ ] `llms.txt` 파일을 만들지 않았는가 (Google 미사용, Anthropic/OpenAI 비공식 협의)
+- [ ] 저자(Person/Organization) JSON-LD에 `sameAs`로 외부 권위 링크가 연결되어 있는가
+- [ ] `article:modified_time`이 OG/Schema 양쪽에서 일치하는가
+- [ ] AI 답변에 인용되기 쉬운 답변형 구조(H2 질문 → 짧은 답변 → 근거)를 유지하는가
+- [ ] Google 크롤러 IP 범위 파일(2026년 새 위치) 기반 검증 로직이 적용되어 있는가
+- [ ] 사이트 갱신 시 IndexNow로 Bing/Yandex/Naver에 통보하는 훅이 있는가
+- [ ] Google Discover 2026.02 Core Update 이후 트래픽 모니터링 대시보드가 있는가
 
 ---
 

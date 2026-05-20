@@ -1,9 +1,9 @@
-# 11. CI/CD 파이프라인 표준 (2025-2026 Edition)
+# 11. CI/CD 파이프라인 표준 (2026 Edition)
 
 | 분류 | 인프라 & CI/CD | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [10. 인프라](./10_인프라_및_AWS_CDK_가이드.md), [12. CloudFront 캐시](./12_CloudFront_캐시_전략.md), [14. 배포 체크리스트](./14_배포_프로세스_체크리스트.md), [22. 모노레포](./22_모노레포_운영_가이드.md) | **AI 도구** | GitHub Actions, Claude Code |
-| **핵심 테마** | Environment Gating, Canary Deployment, CI Optimization, Secret Management | **Update** | 2025.04 |
+| **핵심 테마** | Environment Gating, Canary Deployment, CI Optimization, Secret Management, Trunk-based Delivery | **Update** | 2026.05 |
 
 ---
 
@@ -554,6 +554,50 @@ jobs:
 ## 4. 보안 및 품질 가드레일
 
 배포 파이프라인에는 아래의 검증 단계가 반드시 포함되어야 합니다.
+
+### 4.0 IaC 보안 게이트 (Checkov, cdk-nag, OPA)
+
+인프라 변경이 포함된 PR에서는 코드 보안 스캔과 별도로 **합성된 CloudFormation 산출물**을 정책 게이트에 통과시켜야 합니다. 자세한 설정은 [10. 인프라 가이드 §5.6](./10_인프라_및_AWS_CDK_가이드.md)을 참조하세요.
+
+```yaml
+# 인프라 변경 시 자동 실행되는 IaC 보안 게이트
+iac-security-gate:
+  name: IaC Security Gate
+  runs-on: ubuntu-latest
+  if: contains(github.event.pull_request.changed_files, 'infra/')
+  steps:
+    - uses: actions/checkout@v4
+    - uses: oven-sh/setup-bun@v2
+    - run: bun install --frozen-lockfile
+
+    # 1) CDK 합성 + cdk-nag 자동 검사 (AwsSolutionsChecks Aspect 적용 가정)
+    - name: CDK Synth (cdk-nag 사전 차단)
+      run: bunx cdk synth --strict
+      working-directory: ./infra
+
+    # 2) Checkov로 합성 결과(CloudFormation) 검사
+    - name: Checkov 검사
+      uses: bridgecrewio/checkov-action@v12
+      with:
+        directory: infra/cdk.out
+        framework: cloudformation
+        output_format: sarif
+        output_file_path: checkov.sarif
+
+    # 3) OPA(Conftest)로 회사 고유 정책 검사 (태그 강제, 리전 제한 등)
+    - name: OPA Conftest 정책 검사
+      run: |
+        bunx conftest test infra/cdk.out/*.template.json \
+          --policy infra/policies/ \
+          --output github
+
+    # 4) SARIF 결과를 GitHub Code Scanning에 업로드
+    - name: SARIF 업로드
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: checkov.sarif
+```
 
 ### 4.1 보안 스캔 (Snyk)
 
@@ -1171,6 +1215,165 @@ jobs:
 
 > **주의**: Self-hosted runner는 보안 관리 책임이 팀에 있습니다. 퍼블릭 리포지토리에서는 사용하지 마세요.
 
+### 8.4 GitHub Actions 2026 신규 기능 활용
+
+2026년에 GitHub Actions 플랫폼에 추가된 주요 기능들을 정리합니다. 보안과 공급망 관리가 핵심 흐름입니다.
+
+| 신규 기능 | 도입 | 활용 사례 |
+| :--- | :--- | :--- |
+| **Runner Scale Set Client / 커스텀 러너 이미지** | 2026.04 GA | Kubernetes Actions Runner Controller(ARC)로 부하에 따른 자동 스케일링, AMI/컨테이너 사전 워밍업 |
+| **OIDC 토큰에 Repository Custom Property** | 2026 | Trust Policy에서 `team`, `tier` 같은 커스텀 속성으로 권한을 더 세밀하게 분리 |
+| **Dependabot OIDC for 프라이빗 레지스트리** | 2026.02→2026.05 | Cloudsmith, Google Artifact Registry 등에 장기 토큰 없이 갱신 작업 수행 |
+| **Artifact Attestations (SLSA Level 3)** | 2026 | 빌드 출력물에 서명 + 출처 증명, 배포 시점에 `gh attestation verify`로 검증 |
+| **Azure Private Networking + 페일오버** | 2026 | 회사 VPC와 연결된 GitHub-hosted 러너, 1·2차 서브넷 자동 페일오버 |
+| **Native Egress Firewall (Roadmap)** | 2026 예정 | 워크플로우에서 외부 호출 도메인 화이트리스트 강제 |
+| **Scoped Secrets / Dependency Locking** | 2026 예정 | 잡 단위 시크릿 노출 최소화, action SHA pinning 자동화 |
+
+**OIDC 커스텀 속성 활용 예시:**
+
+```yaml
+# .github/workflows/deploy.yml
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: AWS OIDC 인증 (커스텀 속성 활용)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # 2026 신규: repository_property의 'tier'가 'production'일 때만 prod 역할 Assume 허용
+          role-to-assume: arn:aws:iam::123456789012:role/Deploy-${{ github.event.repository.custom_properties.tier }}
+          aws-region: ap-northeast-2
+```
+
+> **사전 작업**: GitHub 조직 설정에서 리포지토리 커스텀 속성(예: `tier=production|staging|dev`)을 정의해야 OIDC 클레임에 포함됩니다.
+
+**Artifact Attestations 예시 (공급망 보안):**
+
+```yaml
+# 빌드 산출물에 서명 + provenance 생성
+- name: 빌드
+  run: bun run build
+
+- name: Artifact Attestation 생성
+  uses: actions/attest-build-provenance@v2
+  with:
+    subject-path: 'dist/**/*'
+
+# 배포 단계 — 서명 검증을 통과한 아티팩트만 허용
+- name: Attestation 검증
+  run: |
+    gh attestation verify ./dist/app.tar.gz \
+      --owner ${{ github.repository_owner }} \
+      --repo ${{ github.event.repository.name }}
+```
+
+### 8.5 의존성 자동화: Dependabot 4 vs Renovate
+
+2026년에는 두 도구 모두 OIDC를 지원하면서 장기 토큰 의존이 줄었습니다. 선택 가이드입니다.
+
+| 항목 | Dependabot (4세대) | Renovate |
+| :--- | :--- | :--- |
+| **OIDC 지원** | 2026.02 GA (AWS), 2026.05 Cloudsmith/Google AR 추가 | Octo STS 또는 OIDC App으로 PAT 제거 |
+| **GitHub Actions 핀 갱신** | release마다 자동 PR (2026 기본 활성화) | SHA-level 핀 자동화, group 옵션 강력 |
+| **그룹화 PR** | `groups:` 키로 묶기 가능 | `packageRules`로 거의 무제한 커스터마이즈 |
+| **모노레포 친화** | 패키지별 manifest 필요 | 단일 `renovate.json`으로 워크스페이스 전체 관리 |
+| **추천 시나리오** | GitHub Enterprise + 단순한 정책 | 모노레포, 다중 ecosystem, 세밀한 자동 머지 정책 |
+
+**Renovate를 GitHub Action으로 PAT 없이 돌리는 예시 (2026 권장):**
+
+```yaml
+# .github/workflows/renovate.yml
+name: Renovate
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # 6시간마다
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Octo STS로 단기 GitHub App 토큰을 OIDC 기반으로 발급
+      - name: GitHub App 토큰 발급 (OIDC)
+        id: octo-sts
+        uses: octo-sts/action@v1
+        with:
+          scope: ${{ github.repository }}
+          identity: renovate-bot
+
+      - name: Renovate 실행
+        uses: renovatebot/github-action@v40
+        env:
+          RENOVATE_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          RENOVATE_GIT_AUTHOR: 'Renovate Bot <bot@example.com>'
+```
+
+### 8.6 Trunk-based Deployment + 릴리스 태그 패턴
+
+2026년 GitHub Actions + CDK 조합에서 자주 등장하는 패턴은 **trunk-based + 릴리스 태그 + 순차(Sequential) CDK 배포**입니다.
+
+```
+main 브랜치
+  │
+  ├─► PR 머지 시: staging 자동 배포 (모든 commit)
+  │
+  └─► `v*` 태그 푸시 시:
+       1) Dev → 2) Staging → 3) Prod 순서로 CDK Deploy
+       각 단계마다 health check + 5분 대기
+       실패 시 즉시 중단 + 슬랙 알림
+```
+
+```yaml
+# .github/workflows/release.yml
+name: Release (Ordered CDK Deploy)
+on:
+  push:
+    tags: ['v*']
+
+# 같은 태그 워크플로우는 동시에 1개만 실행
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ordered-deploy:
+    strategy:
+      max-parallel: 1       # 환경별 순차 실행 — 핵심
+      fail-fast: true
+      matrix:
+        env: [dev, staging, prod]
+    environment:
+      name: ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/Deploy-${{ matrix.env }}
+          aws-region: ap-northeast-2
+
+      - name: CDK Deploy (${{ matrix.env }})
+        run: bunx cdk deploy --all --require-approval never
+        env:
+          STAGE: ${{ matrix.env }}
+
+      - name: Health Check
+        run: ./scripts/healthcheck.sh ${{ matrix.env }}
+```
+
+> **포인트**: `strategy.max-parallel: 1` + `fail-fast: true`로 **이전 단계가 성공해야 다음 단계가 시작**되도록 보장합니다. 별도 워크플로우를 체이닝하는 것보다 단일 워크플로우 안에서 상태가 명확합니다.
+
 ---
 
 ## 9. 주의사항 및 흔한 실수
@@ -1298,6 +1501,10 @@ AI(Claude Code)에게 워크플로우 최적화를 요청하세요.
 - [ ] Lighthouse CI로 성능 예산을 검증하고 있나요?
 - [ ] 시크릿이 로그에 노출되지 않도록 검증했나요?
 - [ ] AWS IAM 키 대신 OIDC 인증을 사용하고 있나요?
+- [ ] cdk-nag + Checkov + OPA로 IaC 정책 게이트가 구성되어 있나요?
+- [ ] Artifact Attestations로 빌드 산출물 출처가 서명·검증되나요?
+- [ ] Dependabot/Renovate가 OIDC로 동작해 장기 PAT가 없는 상태인가요?
+- [ ] OIDC Trust Policy가 repository custom property 등 세밀한 조건을 사용하나요?
 
 ### 안정성
 - [ ] 배포 실패 시 즉시 이전 버전으로 **자동 롤백**할 수 있는 체계가 있나요?

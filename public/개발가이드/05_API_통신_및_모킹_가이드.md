@@ -1,9 +1,9 @@
-# 05. API 통신 및 모킹 가이드 (2025-2026 Edition)
+# 05. API 통신 및 모킹 가이드 (2026 Edition)
 
 | 분류 | 아키텍처 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [04. 아키텍처](./04_아키텍처_설계_패턴.md), [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **AI 도구** | OpenAPI, Orval, MSW |
-| **핵심 테마** | OpenAPI 코드젠, MSW 2.x, Result 패턴, TanStack Query, 인터셉터 | **Update** | 2025.04 |
+| **연관 가이드** | [04. 아키텍처](./04_아키텍처_설계_패턴.md), [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **AI 도구** | OpenAPI 3.1, hey-api, Orval, MSW |
+| **핵심 테마** | OpenAPI 3.1 코드젠, MSW 2.x(boundary), Result 패턴, TanStack Query v5, RSC Hydration | **Update** | 2026.05 |
 
 ---
 
@@ -13,12 +13,25 @@
 
 ---
 
-## 1. 인터페이스 주도 개발: OpenAPI & Codegen
+## 1. 인터페이스 주도 개발: OpenAPI 3.1 & Codegen
 
 시스템 스펙(OpenAPI)을 기반으로 TypeScript 타입과 통신 함수를 자동으로 생성하여 데이터 정합성을 보장합니다.
 백엔드 팀이 스웨거 명세를 변경하면, 코드젠 도구가 자동으로 타입을 재생성하여 프론트엔드에서 즉시 타입 오류를 감지할 수 있습니다.
 
-### 1.1 워크플로우 개요
+> **OpenAPI 3.1 권장**: 3.1은 JSON Schema 2020-12와 완전 호환되어 `nullable` 대신 `type: [string, "null"]` 형식의 유니온, `examples` 배열, `webhooks` 정의를 지원합니다. 신규 프로젝트는 3.1을 기준으로 명세를 작성하고, 코드젠 도구는 3.1을 지원하는 최신 버전(`openapi-typescript` 7.x, `@hey-api/openapi-ts`, `Orval` v7+)을 선택하세요.
+
+### 1.1 코드젠 도구 비교 (2026)
+
+| 도구 | 특징 | 추천 상황 |
+| :--- | :--- | :--- |
+| **openapi-typescript 7.x** | 런타임 코드 없이 **타입만** 생성. `openapi-fetch`와 조합 시 가장 가벼움. `--read-write-markers`로 readOnly/writeOnly 자동 분리 | 번들 크기 최소화, 타입만 필요 |
+| **@hey-api/openapi-ts** | TypeScript + SDK + Zod + TanStack Query 훅까지 한 번에 생성. **ESM 전용**, 20+ 플러그인. Vercel·PayPal 채택 | 풀스택 SDK 자동 생성, 신규 프로젝트 |
+| **Orval v7+** | React Query/SWR/Angular/Vue 훅 + **MSW 핸들러 자동 생성**(Faker 데이터) + Zod 스키마 | 프론트 모킹까지 통합 자동화 |
+| **Kubb** | 플러그인 기반, 부분 도입에 유리 | 기존 코드젠 일부만 교체 |
+
+> **참고**: 본 가이드는 Orval을 중심으로 설명하지만, **타입만 필요하면 openapi-typescript 7.x**, **SDK·훅까지 자동 생성**이 필요하면 **@hey-api/openapi-ts**가 더 적합합니다.
+
+### 1.2 워크플로우 개요
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
@@ -86,11 +99,11 @@ export default defineConfig({
 
 ### 1.3 생성되는 코드 예시
 
-**swagger.yaml 입력:**
+**swagger.yaml 입력 (OpenAPI 3.1):**
 
 ```yaml
-# swagger/api-spec.yaml
-openapi: 3.0.3
+# swagger/api-spec.yaml — OpenAPI 3.1 (JSON Schema 2020-12 호환)
+openapi: 3.1.0
 info:
   title: 프로젝트 API
   version: 1.0.0
@@ -313,6 +326,8 @@ npx tsc --noEmit
 - 애플리케이션 코드를 전혀 수정하지 않고 가상 응답 제공
 - 브라우저(Service Worker)와 Node.js(인터셉터) 환경 모두 지원
 - 실제 HTTP 요청/응답과 동일한 동작을 보장
+
+> **MSW v1은 더 이상 지원되지 않습니다.** v2부터는 ① `req/res/ctx` 컴포지션이 사라지고 Fetch API `Response`를 직접 반환하는 방식으로 변경되었으며, ② Node.js 18+가 요구되고, ③ ESM 호환이 강화되었습니다. v1 프로젝트는 공식 codemod(`npx @msw/codemods`)로 일괄 마이그레이션할 수 있습니다.
 
 ### 2.1 설치 및 초기 설정
 
@@ -572,6 +587,50 @@ test('서버 에러 발생 시 에러 화면을 표시한다', async () => {
 
   // 테스트 로직...
   // afterEach에서 server.resetHandlers()가 호출되므로 자동 복원됨
+});
+```
+
+### 2.6 `server.boundary()` — 병렬 테스트 격리 (MSW 2.x 신규)
+
+Vitest의 `--threads`/`fileParallelism` 같은 병렬 테스트 환경에서는 `server.use()`로 오버라이드한 핸들러가 다른 테스트에 누수될 위험이 있습니다. **`server.boundary()`** 는 콜백 내부의 모든 핸들러 변경을 해당 경계 밖으로 새지 않도록 격리합니다.
+
+```typescript
+import { server } from '@/mocks/server';
+import { http, HttpResponse } from 'msw';
+
+test('병렬로 실행되어도 다른 테스트에 영향 없이 격리되는 시나리오', async () => {
+  // boundary 안에서 등록한 핸들러는 이 콜백 안에서만 유효
+  await server.boundary(async () => {
+    server.use(
+      http.get('/api/v1/users', () =>
+        HttpResponse.json({ items: [], totalCount: 0, page: 1 })
+      )
+    );
+
+    // boundary 안에서 실행되는 로직
+    await renderAndAssertEmptyState();
+  })();
+});
+```
+
+> **권장 패턴**: 병렬 테스트에서는 `afterEach(server.resetHandlers)`만으로는 race condition을 완벽히 막을 수 없습니다. **오버라이드가 필요한 테스트는 항상 `server.boundary(...)` 안에서 수행**하면 다른 워커의 요청과 충돌하지 않습니다.
+
+### 2.7 `server.restoreHandlers()` — 일회성 핸들러 재사용
+
+MSW 2.x에서 `http.get('/x', resolver, { once: true })`로 등록한 일회성 핸들러는 한 번 사용되면 비활성화됩니다. **`server.restoreHandlers()`** 는 사용된 일회성 핸들러를 다시 활성화하여, 재시도 로직이나 토큰 갱신 후 재요청 같은 시나리오에서 동일 핸들러를 재사용할 수 있게 합니다.
+
+```typescript
+test('401 → refresh → 원래 요청 재시도', async () => {
+  server.use(
+    // 첫 호출은 401, 두 번째 호출은 200으로 회복
+    http.get('/api/v1/me', () => new HttpResponse(null, { status: 401 }), { once: true }),
+    http.get('/api/v1/me', () => HttpResponse.json({ id: 1, name: '홍길동' }))
+  );
+
+  // ... 시나리오 실행 (자동 재시도) ...
+
+  // 같은 401→200 시퀀스를 재실행하려면 일회성 핸들러 복원
+  server.restoreHandlers();
 });
 ```
 
@@ -986,7 +1045,58 @@ export function useUpdateUser() {
 }
 ```
 
-### 4.5 쿼리 무효화 패턴
+### 4.5 RSC Hydration — 서버 컴포넌트와 결합 (2026 표준)
+
+Next.js 15+ App Router에서는 **서버 컴포넌트에서 prefetch → 클라이언트에서 hydrate**가 사실상 표준 데이터 통신 패턴입니다. 서버는 초기 데이터를 안정적으로 채우고, 클라이언트는 동일 쿼리 키로 즉시 hydration된 캐시를 사용한 뒤 인터랙티브 갱신만 담당합니다.
+
+```tsx
+// app/(routes)/users/page.tsx — 서버 컴포넌트
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import { userRepository } from '@/api/repositories/userRepository';
+import { userKeys } from '@/api/queryKeys';
+import { UserListClient } from './UserListClient';
+
+export default async function UsersPage() {
+  const queryClient = new QueryClient();
+
+  // 1) 서버에서 데이터 prefetch (Result 패턴 호환)
+  await queryClient.prefetchQuery({
+    queryKey: userKeys.list({ page: 1 }),
+    queryFn: () => userRepository.getList({ page: 1, size: 20 }),
+  });
+
+  // 2) 직렬화된 캐시를 클라이언트에 전달
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <UserListClient />
+    </HydrationBoundary>
+  );
+}
+```
+
+```tsx
+// app/(routes)/users/UserListClient.tsx — 클라이언트에서 동일 키로 hydration
+'use client';
+
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { userRepository } from '@/api/repositories/userRepository';
+import { userKeys } from '@/api/queryKeys';
+
+export function UserListClient() {
+  // 서버 prefetch와 동일한 키 → 즉시 hydrate, 네트워크 호출 없음
+  const { data } = useSuspenseQuery({
+    queryKey: userKeys.list({ page: 1 }),
+    queryFn: () => userRepository.getList({ page: 1, size: 20 }),
+  });
+
+  if (!data.success) throw new Error(data.error.message);
+  return <ul>{data.data.items?.map((u) => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+```
+
+> **핵심 원칙**: ① 서버와 클라이언트가 **반드시 같은 queryKey + queryFn**을 사용할 것, ② `QueryClient`는 요청마다 새로 생성하여 사용자 간 캐시가 섞이지 않게 할 것, ③ 직렬화 비용이 큰 데이터(Map/Set/Date 객체)는 dehydrate 직전에 평탄화할 것.
+
+### 4.6 쿼리 무효화 패턴
 
 ```typescript
 // src/api/queryKeys.ts — 체계적인 쿼리 키 관리
@@ -1732,10 +1842,13 @@ const { data: userName } = useQuery({
 
 ### MSW 모킹
 - [ ] 개발 초기 단계에서 가상 응답(MSW)을 활용하여 로직을 완결했나요?
+- [ ] MSW v1을 사용 중이라면 codemod로 **v2로 마이그레이션**을 완료했나요? (v1은 유지보수 종료)
 - [ ] 브라우저용 setupWorker와 테스트용 setupServer가 분리되어 있나요?
 - [ ] MSW 핸들러에서 생성된 타입을 사용하여 응답 타입 안전성을 확보했나요?
 - [ ] 에러 시나리오(404, 500, 네트워크 에러)에 대한 핸들러가 준비되어 있나요?
 - [ ] 테스트에서 `afterEach(() => server.resetHandlers())`로 격리를 보장하나요?
+- [ ] 병렬 테스트에서 오버라이드가 필요한 경우 `server.boundary(...)`로 누수를 차단했나요?
+- [ ] 일회성 핸들러 재사용이 필요한 시나리오에 `server.restoreHandlers()`를 활용하나요?
 
 ### Result 패턴 & 에러 처리
 - [ ] 비동기 작업 결과에 대해 명시적인 예외 처리(Result 패턴)를 강제하고 있나요?
@@ -1749,6 +1862,8 @@ const { data: userName } = useQuery({
 - [ ] 뮤테이션 성공 후 관련 쿼리를 적절히 무효화하나요?
 - [ ] 낙관적 업데이트가 필요한 곳에 onMutate/onError/onSettled 패턴을 적용했나요?
 - [ ] useSuspenseQuery에서 enabled 대신 조건부 렌더링을 사용하나요?
+- [ ] RSC 환경에서 서버는 `prefetchQuery` + `HydrationBoundary`, 클라이언트는 동일 키의 `useSuspenseQuery`로 hydrate하고 있나요?
+- [ ] `QueryClient`를 사용자 요청 단위로 생성하여 캐시가 사용자 간 섞이지 않도록 했나요?
 
 ### 인터셉터 & 인증
 - [ ] 요청 인터셉터에서 인증 토큰을 자동으로 주입하나요?

@@ -1,9 +1,11 @@
-# 01. TypeScript 심화 가이드 (2025-2026 Edition)
+# 01. TypeScript 심화 가이드 (2026 Edition)
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [02. React 19](./02_React19_실무_가이드.md), [07. 테스팅](./07_테스팅_가이드.md) | **AI 도구** | Claude Code, Zod |
-| **핵심 테마** | Type Branding, Zod Validation, Discriminated Unions, Type Guard, Generics | **Update** | 2025.04 |
+| **핵심 테마** | Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type Guard, Generics | **Update** | 2026.05 |
+
+> **본 가이드는 TypeScript 5.8 / 5.9 기준입니다.** 5.9는 2025년 8월 GA되어 `import defer`, 강화된 추론 기본값, Stage 3 데코레이터 메타데이터 안정화를 포함합니다. 5.8은 `--erasableSyntaxOnly` 플래그와 conditional return 검사 강화를 도입했습니다.
 
 ---
 
@@ -13,13 +15,20 @@
 
 ---
 
-## 1. 런타임 안전성: Zod 기반의 스키마 검증
+## 1. 런타임 안전성: Zod 4 기반의 스키마 검증
 
 ### 왜 중요한가
 
 TypeScript의 타입은 **컴파일 타임에만 존재**합니다. 빌드가 완료된 JavaScript에는 타입 정보가 전혀 남아 있지 않습니다. 이 말은 외부 API, localStorage, URL 파라미터, 사용자 입력 등 **런타임에 들어오는 모든 데이터**에 대해 TypeScript가 아무런 보호도 제공하지 못한다는 뜻입니다.
 
 `as` 키워드로 타입을 강제 캐스팅하면 컴파일러는 만족하지만, 실제 데이터 구조가 다를 경우 런타임에서 예측 불가능한 오류가 발생합니다. Zod는 **스키마 정의 한 번으로 런타임 검증과 타입 추론을 동시에** 해결해주는 라이브러리입니다.
+
+### Zod 4 (2025년 GA) 주요 변경점
+
+- **성능 개선**: 파싱 속도가 v3 대비 약 3~4배 향상되고, 컴파일 타임 타입 인스턴스화도 빨라졌습니다.
+- **트리쉐이킹 가능한 `zod/v4-mini`**: 함수형 API 방식의 별도 엔트리포인트로, 번들 크기에 민감한 환경에서 사용합니다.
+- **Standard Schema 인터페이스 구현**: Zod 4부터 `~standard` 프로퍼티를 통해 `Standard Schema v1` 스펙을 만족하므로, TanStack Form, Next.js Server Actions 등 Standard Schema 기반 라이브러리와 어댑터 없이 호환됩니다.
+- **`z.discriminatedUnion`/`z.object` API 정비**: 에러 트리(`error.issues`), `prettifyError` 헬퍼 등 디버깅 친화 기능이 추가됐습니다.
 
 ### 1.1 유효성 검증 및 타입 추론
 
@@ -97,6 +106,43 @@ const PaginationSchema = z.object({
   limit: z.number().min(1).max(100).default(20), // 기본값 20
 });
 ```
+
+### 1.4 Standard Schema: 라이브러리 종속성 분리 (2026)
+
+`Standard Schema`는 Zod, Valibot, ArkType의 메인테이너들이 함께 만든 **60줄짜리 TypeScript 인터페이스 스펙**입니다. 검증 라이브러리가 아니라 "각 라이브러리가 공통으로 노출하는 형태"의 명세입니다. TanStack Form, Next.js Server Actions, tRPC 등은 이미 Standard Schema를 채택하여 사용자가 원하는 검증 라이브러리를 자유롭게 골라 쓸 수 있습니다.
+
+```typescript
+// 라이브러리에 종속되지 않는 유틸리티 작성 가능
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+
+// Zod, Valibot, ArkType 어느 것이든 받을 수 있는 검증 헬퍼
+async function safeValidate<T extends StandardSchemaV1>(
+  schema: T,
+  input: unknown,
+): Promise<StandardSchemaV1.InferOutput<T>> {
+  let result = schema["~standard"].validate(input);
+  if (result instanceof Promise) result = await result;
+  if (result.issues) {
+    throw new Error(result.issues.map((i) => i.message).join("\n"));
+  }
+  return result.value;
+}
+
+// 이제 Zod든 Valibot이든 동일한 함수로 검증 가능
+const zodUser = await safeValidate(UserSchema, input);
+// const valibotUser = await safeValidate(v.object({ ... }), input);
+```
+
+### 1.5 검증 라이브러리 선택 가이드 (2026 기준)
+
+| 라이브러리 | 번들 크기 (gzip) | 성능 | 권장 시점 |
+| :--- | :--- | :--- | :--- |
+| **Zod 4** | 약 13~17KB | 표준 | 가장 풍부한 생태계, 학습 자료 다수. 일반적인 백오피스/SaaS에 적합 |
+| **Zod 4 Mini** | 약 4~5KB | 표준 | 클라이언트 번들 민감 + Zod 친숙도 유지 |
+| **Valibot 1.x** | 약 1~2KB | 빠름 | 트리쉐이킹 극대화가 중요한 엣지/엔드유저 번들 |
+| **ArkType 2.x** | 약 5~6KB | 매우 빠름 | TypeScript 문법을 그대로 쓰고 싶을 때, 대량 데이터 검증 |
+
+**핵심 결론**: 라이브러리는 Standard Schema 호환 여부로 고르면 추후 교체 비용이 거의 없습니다. 신규 프로젝트는 **Zod 4 + 필요 시 `zod/v4-mini`** 조합이 가장 무난합니다.
 
 ### 흔한 실수
 
@@ -362,6 +408,8 @@ type Locale = `${"ko" | "en" | "ja"}-${"KR" | "US" | "JP"}`;
 TypeScript에서 변수에 타입을 명시적으로 선언하면(`: Type`) 컴파일러는 해당 타입으로 값을 **넓혀서(widen)** 인식합니다. 이 과정에서 우리가 실제로 넣은 **구체적인 값 정보가 사라질** 수 있습니다.
 
 `satisfies` 연산자는 **"이 값이 특정 타입을 만족하는지 검사하되, 원래의 구체적인 타입 추론은 유지해줘"**라는 의미입니다. 타입 안전성과 타입 추론의 정밀함을 동시에 얻을 수 있는 매우 유용한 기능입니다.
+
+> **TypeScript 5.9 업데이트**: `satisfies`가 복잡한 매핑 타입에 대해서도 리터럴 추론을 잃지 않도록 개선됐고, conditional 타입 분기에서 유니온 판별 후의 좁힘이 자동으로 적용됩니다. 과거에 `as` 캐스팅으로 해결하던 케이스 다수가 `satisfies`로 대체 가능해졌습니다.
 
 ### 4.1 기본 사용법
 
@@ -976,11 +1024,111 @@ function processGood<T extends { id: string; name: string }>(data: T) { /* ... *
 
 ---
 
-## 8. 주의사항 및 흔한 실수
+## 8. TypeScript 5.8 / 5.9 신규 기능 활용
+
+### 8.1 `--erasableSyntaxOnly` (5.8)
+
+Node.js 22+의 네이티브 TypeScript 실행, Deno, Bun처럼 "타입 주석만 제거하고 그대로 실행"하는 환경이 늘었습니다. `--erasableSyntaxOnly`를 켜면 `enum`, 네임스페이스, 파라미터 프로퍼티(`constructor(public name: string)`)처럼 **런타임 코드를 발생시키는 TS 전용 문법**을 즉시 컴파일 에러로 잡아줍니다.
+
+```jsonc
+// tsconfig.json
+{
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true
+  }
+}
+```
+
+```typescript
+// ❌ enum, namespace, parameter properties는 모두 컴파일 에러
+enum Status { Active, Inactive }
+class User {
+  constructor(public name: string) {} // ❌ parameter property
+}
+
+// ✅ as const 객체 + class 안에서 명시적 할당
+const Status = { Active: "active", Inactive: "inactive" } as const;
+class UserOk {
+  name: string;
+  constructor(name: string) { this.name = name; }
+}
+```
+
+### 8.2 `import defer` (5.9)
+
+ECMAScript의 **Deferred Module Evaluation** 제안에 대응하는 신규 구문입니다. 모듈을 임포트하되 실제 평가(코드 실행)는 첫 사용 시점까지 미룰 수 있어, 콜드 스타트 시간을 줄이는 데 효과적입니다.
+
+```typescript
+// 모듈은 로드하지만, 실제 실행은 첫 접근까지 지연
+import defer * as Charts from "./charts";
+
+function renderDashboard(showCharts: boolean) {
+  if (showCharts) {
+    // 이 시점에 charts 모듈이 처음 평가됨
+    return Charts.render();
+  }
+  return null;
+}
+```
+
+런타임이 지원하지 않는 경우 번들러(Webpack 5.94+, Vite/Rollup 4.x)가 폴리필성으로 처리하지만, **서버 사이드 라우트 핸들러나 무거운 시각화 모듈에 적용하면 즉시 효과**가 보입니다.
+
+### 8.3 Stage 3 데코레이터 메타데이터 안정화 (5.9)
+
+`Symbol.metadata` 기반 메타데이터가 안정 기능으로 진입했습니다. NestJS 11, Angular 18+ 같은 프레임워크가 native TC39 데코레이터로 마이그레이션할 수 있는 토대가 마련됐습니다. **레거시 `experimentalDecorators`**는 비권장이며, 신규 코드에는 표준 데코레이터를 권장합니다.
+
+```typescript
+// 표준 데코레이터 + 메타데이터 (5.9 안정 기준)
+function logged<This, Args extends any[], Return>(
+  target: (this: This, ...args: Args) => Return,
+  context: ClassMethodDecoratorContext<This, typeof target>,
+) {
+  context.metadata[context.name] = "logged";
+  return function (this: This, ...args: Args): Return {
+    console.log(`[${String(context.name)}] called`, args);
+    return target.call(this, ...args);
+  };
+}
+
+class Service {
+  @logged
+  fetchUser(id: string) { /* ... */ }
+}
+
+// 메타데이터 접근
+console.log(Service[Symbol.metadata]?.fetchUser); // "logged"
+```
+
+### 8.4 `--strictInference` 와 모범 설정 (5.9)
+
+5.9의 `--strict` 묶음에 추가된 `--strictInference`는 컨텍스트가 없는 곳에서 `any`로 추론되는 케이스를 좁혀 명시적 타이핑을 요구합니다. 신규 프로젝트는 다음 설정을 기본으로 권장합니다.
+
+```jsonc
+// tsconfig.json (2026 권장 기본값)
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,                 // strictInference 포함
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "erasableSyntaxOnly": true,     // Node/Deno/Bun 네이티브 실행 호환
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+---
+
+## 9. 주의사항 및 흔한 실수
 
 이 섹션은 TypeScript를 사용하면서 실무에서 자주 마주치는 실수와 안티패턴을 모아놓은 것입니다. 각 항목을 숙지하면 디버깅 시간을 크게 줄일 수 있습니다.
 
-### 8.1 `any` 남용
+### 9.1 `any` 남용
 
 ```typescript
 // ❌ any는 타입 시스템을 완전히 비활성화합니다.
@@ -1011,7 +1159,7 @@ function parseDataBest(data: unknown) {
 }
 ```
 
-### 8.2 `!` (Non-null assertion) 남용
+### 9.2 `!` (Non-null assertion) 남용
 
 ```typescript
 // ❌ 느낌표(!)는 "이 값은 절대 null이 아니야"라고 컴파일러에게 거짓말하는 것
@@ -1033,10 +1181,12 @@ function getUserNameDefault(user: User | null): string {
 }
 ```
 
-### 8.3 `enum` 대신 `as const` 유니온 사용
+### 9.3 `enum` 대신 `as const` 유니온 사용
+
+> **경고 (2026)**: `enum`은 (1) 트리쉐이킹이 어렵고, (2) TS 5.8의 `--erasableSyntaxOnly` 환경에서 사용 불가하며, (3) Node.js 22+/Deno/Bun의 네이티브 TS 실행과 호환되지 않습니다. **신규 코드는 모두 `as const` 객체 또는 리터럴 유니온으로 작성하세요.**
 
 ```typescript
-// ❌ enum은 트리쉐이킹이 안 되고, 번들 크기를 늘림
+// ❌ enum은 트리쉐이킹이 안 되고, --erasableSyntaxOnly에서 빌드 실패
 enum StatusBad {
   Active = "active",
   Inactive = "inactive",
@@ -1057,7 +1207,7 @@ type Status = (typeof STATUS)[keyof typeof STATUS];
 type StatusSimple = "active" | "inactive" | "pending";
 ```
 
-### 8.4 인덱스 시그니처 남용
+### 9.4 인덱스 시그니처 남용
 
 ```typescript
 // ❌ Record<string, any>는 어떤 키든 어떤 값이든 허용
@@ -1085,7 +1235,7 @@ const configGood: AppConfig = {
 };
 ```
 
-### 8.5 타입 단언(as) 체인
+### 9.5 타입 단언(as) 체인
 
 ```typescript
 // ❌ as를 체인으로 사용하면 거의 모든 타입 검사를 우회할 수 있음
@@ -1098,7 +1248,7 @@ const user = response.data as User; // 실제 데이터가 User가 아닐 수 �
 const validatedUser = UserSchema.parse(response.data);
 ```
 
-### 8.6 옵셔널 프로퍼티 vs undefined 유니온
+### 9.6 옵셔널 프로퍼티 vs undefined 유니온
 
 ```typescript
 // 이 두 가지는 다릅니다!
@@ -1138,9 +1288,11 @@ const c: WithUndefined = { name: undefined }; // ✅ 키는 있되 값이 undefi
 ## ✅ 체크리스트
 
 ### 런타임 안전성
-- [ ] API 응답에 `as` 대신 `Zod` 스키마 검증을 적용했나요?
+- [ ] API 응답에 `as` 대신 `Zod 4`(혹은 Valibot/ArkType) 스키마 검증을 적용했나요?
 - [ ] 외부 입력(URL 파라미터, localStorage, 사용자 입력)에 대한 검증이 있나요?
 - [ ] `z.infer`로 타입을 추출하여 스키마와 타입의 동기화를 보장하나요?
+- [ ] 라이브러리 간 호환을 위해 **Standard Schema** 인터페이스를 노출하고 있나요?
+- [ ] 클라이언트 번들 크기가 중요한 경우 `zod/v4-mini` 또는 Valibot 도입을 검토했나요?
 
 ### 타입 설계
 - [ ] ID 값들에 대해 **Branded Types** 적용을 검토했나요?
@@ -1164,3 +1316,10 @@ const c: WithUndefined = { name: undefined }; // ✅ 키는 있되 값이 undefi
 - [ ] 옵셔널 프로퍼티(`?`)와 `undefined` 유니온의 차이를 이해하고 적절히 사용했나요?
 - [ ] 템플릿 리터럴 타입으로 문자열 패턴을 강제하고 있나요?
 - [ ] 매핑된 타입으로 반복적인 타입 정의를 자동화했나요?
+
+### 모던 컴파일러 설정 (TS 5.8 / 5.9)
+- [ ] `--strict`(strictInference 포함), `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`를 켰나요?
+- [ ] Node 22+/Deno/Bun 네이티브 실행 호환을 위해 `--erasableSyntaxOnly`를 검토했나요?
+- [ ] `enum` 사용처를 `as const` 객체로 마이그레이션했나요?
+- [ ] 무거운 모듈에 `import defer`를 적용하여 콜드 스타트를 개선했나요?
+- [ ] 레거시 `experimentalDecorators` 대신 Stage 3 표준 데코레이터를 사용하나요?

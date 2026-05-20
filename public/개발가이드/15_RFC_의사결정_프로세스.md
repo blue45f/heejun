@@ -1,11 +1,11 @@
-# 15. RFC 의사결정 프로세스 (2025-2026 Edition)
+# 15. RFC 의사결정 프로세스 (2026 Edition)
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [16. AI 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [17. 온보딩](./17_신규_입사자_온보딩_가이드.md) | **AI 도구** | GitHub Discussions, Claude Code |
-| **핵심 테마** | RFC 라이프사이클, AI 영향도 분석, PoC 자동 생성, ADR | **Update** | 2026.04 |
+| **연관 가이드** | [16. AI 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [17. 온보딩](./17_신규_입사자_온보딩_가이드.md) | **AI 도구** | GitHub Discussions, Claude Code, MADR 4.0, Linear/Height |
+| **핵심 테마** | RFC 라이프사이클, AI 영향도 분석, PoC 자동 생성, ADR(MADR 4.0) | **Update** | 2026.05 |
 
-> GitHub Discussions 기반 비동기 RFC 프로세스, AI 의사결정 지원 프롬프트, RFC 제안을 Preview 환경에서 자동 검증하는 PoC 파이프라인, AI 기반 영향도 자동 분석과 투표/점수화를 통합한 2025-2026년형 RFC 운영 가이드.
+> GitHub Discussions 기반 비동기 RFC 프로세스, AI 의사결정 지원 프롬프트, RFC 제안을 Preview 환경에서 자동 검증하는 PoC 파이프라인, AI 기반 영향도 자동 분석과 투표/점수화, MADR 4.0 템플릿, Linear/Height의 AI-Native RFC 워크플로우를 통합한 2026년형 RFC 운영 가이드.
 
 ---
 
@@ -35,8 +35,10 @@ RFC 전체 라이프사이클을 GitHub Discussions에서 운영한다. 이슈�
 | **RFC-Draft** | 초안 작성 중인 RFC | Open-ended |
 | **RFC-Review** | 공식 리뷰 중인 RFC | Open-ended |
 | **RFC-Voting** | 투표 진행 중인 RFC | Poll |
-| **ADR** | 승인되어 확정된 아키텍처 결정 | Announcement |
+| **ADR** | 승인되어 확정된 아키텍처 결정 (MADR 4.0 포맷) | Announcement |
 | **RFC-Archive** | 기각/철회/대체된 RFC | Announcement |
+
+> **2026년 RFC 도구 환경의 흐름:** Linear, Height(Cognition 인수), Notion Developer Platform이 RFC를 단순 문서가 아닌 "Workspace + AI 에이전트가 함께 다루는 워크플로우"로 통합하고 있다. Linear는 RFC를 프로젝트/이슈와 직접 연결하고, Height는 AI가 자동으로 서브태스크/블로커를 추정하며, Notion은 External Agents API(alpha)로 Claude·Codex를 Notion 내부에서 호출할 수 있게 한다. GitHub Discussions는 여전히 코드 근접성과 자동화 친화성에서 가장 보수적이며 안전한 선택이고, RFC 본문은 외부 도구와 동기화하더라도 ADR의 단일 진실 공급원(Single Source of Truth)은 Git 저장소(`docs/adr`)에 두는 것을 권장한다.
 
 ### 1.2 Discussion 자동 생성 워크플로우
 
@@ -201,7 +203,10 @@ async function convertToAdr(
   const rfcTitle = issue.data.title.replace(/^\[RFC\]\s*/, "");
 
   // ADR 마크다운 본문 구성
-  // Michael Nygard의 ADR 형식(Status, Context, Decision, Consequences)을 따른다.
+  // MADR 4.0 형식(Decision Maker(s), Status, Context, Decision Drivers, Considered Options,
+  // Decision Outcome + Confirmation)을 따른다. 4.0에서 "Deciders" -> "Decision Maker(s)",
+  // "Validation" -> "Confirmation"으로 변경되었으며, Confirmation은 Decision Outcome의 하위 요소이다.
+  // 참고: https://adr.github.io/madr/ (2024.09 릴리스, 2026년 현재 표준)
   const adrContent = [
     `# ${rfcTitle}`,
     "",
@@ -212,6 +217,10 @@ async function convertToAdr(
     `## Date`,
     "",
     new Date().toISOString().split("T")[0],
+    "",
+    "## Decision Maker(s)",
+    "",
+    `@${issue.data.user?.login ?? "unknown"} (Author), Tech Lead, Architect`,
     "",
     "## Context",
     "",
@@ -227,12 +236,22 @@ async function convertToAdr(
       extractSection(rfcBody, "Proposal", "Alternatives") ||
       "See original RFC discussion.",
     "",
-    "## Consequences",
+    "## Decision Outcome",
+    "",
+    "### Consequences",
     "",
     // RFC 본문에서 "영향도" 또는 "Impact" 섹션을 추출
     extractSection(rfcBody, "영향도", "성공 지표") ||
       extractSection(rfcBody, "Impact", "Success") ||
       "See original RFC discussion.",
+    "",
+    "### Confirmation (검증 방법)",
+    "",
+    // MADR 4.0의 Confirmation은 결정 후 어떻게 결과를 검증할지 정의한다.
+    // 성공 지표 섹션 또는 PoC 검증 결과에서 추출한다.
+    extractSection(rfcBody, "성공 지표", "AI 점수") ||
+      extractSection(rfcBody, "Success Metrics", "AI Score") ||
+      "검증 방법: 성공 지표 측정 + 회고 Discussion 진행",
     "",
     "## Alternatives Considered",
     "",
@@ -409,7 +428,9 @@ Implemented (구현 완료)
 |------|----------|------------|---------|---------|
 | Small | 3영업일 | 2명 | 영향도 분석만 | 아니오 |
 | Medium | 5영업일 | 3명 | 영향도 + 리스크 | 권장 |
-| Large | 10영업일 | 5명 + 아키텍트 | 전체 분석 + 투표 | 필수 |
+| Large | 10영업일 | 5명 + 아키텍트 | 전체 분석 + 멀티 에이전트 점수화 | 필수 |
+
+> **2026년 AI-Native 도구 선택지:** Linear는 RFC를 프로젝트/이슈와 직접 묶을 수 있고, Height(Cognition 인수)는 AI가 자동으로 서브태스크와 블로커를 식별한다. Notion Developer Platform(2026.05)은 Workers와 webhooks로 RFC 워크플로우를 코드화할 수 있고, External Agents API(alpha)로 Claude/Codex 등을 Notion 내부에서 호출할 수 있다. 외부 도구 도입 시 반드시 다음 두 가지 원칙을 지킨다: (1) ADR의 Single Source of Truth는 Git 저장소 유지, (2) 외부 도구 URL은 RFC 메타 정보 표에 명시.
 
 **규모 판단 기준:**
 
@@ -565,7 +586,7 @@ async function analyzeRfcImpact(issueNumber: number): Promise<void> {
   // AI에게 영향도 분석 요청
   // 프로젝트 구조와 RFC 내용을 함께 전달하여 구체적 영향 범위를 예측한다.
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-7-20260301",
     max_tokens: 4096,
     messages: [
       {
@@ -983,7 +1004,7 @@ async function scoreRfc(issueNumber: number): Promise<void> {
 
   // AI에게 5개 차원으로 RFC 점수화 요청
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-7-20260301",
     max_tokens: 4096,
     messages: [
       {
@@ -1220,7 +1241,7 @@ AI 점수와 사람 투표 결과가 크게 다른 경우, 반드시 아래 절�
    - 각 대안의 장점이 동등하게 조사되었는가
 
 2. 누락 대안 식별
-   - 2025-2026년 새로 등장한 기술/접근법이 빠져있는가
+   - 2026년 새로 등장한 기술/접근법이 빠져있는가
    - "아무것도 하지 않는" 대안이 고려되었는가
 
 3. 의사결정 매트릭스 검증
@@ -1315,6 +1336,8 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 
 ## 7. RFC 작성 템플릿
 
+> **2026년 RFC/ADR 템플릿 표준:** 본 가이드의 ADR 변환 스크립트는 [MADR 4.0](https://adr.github.io/madr/) (2024-09 릴리스)을 기본 포맷으로 사용한다. MADR 4.0의 주요 변경점은 "Deciders" -> "Decision Maker(s)" 명칭 변경과 "Validation" -> "Confirmation"의 Decision Outcome 하위 요소화이다. 외부 도구(Linear/Height/Notion)와 연동 시에도 ADR의 Single Source of Truth는 Git 저장소(`docs/adr/`)에 유지한다.
+
 ```markdown
 # RFC-[번호]: [간결하고 명확한 제목]
 
@@ -1328,8 +1351,9 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 | 상태 | Draft / Review / Voting / Accepted / Rejected |
 | 규모 | Small / Medium / Large |
 | 관련 이슈 | #이슈번호 |
+| 외부 도구 링크 | (있는 경우) Linear 프로젝트 / Height 워크스트림 / Notion 페이지 URL |
 | PoC 브랜치 | (있는 경우) feature/rfc-XXX-poc |
-| AI 보조 | 사용 도구명 및 활용 범위 |
+| AI 보조 | 사용 도구명 및 활용 범위 (예: Claude Sonnet 4.7, Cursor Composer 2.5) |
 
 ---
 
