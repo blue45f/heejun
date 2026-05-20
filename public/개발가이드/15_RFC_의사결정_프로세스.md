@@ -21,6 +21,7 @@
 8. [RACI 거버넌스 + AI 역할](#8-raci-거버넌스--ai-역할)
 9. [실전 RFC 예시](#9-실전-rfc-예시)
 10. [RFC 프로세스 체크리스트](#10-rfc-프로세스-체크리스트)
+11. [2026 운영 사례 및 도구 통합](#11-2026-운영-사례-및-도구-통합)
 
 ---
 
@@ -1330,6 +1331,46 @@ RFC 논의가 교착 상태에 빠졌어. 양측 의견을 분석하고 해소 �
 - 성공 지표는 정량적으로 측정 가능하게 작성해줘
 ```
 
+### 프롬프트 7: AI 회의록을 RFC Draft로 변환 (2026 추가)
+
+> Tactiq, Granola, Fathom 등 AI 회의록 도구의 transcript와 액션 아이템을 RFC 초안으로 자동 변환할 때 사용한다. 2026년 다수 팀이 "RFC 회의 -> 트랜스크립트 -> AI가 RFC Draft 생성" 파이프라인을 운영한다.
+
+```text
+아래 회의 트랜스크립트와 액션 아이템을 분석해 RFC 초안 섹션을 생성해줘.
+
+[회의 메타]
+- 일시: {YYYY-MM-DD HH:MM}
+- 참석자: {이름과 역할}
+- 회의 목적: {기술 의사결정 / 아키텍처 리뷰 / 문제 정의 등}
+
+[트랜스크립트 요약]
+{AI 회의록 도구가 생성한 트랜스크립트 또는 요약 붙여넣기}
+
+[액션 아이템]
+{회의록 도구가 추출한 액션 아이템 목록}
+
+[변환 요청]
+1. "동기(Motivation)" 섹션
+   - 트랜스크립트에서 언급된 문제점을 정량/정성 근거로 분류
+   - "현재 상황 -> 문제점 -> 목표" 구조로 정리
+
+2. "제안(Proposal)" 섹션
+   - 회의에서 합의된 방향을 핵심 제안으로 정리
+   - 불확실하거나 추가 논의가 필요한 부분은 [확인 필요] 태그 부착
+
+3. "대안(Alternatives)" 섹션
+   - 회의에서 거론된 다른 옵션을 표 형태로 정리
+   - 회의에서 다루지 않은 명백한 대안이 있으면 추가 제안
+
+4. "리스크" 섹션
+   - 참석자가 제기한 우려사항을 가능성/영향도로 분류
+
+5. "후속 액션 아이템"
+   - 회의에서 도출된 액션을 RFC 챔피언/리뷰어 후보와 함께 정리
+
+발화자 이름은 @{GitHub ID} 형태로 변환하고, 결정되지 않은 사항은 "TODO"로 명시해줘.
+```
+
 > 관련: AI 프롬프트 활용에 대한 추가 가이드는 [18. AI 개발 워크플로우 종합](./18_AI_개발_워크플로우_종합.md)을 참고한다.
 
 ---
@@ -1680,6 +1721,137 @@ CDK L3 Construct (PreviewEnvironment)로 S3 + CloudFront + OAC + Route53을
 | ADR 변환 완료율 | 승인 후 3영업일 이내 100% | 1주 이상 미변환 ADR 존재 |
 | RFC 대비 구현 완료율 | 승인된 RFC 80% 이상 구현 | 6개월 이상 미구현 RFC 존재 |
 | AI 분석 실행률 | 100% (자동) | CI 오류로 분석 누락 |
+
+### 10.5 AI 회의록 -> RFC 자동화 체크리스트 (2026 추가)
+
+AI 회의록 도구(Tactiq, Granola, Fathom 등)를 RFC 프로세스에 통합할 때 점검할 항목:
+
+- [ ] 회의록 도구가 봇리스(botless) 모드를 지원하는가 (Granola, Tactiq personal은 봇 참여 없이 캡처 가능)
+- [ ] 트랜스크립트와 액션 아이템을 외부 API/Webhook으로 노출할 수 있는가
+- [ ] 회의록의 외부 LLM 전송이 회사 데이터 정책에 부합하는가 (민감 회의는 botless 또는 온프렘 옵션 필수)
+- [ ] 자동 생성된 RFC Draft에 "AI 보조" 메타 필드가 명시되는가 (생성 도구 + 사람 검토자 포함)
+- [ ] 발화자 식별이 GitHub ID로 자동 매핑되는가 (HR 시스템 연동 또는 수동 매핑 테이블)
+- [ ] RFC Draft 생성 후 작성자/챔피언이 24시간 이내 사람의 눈으로 검토하는 절차가 있는가
+- [ ] 회의록 원본은 RFC Discussion의 첨부 또는 외부 링크로 참조 가능한가 (감사 추적용)
+
+---
+
+## 11. 2026 운영 사례 및 도구 통합
+
+### 11.1 외부 도구 통합 매트릭스
+
+2026년 시점의 RFC/ADR 관련 도구 통합 옵션을 정리한다. 단일 도구로 전체를 운영하기보다, GitHub Discussions를 SSoT로 두고 워크스트림 도구를 보완재로 사용하는 패턴이 권장된다.
+
+| 도구 | 2026.05 시점 위치 | RFC 워크플로우 활용 | 주의 사항 |
+|------|------------------|--------------------|----------|
+| **Linear** | AI 트리아지(Triage Intelligence)로 라벨/담당자/프로젝트 자동 추천. Cursor, Devin 등 외부 에이전트와 Linear MCP로 연동. | RFC 이슈를 Linear Project로 묶고 구현 추적용 서브이슈를 AI가 자동 생성. | Linear는 본문 SSoT가 아니며, RFC 본문은 GitHub Discussions/ADR에 유지. |
+| **Notion Developer Platform 3.5** | 2026.05.13 공식 출시. Workers(2026.08.11부터 Notion credits 기반), Database Sync, External Agents API 제공. Claude Code, Codex, Cursor, Decagon이 출시 시점 지원 에이전트. | RFC 본문을 Notion DB로 노출 + ADR 변환을 Notion Worker로 자동화 + External Agent로 검토자 호출. | External Agents API는 워크스페이스 참여자로 등록되므로 권한/감사 범위 설계 필요. |
+| **Tactiq / Granola / Fathom** | 2026년 모두 botless 캡처 지원(개인 정책 회피). Granola는 Notion/Obsidian/Linear/Jira/Slack 통합. | RFC 회의 트랜스크립트를 RFC Draft로 자동 변환 (프롬프트 7 활용). | 민감 회의는 botless로 캡처하더라도 외부 LLM 호출이 발생하므로 정책 확인 필요. |
+| **Atlassian Confluence + Jira** | 기존 RFC를 Confluence에 유지하는 조직 다수. | Jira 이슈와 RFC 양방향 링크 자동 생성. | Confluence는 코드 근접성이 낮아 PoC/CI 자동화는 GitHub Actions 병행 필요. |
+| **MADR 4.0** | 2024.09 릴리스. 2026.05 시점 가장 널리 쓰이는 ADR 템플릿. | Discussion -> ADR 변환 스크립트의 기본 포맷. | MADR 3.0 -> 4.0 마이그레이션 시 "Deciders" -> "Decision Maker(s)", "Validation" -> "Confirmation"(Decision Outcome 하위) 변경 반영 필요. |
+
+### 11.2 운영 사례 박스
+
+> **사례 1 -- Notion Developer Platform 3.5 출시 (2026.05.13)**
+> Notion이 워크스페이스를 AI 에이전트 허브로 전환하는 Developer Platform 3.5를 공식 출시했다. Workers(코드 런타임), Database Sync(Salesforce/Zendesk/Postgres 등 외부 DB 동기화), External Agents API(Claude Code, Codex, Cursor, Decagon 등 외부 에이전트를 워크스페이스 참여자로 등록) 3종 세트가 동시 공개되었다. 2026.08.11부터 Workers는 Notion credits 기반 과금으로 전환된다. 출시 직후 다수 SaaS 팀이 "Notion DB의 RFC를 External Agent가 검토 -> 코멘트로 영향도 분석 -> 사람 승인 후 Worker가 Git ADR로 동기화"하는 파이프라인을 구축하고 있다는 보고가 이어지고 있다. 본 가이드의 GitHub Discussions 기반 워크플로우와 직접 충돌하지 않으며, "ADR SSoT는 Git 저장소" 원칙을 유지하면 보완재로 활용 가능하다.
+
+> **사례 2 -- Linear MCP 기반 AI 에이전트 통합**
+> Linear는 2026년 Triage Intelligence로 RFC 관련 이슈의 라벨/담당자/프로젝트를 팀 히스토리 기반으로 자동 추천한다. 또한 Linear Mission Control Plane(MCP)을 통해 Cursor, Devin 같은 외부 코딩 에이전트를 Linear 이슈에서 직접 할당할 수 있다. 다수 팀이 "RFC 승인 -> Linear 프로젝트 자동 생성 -> 서브이슈를 AI가 생성 -> Cursor/Devin이 구현 -> PR이 RFC Issue에 자동 링크"되는 흐름을 구성하고 있다. RFC의 본문 SSoT는 GitHub Discussions/ADR이고, Linear는 구현 추적용 워크스트림으로 사용하는 분리 패턴이 권장된다.
+
+> **사례 3 -- 안티 패턴: ADR 폐기 비율**
+> 2026년 다수 사후 분석에서 "거의 모든 팀이 ADR을 시도했지만 2년 뒤에도 유지하는 팀은 거의 없다"는 지적이 반복되고 있다. 실패 원인은 ADR 도구가 아니라 운영 관행(어디에 둘 것인가, 언제 작성할 것인가, 누가 리뷰할 것인가, 현실이 바뀌었을 때 어떻게 업데이트할 것인가)이다. 본 가이드의 `Discussion -> ADR 자동 변환 + 라벨 자동 전환 + 구현 추적 이슈 자동 생성` 조합이 이 위험을 완화하기 위한 설계이다.
+
+### 11.3 회의록 -> RFC Draft 자동 변환 워크플로우
+
+AI 회의록 도구의 Webhook(예: Granola export, Tactiq webhook, Fathom API)을 받아 RFC Draft 이슈를 생성하는 GitHub Actions 예제이다.
+
+```yaml
+# .github/workflows/meeting-to-rfc.yml
+# 용도: AI 회의록 도구(Tactiq/Granola/Fathom) Webhook -> RFC Draft 자동 생성
+# 트리거: repository_dispatch 이벤트 (회의록 도구가 Webhook으로 호출)
+name: Meeting Notes to RFC Draft
+
+on:
+  repository_dispatch:
+    types: [meeting-notes-published]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-rfc-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      # 회의록 도구가 보낸 payload 구조 예시:
+      # {
+      #   "meeting_id": "tactiq-xxxx",
+      #   "title": "Q2 상태관리 라이브러리 의사결정 회의",
+      #   "started_at": "2026-05-20T10:00:00Z",
+      #   "participants": [{"name": "...", "github_id": "..."}],
+      #   "transcript_url": "https://...",
+      #   "summary": "...",
+      #   "action_items": [...]
+      # }
+      - name: Generate RFC Draft via AI
+        id: draft
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # client_payload는 repository_dispatch 트리거가 제공하는 임의 JSON
+          MEETING_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: npx ts-node scripts/meeting-to-rfc-draft.ts
+
+      # AI가 생성한 RFC Draft를 GitHub Issue로 등록
+      # rfc-draft, ai-generated, needs-review 라벨을 함께 부여하여
+      # "사람 검토 대기" 상태임을 명확히 한다.
+      - name: Create RFC Draft issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const draft = JSON.parse(fs.readFileSync('rfc-draft.json', 'utf-8'));
+
+            // 회의록 원본 URL을 메타에 포함하여 감사 추적성을 보장한다.
+            const meetingUrl = ${{ toJSON(github.event.client_payload.transcript_url) }};
+            const meetingTitle = ${{ toJSON(github.event.client_payload.title) }};
+
+            const body = [
+              `> AI가 회의록을 기반으로 자동 생성한 RFC Draft입니다.`,
+              `> 24시간 이내에 작성자/챔피언이 사람의 눈으로 검토해 주세요.`,
+              ``,
+              `## Source Meeting`,
+              `- Title: ${meetingTitle}`,
+              `- Transcript: ${meetingUrl}`,
+              `- Generated at: ${new Date().toISOString()}`,
+              ``,
+              `---`,
+              ``,
+              draft.body,
+            ].join('\n');
+
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[RFC Draft - AI] ${draft.title}`,
+              body,
+              // ai-generated 라벨은 코드 리뷰/감사 시 AI 보조 여부를 식별하는 용도
+              labels: ['rfc', 'rfc-draft', 'ai-generated', 'needs-review'],
+              assignees: draft.suggestedChampion ? [draft.suggestedChampion] : [],
+            });
+
+            core.setOutput('issue_number', issue.data.number);
+            core.setOutput('issue_url', issue.data.html_url);
+```
+
+> **운영 권장 사항:** AI 생성 RFC Draft는 반드시 `needs-review` 라벨로 시작하고, 작성자/챔피언이 24시간 이내 검토 후 `needs-review`를 제거하도록 운영한다. 검토 없이 곧바로 `rfc-review` 단계로 진입하면, AI 환각(hallucination)이 의사결정 매트릭스에 그대로 반영되는 위험이 있다.
 
 ---
 
