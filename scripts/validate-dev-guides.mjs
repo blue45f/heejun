@@ -20,6 +20,13 @@ const FORBIDDEN_COMPANY_PATTERN =
 const FORBIDDEN_QUALITY_PATTERN =
   /완벽|최강|무조건|국내 최초|혁명|사실상|업계 표준|AI 프롬프트|프롬프트 형식|Prompt [0-9]|붙여넣기|복사해서/;
 
+const STALE_EDITION_TERMS = [
+  '2025-2026 Edition',
+  '2025 Edition',
+  '2024 Edition',
+  '2023 Edition',
+];
+
 function readText(file) {
   return fs.readFileSync(file, 'utf8');
 }
@@ -258,8 +265,25 @@ function validateForbiddenText(files) {
   return errors;
 }
 
+function validateStaleEditionText(files) {
+  const errors = [];
+
+  for (const file of files) {
+    const text = readText(file);
+
+    for (const term of STALE_EDITION_TERMS) {
+      if (text.includes(term)) {
+        errors.push(`${path.relative(ROOT, file)} stale edition text: ${term}`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
+const publicTextFiles = [INDEX_HTML, ...files];
 const failures = [
   ...validateGuideSequence(guideFiles),
   ...validateStructure(guideFiles),
@@ -267,6 +291,7 @@ const failures = [
   ...validateLinks(files),
   ...validateGuideIndexReferences(guideFiles),
   ...validateForbiddenText(files),
+  ...validateStaleEditionText(publicTextFiles),
 ];
 
 if (failures.length > 0) {
