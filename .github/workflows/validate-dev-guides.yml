@@ -1,0 +1,46 @@
+name: Validate Dev Guides
+
+on:
+  push:
+    paths:
+      - 'README.md'
+      - 'scripts/validate-dev-guides.mjs'
+      - 'public/개발가이드/**/*.md'
+      - '.github/workflows/validate-dev-guides.yml'
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'scripts/validate-dev-guides.mjs'
+      - 'public/개발가이드/**/*.md'
+      - '.github/workflows/validate-dev-guides.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate guide structure and links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Check validator syntax
+        run: node --check scripts/validate-dev-guides.mjs
+
+      - name: Validate development guides
+        run: node scripts/validate-dev-guides.mjs
