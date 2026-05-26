@@ -15,6 +15,17 @@
 
 ---
 
+## 문서 책임 범위
+
+| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
+| :--- | :--- |
+| TypeScript strictness, branded type, type guard, runtime boundary typing | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) |
+| 생성 타입, contract type, schema inference 정책 | [05. API 통신](./05_API_통신_및_모킹_가이드.md) |
+| 타입 테스트와 CI 품질 게이트 | [07. 테스팅](./07_테스팅_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md) |
+| AI가 제안한 타입 리팩터의 검증 책임 | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md) |
+
+---
+
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
 TypeScript 표준은 팀 규모와 도메인에 상관없이 **런타임 경계의 안전성**을 보장하는 데 초점을 둡니다.

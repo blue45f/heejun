@@ -11,6 +11,17 @@
 
 ---
 
+## 문서 책임 범위
+
+| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
+| :--- | :--- |
+| HTTP cache header, immutable asset, entry freshness, invalidation 계약 | [14. 배포](./14_배포_프로세스_체크리스트.md), [11. CI/CD](./11_CICD_파이프라인_표준.md) |
+| cache key, compression, security headers, edge routing 기준 | [06. 보안](./06_웹_보안_심화_가이드.md), [10. 인프라](./10_인프라_IaC_가이드.md) |
+| 캐시가 Core Web Vitals와 RUM에 미치는 영향 | [08. 성능](./08_성능_최적화_가이드.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
+| Service Worker/PWA cache와 CDN cache의 책임 분리 | [26. PWA](./26_PWA_오프라인_전략_가이드.md) |
+
+---
+
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
 | 영역 | 공통 기준 | 검증 방법 |

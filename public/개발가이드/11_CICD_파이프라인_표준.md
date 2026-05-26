@@ -11,6 +11,17 @@
 
 ---
 
+## 문서 책임 범위
+
+| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
+| :--- | :--- |
+| install/lint/type/test/build/security/artifact 품질 게이트 | [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) |
+| artifact provenance, SBOM, checksum, environment approval | [10. 인프라](./10_인프라_IaC_가이드.md), [14. 배포](./14_배포_프로세스_체크리스트.md) |
+| cache, CDN, preview deploy와 release 증적 | [12. CDN 캐시](./12_CDN_캐시_전략.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
+| CI 예외와 flaky gate의 리뷰/승인 기준 | [16. 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [15. RFC](./15_RFC_의사결정_프로세스.md) |
+
+---
+
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
 | 단계 | 최소 기준 | 실패 시 |
