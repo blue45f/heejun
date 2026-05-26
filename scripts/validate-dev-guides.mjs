@@ -12,6 +12,14 @@ const REQUIRED_DOC_MARKERS = [
   '0.1 교차 검증 매트릭스',
   '0.2 운영 게이트',
   '문서 최종 업데이트',
+  '2026 트렌드 고도화 체크포인트',
+  '2026 Trend Rollforward Triggers',
+  '2026 도메인별 고도화 포인트',
+  '2026 트렌드 운영 계약(Trend Ops Contract)',
+  '2026 트렌드 실행 지표표',
+  '2026 트렌드 상세 재구성(도메인별)',
+  '2026 트렌드 실행 규칙(Measure-Action-Owner)',
+  '2026 트렌드 실행 체크리스트(자동화 트리거)',
 ];
 
 const FORBIDDEN_COMPANY_PATTERN =
@@ -19,6 +27,8 @@ const FORBIDDEN_COMPANY_PATTERN =
 
 const FORBIDDEN_QUALITY_PATTERN =
   /완벽|최강|무조건|국내 최초|혁명|사실상|업계 표준|AI 프롬프트|프롬프트 형식|Prompt [0-9]|붙여넣기|복사해서/;
+
+const FORBIDDEN_ARTIFACT_PATTERN = /^\s*NaN\s*$/m;
 
 const STALE_EDITION_TERMS = [
   '2025-2026 Edition',
@@ -61,6 +71,10 @@ const REQUIRED_SOURCE_URLS = [
 ];
 
 const REQUIRED_GUIDE_SECTIONS = new Map([
+  [
+    '00_종합_가이드_목차.md',
+    ['2026 트렌드 운영 캔버스 (Trend Intent Canvas)', '2026 Trend Rollforward Action Log'],
+  ],
   [
     '01_TypeScript_심화_가이드.md',
     ['0.3 TypeScript 6/7 전환 계약', 'TypeScript 7.0 Beta', 'Standard Schema'],
@@ -312,6 +326,7 @@ function validateForbiddenText(files) {
     const text = readText(file);
     const companyMatch = text.match(FORBIDDEN_COMPANY_PATTERN);
     const qualityMatch = text.match(FORBIDDEN_QUALITY_PATTERN);
+    const nanMatch = text.match(FORBIDDEN_ARTIFACT_PATTERN);
 
     if (companyMatch) {
       errors.push(`${path.relative(ROOT, file)} forbidden company-specific text: ${companyMatch[0]}`);
@@ -319,6 +334,10 @@ function validateForbiddenText(files) {
 
     if (qualityMatch) {
       errors.push(`${path.relative(ROOT, file)} forbidden quality/prompt text: ${qualityMatch[0]}`);
+    }
+
+    if (nanMatch) {
+      errors.push(`${path.relative(ROOT, file)} forbidden artifact text: ${nanMatch[0]}`);
     }
   }
 
@@ -378,6 +397,183 @@ function validateRequiredGuideSections(guideFiles) {
   return errors;
 }
 
+function extractSectionBlock(text, heading) {
+  const marker = `### ${heading}`;
+  const start = text.indexOf(marker);
+
+  if (start < 0) {
+    return '';
+  }
+
+  const sectionStart = start + marker.length;
+  const rest = text.slice(sectionStart);
+  const nextHeading = rest.search(/\n#{1,3}\s/m);
+
+  return nextHeading < 0 ? rest : rest.slice(0, nextHeading);
+}
+
+function validateTrendDepth(guideFiles) {
+  const errors = [];
+
+  for (const file of guideFiles) {
+    const text = readText(file);
+    const checkpoint = extractSectionBlock(text, '2026 트렌드 고도화 체크포인트');
+    const rollforward = extractSectionBlock(text, '2026 Trend Rollforward Triggers');
+    const points = extractSectionBlock(text, '2026 도메인별 고도화 포인트');
+
+    const checkpointBullets = (checkpoint.match(/^- /gm) || []).length;
+    const rollforwardBullets = (rollforward.match(/^- /gm) || []).length;
+    const pointBullets = (points.match(/^- /gm) || []).length;
+    const contract = extractSectionBlock(text, '2026 트렌드 운영 계약(Trend Ops Contract)');
+    const contractBullets = (contract.match(/^- /gm) || []).length;
+    const detailedSection = extractSectionBlock(text, '2026 트렌드 상세 재구성(도메인별)');
+    const detailedBullets = (detailedSection.match(/^- /gm) || []).length;
+    const executionRules = extractSectionBlock(text, '2026 트렌드 실행 규칙(Measure-Action-Owner)');
+    const executionRuleBullets = (executionRules.match(/^- /gm) || []).length;
+    const executionChecklist = extractSectionBlock(
+      text,
+      '2026 트렌드 실행 체크리스트(자동화 트리거)',
+    );
+    const executionChecklistBullets = (executionChecklist.match(/^\s*-\s+\[ \]\s+/gm) || []).length;
+    const executionChecklistTaskLines = (executionChecklist.match(/^\s*-\s+\[[ xX]\]\s+/gm) || []).length;
+    const opsTable = extractSectionBlock(text, '2026 트렌드 실행 지표표');
+    const tableRows = opsTable
+      .split('\n')
+      .filter((line) => line.startsWith('|') && !line.includes(':---'))
+      .length;
+
+    if (checkpointBullets < 6) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend checkpoint section should keep >=6 bullet items (found ${checkpointBullets})`,
+      );
+    }
+
+    if (rollforwardBullets < 3) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend rollforward section should keep >=3 bullet items (found ${rollforwardBullets})`,
+      );
+    }
+
+    if (pointBullets < 4) {
+      errors.push(
+        `${path.relative(ROOT, file)} domain trend points should keep >=4 bullet items (found ${pointBullets})`,
+      );
+    }
+
+    if (contractBullets < 4) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend ops contract section should keep >=4 bullet items (found ${contractBullets})`,
+      );
+    }
+
+    const requiredContractLines = [
+      'Trend Owner',
+      'Review Cadence',
+      'Release Gate Conditions',
+      'Evidence Contract',
+    ];
+
+    const missingContractLines = requiredContractLines.filter(
+      (line) => !contract.includes(line),
+    );
+
+    if (missingContractLines.length > 0) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend ops contract missing fields: ${missingContractLines.join(', ')}`,
+      );
+    }
+
+    const requiredOpsTableTokens = [
+      'KPI',
+      '측정 대상',
+      '기준선/임계값',
+      '점검 주기',
+      '증빙',
+      '성능 회귀율',
+      '보안·공급망 경고',
+      '접근성·운영성 체크',
+    ];
+    const missingOpsTableTokens = requiredOpsTableTokens.filter((token) => !opsTable.includes(token));
+    if (missingOpsTableTokens.length > 0) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend ops metrics table missing tokens: ${missingOpsTableTokens.join(', ')}`,
+      );
+    }
+
+    if (tableRows < 5) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend ops metrics table malformed or too short (rows: ${tableRows})`,
+      );
+    }
+
+    if (detailedBullets < 14) {
+      errors.push(
+        `${path.relative(ROOT, file)} detailed trend section should keep >=14 bullet items (found ${detailedBullets})`,
+      );
+    }
+
+    if (executionRuleBullets < 6) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend execution rules section should keep >=6 bullet items (found ${executionRuleBullets})`,
+      );
+    }
+
+    const requiredExecutionRuleTokens = [
+      '측정 신호',
+      '임계치',
+      '운영 승인',
+      '실행 보증',
+      '롤백 경로',
+      '학습 반영',
+    ];
+
+    const missingExecutionRuleTokens = requiredExecutionRuleTokens.filter(
+      (token) => !executionRules.includes(token),
+    );
+
+    if (missingExecutionRuleTokens.length > 0) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend execution rules missing tokens: ${missingExecutionRuleTokens.join(', ')}`,
+      );
+    }
+
+    if (executionChecklistBullets < 8) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend execution checklist section should keep >=8 bullet items (found ${executionChecklistBullets})`,
+      );
+    }
+
+    if (executionChecklistTaskLines !== executionChecklistBullets) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend execution checklist has nonstandard checklist lines (expected unchecked boxes only, found ${executionChecklistTaskLines})`,
+      );
+    }
+
+    const requiredExecutionChecklistTokens = [
+      'Owner 지정',
+      'SLA 정의',
+      'Rollback Drill',
+      '증빙 링크',
+      '자동 경고',
+      '재학습 루프',
+      '검증 주기',
+      '결과 공유',
+    ];
+
+    const missingExecutionChecklistTokens = requiredExecutionChecklistTokens.filter(
+      (token) => !executionChecklist.includes(token),
+    );
+
+    if (missingExecutionChecklistTokens.length > 0) {
+      errors.push(
+        `${path.relative(ROOT, file)} trend execution checklist missing tokens: ${missingExecutionChecklistTokens.join(', ')}`,
+      );
+    }
+  }
+
+  return errors;
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
@@ -392,6 +588,7 @@ const failures = [
   ...validateStaleEditionText(publicTextFiles),
   ...validateSourceRegistry(sourceRegistryFiles),
   ...validateRequiredGuideSections(guideFiles),
+  ...validateTrendDepth(guideFiles),
 ];
 
 if (failures.length > 0) {
