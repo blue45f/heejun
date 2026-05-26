@@ -27,6 +27,28 @@ const STALE_EDITION_TERMS = [
   '2023 Edition',
 ];
 
+const REQUIRED_SOURCE_URLS = [
+  'https://react.dev/blog/2025/10/01/react-19-2',
+  'https://react.dev/blog/2025/10/07/react-compiler-1',
+  'https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components',
+  'https://devblogs.microsoft.com/typescript/announcing-typescript-5-9/',
+  'https://nextjs.org/blog/next-16',
+  'https://vite.dev/blog/announcing-vite8',
+  'https://tailwindcss.com/blog/tailwindcss-v4',
+  'https://vitest.dev/blog/vitest-4',
+  'https://playwright.dev/docs/release-notes',
+  'https://playwright.dev/docs/test-agents',
+  'https://storybook.js.org/blog/storybook-9/',
+  'https://developers.google.com/search/docs/appearance/core-web-vitals',
+  'https://owasp.org/Top10/2025/0x00_2025-Introduction/',
+  'https://www.w3.org/press-releases/2025/wcag22-iso-pas/',
+  'https://www.w3.org/TR/wai-aria-1.3/',
+  'https://www.ada.gov/resources/2024-03-08-web-rule/',
+  'https://web.dev/baseline',
+  'https://opentelemetry.io/docs/languages/js/',
+  'https://slsa.dev/spec/',
+];
+
 function readText(file) {
   return fs.readFileSync(file, 'utf8');
 }
@@ -281,9 +303,26 @@ function validateStaleEditionText(files) {
   return errors;
 }
 
+function validateSourceRegistry(files) {
+  const errors = [];
+
+  for (const file of files) {
+    const text = readText(file);
+
+    for (const url of REQUIRED_SOURCE_URLS) {
+      if (!text.includes(url)) {
+        errors.push(`${path.relative(ROOT, file)} missing required source URL: ${url}`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
+const sourceRegistryFiles = [README, path.join(GUIDE_DIR, '00_종합_가이드_목차.md')];
 const failures = [
   ...validateGuideSequence(guideFiles),
   ...validateStructure(guideFiles),
@@ -292,6 +331,7 @@ const failures = [
   ...validateGuideIndexReferences(guideFiles),
   ...validateForbiddenText(files),
   ...validateStaleEditionText(publicTextFiles),
+  ...validateSourceRegistry(sourceRegistryFiles),
 ];
 
 if (failures.length > 0) {

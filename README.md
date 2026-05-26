@@ -51,7 +51,7 @@
 | TypeScript | TypeScript 5.9, `import defer`, `--module node20`, `--erasableSyntaxOnly` 포함 |
 | Framework | Next.js 16 App Router, Cache Components, Partial Prerendering(PPR) 운영 패턴 |
 | Build | Vite 8, Rolldown/Oxc 기반 툴체인, Tailwind CSS v4 |
-| Testing | Vitest 4 Browser Mode, Playwright 1.56 agent definitions, Storybook 9 |
+| Testing | Vitest 4 Browser Mode, Playwright 1.60 라인과 Test Agents, Storybook 9 |
 | Security | OWASP Top 10:2025, OAuth 2.1, CSP3, Trusted Types, supply-chain attestation |
 | Performance | 공식 Core Web Vitals 기준 LCP 2.5s / INP 200ms / CLS 0.1, 내부 권장 예산은 LCP 2.0s |
 | Accessibility | WCAG 2.2 AA, ISO/IEC 40500:2025, WAI-ARIA 1.2 stable + ARIA 1.3 draft watch |
@@ -161,16 +161,23 @@
 - [Next.js 16 release](https://nextjs.org/blog/next-16)
 - [Vite 8 announcement](https://vite.dev/blog/announcing-vite8)
 - [Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4)
+- [Vitest 4.0 release](https://vitest.dev/blog/vitest-4)
+- [Playwright release notes](https://playwright.dev/docs/release-notes)
+- [Playwright Test Agents](https://playwright.dev/docs/test-agents)
+- [Storybook 9](https://storybook.js.org/blog/storybook-9/)
 - [Core Web Vitals thresholds](https://developers.google.com/search/docs/appearance/core-web-vitals)
 - [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introduction/)
 - [WCAG 2.2 ISO/IEC 40500:2025](https://www.w3.org/press-releases/2025/wcag22-iso-pas/)
 - [WAI-ARIA 1.3 Working Draft](https://www.w3.org/TR/wai-aria-1.3/)
 - [ADA Title II web accessibility rule](https://www.ada.gov/resources/2024-03-08-web-rule/)
+- [Web Platform Baseline](https://web.dev/baseline)
+- [OpenTelemetry JavaScript](https://opentelemetry.io/docs/languages/js/)
+- [SLSA specification](https://slsa.dev/spec/)
 
 ## Maintenance
 
 - 기준일은 문서 상단의 `Update` 필드와 README의 `Verified Snapshot`에 명시합니다.
-- 문서 구조, 00-26 파일 연속성, README/사이트 문서 인덱스, 로컬 링크, 내부 앵커, 중복 번호, 회사 종속 표현, 과장 표현, stale edition 표기는 `node scripts/validate-dev-guides.mjs`로 검증하고, 동일한 검증을 GitHub Actions에서 PR/push 게이트로 실행합니다.
+- 문서 구조, 00-26 파일 연속성, README/사이트 문서 인덱스, 공식 출처 레지스트리, 로컬 링크, 내부 앵커, 중복 번호, 회사 종속 표현, 과장 표현, stale edition 표기는 `node scripts/validate-dev-guides.mjs`로 검증하고, 동일한 검증을 GitHub Actions에서 PR/push 게이트로 실행합니다.
 - 보안 권고, 브라우저 정책, Core Web Vitals, 프레임워크 메이저 릴리스는 월 1회 검토합니다.
 - 실무 예제는 CI에서 실행 가능한 형태를 우선하고, 실행 불가능한 예제는 의사코드임을 명시합니다.
 - AI가 생성한 내용은 공식 문서, 실제 코드, 테스트 결과 중 최소 하나로 검증한 뒤 반영합니다.
