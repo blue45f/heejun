@@ -2,32 +2,68 @@
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CloudFront](./12_CloudFront_캐시_전략.md) | **AI 도구** | Workbox 8, Serwist, Claude Code |
-| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, iOS Web Push, OPFS | **Update** | 2026.05 |
+| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CDN](./12_CDN_캐시_전략.md) | **도구 원칙** | 벤더 중립 |
+| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS | **Update** | 2026.05 |
 
 ---
 
-> **"PWA는 더 이상 네이티브 앱의 대안이 아니라, 웹의 기본 배포 형태다. 2026년의 Service Worker는 AI가 설계하고, 개발자는 오프라인 UX 품질만 관리한다."**
-> 본 가이드는 Workbox 8 / Serwist 기반의 Service Worker 설정부터 캐싱 전략, 오프라인 UX, Background Sync, Web Push까지 PWA 전체 파이프라인을 다룹니다.
+> **"PWA의 핵심은 설치 배지가 아니라, 네트워크가 불안정해도 사용자의 작업을 잃지 않는 신뢰성이다."**
+> 본 가이드는 특정 PWA 플러그인이나 래퍼가 아니라 **Service Worker 라이프사이클, 캐시 책임 분리, 오프라인 UX, 동기화, 저장소 quota, 배포 안전성**을 기준으로 PWA를 설계하는 방법을 다룹니다. Workbox, Serwist, 프레임워크 플러그인은 구현 후보입니다.
 >
 > **2026년 5월 핵심 변화 요약**
-> - **Workbox 8**: Vite/Next.js/webpack 빌드 파이프라인 네이티브 연동, ESM 우선, TypeScript 5.4+ 타입 정의 강화. 2025년 말 v8 정식 릴리즈.
-> - **iOS 18 / Safari 18 Web Push**: 홈 화면에 설치된 PWA에서만 Web Push가 동작한다는 제한은 유지되지만, EU의 DMA 적용 외 지역에서는 안정적으로 운영 가능. 사용자 제스처 기반 권한 요청 필수.
-> - **EU 지역 PWA 제한**: 2024년부터 적용된 Apple의 EU 지역 PWA 다운그레이드(브라우저 탭으로 강제) 정책은 2026년에도 일부 유지되어, 해당 시장은 Push/Standalone 미지원 폴백이 필요.
-> - **File System Access / OPFS / Storage Buckets API**: Chromium 계열에서 Baseline, Safari WebKit은 OPFS만 지원. 대용량 오프라인 데이터 저장 패턴이 IndexedDB + OPFS 혼합으로 정착.
-> - **Capacitor 7**: 2026년 초 릴리즈, Web Push + iOS 네이티브 통합, Live Updates 안정화. PWA → 네이티브 어셈블 시 표준.
-> - **PWABuilder 2026**: 새 Microsoft Store / App Store 메타데이터 마법사 제공, manifest validation 강화.
+> - **Service Worker cache governance**: framework/server cache, CDN cache, browser HTTP cache, Service Worker cache의 책임을 분리해야 장애를 줄일 수 있습니다.
+> - **Web Push/설치 UX**: 모바일 브라우저별 설치/권한/알림 지원 차이가 크므로 기능 감지와 fallback UX가 필수입니다.
+> - **OPFS/Storage Buckets**: 대용량 오프라인 데이터는 IndexedDB만으로 처리하지 않고 파일성 데이터와 구조화 데이터를 분리합니다.
+> - **Background sync**: 브라우저 지원 편차가 있으므로 온라인 복귀 감지와 앱 내부 queue flush를 기본 fallback으로 둡니다.
+> - **Tooling conditional**: Workbox/Serwist/프레임워크 플러그인은 공식 latest, peer dependency, framework cache와의 충돌 여부를 확인한 뒤 채택합니다.
+
+---
+
+## 문서 책임 범위
+
+| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
+| :--- | :--- |
+| Service Worker 수명주기, 앱 오프라인 UX, 캐시 책임 분리 | [12. CDN 캐시](./12_CDN_캐시_전략.md), [08. 성능](./08_성능_최적화_가이드.md) |
+| 배포 중 Service Worker 업데이트와 rollback 안전성 | [14. 배포](./14_배포_프로세스_체크리스트.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
+| 브라우저별 Push/install/background sync fallback | [13. 브라우저 호환성](./13_브라우저_호환성_가이드.md) |
+| AI가 만든 Service Worker/캐시 전략 초안 검증 | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md) |
+
+---
+
+## 0. 모든 프론트엔드 그룹 공통 Baseline
+
+| 기준 | 최소 적용 |
+| :--- | :--- |
+| **캐시 책임 분리** | HTTP/CDN cache, framework cache, Service Worker cache의 소유권과 무효화 기준을 문서화합니다. |
+| **오프라인 UX** | 읽기/쓰기 가능 기능, 저장 대기열, 충돌 해결, 복구 메시지를 정의합니다. |
+| **업데이트 안전성** | Service Worker skipWaiting/clientsClaim 사용 여부와 rollback 경로를 검증합니다. |
+| **저장소 관리** | Cache Storage, IndexedDB, OPFS, quota/eviction 정책을 고려합니다. |
+| **지원 편차 대응** | Push, install prompt, Background Sync, file API는 feature detection과 fallback을 둡니다. |
+
+### 0.1 교차 검증 매트릭스
+
+| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| Service Worker는 라우트별 캐시 전략과 eviction 정책을 함께 둔다 | MDN/web.dev Service Worker/PWA 문서 | offline E2E, cache quota test | cache hit ratio, stale response incident | 앱이 완전 온라인 전용이고 offline UX 가치가 낮을 때 |
+| 쓰기 작업은 offline queue와 idempotency key를 사용한다 | Background Sync/IndexedDB 문서, API idempotency 정책 | offline mutation replay test | duplicate write, sync failure rate | 서버가 idempotent write를 지원하지 않을 때 |
+| Push/installation은 feature detection과 사용자 맥락 기반 요청으로 처리한다 | Web Push/Web App Manifest 문서 | permission flow E2E | opt-in rate, notification complaint | 알림이 제품 가치보다 방해가 클 때 |
+| PWA tooling은 framework cache와 충돌 검증 후 도입한다 | 도구 공식 release/compat 문서 | navigation preload, cache invalidation test | update failure, stale shell incident | 수동 Service Worker가 더 작고 명확할 때 |
+
+### 0.2 운영 게이트
+
+| Gate | Evidence | Owner | Rollback |
+| :--- | :--- | :--- | :--- |
+| Service Worker release gate | install/update/offline E2E, cache manifest diff | Release owner | SW unregister guide, cache purge, previous asset manifest |
+| Cache policy gate | route TTL matrix, quota test, stale response test | Platform owner | runtime cache disable flag |
+| Offline write gate | idempotency test, replay trace, conflict UI evidence | Feature owner | offline write flag off, queue drain runbook |
+| Push/Install gate | permission UX test, opt-out path, browser support matrix | Product owner | prompt disabled, subscription cleanup |
 
 ---
 
 ## 목차
 
 1. [AI 기반 PWA 개발 자동화](#1-ai-기반-pwa-개발-자동화)
-   - [1.1 AI 프롬프트 7종](#11-ai-프롬프트-7종)
-   - [1.2 Copilot/Cursor Service Worker 자동 생성 패턴](#12-copilotcursor-service-worker-자동-생성-패턴)
-   - [1.3 AI 캐싱 전략 자동 설계](#13-ai-캐싱-전략-자동-설계)
-   - [1.4 AI 오프라인 UX 시나리오 자동 생성](#14-ai-오프라인-ux-시나리오-자동-생성)
-2. [멀티 베타 환경 PWA 전략](#2-멀티-베타-환경-pwa-전략)
+2. [환경별 PWA 운영 전략](#2-환경별-pwa-운영-전략)
    - [2.1 환경별 Service Worker 분리](#21-환경별-service-worker-분리)
    - [2.2 환경별 매니페스트 동적 생성](#22-환경별-매니페스트-동적-생성)
    - [2.3 Preview 환경 PWA 설치 차단](#23-preview-환경-pwa-설치-차단)
@@ -35,10 +71,10 @@
    - [2.5 Feature Flag 오프라인 기능 점진적 롤아웃](#25-feature-flag-오프라인-기능-점진적-롤아웃)
    - [2.6 Service Worker 버전 충돌 방지](#26-service-worker-버전-충돌-방지)
 3. [Service Worker 라이프사이클](#3-service-worker-라이프사이클)
-4. [Workbox 8 + Vite PWA 설정](#4-workbox-8--vite-pwa-설정)
+4. [Workbox 7.x + Vite PWA 설정](#4-workbox-7x--vite-pwa-설정)
 5. [캐싱 전략 4종 비교](#5-캐싱-전략-4종-비교)
 6. [오프라인 UX 패턴](#6-오프라인-ux-패턴)
-7. [Web Push Notifications (iOS Safari 포함)](#7-web-push-notifications)
+7. [Web Push Notifications](#7-web-push-notifications)
 8. [App Manifest & 설치 프롬프트](#8-app-manifest--설치-프롬프트)
 8.5 [File System Access / OPFS / Storage Buckets API (2026)](#85-file-system-access--opfs--storage-buckets-api-2026)
 9. [Background Sync & Periodic Sync](#9-background-sync--periodic-sync)
@@ -50,320 +86,31 @@
 
 ## 1. AI 기반 PWA 개발 자동화
 
-AI를 PWA 개발의 보조가 아닌 **설계 및 구현 엔진**으로 활용한다. Service Worker 코드 생성, 캐싱 전략 설계, 오프라인 UX 패턴 제안, Push Notification 구현, 매니페스트 최적화, 테스트 시나리오 도출까지 전 과정을 AI가 수행하고 사람은 비즈니스 요구사항 정의와 최종 검증만 담당한다.
+이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)를 단일 출처로 따릅니다. 여기서는 Service Worker, 캐시, 오프라인 UX 검증에 필요한 도메인별 질문만 다룹니다.
 
-### 1.1 AI 프롬프트 7종
+AI는 Service Worker 초안, 캐싱 전략 후보, 오프라인 UX 시나리오, 테스트 케이스를 빠르게 만들 수 있다. 최종 적용은 브라우저 호환성, 캐시 무효화 위험, 배포 롤백 가능성을 검증한 뒤 사람이 승인한다.
 
-#### 프롬프트 1: Service Worker 생성
+| 시나리오 | 입력 | AI 산출물 | 필수 검증 | 승인 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| Service Worker 초안 | route map, build assets, framework cache 정책 | precache/runtime route 후보 | offline E2E, update flow, rollback test | stale HTML/API 응답 위험이 통제됨 |
+| 캐싱 전략 설계 | 리소스 유형, TTL, 개인화 여부 | route별 전략, cache name, eviction rule | cache hit ratio, quota test | CDN/HTTP/SW cache 책임이 분리됨 |
+| 오프라인 UX | 읽기/쓰기 flow, conflict model | offline banner, queue, retry, conflict UI | network emulation E2E | 사용자 작업 유실 없음 |
+| Push 알림 | 권한 UX, payload, topic, unsubscribe | subscription flow, SW event handler 초안 | permission UX, click/open test | 사용자 제스처와 opt-out 보장 |
+| Background Sync | queue schema, retry policy, idempotency key | sync queue, backoff, dead-letter 후보 | offline/online transition test | 중복 제출과 순서 뒤섞임 방지 |
+| Manifest | app identity, icons, screenshots, shortcuts | manifest 초안과 asset checklist | installability audit, icon mask test | 설치 실패 시 명확한 fallback |
+| PWA 회귀 테스트 | 핵심 route, SW state, cache state | Playwright 시나리오 후보 | CI trace, browser matrix | 배포 전 update/install/offline 흐름 검증 |
 
-```
-이 Vite + React + TypeScript 프로젝트에 Workbox 8 기반 Service Worker를 설정해줘.
+AI 보조 도구로 Service Worker를 만들 때는 다음 제약을 prompt에 포함합니다.
 
-요구사항:
-- vite-plugin-pwa의 injectManifest 모드 사용 (Workbox 8 ESM 빌드)
-- 캐싱 전략:
-  (1) 앱 셸 (HTML, JS, CSS): Cache First, 빌드마다 revision 갱신
-  (2) API 응답 (/api/*): Network First, 5분 TTL
-  (3) 이미지 (/images/*): Cache First, 30일 TTL, 최대 100개
-  (4) 폰트: Cache First, 1년 TTL
-  (5) CDN 리소스: Stale While Revalidate
-- 오프라인 폴백 페이지 (/offline.html) 등록
-- 네비게이션 프리로드 활성화
-- skipWaiting + clientsClaim으로 즉시 활성화
-- ExpirationPlugin으로 캐시 용량 제한
-- TypeScript strict 모드 호환
-```
+- TypeScript strict 기준과 Service Worker 전용 타입 사용
+- cache name/version, TTL, maxEntries, eviction 정책 명시
+- 인증/결제/개인화 API는 기본적으로 장기 캐시 금지
+- `skipWaiting`/`clientsClaim` 사용 여부와 rollback 경로 명시
+- offline fallback, stale response 감지, cache purge runbook 포함
 
-#### 프롬프트 2: 캐싱 전략 설계
+## 2. 환경별 PWA 운영 전략
 
-```
-우리 서비스의 페이지 유형별 최적 캐싱 전략을 설계해줘.
-
-페이지 유형:
-- 랜딩 페이지: 정적, 변경 빈도 월 1회
-- 대시보드: 실시간 데이터, API 호출 다수
-- 설정 페이지: 거의 변경 없음, 폼 중심
-- 콘텐츠 상세: 텍스트 + 이미지 혼합, CDN 이미지
-- 검색 결과: 동적, 페이지네이션
-
-각 유형에 대해 다음을 제시해줘:
-(1) 추천 Workbox 전략 (CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly)
-(2) TTL, maxEntries 설정값
-(3) 오프라인 폴백 동작
-(4) Workbox 라우팅 코드 (TypeScript)
-(5) 이유와 트레이드오프
-```
-
-#### 프롬프트 3: 오프라인 UX 패턴
-
-```
-오프라인 상태에서의 UX 패턴을 설계해줘.
-
-요구사항:
-- 네트워크 상태 감지 컴포넌트 (온라인/오프라인 배너)
-- 오프라인에서 작성한 데이터를 IndexedDB 큐에 저장하는 커스텀 훅
-- 온라인 복귀 시 자동 동기화 + 진행률 표시
-- 충돌 발생 시 3-way merge UI
-- 오프라인 사용 가능/불가능 기능을 구분하는 UI 가이드
-- 모든 코드 React + TypeScript
-```
-
-#### 프롬프트 4: Push Notification
-
-```
-Web Push Notification 전체 파이프라인을 구현해줘.
-
-요구사항:
-- VAPID 키 생성 스크립트 (Node.js)
-- 클라이언트 구독 관리 (subscribe/unsubscribe)
-- Service Worker push 이벤트 핸들링:
-  (1) 알림 제목, 본문, 아이콘, 배지
-  (2) 액션 버튼 2개 (확인, 무시)
-  (3) 알림 클릭 시 해당 URL로 포커스/이동
-  (4) 태그 기반 중복 방지
-- notificationclick에서 clients.openWindow 처리
-- 서버 발송 API (Node.js + web-push 라이브러리)
-- TypeScript 전체
-```
-
-#### 프롬프트 5: Background Sync
-
-```
-IndexedDB + Background Sync 오프라인 동기화를 구현해줘.
-
-요구사항:
-- 오프라인 상태에서 사용자 액션을 IndexedDB 큐에 저장
-- 큐 구조: { id: UUID, url, method, body, timestamp, retryCount, status }
-- 온라인 복귀 시 Background Sync API로 자동 전송
-- 최대 재시도 3회, 지수 백오프
-- 동기화 진행률을 클라이언트에 postMessage
-- 실패 건 별도 에러 큐 관리
-- idb 라이브러리로 IndexedDB 타입 안전 래핑
-- Periodic Background Sync (뉴스피드 프리페치) 포함
-```
-
-#### 프롬프트 6: 매니페스트 최적화
-
-```
-PWA 매니페스트를 최적화해줘.
-
-요구사항:
-- display: standalone, orientation: portrait
-- 아이콘: 48/72/96/128/144/192/512px + maskable 별도
-- shortcuts: 최소 3개 (빠른 작성, 검색, 알림 확인)
-- screenshots: wide + narrow 각 2장 메타데이터
-- categories, description, lang, dir 설정
-- share_target: 텍스트/URL/파일 수신 액션
-- related_applications로 네이티브 앱 연동
-- display_override: ["window-controls-overlay", "standalone", "browser"]
-- Lighthouse PWA 점수 100 기준 검증 체크리스트
-```
-
-#### 프롬프트 7: 오프라인 테스트 시나리오
-
-```
-PWA 오프라인 기능 테스트 시나리오를 생성해줘.
-
-요구사항:
-- Playwright + @playwright/test 기반
-- 네트워크 에뮬레이션 (오프라인, Slow 3G, Fast 3G)
-- Service Worker 등록/갱신 테스트
-- 캐시 적중률 측정 테스트
-- 오프라인 폴백 페이지 노출 검증
-- Background Sync 큐잉/전송 검증
-- Push Notification 수신 테스트 (mock)
-- 캐시 스토리지 용량 초과 시 LRU 제거 검증
-- 각 시나리오별 assert 포함
-- CI 파이프라인 통합 (GitHub Actions)
-```
-
-### 1.2 Copilot/Cursor Service Worker 자동 생성 패턴
-
-Copilot 또는 Cursor에서 Service Worker를 효율적으로 생성하기 위한 패턴이다.
-
-#### .cursorrules / .github/copilot-instructions.md 설정
-
-```markdown
-# PWA Service Worker 코드 생성 규칙
-
-## 필수 준수 사항
-- 모든 Service Worker 코드는 TypeScript 5.4+로 작성
-- Workbox 8 라이브러리 사용 (workbox-* 패키지 ESM 빌드)
-- self.__WB_MANIFEST 프리캐시 매니페스트 반드시 포함
-- 캐시 이름에 반드시 버전 프리픽스 포함: `v${APP_VERSION}-`
-- 환경 변수로 캐싱 전략 분기 (import.meta.env.MODE)
-- 에러 핸들링: 모든 fetch 핸들러에 try-catch + 폴백
-
-## 금지 사항
-- Cache Storage API 직접 호출 금지 (Workbox 추상화 사용)
-- 하드코딩된 캐시 이름 금지
-- importScripts() 사용 금지 (ES Module 사용)
-- any 타입 사용 금지
-```
-
-#### 인라인 프롬프트 패턴
-
-```typescript
-// sw.ts - Copilot/Cursor 인라인 프롬프트 예시
-
-// @ai: Workbox precacheAndRoute로 빌드 산출물 프리캐시
-// @ai: /api/* 경로는 NetworkFirst, maxAgeSeconds: 300
-// @ai: /images/* 경로는 CacheFirst, maxEntries: 100, maxAgeSeconds: 30일
-// @ai: 네비게이션 요청 실패 시 /offline.html 폴백
-// @ai: 환경별 분기 - preview면 캐시 전부 비활성화
-
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute, NavigationRoute, setDefaultHandler } from 'workbox-routing';
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
-import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-
-declare let self: ServiceWorkerGlobalScope;
-
-const ENV = new URL(location.href).searchParams.get('env') ?? 'production';
-
-cleanupOutdatedCaches();
-
-if (ENV !== 'preview') {
-  precacheAndRoute(self.__WB_MANIFEST);
-}
-```
-
-### 1.3 AI 캐싱 전략 자동 설계
-
-AI에게 서비스의 라우트 목록과 데이터 특성을 입력하면 최적의 캐싱 전략을 자동 설계하도록 한다.
-
-```typescript
-// ai-cache-strategy-designer.ts
-// AI가 라우트 정보를 분석하여 Workbox 전략을 추천하는 구조
-
-interface RouteProfile {
-  path: string;
-  type: 'static' | 'dynamic' | 'realtime' | 'media';
-  changeFrequency: 'never' | 'daily' | 'hourly' | 'realtime';
-  avgResponseSize: number;       // bytes
-  criticalForOffline: boolean;
-  hasUserSpecificData: boolean;
-}
-
-interface CacheRecommendation {
-  path: string;
-  strategy: 'CacheFirst' | 'NetworkFirst' | 'StaleWhileRevalidate' | 'NetworkOnly';
-  maxAgeSeconds: number;
-  maxEntries: number;
-  cacheName: string;
-  rationale: string;
-}
-
-// AI 프롬프트에 포함할 라우트 프로파일 생성
-function buildRouteProfiles(routes: RouteProfile[]): string {
-  return routes.map(r => [
-    `경로: ${r.path}`,
-    `  유형: ${r.type}`,
-    `  변경 빈도: ${r.changeFrequency}`,
-    `  평균 응답 크기: ${(r.avgResponseSize / 1024).toFixed(1)}KB`,
-    `  오프라인 필수: ${r.criticalForOffline}`,
-    `  사용자별 데이터: ${r.hasUserSpecificData}`,
-  ].join('\n')).join('\n\n');
-}
-
-// AI 추천 결과를 Workbox 설정으로 변환
-function applyRecommendations(recommendations: CacheRecommendation[]): void {
-  for (const rec of recommendations) {
-    const plugins = [
-      new ExpirationPlugin({
-        maxEntries: rec.maxEntries,
-        maxAgeSeconds: rec.maxAgeSeconds,
-      }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ];
-
-    const StrategyClass = {
-      CacheFirst,
-      NetworkFirst,
-      StaleWhileRevalidate,
-      NetworkOnly,
-    }[rec.strategy];
-
-    registerRoute(
-      new RegExp(rec.path),
-      new StrategyClass({ cacheName: rec.cacheName, plugins }),
-    );
-  }
-}
-```
-
-### 1.4 AI 오프라인 UX 시나리오 자동 생성
-
-AI에게 앱의 주요 사용자 플로우를 입력하면 오프라인 시나리오와 UX 대응 패턴을 자동 생성한다.
-
-```typescript
-// ai-offline-ux-generator.ts
-
-interface UserFlow {
-  name: string;
-  steps: string[];
-  requiresNetwork: boolean[];      // 각 단계별 네트워크 필요 여부
-  dataWriteSteps: number[];        // 데이터 쓰기가 발생하는 단계 인덱스
-}
-
-interface OfflineScenario {
-  flow: string;
-  disconnectionPoint: number;      // 오프라인 전환 단계
-  impact: 'blocking' | 'degraded' | 'none';
-  uxResponse: string;
-  fallbackComponent: string;
-  dataHandling: 'queue' | 'cache' | 'reject';
-}
-
-// AI에게 제공할 플로우 분석 프롬프트 생성
-function generateOfflineAnalysisPrompt(flows: UserFlow[]): string {
-  return `다음 사용자 플로우에 대해 오프라인 시나리오를 분석해줘.
-
-각 플로우의 모든 단계에서 오프라인 전환이 발생했을 때:
-1. 사용자에게 미치는 영향도 (blocking/degraded/none)
-2. 권장 UX 대응 (배너, 토스트, 모달, 자동 저장 등)
-3. 데이터 처리 방식 (큐잉/캐시 사용/거부)
-4. React 폴백 컴포넌트 코드
-
-플로우 목록:
-${flows.map(f => `
-[${f.name}]
-단계: ${f.steps.map((s, i) => `  ${i + 1}. ${s} (네트워크: ${f.requiresNetwork[i] ? '필요' : '불필요'})`).join('\n')}
-데이터 쓰기 단계: ${f.dataWriteSteps.join(', ')}
-`).join('\n')}`;
-}
-
-// AI 생성 결과를 React 컴포넌트로 변환
-function generateOfflineFallbackComponent(scenario: OfflineScenario): string {
-  return `
-import React from 'react';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-
-export const ${scenario.flow}OfflineFallback: React.FC = () => {
-  const { isOnline, lastOnlineAt } = useNetworkStatus();
-
-  if (isOnline) return null;
-
-  return (
-    <div role="alert" className="offline-banner offline-banner--${scenario.impact}">
-      <p>${scenario.uxResponse}</p>
-      {lastOnlineAt && (
-        <p className="offline-banner__timestamp">
-          마지막 연결: {new Date(lastOnlineAt).toLocaleTimeString('ko-KR')}
-        </p>
-      )}
-    </div>
-  );
-};`;
-}
-```
-
----
-
-## 2. 멀티 베타 환경 PWA 전략
-
-멀티 베타(Preview, Staging, Canary, Production) 환경에서 PWA가 일관되게 동작하면서도 환경별 특성에 맞게 분리 운영하기 위한 전략이다.
+Preview, staging, canary, production 환경에서 PWA가 일관되게 동작하면서도 환경별 특성에 맞게 분리 운영하기 위한 전략이다.
 
 ### 2.1 환경별 Service Worker 분리
 
@@ -638,9 +385,9 @@ function generateManifest(appName: string, env: AppEnv): void {
         files: [{ name: 'media', accept: ['image/*', 'video/*'] }],
       },
     },
-    related_applications: env === 'production' ? [
-      { platform: 'play', url: 'https://play.google.com/store/apps/details?id=com.example.app' },
-    ] : [],
+    related_applications: env === 'production'
+      ? JSON.parse(process.env.RELATED_NATIVE_APPS_JSON ?? '[]')
+      : [],
     prefer_related_applications: false,
   };
 
@@ -980,7 +727,7 @@ export function useOfflineFeatureFlag(key: keyof OfflineFeatureFlags): boolean {
 
 ### 2.6 Service Worker 버전 충돌 방지
 
-멀티 베타 환경에서 여러 버전의 Service Worker가 동시에 존재할 때 발생하는 충돌을 방지한다.
+환경별 릴리스에서 여러 버전의 Service Worker가 동시에 존재할 때 발생하는 충돌을 방지한다.
 
 ```typescript
 // src/services/sw-version-manager.ts
@@ -1205,16 +952,15 @@ async function handleNavigation(event: FetchEvent): Promise<Response> {
 
 ---
 
-## 4. Workbox 8 + Vite PWA 설정
+## 4. Workbox 7.x + Vite PWA 설정
 
-> **Workbox 8 주요 변경 사항 (2025년 말 릴리즈)**
-> - ESM 우선 빌드(`workbox-*` 패키지 모두 ESM 기본). 레거시 UMD는 deprecated.
-> - TypeScript 5.4+ 타입 정의 강화: `Strategy`, `RouteHandler`가 제네릭으로 응답 타입 추론 가능.
-> - `precacheAndRoute`가 빌드 파이프라인(Vite/webpack/Next.js)과 더 긴밀하게 통합.
-> - `BroadcastUpdate` 플러그인 v2: 클라이언트별 채널 분리 옵션.
-> - Workbox 6 → 8 마이그레이션 가이드 제공 (대부분 import 경로 변경만 필요).
+> **Workbox 운영 기준 (2026-05)**
+> - 공식 릴리스 확인 시 7.4.x 라인이 최신으로 확인됩니다. patch 버전은 lockfile로 고정하고, major 업그레이드는 공식 release note와 별도 검증 PR을 거칩니다.
+> - `generateSW`는 단순 앱 셸 캐싱에 적합하고, `injectManifest`는 Push/Background Sync/커스텀 라우팅이 필요한 제품에 적합합니다.
+> - Vite에서는 `vite-plugin-pwa`가 Workbox 설정을 감싸므로, 플러그인 버전과 Workbox peer dependency를 함께 고정합니다.
+> - Next.js에서는 공식 PWA 가이드, 직접 Service Worker, Serwist, Workbox 후보를 비교하고 App Router 캐시와 Service Worker 캐시의 책임을 분리합니다.
 
-injectManifest 모드로 Workbox 8을 설정하여 Service Worker를 완전히 제어한다.
+Push, Background Sync, 커스텀 라우팅처럼 Service Worker를 직접 제어해야 하는 제품은 `injectManifest` 모드를 후보로 둡니다. 단순 앱 셸 캐싱만 필요하면 `generateSW`가 더 낮은 운영 비용일 수 있습니다.
 
 ```typescript
 // vite.config.ts
@@ -1254,11 +1000,11 @@ export default defineConfig(({ mode }) => ({
 }));
 ```
 
-> **Workbox 6 → 8 마이그레이션 핵심 포인트**
-> - 패키지: `workbox-precaching`, `workbox-routing` 등 패키지 이름은 동일. 메이저만 `^8.0.0`으로 올린다.
+> **Workbox 6/7 운영 핵심 포인트**
+> - 패키지: `workbox-precaching`, `workbox-routing` 등 패키지 이름은 동일합니다. 메이저 업그레이드는 공식 릴리스 노트를 확인한 뒤 별도 PR로 진행합니다.
 > - `precacheAndRoute(self.__WB_MANIFEST)` 시그니처는 유지.
-> - `registerRoute()` 의 두 번째 인자가 클래스 인스턴스에서 **클래스 또는 함수** 모두 허용으로 확대.
-> - 더 이상 사용하지 않는 `workbox-google-analytics`는 v8에서 제거 → GA4는 `gtag` 직접 호출로 전환.
+> - `registerRoute()`의 매처는 함수 또는 RegExp로 명확히 분리하고, 인증/결제/개인화 API는 기본적으로 `NetworkOnly` 또는 짧은 TTL의 `NetworkFirst`를 사용합니다.
+> - 특정 분석 서비스 전용 오프라인 플러그인에 신규 의존하지 않습니다. 분석 이벤트는 온라인 상태에서 직접 전송하거나 서버 이벤트 수집으로 분리합니다.
 
 #### SW 등록 및 업데이트 관리
 
@@ -1821,24 +1567,24 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 
 ## 7. Web Push Notifications
 
-> **2026년 iOS Safari Web Push 핵심 제약**
-> - Push API는 **홈 화면에 설치된 PWA (`display: standalone`)** 에서만 동작한다. Safari 탭에서는 권한 요청 자체가 거부된다.
+> **2026년 모바일 브라우저 Web Push 핵심 제약**
+> - 일부 모바일 브라우저는 **홈 화면에 설치된 PWA (`display: standalone`)** 에서만 Push API가 동작한다. 일반 브라우저 탭에서는 권한 요청 자체가 거부될 수 있다.
 > - 권한 요청은 **사용자 제스처(클릭/탭) 직후에만** 호출 가능. `useEffect`나 페이지 로드 시 자동 호출 금지.
 > - manifest의 `display`가 `standalone` 또는 `fullscreen`이어야 한다. `minimal-ui`/`browser`로 폴백되면 Push 비활성화.
-> - EU 지역(DMA 적용)에서는 Apple이 PWA를 Safari 탭으로 강제하므로 Push가 동작하지 않는다 — 이를 감지하여 알림 권한 UI 자체를 숨기는 폴백이 필요.
+> - 지역/플랫폼 정책에 따라 standalone 기능이 제한될 수 있으므로, 이를 감지하여 알림 권한 UI 자체를 숨기는 폴백이 필요하다.
 > - VAPID 키는 서버/클라이언트 동일하게 관리(P-256 ECDSA). 키 교체 시 모든 구독을 무효화한다.
 >
-> **iOS PWA Push 활성화 사전 체크**
+> **모바일 PWA Push 활성화 사전 체크**
 > ```ts
-> function canRequestPushOnIos(): { eligible: boolean; reason?: string } {
+> function canRequestPushOnMobilePwa(): { eligible: boolean; reason?: string } {
 >   const ua = navigator.userAgent;
->   const isIos = /iPhone|iPad|iPod/.test(ua);
->   if (!isIos) return { eligible: true };
+>   const requiresStandalone = /Mobile|Tablet/.test(ua);
+>   if (!requiresStandalone) return { eligible: true };
 >
 >   // 홈 화면 설치 확인 (standalone)
 >   const isStandalone =
 >     window.matchMedia('(display-mode: standalone)').matches ||
->     // iOS Safari 비표준 속성
+>     // 일부 모바일 브라우저의 비표준 standalone 속성
 >     // eslint-disable-next-line @typescript-eslint/no-explicit-any
 >     ((window.navigator as any).standalone === true);
 >   if (!isStandalone) return { eligible: false, reason: 'home-screen-required' };
@@ -2183,9 +1929,9 @@ export async function runPWAAudit(): Promise<void> {
 |---|---|---|---|
 | **IndexedDB** | 모든 브라우저 | 구조적 JSON/Blob | 쿼터 내 영속 |
 | **Cache Storage** | 모든 브라우저 | Request/Response 캐싱 | 쿼터 내 영속 |
-| **Origin Private File System (OPFS)** | Chromium/Safari/Firefox 모두 | 대용량 파일 IO (수GB), 동기 read/write 핸들 | 영속 (`navigator.storage.persist`) |
-| **File System Access API (user-visible)** | Chromium 정식, Safari 부분 | 사용자가 선택한 폴더에 R/W | 권한 부여 시 영속 |
-| **Storage Buckets API** | Chrome/Edge 안정, Safari/Firefox 진행 중 | 도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료 | 버킷별 정책 |
+| **Origin Private File System (OPFS)** | 주요 엔진 전반 지원 | 대용량 파일 IO (수GB), 동기 read/write 핸들 | 영속 (`navigator.storage.persist`) |
+| **File System Access API (user-visible)** | 엔진별 지원 편차 큼 | 사용자가 선택한 폴더에 R/W | 권한 부여 시 영속 |
+| **Storage Buckets API** | 일부 엔진 안정, 일부 진행 중 | 도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료 | 버킷별 정책 |
 | **Web Locks API** | 모든 브라우저 | 탭/SW 간 동시성 제어 | - |
 
 ### 8.5.1 OPFS로 대용량 오프라인 파일 저장
@@ -2235,7 +1981,7 @@ export async function readBlobFromOpfs(path: string): Promise<Blob | null> {
 ```typescript
 // src/services/storage-buckets.ts
 // 사용자 워크스페이스/프로젝트마다 버킷을 분리해 만료 정책을 다르게 적용
-// 2026년 Chromium 정식, Safari/Firefox는 progressive enhancement
+// 2026년 기준 엔진별 지원 편차가 있으므로 progressive enhancement로 처리
 
 interface StorageBucketOptions {
   durability?: 'strict' | 'relaxed';
@@ -2641,7 +2387,7 @@ export async function purgeAllCaches(): Promise<void> {
 | 캐시가 계속 커짐 | `ExpirationPlugin` 미설정 | `maxEntries`, `maxAgeSeconds` 반드시 설정 |
 | CORS 리소스 캐시 실패 | `CacheableResponsePlugin`에 `statuses: [0]` 누락 | opaque 응답(status 0) 허용 추가 |
 | 오프라인 폴백이 작동하지 않음 | `/offline.html`이 프리캐시에 미포함 | `includeAssets`에 `offline.html` 추가 |
-| iOS Safari에서 PWA 동작 이상 | iOS는 Service Worker 수명 제한이 있음 | 중요 데이터는 IndexedDB에 저장, SW 재활성화 대비 |
+| 일부 모바일 브라우저에서 PWA 동작 이상 | 모바일 OS/브라우저의 Service Worker 수명 제한 | 중요 데이터는 IndexedDB에 저장, SW 재활성화 대비 |
 | `navigator.serviceWorker`가 `undefined` | HTTP 환경 또는 iframe 내부 | HTTPS 확인, `localhost` 예외 활용, `isSecureContext` 체크 |
 
 ### 11.3 Playwright를 활용한 PWA E2E 테스트
@@ -2759,7 +2505,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] `notificationclick`에서 해당 URL로 포커스 또는 새 창 열기
 - [ ] 태그(`tag`) 기반 중복 알림 방지
 - [ ] 환경별 Push 토픽 분리 (프로덕션 알림이 테스트 사용자에게 전달되지 않도록)
-- [ ] iOS Safari 18+ 호환성: 홈 화면 설치(`standalone`) 상태에서만 권한 요청 호출
+- [ ] 모바일 브라우저 호환성: 홈 화면 설치(`standalone`) 상태에서만 권한 요청이 가능한 경우를 감지
 - [ ] 권한 요청이 사용자 제스처 직후에만 발생하도록 가드 구현
 - [ ] EU 지역 사용자(DMA 적용)에 대한 Push 미지원 폴백 UI 제공
 - [ ] VAPID 키 교체(rotation) 절차 문서화 -- 교체 시 구독 무효화
@@ -2798,7 +2544,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] SW 버전 충돌 감지 및 자동 해결 (캐시 전체 삭제 + 재등록)
 - [ ] Feature Flag로 오프라인 기능 점진적 롤아웃
 - [ ] Lighthouse CI에서 PWA 점수 90+ 유지 ([08. 성능 최적화 가이드](./08_성능_최적화_가이드.md) 참조)
-- [ ] [12. CloudFront 캐시 전략](./12_CloudFront_캐시_전략.md)과 SW 캐시 간 TTL 정합성 확인
+- [ ] [12. CDN 캐시 전략](./12_CDN_캐시_전략.md)과 SW 캐시 간 TTL 정합성 확인
 
 ### 12.8 테스트
 
@@ -2807,8 +2553,8 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] 네트워크 에뮬레이션(오프라인, Slow 3G, Fast 3G) 시나리오 포함
 - [ ] Background Sync 큐잉/전송 검증 테스트
 - [ ] 캐시 스토리지 용량 초과 시 LRU 제거 검증
-- [ ] CI 파이프라인(GitHub Actions)에 PWA 테스트 통합 ([11. CI/CD 파이프라인 표준](./11_CICD_파이프라인_표준.md) 참조)
+- [ ] CI 파이프라인(CI)에 PWA 테스트 통합 ([11. CI/CD 파이프라인 표준](./11_CICD_파이프라인_표준.md) 참조)
 
 ---
 
-> **다음 단계**: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다. [12. CloudFront 캐시 전략](./12_CloudFront_캐시_전략.md)에서 CDN 레벨의 캐시 무효화 및 TTL 설정을 함께 확인하세요. 성능 지표 모니터링은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참조하세요.
+> **다음 단계**: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다. [12. CDN 캐시 전략](./12_CDN_캐시_전략.md)에서 CDN 레벨의 캐시 무효화 및 TTL 설정을 함께 확인하세요. 성능 지표 모니터링은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참조하세요.

@@ -2,7 +2,7 @@
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [02. React 19](./02_React19_실무_가이드.md), [07. 테스팅](./07_테스팅_가이드.md) | **AI 도구** | Claude Code, Zod |
+| **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [02. React 19](./02_React19_실무_가이드.md), [07. 테스팅](./07_테스팅_가이드.md) | **도구 원칙** | 벤더 중립 |
 | **핵심 테마** | Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type Guard, Generics | **Update** | 2026.05 |
 
 > **본 가이드는 TypeScript 5.8 / 5.9 기준입니다.** 5.9는 2025년 8월 GA되어 `import defer`, 강화된 추론 기본값, Stage 3 데코레이터 메타데이터 안정화를 포함합니다. 5.8은 `--erasableSyntaxOnly` 플래그와 conditional return 검사 강화를 도입했습니다.
@@ -12,6 +12,38 @@
 > **"타입은 단순한 주석이 아니라, 런타임의 안전성을 보장하는 살아있는 명세서다."**
 > 본 가이드는 단순한 문법을 넘어, 대규모 프로젝트에서 타입 시스템을 설계하는 고도화된 전략을 다룹니다.
 > 각 섹션은 **왜 필요한지**, **어떻게 사용하는지**, **흔한 실수는 무엇인지**를 중심으로 구성되어 있습니다.
+
+---
+
+## 0. 모든 프론트엔드 그룹 공통 Baseline
+
+TypeScript 표준은 팀 규모와 도메인에 상관없이 **런타임 경계의 안전성**을 보장하는 데 초점을 둡니다.
+
+| 기준 | 최소 적용 |
+| :--- | :--- |
+| **Strict Mode** | `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`를 신규 패키지 기본값으로 둡니다. |
+| **런타임 입력 검증** | API 응답, URL 파라미터, localStorage, feature flag, postMessage payload는 타입 단언이 아니라 스키마로 검증합니다. |
+| **타입 단언 제한** | `as`, non-null assertion(`!`), `any`는 boundary adapter 또는 legacy migration 파일로 격리하고 PR에서 근거를 요구합니다. |
+| **공유 타입 출처** | 백엔드 계약은 OpenAPI/GraphQL/protobuf 등 계약 파일에서 생성하고, 수동 복제 타입을 금지합니다. |
+| **도메인 ID 구분** | UserId, OrderId처럼 구조가 같은 식별자는 branded type으로 섞임을 방지합니다. |
+| **타입 테스트** | 공용 유틸/SDK/디자인 시스템 타입은 `tsd`, `expectTypeOf`, `vitest` type test 중 하나로 회귀를 막습니다. |
+
+### 0.1 교차 검증 매트릭스
+
+| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| `strict` + 경계 검증 | TypeScript 공식 릴리스와 tsconfig 문서 | `tsc --noEmit`, runtime schema test | API validation failure rate | legacy package는 migration ADR과 만료일 필요 |
+| 생성 타입 우선 | OpenAPI/GraphQL/protobuf 스펙 | contract test, generated diff review | API mismatch incident 감소 | codegen 실패 시 수동 타입 임시 허용 후 제거 |
+| `any/as` 통제 | TypeScript 타입 시스템 한계 명시 | lint rule, type test | runtime type error 추적 | migration boundary 외 사용 금지 |
+
+### 0.2 운영 게이트
+
+| Gate | Evidence | Owner | Rollback |
+| :--- | :--- | :--- | :--- |
+| Strict type gate | `tsc --noEmit`, strict tsconfig diff | Package owner | migration ADR로 예외 범위와 만료일 설정 |
+| Runtime boundary gate | schema test, invalid payload fixture | API/FE owner | schema enforcement를 warning mode로 낮추고 incident backlog 생성 |
+| Type generation gate | generated diff, contract test | API contract owner | 이전 generated artifact pinning |
+| Unsafe escape hatch gate | `any/as/!` lint report, PR rationale | Tech lead | escape hatch를 adapter 파일로 격리 |
 
 ---
 
@@ -1270,22 +1302,20 @@ const c: WithUndefined = { name: undefined }; // ✅ 키는 있되 값이 undefi
 
 ---
 
-## 💡 AI와 함께하는 타입 설계 전략
+## AI 보조 타입 설계 검증
 
-복잡한 요구사항에서 최적의 타입을 설계하고 싶을 때 AI를 활용하세요. 아래는 효과적인 프롬프트 예시입니다.
+AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)를 따릅니다. TypeScript 산출물은 타입이 통과하는지만 보지 않고, 런타임 경계와 유지보수성을 함께 확인합니다.
 
-> **Prompt 1 - Discriminated Unions 설계**:
-> "React 컴포넌트의 Props를 설계 중이야. `variant`에 따라 `size`가 필수가 되거나 금지되어야 해. 예를 들어 `variant="primary"`일 때는 `size`가 필수고, `variant="link"`일 때는 `size`가 없어야 해. Discriminated Unions를 사용해서 가장 깔끔한 타입을 작성해줘."
-
-> **Prompt 2 - 제네릭 설계**:
-> "API 엔드포인트별로 CRUD 함수를 자동 생성하는 팩토리 함수를 만들고 싶어. 각 엔티티 타입에 맞게 타입 안전한 메서드들이 생성되어야 해. 제네릭을 활용해서 설계해줘."
-
-> **Prompt 3 - Zod 스키마 전환**:
-> "기존에 `interface`로 정의된 타입들을 Zod 스키마로 전환하고 싶어. 기존 인터페이스를 보여줄 테니 Zod 스키마를 만들고, `z.infer`로 타입을 추출하는 코드를 작성해줘. 런타임 검증 로직도 포함해줘."
+| 시나리오 | 입력 | AI 산출물 | 필수 검증 |
+| :--- | :--- | :--- | :--- |
+| Props 유니온 설계 | variant별 요구사항, 금지 조합 | discriminated union 초안 | `tsd`/`expectTypeOf`, 잘못된 조합 fixture |
+| 제네릭 API 설계 | 엔티티 타입, CRUD 계약 | generic factory 후보 | public API type test, inference snapshot |
+| 스키마 전환 | 기존 interface, 실제 payload fixture | Zod/Standard Schema 초안 | invalid payload test, bundle diff |
+| unsafe cast 제거 | `any/as/!` 사용 위치 | type guard/refinement 후보 | lint report, runtime branch test |
 
 ---
 
-## ✅ 체크리스트
+## 체크리스트
 
 ### 런타임 안전성
 - [ ] API 응답에 `as` 대신 `Zod 4`(혹은 Valibot/ArkType) 스키마 검증을 적용했나요?

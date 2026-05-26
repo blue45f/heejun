@@ -2,164 +2,107 @@
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [23. 국제화](./23_국제화_가이드.md), [08. 성능](./08_성능_최적화_가이드.md), [19. 접근성](./19_웹_접근성_가이드.md) | **AI 도구** | Next.js Metadata, @vercel/og, AI Overviews |
-| **핵심 테마** | 구조화 데이터, 동적 OG 이미지, AI Overviews/SGE 대응, Core Web Vitals, IndexNow | **Update** | 2026.05 |
+| **연관 가이드** | [23. 국제화](./23_국제화_가이드.md), [08. 성능](./08_성능_최적화_가이드.md), [19. 접근성](./19_웹_접근성_가이드.md) | **도구 원칙** | 벤더 중립 |
+| **핵심 테마** | 구조화 데이터, 동적 OG 이미지, 검색 AI 기능 대응, Core Web Vitals, 크롤링 제어 | **Update** | 2026.05 |
 
 ---
 
-> **"SEO는 마케팅이 아니라 엔지니어링이다. 2026년의 SEO는 메타데이터 자동화, 구조화 데이터 타입 안전성, 환경별 격리, 그리고 AI 검색(Generative AI Overviews) 대응까지 코드로 보장한다."**
-> 본 가이드는 Next.js 15 App Router 기반의 SEO 전략과 멀티 베타 환경에서의 검색 엔진 격리를 다룹니다.
+> **"SEO는 마케팅이 아니라 엔지니어링이다. 2026년의 SEO는 메타데이터 자동화, 구조화 데이터 타입 안전성, 환경별 격리, 그리고 AI 검색 기능 대응까지 코드로 보장한다."**
+> 본 가이드는 특정 검색엔진이나 배포 플랫폼에 종속되지 않는 SEO 표준을 다룹니다. 프레임워크별 Metadata API, sitemap/robots 생성 방식, 동적 이미지 생성 방식은 프로젝트 스택에 맞춰 바꾸되, 검증 기준은 동일하게 유지합니다.
 >
 > **2026년 5월 핵심 변화 요약**
-> - 2026년 5월 15일 Google은 공식 가이드에서 "AI SEO는 별도 분야가 아니라 동일한 SEO"라고 정리했다. Generative AI Overviews(구 SGE)는 일반 Google Search와 같은 인덱스/품질 신호를 사용한다.
-> - Google은 `llms.txt`, AI 전용 스키마, 콘텐츠 청킹을 공식적으로 권장하지 않으며 사용하지도 않는다. 사이트 제어는 여전히 `robots.txt` + Googlebot 디렉티브가 표준이다.
-> - Google은 IndexNow를 채택하지 않았지만, Bing/Yandex/Naver/Seznam이 사용한다(2026년 일일 50억+ 제출). AI 검색 발견성에는 IndexNow가 여전히 유효한 가속기다.
-> - 2026년 2월 Google Discover Core Update로 엔터티 검증된 저자 권위가 기술 콘텐츠 노출에 결정적인 변수가 되었다(일부 기술 매체 트래픽 -40~-70%).
-> - Google 크롤러 IP 범위 파일이 2026년에 이전되었으므로 방화벽/SSR 보호 규칙을 다시 검증해야 한다.
+> - 생성형 검색 기능은 별도 해킹이 아니라 기존 검색 품질, crawlability, 구조화 데이터, 페이지 경험 위에서 동작합니다.
+> - `llms.txt`, AI 전용 schema, AI 전용 콘텐츠 청킹은 아직 모든 검색/AI 시스템이 합의한 웹 표준이 아닙니다. 도입하더라도 검색 표준을 대체하지 않는 보조 실험으로만 둡니다.
+> - JSON-LD는 Schema.org 최신 vocabulary와 검색엔진별 rich result eligibility를 모두 검증합니다.
+> - Core Web Vitals는 SEO만이 아니라 사용자 경험 지표이므로 field data 기반으로 관리합니다.
+> - Preview/branch/development 환경은 기본 `noindex`와 인증/robots 정책으로 production index와 분리합니다.
+
+---
+
+## 문서 책임 범위
+
+| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
+| :--- | :--- |
+| 메타데이터 계약, 구조화 데이터, sitemap/robots, canonical/hreflang | [23. 국제화](./23_국제화_가이드.md), [13. 브라우저 호환성](./13_브라우저_호환성_가이드.md) |
+| 검색 품질과 Core Web Vitals 연결 | [08. 성능](./08_성능_최적화_가이드.md) |
+| preview/production 색인 분리와 배포 전 검증 | [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포](./14_배포_프로세스_체크리스트.md) |
+| AI가 생성한 metadata/JSON-LD 초안 검증 | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md) |
+
+---
+
+## 0. 모든 프론트엔드 그룹 공통 Baseline
+
+| 기준 | 최소 적용 |
+| :--- | :--- |
+| **Indexability** | production URL만 색인 가능하고 preview/development는 `noindex`와 robots 정책으로 차단합니다. |
+| **Metadata contract** | title, description, canonical, OG/Twitter card, locale metadata를 페이지 타입별로 자동 생성합니다. |
+| **Structured data** | JSON-LD는 Schema.org와 검색엔진 rich result 테스트를 모두 통과해야 합니다. |
+| **Crawlability** | 주요 콘텐츠와 링크는 SSR/SSG 또는 검색엔진이 처리 가능한 HTML 구조로 제공합니다. |
+| **Field performance** | Core Web Vitals는 lab score가 아니라 field data와 release regression으로 관리합니다. |
+
+### 0.1 교차 검증 매트릭스
+
+| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| AI 검색 대응은 기존 SEO 원칙 위에서 처리한다 | 검색엔진 공식 generative AI/search guidance | crawl/render test, structured data validation | search traffic, indexed page, snippet eligibility | 특정 AI 플랫폼이 별도 표준을 공식 요구할 때 |
+| structured data는 Schema.org와 rich result validator를 함께 통과한다 | Schema.org latest, 검색엔진 구조화 데이터 문서 | JSON-LD schema test, page snapshot | rich result error, enhancement report | rich result가 필요 없는 내부/비공개 페이지일 때 |
+| preview 환경은 기본 noindex다 | robots/meta robots 문서 | preview E2E, header/meta assertion | accidental indexed URL count | 공개 staging이 제품 요구사항일 때 |
+| Core Web Vitals는 field data로 release gate를 보정한다 | Web Vitals 공식 문서 | Lighthouse/WebPageTest + RUM 비교 | LCP/INP/CLS p75 | 트래픽이 부족해 field data 신뢰도가 낮을 때 |
+
+### 0.2 운영 게이트
+
+| Gate | Evidence | Owner | Rollback |
+| :--- | :--- | :--- | :--- |
+| Metadata contract gate | rendered HTML snapshot, duplicate title report | Page owner | metadata generator 이전 버전으로 rollback |
+| Structured data gate | JSON-LD validation, visible content match | SEO + FE owner | rich result schema 제거 후 plain metadata 유지 |
+| Environment isolation gate | noindex/header test, sitemap URL count | Release owner | offending route noindex hotfix, sitemap regenerate |
+| Search health monitor | indexed URL, enhancement error, CWV p75 | Growth/SEO owner | release hold 또는 canonical/robots hotfix |
 
 ---
 
 ## 목차
 
 1. [AI 기반 SEO 워크플로우](#1-ai-기반-seo-워크플로우)
-2. [멀티 베타 환경 SEO 격리](#2-멀티-베타-환경-seo-격리)
-3. [Next.js 15 SEO 기본 설정](#3-nextjs-15-seo-기본-설정)
+2. [환경별 SEO 격리](#2-환경별-seo-격리)
+3. [Next.js 16 SEO 기본 설정](#3-nextjs-16-seo-기본-설정)
 4. [구조화 데이터 (JSON-LD)](#4-구조화-데이터-json-ld)
-5. [동적 OG 이미지 (@vercel/og)](#5-동적-og-이미지-vercelgo)
+5. [동적 OG 이미지](#5-동적-og-이미지-동적-이미지-생성-api)
 6. [사이트맵 및 robots.txt](#6-사이트맵-및-robotstxt)
 7. [SSR / SSG / ISR SEO 전략 비교](#7-ssr--ssg--isr-seo-전략-비교)
 8. [Core Web Vitals와 SEO](#8-core-web-vitals와-seo)
 9. [국제화 SEO (hreflang)](#9-국제화-seo-hreflang)
 10. [SEO 모니터링 및 자동화 테스트](#10-seo-모니터링-및-자동화-테스트)
-11. [Generative AI Overviews & IndexNow 대응](#11-generative-ai-overviews--indexnow-대응)
+11. [생성형 검색과 크롤링 제어](#11-생성형-검색과-크롤링-제어)
 12. [체크리스트](#12-체크리스트)
 
 ---
 
 ## 1. AI 기반 SEO 워크플로우
 
-> AI를 활용하면 메타 태그 생성, 구조화 데이터 작성, SEO 회귀 테스트를 자동화할 수 있다. 수동 SEO 관리 대비 누락률 90% 감소, 검색 노출 일관성 확보가 목표다.
+이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)를 단일 출처로 따릅니다. 여기서는 검색 메타데이터와 구조화 데이터 검증에 필요한 도메인별 질문만 다룹니다.
 
-### 프롬프트 1: SEO 종합 분석
+> AI는 메타 태그 초안, 구조화 데이터 초안, SEO 회귀 테스트 후보를 빠르게 만들 수 있다. 목표는 검증 없는 자동 발행이 아니라, 공식 검색 가이드와 실제 렌더링 결과를 기준으로 누락과 형식 편차를 줄이는 것이다.
 
-```bash
-claude "이 프로젝트의 모든 페이지 컴포넌트를 분석해서 SEO 감사를 해줘.
+| 시나리오 | 입력 | AI 산출물 | 필수 검증 | 승인 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| 페이지 SEO 감사 | route manifest, rendered HTML, sitemap | 누락 metadata, heading, canonical 후보 | SSR/SSG HTML snapshot, crawler smoke | production 색인 가능 페이지만 노출 |
+| 메타데이터 생성 | 페이지 타입, locale, canonical 규칙 | title/description/OG/Twitter 초안 | 길이, 중복, locale fallback test | 중복 title/description 없음 |
+| JSON-LD 생성 | 콘텐츠 타입, schema 후보, required fields | 구조화 데이터 초안 | Schema.org validation, rich result eligibility | 필수 필드와 visible content가 일치 |
+| SEO 회귀 테스트 | 핵심 route, known issue 목록 | metadata/heading/canonical 테스트 | CI에서 render 결과 기반 검증 | preview noindex와 production index 분리 |
+| sitemap/robots | route source, 변경 빈도, 환경 목록 | sitemap 분할, robots 정책 초안 | URL count, status code, noindex smoke | 비공개/preview URL 미포함 |
+| OG 이미지 | brand token, page data, locale | 이미지 템플릿 초안 | 이미지 렌더링, alt text, cache header | 실패 시 fallback 이미지 제공 |
+| 콘텐츠 품질 분석 | 공개 콘텐츠, target intent, 내부 링크 | 개선 후보와 중복 콘텐츠 위험 | 사람이 사실성/법적 표현 검토 | keyword stuffing 없이 사용자 의도 충족 |
 
-각 페이지에 대해 검사:
-1) title, description 메타 태그 존재 여부 및 길이 적절성
-2) OG 태그 완성도 (og:title, og:description, og:image, og:url)
-3) 구조화 데이터(JSON-LD) 존재 여부와 Schema.org 적합성
-4) heading 태그 계층 구조 (h1이 정확히 1개인지, h1→h2→h3 순서)
-5) 이미지 alt 텍스트 누락 여부
-6) canonical URL 설정 여부
-7) 환경별(Preview/Production) noindex 설정 여부
+AI가 생성한 SEO 산출물은 다음 기준을 통과해야 병합합니다.
 
-결과를 심각도별(Critical/Warning/Info)로 분류하고
-수정 코드도 함께 제시해줘."
-```
+- 실제 페이지 HTML에서 확인 가능한 내용만 metadata에 사용
+- canonical, hreflang, robots, sitemap이 서로 모순되지 않음
+- preview/development URL은 색인 대상에서 제외
+- 생성형 검색 대응은 기존 SEO 품질 기준을 대체하지 않음
 
-### 프롬프트 2: 메타 태그 자동 생성
+## 2. 환경별 SEO 격리
 
-```bash
-claude "이 프로젝트의 각 페이지에 대해 최적의 메타 태그를 생성해줘.
-
-요구사항:
-1) Next.js 15 generateMetadata 함수 형식
-2) title: 50-60자, 핵심 키워드 포함
-3) description: 150-160자, 행동 유도 문구
-4) OG 태그: title, description, image, url, type, site_name
-5) Twitter Card: summary_large_image 형식
-6) 동적 페이지는 params 기반 동적 생성
-7) 환경별 분기: Preview에서는 noindex 자동 추가
-
-generateMetadata 코드로 직접 작성해줘."
-```
-
-### 프롬프트 3: JSON-LD 자동 생성
-
-```bash
-claude "이 프로젝트의 페이지 유형별로 JSON-LD 구조화 데이터를 생성해줘.
-
-페이지 유형별 스키마:
-1) 메인 페이지 → Organization + WebSite + SearchAction
-2) 블로그 글 → Article + BreadcrumbList
-3) 비즈니스 객체(Entity) 페이지 → Entity + Offer + AggregateRating
-4) FAQ 페이지 → FAQPage
-5) 프로필 페이지 → Person + ProfilePage
-
-모두 Schema.org 유효성 검사 통과하도록 작성하고
-Google Rich Results Test 호환 확인해줘."
-```
-
-### 프롬프트 4: SEO 회귀 테스트
-
-```bash
-claude "이 프로젝트에 SEO 회귀 테스트를 추가해줘.
-
-테스트 항목:
-1) 모든 페이지에 title과 description이 존재하는지
-2) OG 태그가 빠짐없이 설정되어 있는지
-3) JSON-LD가 유효한 JSON이고 Schema.org에 적합한지
-4) canonical URL이 올바르게 설정되어 있는지
-5) Preview 환경에서 noindex가 설정되는지
-6) Production 환경에서 noindex가 없는지
-7) h1 태그가 각 페이지에 정확히 1개인지
-
-Playwright 또는 Vitest 기반으로 작성해줘."
-```
-
-### 프롬프트 5: 사이트맵 최적화
-
-```bash
-claude "이 프로젝트의 사이트맵을 최적화해줘.
-
-요구사항:
-1) Next.js 15 sitemap.ts 형식
-2) 동적 페이지 자동 포함 (DB/CMS에서 URL 조회)
-3) lastmod, changefreq, priority 자동 계산
-4) Preview 환경 URL 제외
-5) 이미지 사이트맵 (image:image) 포함
-6) 50,000 URL 초과 시 사이트맵 인덱스 자동 분할
-7) 빌드 시점 자동 생성 + ISR 연동"
-```
-
-### 프롬프트 6: OG 이미지 생성
-
-```bash
-claude "이 프로젝트에 동적 OG 이미지 생성 시스템을 구축해줘.
-
-요구사항:
-1) @vercel/og (ImageResponse) 기반
-2) 페이지 유형별 템플릿 (블로그, 비즈니스 객체(Entity), 기본)
-3) 제목, 설명, 로고, 배경 동적 렌더링
-4) 환경별 분기: Preview에서는 'PREVIEW' 워터마크 표시
-5) 한글 폰트 지원 (Pretendard 등)
-6) 1200x630 크기 + 캐싱 전략
-7) Edge Runtime 호환"
-```
-
-### 프롬프트 7: 콘텐츠 SEO 분석
-
-```bash
-claude "이 프로젝트의 콘텐츠를 SEO 관점에서 분석해줘.
-
-분석 항목:
-1) 키워드 밀도 및 배치 적절성
-2) 내부 링크 구조 (고립된 페이지 식별)
-3) 콘텐츠 길이 및 가독성 점수
-4) 중복 콘텐츠 탐지
-5) 이미지 최적화 (WebP/AVIF, 크기, lazy loading)
-6) 모바일 친화성 (뷰포트, 터치 타겟 크기)
-7) 페이지 로딩 속도가 SEO에 미치는 영향 추정
-
-개선 우선순위와 예상 효과를 함께 제시해줘."
-```
-
----
-
-## 2. 멀티 베타 환경 SEO 격리
-
-> Preview 환경이 검색 엔진에 인덱싱되면 중복 콘텐츠 문제가 발생한다. 환경별 SEO 격리는 멀티 베타 운영의 필수 요소다.
+> Preview, staging, canary 환경이 검색 엔진에 인덱싱되면 중복 콘텐츠 문제가 발생한다. 환경별 SEO 격리는 모든 비프로덕션 환경의 필수 운영 기준이다.
 
 ### 2.1 환경 감지 유틸리티
 
@@ -177,18 +120,18 @@ interface SeoEnvironment {
 }
 
 export function getSeoEnvironment(): SeoEnvironment {
-  const vercelEnv = (process.env.VERCEL_ENV ?? 'development') as DeploymentEnv;
+  const deployEnv = (process.env.DEPLOY_ENV ?? 'development') as DeploymentEnv;
 
-  const isProduction = vercelEnv === 'production';
+  const isProduction = deployEnv === 'production';
 
   const baseUrl = isProduction
     ? process.env.NEXT_PUBLIC_SITE_URL!
-    : vercelEnv === 'preview'
-      ? `https://${process.env.VERCEL_URL}`
+    : deployEnv === 'preview'
+      ? process.env.PREVIEW_URL!
       : 'http://localhost:3000';
 
   return {
-    env: vercelEnv,
+    env: deployEnv,
     baseUrl,
     isIndexable: isProduction,
     robotsDirective: isProduction ? 'index, follow' : 'noindex, nofollow',
@@ -233,13 +176,6 @@ export function buildMetadata(input: PageSeoInput): Metadata {
     robots: {
       index: isIndexable,
       follow: isIndexable,
-      googleBot: {
-        index: isIndexable,
-        follow: isIndexable,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
     },
 
     // canonical은 항상 Production URL
@@ -306,9 +242,13 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
-  // Production: 선택적 허용
-  // 2026년 5월 기준 권장 -- Google AI Overviews는 Googlebot/Google-Extended로 제어한다.
-  // 별도의 llms.txt나 AI 전용 디렉티브는 Google이 공식적으로 사용하지 않는다.
+  // Production: 선택적 허용.
+  // 모델 학습용 크롤러 차단 정책은 환경 변수로 관리하여 특정 사업자명을 문서에 고정하지 않는다.
+  const trainingCrawlerUserAgents = (process.env.AI_TRAINING_CRAWLERS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
   return {
     rules: [
       {
@@ -316,27 +256,10 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: ['/api/', '/admin/', '/_next/', '/auth/'],
       },
-      {
-        // Google-Extended: AI Overviews / Gemini 학습 제어 (Search 노출에는 영향 없음)
-        userAgent: 'Google-Extended',
+      ...trainingCrawlerUserAgents.map((userAgent) => ({
+        userAgent,
         disallow: '/',
-      },
-      {
-        userAgent: 'GPTBot',
-        disallow: '/', // OpenAI 학습 차단 (선택)
-      },
-      {
-        userAgent: 'ClaudeBot',
-        disallow: '/', // Anthropic 학습 차단 (선택)
-      },
-      {
-        userAgent: 'PerplexityBot',
-        disallow: '/', // Perplexity 답변 인용 차단 (선택)
-      },
-      {
-        userAgent: 'CCBot',
-        disallow: '/', // Common Crawl 차단 (선택)
-      },
+      })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };
@@ -510,7 +433,7 @@ export async function GET(request: NextRequest) {
 
 ---
 
-## 3. Next.js 15 SEO 기본 설정
+## 3. Next.js 16 SEO 기본 설정
 
 ### 3.1 루트 레이아웃 메타데이터
 
@@ -522,6 +445,10 @@ import type { Metadata, Viewport } from 'next';
 import { getSeoEnvironment } from '@/lib/seo/environment';
 
 const { baseUrl, isIndexable } = getSeoEnvironment();
+
+function buildSearchEngineVerificationMetadata() {
+  return JSON.parse(process.env.SEARCH_ENGINE_VERIFICATION_JSON ?? '{}');
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -543,12 +470,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     creator: '@twitter_handle',
   },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
-    other: {
-      'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_VERIFICATION ?? '',
-    },
-  },
+  verification: buildSearchEngineVerificationMetadata(),
 };
 
 export const viewport: Viewport = {
@@ -655,7 +577,7 @@ export default function NotFound() {
 
 ### 3.4 레이아웃 그룹별 메타데이터 상속
 
-Next.js 15의 메타데이터 병합(merge) 전략을 활용하면 레이아웃 그룹별로 기본 메타데이터를 설정하고 하위 페이지에서 오버라이드할 수 있다.
+Next.js 16의 메타데이터 병합(merge) 전략을 활용하면 레이아웃 그룹별로 기본 메타데이터를 설정하고 하위 페이지에서 오버라이드할 수 있다. Next.js 15에서 도입한 App Router Metadata API 패턴은 그대로 유지된다.
 
 ```typescript
 // app/(marketing)/layout.tsx
@@ -1020,7 +942,7 @@ export function validateJsonLd(data: Record<string, unknown>): ValidationResult 
 
 ---
 
-## 5. 동적 OG 이미지 (@vercel/og)
+## 5. 동적 OG 이미지 (동적 이미지 생성 API)
 
 ### 5.1 기본 OG 이미지 생성기
 
@@ -1050,7 +972,7 @@ export function buildOgImageUrl(props: OgTemplateProps): string {
     ...(props.category && { category: props.category }),
     ...(props.date && { date: props.date }),
     ...(props.price && { price: props.price }),
-    env: process.env.VERCEL_ENV ?? 'development',
+    env: process.env.DEPLOY_ENV ?? 'development',
   });
 
   return `/api/og?${params}`;
@@ -1344,7 +1266,7 @@ export async function POST(request: NextRequest) {
 
 ### 7.3 Streaming SSR과 SEO
 
-Next.js 15의 Streaming SSR은 사용자 경험을 개선하면서도 검색 엔진 호환성을 유지한다. `<Suspense>`로 감싼 영역은 서버에서 완전히 렌더링된 후 HTML로 전송되므로 크롤러가 콘텐츠를 정상적으로 인식한다.
+Next.js 16의 Streaming SSR과 Cache Components/PPR 조합은 사용자 경험을 개선하면서도 검색 엔진 호환성을 유지한다. `<Suspense>`로 감싼 영역은 서버에서 렌더링된 HTML 스트림으로 전달되므로 크롤러가 핵심 콘텐츠를 정상적으로 인식할 수 있게 설계해야 한다.
 
 ```typescript
 // app/products/[id]/page.tsx
@@ -1682,7 +1604,7 @@ test('JSON-LD가 유효한 JSON이어야 한다', async ({ page }) => {
 CI에서 Lighthouse SEO 점수가 기준 이하면 배포를 차단한다.
 
 ```yaml
-# .github/workflows/lighthouse-seo.yml
+# .ci/workflows/lighthouse-seo.yml
 # Lighthouse CI — SEO 점수 90점 미만 시 배포 차단
 
 name: Lighthouse SEO Gate
@@ -1694,10 +1616,8 @@ jobs:
   lighthouse:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - run: checkout-source
+      - run: setup-node 20
 
       - name: 의존성 설치 및 빌드
         run: |
@@ -1708,14 +1628,12 @@ jobs:
         run: npm start &
 
       - name: Lighthouse CI 실행
-        uses: treosh/lighthouse-ci-action@v12
-        with:
-          urls: |
-            http://localhost:3000/
-            http://localhost:3000/about
-            http://localhost:3000/blog
-          budgetPath: ./lighthouse-budget.json
-          uploadArtifacts: true
+        run: |
+          lhci autorun \
+            --collect.url=http://localhost:3000/ \
+            --collect.url=http://localhost:3000/about \
+            --collect.url=http://localhost:3000/blog \
+            --assert.budgetFile=./lighthouse-budget.json
 
       - name: SEO 점수 검증
         run: |
@@ -1732,173 +1650,92 @@ jobs:
 
 ---
 
-## 11. Generative AI Overviews & IndexNow 대응
+## 11. 생성형 검색과 크롤링 제어
 
-2026년 5월 기준 Google은 Generative AI Overviews(구 SGE)에 대해 다음을 공식화했다.
+생성형 검색 대응은 별도 “AI SEO” 전술을 추가하는 문제가 아니라, 검색엔진이 페이지를 발견하고 이해하고 신뢰할 수 있게 만드는 기존 원칙을 더 엄격하게 적용하는 문제입니다. 검색 사업자별 기능은 계속 바뀌므로, 표준 문서와 Search Console/로그 데이터를 함께 확인합니다.
 
-- AI Overviews는 Google Search와 동일한 인덱스, 크롤러, 품질 신호를 사용한다.
-- `llms.txt`, AI 전용 청킹, AI 전용 스키마는 Google이 사용하지 않는다.
-- AI Overviews 인용은 클릭 가능한 출처로 표시되며 일반 검색 결과 클릭과 유사하게 추적된다.
+### 11.1 생성형 검색 대응 기준
 
-> John Mueller 및 Google Search Central 공식 가이드: "There is no separate AI SEO. Optimize for users, not for LLMs."
-
-### 11.1 AI Overviews에 인용되기 위한 콘텐츠 신호
-
-| 신호 | 권장 구현 | 위반 시 영향 |
+| 기준 | 권장 구현 | 검증 방법 |
 |---|---|---|
-| **명확한 답변 구조** | H2/H3 질문형 → 짧은 답변 → 근거 | AI가 페이지를 인용 후보로 평가하기 어려움 |
-| **엔터티 검증된 저자(E-E-A-T)** | `Person`/`Organization` JSON-LD + `sameAs` 링크 | Discover/AIO 노출 감소 |
-| **`article:modified_time`** | OG/Schema 양쪽 동기화 | 신선도 신호 약화 |
-| **인용 가능한 사실/숫자** | 출처 링크와 함께 명시 | 인용 우선순위 하락 |
-| **사용자 의도 정렬** | "How do I…", "What is…" 등 질문 키워드 매칭 | AIO 매칭 후보 감소 |
+| **유용한 원본성** | 단순 요약보다 직접 경험, 실험, 데이터, 비교 근거를 제공합니다. | 콘텐츠 리뷰, 중복/저품질 페이지 audit |
+| **명확한 구조** | H1/H2, 요약, 단계, 표, FAQ를 사용자 의도에 맞게 구성합니다. | 렌더된 HTML snapshot, heading audit |
+| **기술적 접근성** | indexable URL, canonical, sitemap, 내부 링크를 안정적으로 유지합니다. | crawl test, sitemap diff |
+| **멀티미디어 품질** | 이미지/영상에는 의미 있는 alt, caption, metadata를 둡니다. | image/video SEO audit |
+| **정책 준수** | 검색 spam policy와 저작권/출처 표기 기준을 지킵니다. | content policy review |
 
-### 11.2 AI 검색 크롤러 정책 매트릭스
+### 11.2 AI/검색 크롤러 정책 매트릭스
 
-| 크롤러 | 용도 | 권장 정책 |
+| 범주 | 목적 | 기본 정책 |
 |---|---|---|
-| `Googlebot` | Search + AI Overviews | 허용 (필수) |
-| `Google-Extended` | Gemini/AI Overviews 학습 | 허용 또는 차단 (브랜드 정책) |
-| `GPTBot` | OpenAI 모델 학습 | 일반적으로 차단 |
-| `OAI-SearchBot` | ChatGPT Search 실시간 인용 | 허용 권장 (트래픽 유입) |
-| `ClaudeBot` | Anthropic 학습 | 차단 |
-| `Claude-User`, `Claude-SearchBot` | Claude.ai 실시간 인용 | 허용 권장 |
-| `PerplexityBot`, `Perplexity-User` | Perplexity 답변 인용 | 허용/차단 분리 가능 |
-| `CCBot` | Common Crawl | 정책에 따라 차단 |
+| 검색 색인 크롤러 | 일반 검색 노출 | 허용 |
+| 검색 기능 보조 크롤러 | 요약, 미리보기, rich result 생성 | 허용하되 snippet/preview 정책 관리 |
+| 모델 학습 크롤러 | 모델 학습 데이터 수집 | 법무/콘텐츠 정책에 따라 허용 또는 제한 |
+| 비식별 범용 수집 크롤러 | 공개 데이터셋 수집 | 서버 비용과 콘텐츠 정책에 따라 제한 |
 
-> 학습용 크롤러(`*Bot`)와 실시간 인용용 크롤러(`*-User`, `*-SearchBot`)를 구분하면 학습은 거부하면서도 답변 인용 트래픽은 유지할 수 있다.
+`robots.txt`, meta robots, `X-Robots-Tag`, snippet 관련 directive는 검색 사업자별 지원 범위가 다릅니다. 중요한 차단 정책은 문서만 믿지 말고 access log와 실제 색인 상태로 확인합니다.
 
 ### 11.3 Web Crawler Verification
 
-2026년 Google은 크롤러 IP 범위 파일 위치를 변경했다. 사칭 봇으로부터 서버를 보호하기 위해 다음 두 가지 방법 중 하나를 자동화한다.
+사칭 봇이 SSR/동적 렌더링 경로를 과도하게 호출하면 비용과 보안 위험이 커집니다. 크롤러 검증은 특정 검색엔진 전용 코드가 아니라 **공식 검증 절차를 adapter로 분리**합니다.
 
 ```typescript
 // lib/seo/verify-crawler.ts
-// 1) DNS 역조회 + 정조회 -- 단발 확인용
-// 2) Google이 공개한 IP 범위 JSON과 매칭 -- 대규모 트래픽용
+// 검색 사업자별 공식 검증 방식(DNS 역조회, IP range JSON 등)을 adapter로 분리합니다.
 
-const GOOGLE_IP_RANGES_URL = 'https://developers.google.com/static/search/apis/ipranges/googlebot.json';
-const SPECIAL_CRAWLERS_URL = 'https://developers.google.com/static/search/apis/ipranges/special-crawlers.json';
-
-interface IpRange {
-  ipv6Prefix?: string;
-  ipv4Prefix?: string;
+interface CrawlerVerifier {
+  name: string;
+  verify(remoteIp: string, userAgent: string): Promise<boolean>;
 }
 
-interface IpRangeFile {
-  creationTime: string;
-  prefixes: IpRange[];
-}
-
-let cachedRanges: { ts: number; data: IpRange[] } | null = null;
-
-async function loadGoogleIpRanges(): Promise<IpRange[]> {
-  // 24시간 캐시
-  if (cachedRanges && Date.now() - cachedRanges.ts < 86_400_000) {
-    return cachedRanges.data;
-  }
-  const [googlebot, special] = await Promise.all([
-    fetch(GOOGLE_IP_RANGES_URL).then((r) => r.json() as Promise<IpRangeFile>),
-    fetch(SPECIAL_CRAWLERS_URL).then((r) => r.json() as Promise<IpRangeFile>),
-  ]);
-  const merged = [...googlebot.prefixes, ...special.prefixes];
-  cachedRanges = { ts: Date.now(), data: merged };
-  return merged;
-}
-
-export async function isVerifiedGoogleCrawler(remoteIp: string): Promise<boolean> {
-  const ranges = await loadGoogleIpRanges();
-  return ranges.some((r) => ipMatchesPrefix(remoteIp, r));
-}
-
-// 실제 prefix 매칭은 ipaddr.js 등 라이브러리 사용 권장
-function ipMatchesPrefix(_ip: string, _range: IpRange): boolean {
-  // 구현 생략 -- prod에서는 'ip-cidr' 또는 'ipaddr.js' 사용
-  return false;
-}
-```
-
-### 11.4 IndexNow 통합
-
-Google은 IndexNow를 채택하지 않았지만, Bing/Yandex/Naver/Seznam이 사용한다. 2026년 일 평균 50억+ URL이 IndexNow로 제출되며, AI 검색 발견성에는 여전히 의미가 있다.
-
-```typescript
-// app/api/indexnow/route.ts
-// CMS 웹훅 또는 빌드 후 호출 -- 갱신된 URL을 IndexNow에 통보
-
-import { NextRequest, NextResponse } from 'next/server';
-
-const INDEXNOW_ENDPOINTS = [
-  'https://www.bing.com/indexnow',
-  'https://yandex.com/indexnow',
-  'https://searchadvisor.naver.com/indexnow',
-];
-
-export async function POST(request: NextRequest) {
-  const secret = request.headers.get('x-indexnow-secret');
-  if (secret !== process.env.INDEXNOW_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { urls }: { urls: string[] } = await request.json();
-  const host = new URL(process.env.NEXT_PUBLIC_SITE_URL!).host;
-  const key = process.env.INDEXNOW_KEY!;
-
-  const payload = {
-    host,
-    key,
-    keyLocation: `${process.env.NEXT_PUBLIC_SITE_URL}/${key}.txt`,
-    urlList: urls,
-  };
-
-  // 동일 페이로드를 여러 엔드포인트에 병렬 전송
+export async function isAllowedCrawler(
+  remoteIp: string,
+  userAgent: string,
+  verifiers: CrawlerVerifier[],
+): Promise<boolean> {
   const results = await Promise.allSettled(
-    INDEXNOW_ENDPOINTS.map((endpoint) =>
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }),
-    ),
+    verifiers.map((verifier) => verifier.verify(remoteIp, userAgent)),
   );
 
-  return NextResponse.json({
-    submitted: urls.length,
-    endpoints: results.map((r, i) => ({
-      endpoint: INDEXNOW_ENDPOINTS[i],
-      status: r.status === 'fulfilled' ? r.value.status : 'rejected',
-    })),
-  });
+  return results.some((result) => result.status === 'fulfilled' && result.value);
 }
 ```
 
-> **주의**: IndexNow 키 파일(`/{key}.txt`)을 사이트 루트에 정확히 동일한 텍스트로 배포해야 검증을 통과한다.
+### 11.4 실시간 색인 알림 프로토콜
 
-### 11.5 Open Graph 운영 가이드 (2026 기준)
+일부 검색엔진은 URL 갱신 알림 프로토콜을 지원합니다. 이 기능은 sitemap을 대체하지 않으며, 지원 사업자와 정책이 다르므로 **조건부 최적화**로 둡니다.
 
-OpenGraph Protocol(ogp.me) 사양 자체는 2010년 이후 변경되지 않았으나, **소비 주체가 사람에서 AI로 확장**되었다. 2026년에는 GPTBot, ClaudeBot, PerplexityBot, Google AI 크롤러가 `og:title`, `og:description`, `article:modified_time`을 답변 후보 선정 신호로 활용한다.
+| 적용 조건 | 기준 |
+|---|---|
+| 적합 | 뉴스, 재고, 가격, 문서처럼 갱신 빈도가 높고 빠른 재크롤이 중요한 페이지 |
+| 부적합 | 정적 랜딩, 내부 도구, 미완성 preview URL |
+| 검증 | 제출 성공률, 재크롤 시간, 색인 반영 시간을 로그로 확인 |
+
+### 11.5 Open Graph 운영 기준
+
+Open Graph 자체는 오래된 메타데이터 사양이지만, 소셜 미리보기와 검색/AI 기능의 페이지 이해에 여전히 도움이 됩니다. 표준이 아닌 “비공식 확장명”은 production 기준으로 삼지 않습니다.
 
 | 권장 사항 | 이유 |
 |---|---|
-| `og:title`은 H1과 의미적으로 동일 유지 | AI가 동일성 점수로 신뢰도 평가 |
-| `article:modified_time` ISO8601 정확히 기재 | AIO/Discover 신선도 신호 |
-| `og:image:alt` 항상 작성 | 이미지 인용 시 시각 임베딩 후보 |
-| OG 본문과 페이지 본문 일치 | 'Manipulative metadata' 페널티 회피 |
-| `theme-color` 메타와 brand 색상 일관 | 모바일/Sidebar 미리보기 품질 |
+| `og:title`은 페이지 H1과 의미적으로 일치 | 미리보기와 실제 콘텐츠 불일치 방지 |
+| `og:description`은 meta description과 충돌하지 않음 | 검색/공유 문구 일관성 |
+| `og:image`와 `og:image:alt` 제공 | 접근성 및 공유 품질 |
+| `article:published_time`, `article:modified_time` 정확히 기재 | 콘텐츠 최신성 표현 |
+| canonical URL과 `og:url` 일치 | 중복 URL 신호 축소 |
 
-> ogp.me 사양은 1.0 그대로지만, 일부 커뮤니티(특히 env.dev 등)에서 비공식적으로 "Open Graph 1.2"라고 부르는 확장 권장 사항(article:author 다중, video:tag 등)이 통용된다. 표준은 아니므로 검색 엔진/소셜 플랫폼 호환성을 우선한다.
+### 11.6 Schema.org 주목 타입
 
-### 11.6 Schema.org 신규/주목 타입
-
-CLDR 48 / Schema.org 27.x 기준 다음 타입이 자주 활용된다.
+Schema.org vocabulary는 계속 확장됩니다. 타입 선택은 “검색 노출을 더 받기 위해서”가 아니라 페이지의 실제 의미를 정확히 표현하기 위해 사용합니다.
 
 | 타입 | 용도 |
 |---|---|
-| `LearningResource` | 강의/튜토리얼/문서 페이지 |
-| `Quotation` | 인용 가능한 인사이트 카드 |
-| `OccupationalCredential` | 자격증/뱃지 |
-| `Specialty` (Person.knowsAbout 확장) | 저자 전문 분야 명시 → AIO E-E-A-T 신호 |
+| `Article` / `BlogPosting` | 글, 기술 문서, 분석 콘텐츠 |
+| `BreadcrumbList` | 사이트 계층과 탐색 경로 |
+| `WebSite` / `WebPage` | 사이트 및 페이지 기본 설명 |
+| `Person` / `Organization` | 저자, 발행 주체, 책임 소재 |
+| `LearningResource` | 강의, 튜토리얼, 학습 자료 |
 | `Trip` / `Itinerary` | 여행 콘텐츠 |
-| `Dataset` + `SoftwareApplication` | 오픈 데이터·API 페이지 (Google Dataset Search 노출) |
+| `Dataset` + `SoftwareApplication` | 오픈 데이터·API 페이지 |
 
 ---
 
@@ -1920,7 +1757,7 @@ CLDR 48 / Schema.org 27.x 기준 다음 타입이 자주 활용된다.
 
 - [ ] 주요 페이지에 JSON-LD가 포함되어 있는가
 - [ ] Schema.org Validator로 유효성이 확인되었는가
-- [ ] Google Rich Results Test를 통과하는가
+- [ ] 주요 검색엔진 rich result 테스트를 통과하는가
 - [ ] BreadcrumbList가 네비게이션 계층과 일치하는가
 - [ ] JSON-LD 내 `</script>` 삽입이 방지되는가 (XSS 대응)
 - [ ] Article, Product, FAQ 등 페이지 유형별 적절한 스키마가 적용되었는가
@@ -1929,12 +1766,12 @@ CLDR 48 / Schema.org 27.x 기준 다음 타입이 자주 활용된다.
 
 - [ ] 모든 페이지에 OG 태그 (title, description, image, url)가 있는가
 - [ ] OG 이미지 크기가 1200x630인가
-- [ ] Twitter Card가 설정되어 있는가
+- [ ] 주요 소셜 미리보기 card metadata가 설정되어 있는가
 - [ ] OG 이미지에 한글이 정상 렌더링되는가
-- [ ] Facebook Sharing Debugger에서 미리보기가 정상인가
+- [ ] 공유 미리보기 디버거에서 렌더링이 정상인가
 - [ ] 페이지 유형별 OG 이미지 템플릿이 구분되어 있는가
 
-### 멀티 베타 환경
+### 환경별 SEO 격리
 
 - [ ] Preview 환경에서 noindex, nofollow가 자동 적용되는가
 - [ ] Preview robots.txt가 전체 크롤링을 차단하는가
@@ -1968,18 +1805,18 @@ CLDR 48 / Schema.org 27.x 기준 다음 타입이 자주 활용된다.
 - [ ] JSON-LD 유효성 검증이 자동화되어 있는가
 - [ ] 배포 후 사이트맵 갱신이 자동화되어 있는가
 
-### AI 검색 / Generative AI Overviews 대응
+### AI 검색 / 생성형 검색 대응
 
-- [ ] `robots.txt`에 AI 크롤러(`Google-Extended`, `GPTBot`, `ClaudeBot`, `PerplexityBot` 등) 정책이 명시되어 있는가
-- [ ] 학습 봇(`*Bot`)과 실시간 인용 봇(`*-User`, `*-SearchBot`)을 분리하여 정책을 정했는가
-- [ ] `llms.txt` 파일을 만들지 않았는가 (Google 미사용, Anthropic/OpenAI 비공식 협의)
-- [ ] 저자(Person/Organization) JSON-LD에 `sameAs`로 외부 권위 링크가 연결되어 있는가
+- [ ] 검색 색인, 검색 기능 보조, 모델 학습, 범용 수집 크롤러 정책을 구분했는가
+- [ ] `robots.txt`, meta robots, `X-Robots-Tag` 지원 범위를 검색 사업자별로 확인했는가
+- [ ] `llms.txt` 같은 비표준 파일을 production SEO 필수 요건으로 두지 않았는가
+- [ ] 저자(Person/Organization) JSON-LD에 책임 주체가 명확히 연결되어 있는가
 - [ ] `article:modified_time`이 OG/Schema 양쪽에서 일치하는가
-- [ ] AI 답변에 인용되기 쉬운 답변형 구조(H2 질문 → 짧은 답변 → 근거)를 유지하는가
-- [ ] Google 크롤러 IP 범위 파일(2026년 새 위치) 기반 검증 로직이 적용되어 있는가
-- [ ] 사이트 갱신 시 IndexNow로 Bing/Yandex/Naver에 통보하는 훅이 있는가
-- [ ] Google Discover 2026.02 Core Update 이후 트래픽 모니터링 대시보드가 있는가
+- [ ] 사용자 질문에 답하는 구조(H2 질문 → 짧은 답변 → 근거)를 유지하는가
+- [ ] 공식 검증 절차 기반 crawler verification adapter가 있는가
+- [ ] 실시간 색인 알림을 사용할 경우 지원 사업자와 반영 시간을 측정하는가
+- [ ] 생성형 검색 유입/노출 변화 모니터링 대시보드가 있는가
 
 ---
 
-> **연관 가이드**: [08. 성능 최적화](./08_성능_최적화_가이드.md) | [11. CI/CD 파이프라인](./11_CICD_파이프라인_표준.md) | [12. CloudFront 캐시](./12_CloudFront_캐시_전략.md) | [19. 웹 접근성](./19_웹_접근성_가이드.md) | [23. 국제화](./23_국제화_가이드.md)
+> **연관 가이드**: [08. 성능 최적화](./08_성능_최적화_가이드.md) | [11. CI/CD 파이프라인](./11_CICD_파이프라인_표준.md) | [12. CDN 캐시](./12_CDN_캐시_전략.md) | [19. 웹 접근성](./19_웹_접근성_가이드.md) | [23. 국제화](./23_국제화_가이드.md)

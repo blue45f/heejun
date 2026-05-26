@@ -2,7 +2,7 @@
 
 | 분류 | 아키텍처 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [04. 아키텍처](./04_아키텍처_설계_패턴.md), [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **AI 도구** | OpenAPI 3.1, hey-api, Orval, MSW |
+| **연관 가이드** | [04. 아키텍처](./04_아키텍처_설계_패턴.md), [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) | **도구 원칙** | 벤더 중립 |
 | **핵심 테마** | OpenAPI 3.1 코드젠, MSW 2.x(boundary), Result 패턴, TanStack Query v5, RSC Hydration | **Update** | 2026.05 |
 
 ---
@@ -13,19 +13,51 @@
 
 ---
 
+## 0. 모든 프론트엔드 그룹 공통 Baseline
+
+API 통신 표준은 특정 코드젠 도구가 아니라 **계약, 실패 모델, 타입 안전성, 관측 가능성**을 일관되게 유지하는 방식입니다.
+
+| 기준 | 최소 적용 |
+| :--- | :--- |
+| **계약 우선** | REST는 OpenAPI, GraphQL은 schema, RPC는 IDL처럼 기계가 검증할 수 있는 계약을 둡니다. |
+| **생성 코드 격리** | generated client는 직접 수정하지 않고, thin wrapper에서 인증/에러/관측성을 처리합니다. |
+| **런타임 검증** | 외부 응답, feature flag, CMS/remote config는 TypeScript 타입만 믿지 않고 schema로 검증합니다. |
+| **실패 모델** | timeout, retry, abort, 401/403/409/429/5xx, 네트워크 단절을 Result 또는 동일한 에러 모델로 표현합니다. |
+| **모킹 일관성** | 테스트/스토리/로컬 개발이 같은 mock contract를 사용하고, 실제 스펙과 drift를 검사합니다. |
+
+### 0.1 교차 검증 매트릭스
+
+| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| 신규 REST 계약은 OpenAPI 3.1 이상, 3.2는 도구 호환성 검증 후 적용한다 | OpenAPI Specification latest | spec lint, generated type diff, contract test | API drift, client runtime error | 코드젠/문서/게이트웨이가 해당 버전을 안정 지원하지 않을 때 |
+| mock은 실제 API 계약에서 생성하거나 계약 테스트와 묶는다 | MSW/코드젠 도구 공식 문서 | mock handler coverage, schema validation | mock-pass/prod-fail 비율 | 백엔드 계약이 비정형이어서 명세 비용이 과도할 때 |
+| API 에러는 throw 문자열이 아니라 구조화된 Result로 전달한다 | HTTP/RFC, 프레임워크 error boundary 문서 | exhaustive switch, 401/409/429 테스트 | 사용자 재시도 성공률, 에러 분류 정확도 | 호출 계층이 에러 바운더리로만 처리되는 단순 앱일 때 |
+| 실시간/스트리밍 API는 backpressure와 취소를 먼저 설계한다 | Fetch/Streams 표준, OpenAPI streaming 지원 | abort test, reconnect test | reconnect storm, memory growth | 폴링이 더 단순하고 운영 비용이 낮을 때 |
+
+### 0.2 운영 게이트
+
+| Gate | Evidence | Owner | Rollback |
+| :--- | :--- | :--- | :--- |
+| API contract gate | spec lint, generated diff, contract test | API owner | previous spec artifact pinning |
+| Mock fidelity gate | MSW handler coverage, schema fixture | FE/API owner | mock handler freeze 후 실제 API smoke 우선 |
+| Error taxonomy gate | Result union test, 401/409/429 fixture | Feature owner | error boundary fallback path 유지 |
+| Streaming gate | abort/reconnect/backpressure test | Platform owner | polling 또는 pagination fallback |
+
+---
+
 ## 1. 인터페이스 주도 개발: OpenAPI 3.1 & Codegen
 
 시스템 스펙(OpenAPI)을 기반으로 TypeScript 타입과 통신 함수를 자동으로 생성하여 데이터 정합성을 보장합니다.
 백엔드 팀이 스웨거 명세를 변경하면, 코드젠 도구가 자동으로 타입을 재생성하여 프론트엔드에서 즉시 타입 오류를 감지할 수 있습니다.
 
-> **OpenAPI 3.1 권장**: 3.1은 JSON Schema 2020-12와 완전 호환되어 `nullable` 대신 `type: [string, "null"]` 형식의 유니온, `examples` 배열, `webhooks` 정의를 지원합니다. 신규 프로젝트는 3.1을 기준으로 명세를 작성하고, 코드젠 도구는 3.1을 지원하는 최신 버전(`openapi-typescript` 7.x, `@hey-api/openapi-ts`, `Orval` v7+)을 선택하세요.
+> **OpenAPI 버전 기준**: OpenAPI 3.2.0이 2025년 9월 공개된 최신 minor이며, streaming media type과 tag 구조 개선을 포함합니다. 다만 코드젠/문서/게이트웨이 호환성이 조직마다 다르므로 신규 표준은 **3.1 이상을 baseline**, **3.2는 도구 호환성 검증 후 recommended**로 적용합니다. 3.1은 JSON Schema 2020-12와 완전 호환되어 `nullable` 대신 `type: [string, "null"]` 형식의 유니온, `examples` 배열, `webhooks` 정의를 지원합니다.
 
 ### 1.1 코드젠 도구 비교 (2026)
 
 | 도구 | 특징 | 추천 상황 |
 | :--- | :--- | :--- |
 | **openapi-typescript 7.x** | 런타임 코드 없이 **타입만** 생성. `openapi-fetch`와 조합 시 가장 가벼움. `--read-write-markers`로 readOnly/writeOnly 자동 분리 | 번들 크기 최소화, 타입만 필요 |
-| **@hey-api/openapi-ts** | TypeScript + SDK + Zod + TanStack Query 훅까지 한 번에 생성. **ESM 전용**, 20+ 플러그인. Vercel·PayPal 채택 | 풀스택 SDK 자동 생성, 신규 프로젝트 |
+| **@hey-api/openapi-ts** | TypeScript + SDK + Zod + TanStack Query 훅까지 한 번에 생성. **ESM 전용**, 플러그인 기반 확장 | 풀스택 SDK 자동 생성, 신규 프로젝트 |
 | **Orval v7+** | React Query/SWR/Angular/Vue 훅 + **MSW 핸들러 자동 생성**(Faker 데이터) + Zod 스키마 | 프론트 모킹까지 통합 자동화 |
 | **Kubb** | 플러그인 기반, 부분 도입에 유리 | 기존 코드젠 일부만 교체 |
 
@@ -300,7 +332,7 @@ export const useCreateUser = () => {
 
 ```bash
 # CI 파이프라인에서 명세 변경 감지 후 자동 코드젠
-# .github/workflows/api-sync.yml 에서 사용
+# .ci/workflows/api-sync.yml 에서 사용
 npm run api:sync
 
 # 타입 오류 확인 — 명세 변경으로 인한 깨진 부분 즉시 발견
@@ -613,7 +645,7 @@ test('병렬로 실행되어도 다른 테스트에 영향 없이 격리되는 �
 });
 ```
 
-> **권장 패턴**: 병렬 테스트에서는 `afterEach(server.resetHandlers)`만으로는 race condition을 완벽히 막을 수 없습니다. **오버라이드가 필요한 테스트는 항상 `server.boundary(...)` 안에서 수행**하면 다른 워커의 요청과 충돌하지 않습니다.
+> **권장 패턴**: 병렬 테스트에서는 `afterEach(server.resetHandlers)`만으로는 race condition을 안정적으로 막기 어렵습니다. **오버라이드가 필요한 테스트는 항상 `server.boundary(...)` 안에서 수행**하면 다른 워커의 요청과 충돌하지 않습니다.
 
 ### 2.7 `server.restoreHandlers()` — 일회성 핸들러 재사용
 
@@ -1047,7 +1079,7 @@ export function useUpdateUser() {
 
 ### 4.5 RSC Hydration — 서버 컴포넌트와 결합 (2026 표준)
 
-Next.js 15+ App Router에서는 **서버 컴포넌트에서 prefetch → 클라이언트에서 hydrate**가 사실상 표준 데이터 통신 패턴입니다. 서버는 초기 데이터를 안정적으로 채우고, 클라이언트는 동일 쿼리 키로 즉시 hydration된 캐시를 사용한 뒤 인터랙티브 갱신만 담당합니다.
+Next.js App Router에서는 **서버 컴포넌트에서 prefetch → 클라이언트에서 hydrate**가 널리 쓰이는 데이터 통신 패턴입니다. 서버는 초기 데이터를 안정적으로 채우고, 클라이언트는 동일 쿼리 키로 즉시 hydration된 캐시를 사용한 뒤 인터랙티브 갱신만 담당합니다. Next.js 15+ App Router 프로젝트도 동일 패턴을 적용할 수 있습니다.
 
 ```tsx
 // app/(routes)/users/page.tsx — 서버 컴포넌트
@@ -1261,9 +1293,9 @@ export function handleGlobalApiError(error: ApiError): void {
       break;
 
     case 'SERVER_ERROR':
-      // 서버 에러 → Sentry 보고 + 사용자 안내
-      // 연관: [09. Sentry 표준](./09_장애_대응_및_Sentry_표준.md)
-      Sentry.captureException(error.cause ?? new Error(error.message));
+      // 서버 에러 → 관측성 도구 보고 + 사용자 안내
+      // 연관: [09. 관측성 표준](./09_장애_대응_및_관측성_표준.md)
+      reportErrorToObservability(error.cause ?? new Error(error.message));
       toast.error('일시적인 서버 오류입니다. 잠시 후 다시 시도해주세요.');
       break;
 
@@ -1831,7 +1863,7 @@ const { data: userName } = useQuery({
 
 ---
 
-## ✅ 체크리스트
+## 체크리스트
 
 ### OpenAPI & 코드젠
 - [ ] 데이터 엔티티 타입을 수동으로 선언하지 않고 명세(OpenAPI)에서 자동 생성하고 있나요?
@@ -1879,4 +1911,4 @@ const { data: userName } = useQuery({
 ---
 
 > **다음 단계:** [07. 테스팅 가이드](./07_테스팅_가이드.md)에서 MSW를 활용한 통합 테스트 전략을 확인하세요.
-> **연관 가이드:** [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md) | [06. 웹 보안 심화 가이드](./06_웹_보안_심화_가이드.md) | [09. 장애 대응 및 Sentry 표준](./09_장애_대응_및_Sentry_표준.md)
+> **연관 가이드:** [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md) | [06. 웹 보안 심화 가이드](./06_웹_보안_심화_가이드.md) | [09. 장애 대응 및 관측성 표준](./09_장애_대응_및_관측성_표준.md)

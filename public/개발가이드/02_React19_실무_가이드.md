@@ -2,7 +2,7 @@
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
-| **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [03. 상태 관리](./03_상태관리_패턴_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md) | **AI 도구** | Claude Code, Cursor |
+| **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [03. 상태 관리](./03_상태관리_패턴_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md) | **도구 원칙** | 벤더 중립 |
 | **핵심 테마** | Actions, Server Functions, useActionState, useOptimistic, Ref as Props, React Compiler 1.0, Activity, useEffectEvent | **Update** | 2026.05 |
 
 ---
@@ -12,12 +12,45 @@
 >
 > **2026년 5월 기준 메이저 마일스톤**
 > - **React 19.2 (2025-10 릴리스)**: `<Activity>` 컴포넌트, `useEffectEvent`, `cacheSignal`, Suspense SSR 배칭, Partial Pre-rendering, Node 환경 `renderToReadableStream` 안정화
-> - **React Compiler 1.0 (2025-10 GA)**: Meta Quest Store, Instagram 등 프로덕션 검증 완료. `babel-plugin-react-compiler` 안정 채널 배포 (Vite/Next.js/Expo 공식 어댑터 제공)
+> - **React Compiler 1.0 (2025-10 GA)**: 안정 채널 배포. `babel-plugin-react-compiler`와 주요 프레임워크/빌드 도구 adapter를 기준으로 점진 도입합니다.
+> - **RSC 보안 패치 기준**: React Server Components를 사용하는 프레임워크/번들러는 `react-server-dom-webpack`, `react-server-dom-parcel`, `react-server-dom-turbopack` 19.2.4 이상을 기준으로 고정합니다.
 > - `<ViewTransition>` 은 아직 **canary**입니다(2026-05 기준). `useDeferredValue`/`startTransition`/Suspense 콜백 ↔ 콘텐츠 전환에서만 트리거됩니다.
 
 ---
 
-## 1. Actions: 비동기 상태 관리의 혁명
+## 0. 모든 프론트엔드 그룹 공통 Baseline
+
+React 표준은 특정 프레임워크나 회사 도구보다 **렌더링 경계, 비동기 UX, 장애 격리**를 일관되게 만드는 데 목적이 있습니다.
+
+| 기준 | 최소 적용 |
+| :--- | :--- |
+| **Server/Client 경계** | 서버에서 가능한 데이터 준비와 클라이언트 인터랙션을 분리하고, 클라이언트 컴포넌트는 필요한 경계에만 둡니다. |
+| **Suspense + Error Boundary** | 비동기 UI에는 fallback과 오류 복구 경로를 함께 설계합니다. 로딩만 있고 실패 상태가 없는 UI는 미완성으로 봅니다. |
+| **Forms/Actions 규칙** | 제출 중 상태, 중복 제출 방지, 서버 검증 오류 표시, 낙관적 업데이트 롤백을 기본 플로우로 포함합니다. |
+| **Compiler 친화 코드** | Hooks 규칙, 순수 렌더링, 안정적인 의존성 규칙을 `eslint-plugin-react-hooks@latest`로 자동 검증합니다. |
+| **성능 기본값** | `memo` 남발보다 데이터 경계, 리스트 가상화, 이미지/폰트 최적화, transition 분리를 우선합니다. |
+| **접근성 기본값** | 네이티브 요소, 포커스 관리, 키보드 조작, reduced motion 대응을 컴포넌트 완료 조건에 포함합니다. |
+
+### 0.1 교차 검증 매트릭스
+
+| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
+| :--- | :--- | :--- | :--- | :--- |
+| React 19.2 기능 채택 | React 19.2 공식 릴리스 | component test, hydration/E2E smoke | route error rate, INP p75 | canary 기능은 flag와 fallback 필요 |
+| React Compiler | React Compiler 1.0 공식 릴리스 | hooks/compiler lint, build 비교 | render count, interaction latency | compile time 또는 회귀 증가 시 opt-out |
+| RSC 보안 기준 | React RSC 보안 권고 | dependency audit, patched range check | server action error/incident 추적 | 미패치 프레임워크는 RSC 사용 중단 |
+
+### 0.2 운영 게이트
+
+| Gate | Evidence | Owner | Rollback |
+| :--- | :--- | :--- | :--- |
+| React upgrade gate | migration diff, component smoke, hydration trace | App owner | 이전 React minor pinning |
+| Compiler adoption gate | hooks lint, build diff, render count comparison | Platform owner | compiler opt-out 또는 package별 disable |
+| Server/client boundary gate | RSC/RCC boundary review, serialization test | Feature owner | client boundary로 회귀 후 RFC 재검토 |
+| Form action gate | pending/error/rollback E2E | Feature owner | 기존 client mutation path 유지 |
+
+---
+
+## 1. Actions: 비동기 상태 관리 패턴
 
 과거에는 데이터 갱신 시 `isLoading`, `error`, `data` 상태를 각각 `useState`로 직접 관리해야 했습니다. React 19의 **Actions**를 사용하면 비동기 함수의 시작과 끝을 React가 추적하여 자동으로 상태를 관리해줍니다.
 
@@ -594,7 +627,7 @@ function LikeButton({ articleId, initialLiked, initialCount }: LikeButtonProps) 
 React Compiler(구 React Forget)는 빌드 타임에 컴포넌트를 자동 메모이제이션합니다. 수동으로 `memo`, `useMemo`, `useCallback`을 작성할 필요가 사라집니다.
 
 > **2025년 10월: React Compiler 1.0 안정화 (GA)**
-> Meta Quest Store, Instagram 등에서 프로덕션 검증을 거쳤습니다. Meta 측 측정 기준으로 **초기 로딩과 페이지 간 이동이 최대 12% 빨라졌고, 특정 인터랙션은 2.5배 이상 빨라졌다**고 보고됐습니다. 1.0에서는 옵셔널 체이닝/배열 인덱스 의존성 분석, 라이브러리 호환성, 점진적 롤아웃 가이드가 정식화됐습니다.
+> 1.0에서는 옵셔널 체이닝/배열 인덱스 의존성 분석, 라이브러리 호환성, 점진적 롤아웃 가이드가 정식화됐습니다. 실제 도입 효과는 공식 벤치마크 수치가 아니라 각 제품의 trace, interaction latency, bundle/hydration 지표로 검증합니다.
 
 ### 6.1 무엇이 바뀌나
 
@@ -650,11 +683,11 @@ function ListItem({ item, onSelect }: ItemProps) {
 
 ```bash
 # 1.0 안정 채널 설치 (실험 플래그 불필요)
-npm install -D babel-plugin-react-compiler eslint-plugin-react-compiler
+npm install -D babel-plugin-react-compiler eslint-plugin-react-hooks
 ```
 
 ```ts
-// Next.js 15+ (App Router 권장)
+// Next.js 16+ (App Router 권장)
 // next.config.ts — experimental 키가 아닌 최상위 옵션으로 승격됨
 const nextConfig = {
   reactCompiler: true,
@@ -684,7 +717,7 @@ export default {
 - 외부 스토어 구독 (`useSyncExternalStore`)
 - 의도적인 매번 재계산이 필요한 경우
 
-> **점진적 롤아웃 (공식 권장)**: 디렉터리 단위로 `"use no memo"` 디렉티브를 활용하여 일부 모듈만 컴파일러 적용을 제외할 수 있습니다. 새 화면부터 점진 적용 → `eslint-plugin-react-compiler`로 안티패턴 모니터링 → 전사 적용 순서가 일반적입니다.
+> **점진적 롤아웃 (공식 권장)**: 디렉터리 단위로 `"use no memo"` 디렉티브를 활용하여 일부 모듈만 컴파일러 적용을 제외할 수 있습니다. 새 화면부터 점진 적용 → `eslint-plugin-react-hooks@latest`의 compiler-powered 규칙으로 안티패턴 모니터링 → 전사 적용 순서가 일반적입니다.
 >
 > **마이그레이션 전략**: 기존 `memo`/`useMemo`/`useCallback`은 즉시 제거할 필요 없습니다. React Compiler가 활성화되면 중복 최적화가 될 뿐 오류는 발생하지 않습니다. 새 코드부터 작성하지 않으면 됩니다.
 
@@ -826,8 +859,8 @@ export const getRecommendations = cache(async (userId: string) => {
 
 ### 8.4 SSR Suspense 배칭 & Partial Pre-rendering
 
-- **SSR Suspense 배칭**: 19.2부터 거의 동시에 해소되는 Suspense 경계를 묶어 한 번에 노출합니다. 깜빡임이 줄어 클라이언트 동작과 일관됩니다. LCP가 2.5초 근처에 도달하면 자동으로 배칭을 중단하여 코어 웹 바이탈을 보호합니다.
-- **Partial Pre-rendering (PPR)**: 정적 셸을 CDN/엣지에서 즉시 응답하고, 동적 영역만 스트리밍으로 채워 넣는 방식이 React 코어에 정식 들어왔습니다. Next.js 15.x에서 가장 먼저 활용됩니다.
+- **SSR Suspense 배칭**: 19.2부터 거의 동시에 해소되는 Suspense 경계를 묶어 한 번에 노출합니다. 깜빡임이 줄어 클라이언트 동작과 일관됩니다. 공식 Core Web Vitals LCP good 기준인 2.5초에 근접하면 배칭을 중단해 초기 표시 지연을 제한합니다.
+- **Partial Pre-rendering (PPR)**: 정적 셸을 CDN/엣지에서 즉시 응답하고, 동적 영역만 스트리밍으로 채워 넣는 방식입니다. Next.js 16의 Cache Components와 함께 production 운영 패턴으로 정리되었습니다.
 - **Node `renderToReadableStream`**: 19.2부터 Node 환경에서도 Web Streams 기반 SSR이 안정 지원됩니다. Edge 런타임과 코드를 공유하기 쉬워졌습니다.
 
 ### 8.5 `<ViewTransition>` (canary, 2026-05 기준 미안정)
@@ -837,7 +870,7 @@ export const getRecommendations = cache(async (userId: string) => {
 - `setState` 즉시 업데이트는 트랜지션을 발동시키지 **않음**
 - `startTransition`, `useDeferredValue`, Action, Suspense fallback → content 전환만 발동
 - 브라우저 요구사항: Chromium 111+, Firefox 144+, Safari 18.2+
-- Next.js 15.x에서는 `<ViewTransition>` 활용 가이드가 별도 문서로 제공됩니다.
+- Next.js 16.x에서는 PPR/Cache Components와 클라이언트 전환 전략을 분리해 설계합니다.
 
 ```tsx
 // 안정 채널로 진입 전까지는 react@canary, react-dom@canary 사용 필요
@@ -861,11 +894,14 @@ function Gallery({ id }: { id: string }) {
 
 ```bash
 # 1단계: 패키지 업그레이드 (19.2가 현재 안정 라인)
-npm install react@^19.2 react-dom@^19.2
+npm install react@latest react-dom@latest
+
+# RSC를 직접 의존하는 경우 보안 패치 기준을 별도로 확인
+npm install react-server-dom-webpack@^19.2.4
 npm install -D @types/react@^19 @types/react-dom@^19
 
 # 2단계: React Compiler 1.0 도입 (안정 채널)
-npm install -D babel-plugin-react-compiler eslint-plugin-react-compiler
+npm install -D babel-plugin-react-compiler eslint-plugin-react-hooks
 
 # 3단계: 린트 규칙 업데이트 (useEffectEvent 호환)
 npm install -D eslint-plugin-react-hooks@latest
@@ -1022,17 +1058,20 @@ useEffect(() => {
 
 ---
 
-## AI 프롬프트 가이드
+## AI 보조 React 마이그레이션 검증
 
-> **React 19 마이그레이션 프롬프트 예시:**
-> "이 React 18 컴포넌트를 React 19 스타일로 리팩토링해줘. forwardRef를 제거하고, useState 기반 비동기 상태 관리를 useActionState로 전환하고, 필요하면 useOptimistic을 적용해줘."
+AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)를 따릅니다. React 마이그레이션 초안은 hydration, accessibility, form failure path를 통과해야 병합합니다.
 
-> **Server Action 프롬프트 예시:**
-> "이 API 라우트를 Server Action으로 전환해줘. Zod 검증, 에러 핸들링, revalidatePath를 포함하고, 클라이언트에서는 useActionState로 호출하는 폼 컴포넌트도 만들어줘."
+| 시나리오 | 입력 | AI 산출물 | 필수 검증 |
+| :--- | :--- | :--- | :--- |
+| React 18 -> 19 전환 | 컴포넌트 코드, 사용 중인 API | ref-as-prop, action, optimistic UI 후보 | component test, hydration smoke |
+| Server Action 설계 | API 계약, validation schema | action + form wiring 초안 | pending/error/rollback E2E |
+| Compiler 친화 리팩터 | lint report, render hotspot | rules-of-react 위반 수정안 | compiler lint, render count 비교 |
+| RSC 경계 검토 | route data flow, client interaction | server/client split 후보 | serialization test, bundle diff |
 
 ---
 
-## ✅ 체크리스트
+## 체크리스트
 
 ### 기본 적용
 - [ ] 비동기 작업 상태 관리에 `useActionState`를 도입하여 불필요한 `useState` 보일러플레이트를 제거했나요?
@@ -1052,7 +1091,7 @@ useEffect(() => {
 - [ ] Document Metadata를 컴포넌트 내에서 직접 관리하고 있나요?
 
 ### 성능 및 마이그레이션
-- [ ] React Compiler **1.0**(안정 채널)을 도입했고, `eslint-plugin-react-compiler`로 안티패턴을 모니터링하나요?
+- [ ] React Compiler **1.0**(안정 채널)을 도입했고, `eslint-plugin-react-hooks@latest`의 compiler-powered 규칙으로 안티패턴을 모니터링하나요?
 - [ ] `use(promise)`에서 렌더링마다 새 Promise를 생성하지 않도록 주의했나요?
 - [ ] `ReactDOM.render`, `string ref` 등 제거된 API를 사용하고 있지 않나요?
 - [ ] React 18 → 19 codemod를 실행하여 자동 마이그레이션을 완료했나요?
