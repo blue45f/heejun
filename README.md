@@ -48,7 +48,7 @@
 | Area | Baseline |
 |------|----------|
 | React | React 19.2 라인, React Compiler 1.0 stable, RSC 사용 시 `react-server-dom-*` 19.2.4 이상 패치 기준 |
-| TypeScript | TypeScript 5.9, `import defer`, `--module node20`, `--erasableSyntaxOnly` 포함 |
+| TypeScript | TypeScript 6.0 안정판 기준, 5.8/5.9 기능(`--erasableSyntaxOnly`, `--module node20`, `import defer`)은 지원 환경별 opt-in, TypeScript 7.0 Beta는 side-by-side 검증 |
 | Framework | Next.js 16 App Router, Cache Components, Partial Prerendering(PPR) 운영 패턴 |
 | Build | Vite 8, Rolldown/Oxc 기반 툴체인, Tailwind CSS v4 |
 | Testing | Vitest 4 Browser Mode, Playwright 1.60 라인과 Test Agents, Storybook 9 |
@@ -93,7 +93,7 @@
 
 | No | Document | Focus |
 |----|----------|-------|
-| 01 | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md) | TypeScript 5.9, Zod 4, Standard Schema, branded types |
+| 01 | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md) | TypeScript 6.0, TypeScript 7.0 Beta 전환, Zod 4, Standard Schema |
 | 02 | [React 19 실무 가이드](public/개발가이드/02_React19_실무_가이드.md) | React 19.2, Actions, Compiler, RSC 보안 기준 |
 | 03 | [상태관리 패턴 가이드](public/개발가이드/03_상태관리_패턴_가이드.md) | TanStack Query, Zustand, URL state, Signals 동향 |
 | 04 | [아키텍처 설계 패턴](public/개발가이드/04_아키텍처_설계_패턴.md) | FSD, Clean Architecture, RSC 경계 설계 |
@@ -157,7 +157,12 @@
 - [React 19.2 release](https://react.dev/blog/2025/10/01/react-19-2)
 - [React Compiler v1.0](https://react.dev/blog/2025/10/07/react-compiler-1)
 - [React Server Components security advisory](https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components)
+- [React ViewTransition canary reference](https://react.dev/reference/react/ViewTransition)
+- [TypeScript 6.0 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/)
+- [TypeScript 7.0 Beta announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-beta/)
 - [TypeScript 5.9 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9/)
+- [Zod 4 release notes](https://zod.dev/v4)
+- [Standard Schema](https://standardschema.dev/)
 - [Next.js 16 release](https://nextjs.org/blog/next-16)
 - [Vite 8 announcement](https://vite.dev/blog/announcing-vite8)
 - [Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4)

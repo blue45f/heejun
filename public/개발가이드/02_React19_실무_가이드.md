@@ -59,6 +59,25 @@ React 표준은 특정 프레임워크나 회사 도구보다 **렌더링 경계
 | Server/client boundary gate | RSC/RCC boundary review, serialization test | Feature owner | client boundary로 회귀 후 RFC 재검토 |
 | Form action gate | pending/error/rollback E2E | Feature owner | 기존 client mutation path 유지 |
 
+### 0.3 React 기능 안정성 계약
+
+React 19 이후의 기능은 stable, stable-but-opt-in, security-gated, canary를 구분해서 채택합니다. 이 구분을 하지 않으면 실험 기능이 제품 표준으로 오해되거나, RSC 패치 누락처럼 보안 리스크가 릴리스 게이트를 통과할 수 있습니다.
+
+| 등급 | 기능/범위 | 채택 기준 | 필수 증거 |
+| :--- | :--- | :--- | :--- |
+| **Stable baseline** | Actions, `useActionState`, `useFormStatus`, `useOptimistic`, ref as prop, document metadata, `<Activity>`, `useEffectEvent` | React 19.2 라인에서 컴포넌트 테스트와 hydration smoke를 통과한 뒤 기본 패턴으로 사용합니다. | component test, E2E smoke, hydration warning 0건 |
+| **Stable but opt-in** | React Compiler 1.0 | 전역 적용보다 패키지/route 단위로 시작하고, Hooks/Compiler lint와 render count 비교를 함께 둡니다. | `eslint-plugin-react-hooks`, build diff, interaction latency 비교 |
+| **RSC 보안 패치** | `react-server-dom-webpack`, `react-server-dom-parcel`, `react-server-dom-turbopack` | RSC/Server Functions를 사용하는 경우 19.2.4 이상 또는 동등한 backport(19.0.4, 19.1.5)를 강제합니다. | lockfile audit, framework advisory check, dependency override diff |
+| **Framework mediated** | Partial Pre-rendering, cache contract, Server Functions routing | React API만으로 판단하지 않고 Next.js/Remix/React Router 등 실제 프레임워크의 안정 채널과 배포 런타임을 함께 검토합니다. | framework release note, preview deployment smoke, rollback path |
+| **Canary only** | `<ViewTransition>`, `addTransitionType` | React Canary/Experimental 채널 기능입니다. 제품 기본값으로 쓰지 않고 feature flag, reduced-motion fallback, 브라우저 지원 검사를 함께 둡니다. | canary pinning ADR, visual regression, `prefers-reduced-motion` test |
+
+#### 채택 체크리스트
+
+- **서버 기능은 보안부터 확인**: RSC 또는 Server Functions를 켠 앱은 기능 테스트보다 먼저 취약 버전이 lockfile에 남아 있지 않은지 확인합니다.
+- **Compiler는 성능 증거와 함께 도입**: 빌드 성공만으로 채택하지 않고, re-render 감소, INP/interaction latency, bundle diff를 함께 비교합니다.
+- **Canary는 사용자 영향면을 제한**: `<ViewTransition>`은 시각적 향상으로만 사용하고, 실패해도 핵심 플로우가 유지되어야 합니다.
+- **프레임워크 기능은 프레임워크 문서가 기준**: React stable API와 프레임워크의 캐시/라우팅/런타임 안정성은 별도 판단합니다.
+
 ---
 
 ## 1. Actions: 비동기 상태 관리 패턴
@@ -880,12 +899,12 @@ export const getRecommendations = cache(async (userId: string) => {
 
 - `setState` 즉시 업데이트는 트랜지션을 발동시키지 **않음**
 - `startTransition`, `useDeferredValue`, Action, Suspense fallback → content 전환만 발동
-- 브라우저 요구사항: Chromium 111+, Firefox 144+, Safari 18.2+
+- 브라우저 지원은 View Transition API와 프로젝트의 Baseline 정책을 함께 확인하고, feature detection과 `prefers-reduced-motion` fallback을 둡니다.
 - Next.js 16.x에서는 PPR/Cache Components와 클라이언트 전환 전략을 분리해 설계합니다.
 
 ```tsx
 // 안정 채널로 진입 전까지는 react@canary, react-dom@canary 사용 필요
-import { unstable_ViewTransition as ViewTransition, useDeferredValue } from "react";
+import { ViewTransition, useDeferredValue } from "react";
 
 function Gallery({ id }: { id: string }) {
   const deferredId = useDeferredValue(id);

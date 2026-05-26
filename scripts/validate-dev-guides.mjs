@@ -31,7 +31,12 @@ const REQUIRED_SOURCE_URLS = [
   'https://react.dev/blog/2025/10/01/react-19-2',
   'https://react.dev/blog/2025/10/07/react-compiler-1',
   'https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components',
+  'https://react.dev/reference/react/ViewTransition',
+  'https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/',
+  'https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-beta/',
   'https://devblogs.microsoft.com/typescript/announcing-typescript-5-9/',
+  'https://zod.dev/v4',
+  'https://standardschema.dev/',
   'https://nextjs.org/blog/next-16',
   'https://vite.dev/blog/announcing-vite8',
   'https://tailwindcss.com/blog/tailwindcss-v4',
@@ -56,6 +61,14 @@ const REQUIRED_SOURCE_URLS = [
 ];
 
 const REQUIRED_GUIDE_SECTIONS = new Map([
+  [
+    '01_TypeScript_심화_가이드.md',
+    ['0.3 TypeScript 6/7 전환 계약', 'TypeScript 7.0 Beta', 'Standard Schema'],
+  ],
+  [
+    '02_React19_실무_가이드.md',
+    ['0.3 React 기능 안정성 계약', 'RSC 보안 패치', '<ViewTransition>'],
+  ],
   [
     '08_성능_최적화_가이드.md',
     ['0.3 Field 성능 증거 계약', 'web-vitals/attribution'],

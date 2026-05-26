@@ -5,7 +5,7 @@
 | **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [02. React 19](./02_React19_실무_가이드.md), [07. 테스팅](./07_테스팅_가이드.md) | **도구 원칙** | 벤더 중립 |
 | **핵심 테마** | Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type Guard, Generics | **Update** | 2026.05 |
 
-> **본 가이드는 TypeScript 5.8 / 5.9 기준입니다.** 5.9는 2025년 8월 GA되어 `import defer`, 강화된 추론 기본값, Stage 3 데코레이터 메타데이터 안정화를 포함합니다. 5.8은 `--erasableSyntaxOnly` 플래그와 conditional return 검사 강화를 도입했습니다.
+> **본 가이드는 2026년 5월 기준 TypeScript 6.0 안정판을 기본선으로 둡니다.** TypeScript 5.8/5.9의 `--erasableSyntaxOnly`, `--module node20`, `import defer`는 지원 런타임과 번들러가 확인된 경우에만 opt-in합니다. TypeScript 7.0 Beta는 Go 기반 native toolchain 전환 후보로, 기존 `tsc`와 side-by-side로 검증한 뒤 채택합니다.
 
 ---
 
@@ -55,6 +55,26 @@ TypeScript 표준은 팀 규모와 도메인에 상관없이 **런타임 경계�
 | Runtime boundary gate | schema test, invalid payload fixture | API/FE owner | schema enforcement를 warning mode로 낮추고 incident backlog 생성 |
 | Type generation gate | generated diff, contract test | API contract owner | 이전 generated artifact pinning |
 | Unsafe escape hatch gate | `any/as/!` lint report, PR rationale | Tech lead | escape hatch를 adapter 파일로 격리 |
+
+### 0.3 TypeScript 6/7 전환 계약
+
+TypeScript 버전 정책은 "새 기능을 빠르게 쓰기"보다 **타입 안정성, 빌드 재현성, 런타임 호환성**을 우선합니다. 신규 패키지는 TypeScript 6.0 안정판을 기준으로 하고, TypeScript 7.0 Beta는 성능과 호환성 증거가 필요한 실험 채널로 분리합니다.
+
+| 구분 | 채택 기준 | 검증 증거 |
+| :--- | :--- | :--- |
+| **TypeScript 6.0 stable** | 신규 패키지 기본선. `strict`를 켜고, `types`는 필요한 전역 타입만 명시합니다. `target/lib`는 evergreen 브라우저와 Node 지원 정책에 맞춰 `es2025` 이상을 우선 검토합니다. | `tsc --noEmit`, `tsc --showConfig`, DOM/Node type smoke test |
+| **6.0 마이그레이션 정리** | `target: es5`, `downlevelIteration`, `moduleResolution: node/node10/classic`, `module: amd/umd/systemjs/none`, `baseUrl` 의존을 제거합니다. | deprecation diff, tsconfig migration PR, build artifact 비교 |
+| **Module resolution** | 번들러 기반 웹 앱은 `moduleResolution: bundler` + `module: preserve`/`esnext`를 우선합니다. Node 런타임 패키지는 `node20` 또는 `nodenext` 중 배포 런타임과 맞는 옵션만 사용합니다. | runtime smoke, package exports/imports test, ESM/CJS interop test |
+| **`--erasableSyntaxOnly`** | Node의 type stripping 또는 타입 전용 소스 실행을 목표로 하는 패키지에서만 사용합니다. enum, runtime namespace, parameter property, `import =` 패턴은 신규 코드에서 금지합니다. | `tsc --erasableSyntaxOnly --noEmit`, lint rule, migration ADR |
+| **`import defer`** | `preserve`/`esnext` 모듈 출력과 런타임/번들러 지원이 모두 확인된 경우에만 사용합니다. 성능 최적화 목적이면 dynamic import, route split, prefetch와 비교합니다. | bundle output diff, browser/runtime smoke, startup metric |
+| **TypeScript 7.0 Beta** | 대형 코드베이스의 빌드/에디터 성능 검증용으로 `@typescript/native-preview@beta`와 `tsgo`를 기존 `tsc` 옆에서 실행합니다. 안정 API가 필요한 도구는 6.x에 남깁니다. | `tsc` vs `tsgo` diagnostics diff, build time p50/p95, editor smoke |
+
+#### 전환 원칙
+
+- **Stable first**: 제품 빌드와 릴리스 게이트는 안정판 TypeScript를 기준으로 합니다.
+- **Beta as shadow CI**: TypeScript 7.0 Beta는 빠른 피드백을 위해 nightly/optional CI에 연결하되, 실패가 제품 배포를 막는 게이트가 되려면 RFC와 롤백 기준이 필요합니다.
+- **No silent config drift**: `tsconfig.base.json`, 패키지별 override, generated type 설정은 변경 시 diff와 근거를 PR에 남깁니다.
+- **Runtime boundary first**: TypeScript 버전을 올려도 외부 입력은 여전히 `unknown`에서 시작하고 Standard Schema 호환 스키마로 검증합니다.
 
 ---
 
@@ -452,7 +472,7 @@ TypeScript에서 변수에 타입을 명시적으로 선언하면(`: Type`) 컴�
 
 `satisfies` 연산자는 **"이 값이 특정 타입을 만족하는지 검사하되, 원래의 구체적인 타입 추론은 유지해줘"**라는 의미입니다. 타입 안전성과 타입 추론의 정밀함을 동시에 얻을 수 있는 매우 유용한 기능입니다.
 
-> **TypeScript 5.9 업데이트**: `satisfies`가 복잡한 매핑 타입에 대해서도 리터럴 추론을 잃지 않도록 개선됐고, conditional 타입 분기에서 유니온 판별 후의 좁힘이 자동으로 적용됩니다. 과거에 `as` 캐스팅으로 해결하던 케이스 다수가 `satisfies`로 대체 가능해졌습니다.
+> **2026 적용 기준**: `satisfies`는 TypeScript 5.0 이후 안정적으로 사용할 수 있는 타입 검증 문법입니다. TypeScript 6.0/7.0 전환기에도 config 차이로 리터럴 타입이 넓어지는 문제를 줄이기 위해, 상수 설정·라우트 맵·디자인 토큰·API status map에는 `as`보다 `satisfies`를 우선합니다.
 
 ### 4.1 기본 사용법
 
@@ -1067,11 +1087,11 @@ function processGood<T extends { id: string; name: string }>(data: T) { /* ... *
 
 ---
 
-## 8. TypeScript 5.8 / 5.9 신규 기능 활용
+## 8. TypeScript 5.8-7.0 기능 채택 가이드
 
 ### 8.1 `--erasableSyntaxOnly` (5.8)
 
-Node.js 22+의 네이티브 TypeScript 실행, Deno, Bun처럼 "타입 주석만 제거하고 그대로 실행"하는 환경이 늘었습니다. `--erasableSyntaxOnly`를 켜면 `enum`, 네임스페이스, 파라미터 프로퍼티(`constructor(public name: string)`)처럼 **런타임 코드를 발생시키는 TS 전용 문법**을 즉시 컴파일 에러로 잡아줍니다.
+Node.js의 type stripping 계열 실행, Deno, Bun처럼 "타입 주석만 제거하고 그대로 실행"하는 환경이 늘었습니다. `--erasableSyntaxOnly`를 켜면 `enum`, 네임스페이스, 파라미터 프로퍼티(`constructor(public name: string)`)처럼 **런타임 코드를 발생시키는 TS 전용 문법**을 즉시 컴파일 에러로 잡아줍니다.
 
 ```jsonc
 // tsconfig.json
@@ -1115,49 +1135,56 @@ function renderDashboard(showCharts: boolean) {
 }
 ```
 
-런타임이 지원하지 않는 경우 번들러(Webpack 5.94+, Vite/Rollup 4.x)가 폴리필성으로 처리하지만, **서버 사이드 라우트 핸들러나 무거운 시각화 모듈에 적용하면 즉시 효과**가 보입니다.
+TypeScript는 `import defer`를 변환하거나 downlevel하지 않습니다. 따라서 `--module preserve` 또는 `--module esnext` 출력과 실제 런타임/번들러 지원이 모두 확인된 경우에만 사용합니다. 단순 성능 최적화 목적이라면 dynamic import, route-level code splitting, prefetch와 먼저 비교합니다.
 
-### 8.3 Stage 3 데코레이터 메타데이터 안정화 (5.9)
+### 8.3 TypeScript 6.0 전환 점검
 
-`Symbol.metadata` 기반 메타데이터가 안정 기능으로 진입했습니다. NestJS 11, Angular 18+ 같은 프레임워크가 native TC39 데코레이터로 마이그레이션할 수 있는 토대가 마련됐습니다. **레거시 `experimentalDecorators`**는 비권장이며, 신규 코드에는 표준 데코레이터를 권장합니다.
+TypeScript 6.0은 7.0 native toolchain으로 넘어가기 위한 전환 릴리스입니다. 새 프로젝트는 6.0의 기본값을 기준으로 두고, 기존 프로젝트는 deprecated option을 명시적으로 제거합니다.
 
-```typescript
-// 표준 데코레이터 + 메타데이터 (5.9 안정 기준)
-function logged<This, Args extends any[], Return>(
-  target: (this: This, ...args: Args) => Return,
-  context: ClassMethodDecoratorContext<This, typeof target>,
-) {
-  context.metadata[context.name] = "logged";
-  return function (this: This, ...args: Args): Return {
-    console.log(`[${String(context.name)}] called`, args);
-    return target.call(this, ...args);
-  };
-}
+| 항목 | 6.0 기준 |
+| :--- | :--- |
+| `types` | 전역 타입 자동 포함에 의존하지 말고 `["node"]`, `["vitest"]`처럼 필요한 타입만 명시합니다. |
+| `rootDir` | 추론에 의존하지 말고 `./src` 등 실제 소스 루트를 명시합니다. |
+| module resolution | 브라우저 번들 앱은 `bundler`, Node 런타임 패키지는 `node20`/`nodenext`를 사용합니다. |
+| legacy output | ES5, AMD/UMD/SystemJS, classic/node10 resolution은 신규 표준에서 제외합니다. |
+| declaration emit | public package는 declaration diff와 API extractor/타입 테스트를 함께 확인합니다. |
 
-class Service {
-  @logged
-  fetchUser(id: string) { /* ... */ }
-}
+### 8.4 TypeScript 7.0 Beta shadow CI
 
-// 메타데이터 접근
-console.log(Service[Symbol.metadata]?.fetchUser); // "logged"
+TypeScript 7.0 Beta는 Go 기반 native compiler/toolchain으로, 대형 코드베이스에서 빌드와 에디터 응답성을 크게 줄이는 것이 목표입니다. 다만 안정 programmatic API는 후속 릴리스에서 제공될 수 있으므로, 제품 게이트는 다음처럼 분리합니다.
+
+```bash
+# 기존 안정판 게이트
+pnpm exec tsc --noEmit
+
+# optional/shadow 게이트
+pnpm exec tsgo --noEmit
 ```
 
-### 8.4 `--strictInference` 와 모범 설정 (5.9)
+| 검증 | 통과 기준 |
+| :--- | :--- |
+| diagnostics diff | `tsc`와 `tsgo`의 에러 차이를 0건 또는 승인된 known issue로 관리 |
+| 성능 | cold/warm build p50/p95와 editor diagnostics latency를 기록 |
+| 리소스 | CI runner CPU/메모리에서 `--checkers`, `--builders`, `--singleThreaded` 옵션을 비교 |
+| tooling | typescript-eslint, API extractor, bundler plugin처럼 TypeScript API에 의존하는 도구는 6.x 호환 경로 유지 |
 
-5.9의 `--strict` 묶음에 추가된 `--strictInference`는 컨텍스트가 없는 곳에서 `any`로 추론되는 케이스를 좁혀 명시적 타이핑을 요구합니다. 신규 프로젝트는 다음 설정을 기본으로 권장합니다.
+### 8.5 모범 설정 (6.0+)
+
+신규 브라우저 번들 앱은 TypeScript 6.0 기준으로 아래 설정을 기본값에 가깝게 둡니다. Node 라이브러리, SSR 서버, CLI 패키지는 `module`, `moduleResolution`, `types`, `target`을 실제 배포 런타임에 맞게 별도 override합니다.
 
 ```jsonc
 // tsconfig.json (2026 권장 기본값)
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2025",
+    "lib": ["dom", "dom.iterable", "es2025"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "strict": true,                 // strictInference 포함
+    "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "erasableSyntaxOnly": true,     // Node/Deno/Bun 네이티브 실행 호환
+    "noUncheckedSideEffectImports": true,
+    "types": [],
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true
@@ -1358,12 +1385,13 @@ AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개
 - [ ] 템플릿 리터럴 타입으로 문자열 패턴을 강제하고 있나요?
 - [ ] 매핑된 타입으로 반복적인 타입 정의를 자동화했나요?
 
-### 모던 컴파일러 설정 (TS 5.8 / 5.9)
-- [ ] `--strict`(strictInference 포함), `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`를 켰나요?
-- [ ] Node 22+/Deno/Bun 네이티브 실행 호환을 위해 `--erasableSyntaxOnly`를 검토했나요?
+### 모던 컴파일러 설정 (TS 6.0+)
+- [ ] `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`를 켰나요?
+- [ ] `types`, `rootDir`, `moduleResolution`을 TypeScript 6.0 기준에 맞게 명시했나요?
+- [ ] type stripping 실행 호환이 필요한 패키지에서만 `--erasableSyntaxOnly`를 검토했나요?
 - [ ] `enum` 사용처를 `as const` 객체로 마이그레이션했나요?
-- [ ] 무거운 모듈에 `import defer`를 적용하여 콜드 스타트를 개선했나요?
-- [ ] 레거시 `experimentalDecorators` 대신 Stage 3 표준 데코레이터를 사용하나요?
+- [ ] `import defer`를 사용한다면 런타임/번들러 지원과 대체안(dynamic import, route split)을 비교했나요?
+- [ ] TypeScript 7.0 Beta를 도입한다면 기존 `tsc`와 `tsgo` diagnostics diff를 shadow CI에서 비교하나요?
 
 ---
 
