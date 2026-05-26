@@ -2526,7 +2526,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] `navigator.storage.persist()`로 영속성 확보, 미지원 환경 폴백 처리
 - [ ] Web Locks API로 SW ↔ 탭 간 동시 쓰기 충돌 방지
 
-### 12.6 App Manifest
+### 12.7 App Manifest
 
 - [ ] `manifest.json`에 `name`, `short_name`, `start_url`, `display`, `theme_color` 포함
 - [ ] 아이콘: 192x192 + 512x512 필수, maskable 아이콘 별도 포함
@@ -2536,7 +2536,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] `share_target` 설정으로 Web Share Target 지원 (선택)
 - [ ] `<meta name="theme-color">` 태그가 HTML `<head>`에 존재
 
-### 12.7 멀티 환경 & 배포
+### 12.8 멀티 환경 & 배포
 
 - [ ] 환경별(Production/Staging/Canary/Preview) Service Worker 캐시 전략 분리
 - [ ] Preview 환경에서 `beforeinstallprompt` 차단
@@ -2546,7 +2546,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] Lighthouse CI에서 PWA 점수 90+ 유지 ([08. 성능 최적화 가이드](./08_성능_최적화_가이드.md) 참조)
 - [ ] [12. CDN 캐시 전략](./12_CDN_캐시_전략.md)과 SW 캐시 간 TTL 정합성 확인
 
-### 12.8 테스트
+### 12.9 테스트
 
 - [ ] Playwright로 오프라인 폴백 E2E 테스트 작성
 - [ ] SW 등록/갱신 테스트 자동화
@@ -2558,3 +2558,5 @@ test.describe('PWA 오프라인 기능', () => {
 ---
 
 > **다음 단계**: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다. [12. CDN 캐시 전략](./12_CDN_캐시_전략.md)에서 CDN 레벨의 캐시 무효화 및 TTL 설정을 함께 확인하세요. 성능 지표 모니터링은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참조하세요.
+
+문서 최종 업데이트: 2026-05-27
