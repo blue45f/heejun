@@ -166,6 +166,8 @@
 - [Playwright Test Agents](https://playwright.dev/docs/test-agents)
 - [Storybook 9](https://storybook.js.org/blog/storybook-9/)
 - [Core Web Vitals thresholds](https://developers.google.com/search/docs/appearance/core-web-vitals)
+- [Interaction to Next Paint](https://web.dev/inp/)
+- [Find slow interactions in the field](https://web.dev/articles/find-slow-interactions-in-the-field)
 - [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introduction/)
 - [WCAG 2.2 ISO/IEC 40500:2025](https://www.w3.org/press-releases/2025/wcag22-iso-pas/)
 - [WAI-ARIA 1.3 Working Draft](https://www.w3.org/TR/wai-aria-1.3/)

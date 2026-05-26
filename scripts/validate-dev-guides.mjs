@@ -40,6 +40,8 @@ const REQUIRED_SOURCE_URLS = [
   'https://playwright.dev/docs/test-agents',
   'https://storybook.js.org/blog/storybook-9/',
   'https://developers.google.com/search/docs/appearance/core-web-vitals',
+  'https://web.dev/inp/',
+  'https://web.dev/articles/find-slow-interactions-in-the-field',
   'https://owasp.org/Top10/2025/0x00_2025-Introduction/',
   'https://www.w3.org/press-releases/2025/wcag22-iso-pas/',
   'https://www.w3.org/TR/wai-aria-1.3/',
@@ -48,6 +50,17 @@ const REQUIRED_SOURCE_URLS = [
   'https://opentelemetry.io/docs/languages/js/',
   'https://slsa.dev/spec/',
 ];
+
+const REQUIRED_GUIDE_SECTIONS = new Map([
+  [
+    '08_성능_최적화_가이드.md',
+    ['0.3 Field 성능 증거 계약', 'web-vitals/attribution'],
+  ],
+  [
+    '13_브라우저_호환성_가이드.md',
+    ['0.3 Baseline 단계별 채택 기준', 'Limited availability', 'Widely available'],
+  ],
+]);
 
 function readText(file) {
   return fs.readFileSync(file, 'utf8');
@@ -319,6 +332,27 @@ function validateSourceRegistry(files) {
   return errors;
 }
 
+function validateRequiredGuideSections(guideFiles) {
+  const errors = [];
+
+  for (const file of guideFiles) {
+    const required = REQUIRED_GUIDE_SECTIONS.get(path.basename(file));
+
+    if (!required) {
+      continue;
+    }
+
+    const text = readText(file);
+    const missing = required.filter((section) => !text.includes(section));
+
+    if (missing.length > 0) {
+      errors.push(`${path.relative(ROOT, file)} missing required section text: ${missing.join(', ')}`);
+    }
+  }
+
+  return errors;
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
@@ -332,6 +366,7 @@ const failures = [
   ...validateForbiddenText(files),
   ...validateStaleEditionText(publicTextFiles),
   ...validateSourceRegistry(sourceRegistryFiles),
+  ...validateRequiredGuideSections(guideFiles),
 ];
 
 if (failures.length > 0) {
