@@ -170,7 +170,7 @@
 ## Maintenance
 
 - 기준일은 문서 상단의 `Update` 필드와 README의 `Verified Snapshot`에 명시합니다.
-- 문서 구조, 로컬 링크, 내부 앵커, 중복 번호, 회사 종속 표현, 과장 표현은 `node scripts/validate-dev-guides.mjs`로 검증하고, 동일한 검증을 GitHub Actions에서 PR/push 게이트로 실행합니다.
+- 문서 구조, 00-26 파일 연속성, README/사이트 문서 인덱스, 로컬 링크, 내부 앵커, 중복 번호, 회사 종속 표현, 과장 표현은 `node scripts/validate-dev-guides.mjs`로 검증하고, 동일한 검증을 GitHub Actions에서 PR/push 게이트로 실행합니다.
 - 보안 권고, 브라우저 정책, Core Web Vitals, 프레임워크 메이저 릴리스는 월 1회 검토합니다.
 - 실무 예제는 CI에서 실행 가능한 형태를 우선하고, 실행 불가능한 예제는 의사코드임을 명시합니다.
 - AI가 생성한 내용은 공식 문서, 실제 코드, 테스트 결과 중 최소 하나로 검증한 뒤 반영합니다.

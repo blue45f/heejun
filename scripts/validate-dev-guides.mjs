@@ -5,6 +5,7 @@ import process from 'node:process';
 const ROOT = process.cwd();
 const GUIDE_DIR = path.join(ROOT, 'public', '개발가이드');
 const README = path.join(ROOT, 'README.md');
+const INDEX_HTML = path.join(ROOT, 'index.html');
 
 const REQUIRED_DOC_MARKERS = [
   '문서 책임 범위',
@@ -62,6 +63,38 @@ function markdownFiles() {
     .map((file) => path.join(GUIDE_DIR, file));
 
   return [README, ...guideFiles];
+}
+
+function guideBasenames(guideFiles) {
+  return guideFiles.map((file) => path.basename(file)).sort();
+}
+
+function validateGuideSequence(guideFiles) {
+  const errors = [];
+  const names = guideBasenames(guideFiles);
+  const expectedPrefixes = Array.from({ length: 27 }, (_, index) =>
+    String(index).padStart(2, '0'),
+  );
+
+  for (const name of names) {
+    if (!/^[0-9]{2}_.+\.md$/.test(name)) {
+      errors.push(`guide filename does not match NN_name.md: ${name}`);
+    }
+  }
+
+  for (const prefix of expectedPrefixes) {
+    const matches = names.filter((name) => name.startsWith(`${prefix}_`));
+
+    if (matches.length === 0) {
+      errors.push(`missing guide prefix: ${prefix}`);
+    }
+
+    if (matches.length > 1) {
+      errors.push(`duplicate guide prefix ${prefix}: ${matches.join(', ')}`);
+    }
+  }
+
+  return errors;
 }
 
 function validateStructure(guideFiles) {
@@ -165,6 +198,46 @@ function validateLinks(files) {
   return errors;
 }
 
+function validateGuideIndexReferences(guideFiles) {
+  const errors = [];
+  const expected = new Set(guideBasenames(guideFiles));
+  const readmeGuideLinks = new Set();
+  const siteGuideLinks = new Set();
+  const readmeText = readText(README);
+  const siteText = readText(INDEX_HTML);
+
+  for (const match of readmeText.matchAll(/\]\(public\/개발가이드\/([^)#]+\.md)(?:#[^)]+)?\)/g)) {
+    readmeGuideLinks.add(match[1]);
+  }
+
+  for (const match of siteText.matchAll(/github\.com\/blue45f\/heejun\/blob\/main\/public\/개발가이드\/([^"]+\.md)/g)) {
+    try {
+      siteGuideLinks.add(decodeURI(match[1]));
+    } catch {
+      siteGuideLinks.add(match[1]);
+    }
+  }
+
+  for (const [label, links] of [
+    ['README guide index', readmeGuideLinks],
+    ['index.html guide links', siteGuideLinks],
+  ]) {
+    for (const name of expected) {
+      if (!links.has(name)) {
+        errors.push(`${label} missing guide: ${name}`);
+      }
+    }
+
+    for (const name of links) {
+      if (!expected.has(name)) {
+        errors.push(`${label} references unknown guide: ${name}`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 function validateForbiddenText(files) {
   const errors = [];
 
@@ -188,9 +261,11 @@ function validateForbiddenText(files) {
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const failures = [
+  ...validateGuideSequence(guideFiles),
   ...validateStructure(guideFiles),
   ...validateDuplicateNumberedHeadings(guideFiles),
   ...validateLinks(files),
+  ...validateGuideIndexReferences(guideFiles),
   ...validateForbiddenText(files),
 ];
 

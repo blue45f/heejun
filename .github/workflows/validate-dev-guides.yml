@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - 'README.md'
+      - 'index.html'
       - 'scripts/validate-dev-guides.mjs'
       - 'public/개발가이드/**/*.md'
       - '.github/workflows/validate-dev-guides.yml'
   pull_request:
     paths:
       - 'README.md'
+      - 'index.html'
       - 'scripts/validate-dev-guides.mjs'
       - 'public/개발가이드/**/*.md'
       - '.github/workflows/validate-dev-guides.yml'
