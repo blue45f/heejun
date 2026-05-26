@@ -54,6 +54,28 @@
 
 ---
 
+### 0.3 공급망 증적 계약
+
+CI/CD의 공급망 보안은 “취약점 스캔을 실행했다”가 아니라, 소스에서 artifact까지 이어지는 증거 체인을 남기는 것입니다. SLSA v1.2는 provenance와 artifact 검증을, NIST SSDF는 secure SDLC 활동을 구조화하는 기준으로 사용합니다.
+
+| 증적 | 필수 필드 | 생성 시점 | 검증 시점 |
+| :--- | :--- | :--- | :--- |
+| Source revision | commit SHA, branch/tag, author/reviewer, protected status | merge | build 시작 전 |
+| Dependency evidence | lockfile hash, package manager version, audit/signature result | install | PR과 release |
+| SBOM | package name/version/license, transitive dependency, artifact id | build 직후 | release 승인, incident triage |
+| Provenance/attestation | source repository, workflow id, runner/builder, subject digest | artifact 생성 직후 | deploy 승격 전 |
+| Checksum | artifact digest, signing/attestation reference | artifact 업로드 | rollback/download 전 |
+| Deployment evidence | environment, approver, release id, rollback artifact | promotion | incident/postmortem |
+
+| 통제 | 기준 | 실패 시 |
+| :--- | :--- | :--- |
+| 최소 권한 token | job별 `contents: read`, 필요한 경우에만 `id-token: write`, `attestations: write` | workflow permission 축소 전 merge 보류 |
+| OIDC | 장기 cloud key 대신 job 단위 short-lived token | secret 기반 배포는 만료일 있는 예외로만 허용 |
+| Action/재사용 workflow 고정 | mutable ref 대신 SHA pin 또는 검증된 immutable release 정책 | high-risk workflow는 실행 차단 |
+| Artifact 검증 | deploy job이 checksum/provenance를 검증한 artifact만 사용 | artifact 폐기와 재빌드 |
+
+---
+
 ## 1. 파이프라인 구조
 
 권장 순서는 빠른 실패에서 느린 검증으로 이동합니다.
@@ -118,6 +140,29 @@ change
 
 보안 검사는 가장 늦은 production 직전에 처음 돌리면 비용이 큽니다. PR 단계에서 빠른 secret/dependency scan을 먼저 실행합니다.
 
+### 4.1 provenance 검증 예시
+
+아래 예시는 특정 플랫폼 문법을 표준으로 강제하기 위한 것이 아니라, 어떤 CI에서도 필요한 permission과 검증 흐름을 보여주기 위한 참고입니다.
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+steps:
+  - run: build-command
+  - run: sha256sum dist/app.tar.gz > dist/app.sha256
+  - name: Generate artifact attestation
+    uses: actions/attest@v4
+    with:
+      subject-path: dist/app.tar.gz
+  - name: Verify artifact attestation before deploy
+    run: gh attestation verify dist/app.tar.gz -R ORG/REPO
+```
+
+배포 job은 build job에서 생성한 artifact를 다운로드하고, checksum과 provenance를 확인한 뒤에만 환경 승격을 수행합니다. 환경별 재빌드는 금지합니다.
+
 ---
 
 ## 5. Branch와 Release 전략
@@ -171,6 +216,8 @@ production 배포는 자동화되어야 하지만 자동 승인까지 요구하�
 - [ ] 핵심 flow E2E와 preview smoke가 있는가
 - [ ] secret scan과 dependency audit이 merge 전에 실행되는가
 - [ ] build artifact가 immutable이고 재사용되는가
+- [ ] deploy job이 checksum과 provenance/attestation을 검증하는가
+- [ ] 장기 cloud key 대신 OIDC 기반 short-lived credential을 사용하는가
 - [ ] sourcemap이 public artifact에 노출되지 않는가
 - [ ] production 배포에는 승인 조건과 rollback 경로가 있는가
 - [ ] 실패 trace, test report, SBOM, provenance가 보관되는가

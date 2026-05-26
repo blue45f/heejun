@@ -43,12 +43,16 @@ const REQUIRED_SOURCE_URLS = [
   'https://web.dev/inp/',
   'https://web.dev/articles/find-slow-interactions-in-the-field',
   'https://owasp.org/Top10/2025/0x00_2025-Introduction/',
+  'https://www.rfc-editor.org/rfc/rfc9700',
+  'https://csrc.nist.gov/pubs/sp/800/218/final',
   'https://www.w3.org/press-releases/2025/wcag22-iso-pas/',
   'https://www.w3.org/TR/wai-aria-1.3/',
   'https://www.ada.gov/resources/2024-03-08-web-rule/',
   'https://web.dev/baseline',
   'https://opentelemetry.io/docs/languages/js/',
   'https://slsa.dev/spec/',
+  'https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations',
+  'https://docs.github.com/en/actions/concepts/security/openid-connect',
 ];
 
 const REQUIRED_GUIDE_SECTIONS = new Map([
@@ -59,6 +63,14 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   [
     '13_브라우저_호환성_가이드.md',
     ['0.3 Baseline 단계별 채택 기준', 'Limited availability', 'Widely available'],
+  ],
+  [
+    '06_웹_보안_심화_가이드.md',
+    ['0.4 인증·공급망 공식 표준 해석', 'RFC 9700 OAuth 2.0 Security BCP'],
+  ],
+  [
+    '11_CICD_파이프라인_표준.md',
+    ['0.3 공급망 증적 계약', 'provenance/attestation', 'OIDC'],
   ],
 ]);
 

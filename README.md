@@ -52,7 +52,7 @@
 | Framework | Next.js 16 App Router, Cache Components, Partial Prerendering(PPR) 운영 패턴 |
 | Build | Vite 8, Rolldown/Oxc 기반 툴체인, Tailwind CSS v4 |
 | Testing | Vitest 4 Browser Mode, Playwright 1.60 라인과 Test Agents, Storybook 9 |
-| Security | OWASP Top 10:2025, OAuth 2.1, CSP3, Trusted Types, supply-chain attestation |
+| Security | OWASP Top 10:2025, RFC 9700 OAuth 2.0 Security BCP, CSP3, Trusted Types, SLSA/SSDF supply-chain evidence |
 | Performance | 공식 Core Web Vitals 기준 LCP 2.5s / INP 200ms / CLS 0.1, 내부 권장 예산은 LCP 2.0s |
 | Accessibility | WCAG 2.2 AA, ISO/IEC 40500:2025, WAI-ARIA 1.2 stable + ARIA 1.3 draft watch |
 
@@ -169,12 +169,16 @@
 - [Interaction to Next Paint](https://web.dev/inp/)
 - [Find slow interactions in the field](https://web.dev/articles/find-slow-interactions-in-the-field)
 - [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introduction/)
+- [RFC 9700 OAuth 2.0 Security BCP](https://www.rfc-editor.org/rfc/rfc9700)
+- [NIST SSDF SP 800-218](https://csrc.nist.gov/pubs/sp/800/218/final)
 - [WCAG 2.2 ISO/IEC 40500:2025](https://www.w3.org/press-releases/2025/wcag22-iso-pas/)
 - [WAI-ARIA 1.3 Working Draft](https://www.w3.org/TR/wai-aria-1.3/)
 - [ADA Title II web accessibility rule](https://www.ada.gov/resources/2024-03-08-web-rule/)
 - [Web Platform Baseline](https://web.dev/baseline)
 - [OpenTelemetry JavaScript](https://opentelemetry.io/docs/languages/js/)
 - [SLSA specification](https://slsa.dev/spec/)
+- [GitHub artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)
+- [GitHub Actions OIDC](https://docs.github.com/en/actions/concepts/security/openid-connect)
 
 ## Maintenance
 
