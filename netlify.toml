@@ -1,0 +1,57 @@
+# Netlify 배포 설정 — 정적 사이트(index.html + public/) 직접 서빙
+# DNS A 레코드를 75.2.60.5(또는 ALIAS/CNAME → <site>.netlify.app)로 바꾸면
+# Netlify가 자동으로 Let's Encrypt 인증서를 발급합니다.
+
+[build]
+  publish = "."
+  command = "node scripts/validate-dev-guides.mjs && node scripts/validate-recommendation-templates.mjs"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# www → apex 도메인으로 통일 (301 영구 리다이렉트)
+[[redirects]]
+  from = "https://www.heejun.store/*"
+  to = "https://heejun.store/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.heejun.store/*"
+  to = "https://heejun.store/:splat"
+  status = 301
+  force = true
+
+# HTTP → HTTPS 강제
+[[redirects]]
+  from = "http://heejun.store/*"
+  to = "https://heejun.store/:splat"
+  status = 301
+  force = true
+
+# 전역 보안 헤더
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# HTML/마크다운: 캐시 짧게 (콘텐츠 변경 즉시 반영)
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.md"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+
+# 정적 자산은 길게 (필요 시 파일명 해시로 무효화)
+[[headers]]
+  for = "/public/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
