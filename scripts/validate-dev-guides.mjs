@@ -142,7 +142,16 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   ],
   [
     '04_아키텍처_설계_패턴.md',
-    ['함께 수정되는 파일', 'feature/domain 폴더', 'deep import', 'dependency graph', '중복 허용', '숨은 의존성'],
+    [
+      '기능 중심 co-location',
+      '변경 단위 기반 폴더 구조',
+      'Frontend Fundamentals 아키텍처 매핑',
+      'FSD는 참조 패턴',
+      'feature/domain 폴더',
+      'MSW 목업 테스트',
+      'CodeRabbit',
+      '주석 룰',
+    ],
   ],
   [
     '05_API_통신_및_모킹_가이드.md',
