@@ -595,15 +595,15 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
   [*] --> Defined: handlers.ts 정의
-  Defined --> Registered: setupServer(...handlers) / setupWorker(...handlers)
-  Registered --> Listening: server.listen() / worker.start()
-  Listening --> Overridden: server.use(...override) (테스트 단위)
-  Overridden --> Listening: server.resetHandlers() (afterEach)
-  Listening --> BoundaryActive: server.boundary(async () => {...})
+  Defined --> Registered: setupServer / setupWorker 등록
+  Registered --> Listening: server.listen / worker.start
+  Listening --> Overridden: server.use 오버라이드
+  Overridden --> Listening: server.resetHandlers (afterEach)
+  Listening --> BoundaryActive: server.boundary 진입
   BoundaryActive --> Listening: boundary 종료 시 자동 격리 해제
-  Listening --> OneShotUsed: { once: true } 핸들러 사용
-  OneShotUsed --> Listening: server.restoreHandlers()
-  Listening --> [*]: server.close() (afterAll)
+  Listening --> OneShotUsed: once true 핸들러 소비
+  OneShotUsed --> Listening: server.restoreHandlers
+  Listening --> [*]: server.close (afterAll)
 ```
 
 ### 2.1 설치 및 초기 설정
