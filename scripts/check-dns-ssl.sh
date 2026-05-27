@@ -13,7 +13,7 @@
 set -u
 
 DOMAIN="heejun.store"
-EXPECTED_IP="75.2.60.5"
+# Netlify는 지역별 Edge IP가 다양함. 응답 헤더로 확인하는 게 가장 확실.
 PASS=0
 FAIL=0
 
@@ -24,14 +24,16 @@ info() { printf "  \033[36mi\033[0m %s\n" "$1"; }
 echo "▶ heejun.store DNS/SSL 점검"
 echo ""
 
-# 1) A 레코드 확인
-echo "[1/3] A 레코드"
-A_RECORDS=$(dig +short "$DOMAIN" A 2>/dev/null)
-info "현재 A: $(echo "$A_RECORDS" | tr '\n' ' ')"
-if echo "$A_RECORDS" | grep -q "$EXPECTED_IP"; then
-  ok "Netlify($EXPECTED_IP) 로 정상 연결"
+# 1) Netlify 응답 확인 (Server 헤더로 판정)
+echo "[1/3] Netlify Edge 응답"
+A_RECORDS=$(dig +short "$DOMAIN" A 2>/dev/null | tr '\n' ' ')
+SERVER_HEADER=$(curl -sIk -m 5 "https://$DOMAIN" | tr -d '\r' | grep -i '^server:' | head -1 | sed 's/^[Ss]erver: *//')
+info "현재 A: $A_RECORDS"
+info "Server 헤더: ${SERVER_HEADER:-(없음)}"
+if echo "$SERVER_HEADER" | grep -qi "netlify"; then
+  ok "Netlify Edge 정상 응답"
 else
-  fail "Netlify($EXPECTED_IP) 로 연결되지 않음 (가비아 DNS 변경 또는 전파 대기 필요)"
+  fail "Netlify 응답이 아님 (DNS 또는 호스팅 설정 확인)"
 fi
 echo ""
 
