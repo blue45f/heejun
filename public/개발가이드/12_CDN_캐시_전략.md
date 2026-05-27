@@ -1,7 +1,7 @@
 # 12. CDN 캐시 전략
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
@@ -11,7 +11,9 @@
 
 ## 초심자용 한눈에 보기
 
-정적 자산은 “처음 빠르게, 오래 안정적으로” 전달되도록 캐시 전략을 세웁니다.
+정적 자산은 "처음 빠르게, 오래 안정적으로" 전달되도록 캐시 전략을 세웁니다.
+
+> 일상 비유: 동네 편의점에 자주 사는 물건을 옮겨 두면 사용자가 본사 창고(origin)까지 가지 않아도 됩니다. 단, 라벨이 바뀐 신상품(새 배포의 HTML)은 편의점이 빨리 교체해야 합니다.
 
 ### 핵심 용어 빠르게 정리
 
@@ -22,6 +24,18 @@
 | `TTL` | 캐시 유지 시간 |
 | `무효화` | 캐시된 내용을 갱신/삭제하는 동작 |
 | `불변성` | URL 버전이 바뀌면 새 파일로 간주해 캐시 충돌을 줄이는 방식 |
+| `entry document` | SPA에서 가장 먼저 받는 HTML 진입점 |
+| `purge` | 캐시 항목을 명시적으로 삭제하는 명령 |
+
+### TTL 계층 한눈에 보기
+
+> 왜 중요한가: 모든 파일에 같은 TTL을 적용하면 진입점(HTML)이 늦게 갱신되거나, 해시 자산이 불필요하게 자주 origin을 호출합니다.
+
+```mermaid
+flowchart LR
+  H["짧음(0~수초)\nindex.html / manifest / sw.js"] --> M["중간(수 분~시간)\nAPI cache, 개인화 응답"]
+  M --> L["길음(1년 + immutable)\nhash가 붙은 JS/CSS/이미지/폰트"]
+```
 
 
 
@@ -83,6 +97,8 @@
 
 ### 0.0 캐시 요청/무효화 흐름
 
+> 왜 중요한가: hit/miss 흐름을 한 화면에서 이해해야 어디서 stale asset 사고가 나는지 빠르게 진단할 수 있습니다.
+
 ```mermaid
 flowchart TD
   A[빌드 산출물 생성] --> B{자산 유형}
@@ -97,6 +113,50 @@ flowchart TD
   I --> E
   J[배포 이벤트] --> K[entry 전환 + 대상 purge]
   K --> H
+```
+
+### 0.0.1 cache hit/miss 시퀀스
+
+> 비유: 동네 편의점(엣지)에 물건이 있으면 즉시 건네주고, 없으면 본사 창고(origin)에 주문해 받아 두었다가 다음 손님부터 빠르게 줍니다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant Edge as CDN Edge
+  participant Origin as Origin
+  U->>Edge: GET /assets/app.abc123.js
+  alt HIT (fresh)
+    Edge-->>U: 즉시 응답 (cache-control: immutable)
+  else MISS
+    Edge->>Origin: 요청 forward
+    Origin-->>Edge: 200 + Cache-Control
+    Edge->>Edge: 응답 저장 (TTL 만료까지)
+    Edge-->>U: 응답 반환
+  else STALE
+    Edge-->>U: stale 응답 (stale-while-revalidate)
+    Edge->>Origin: 백그라운드 재검증
+    Origin-->>Edge: 200 + 새 응답으로 교체
+  end
+```
+
+### 0.0.2 invalidation 시퀀스 (배포 직후)
+
+> 왜 중요한가: 잘못된 무효화 순서는 "HTML은 새 버전, JS는 이전 버전" 같은 화면 깨짐을 만듭니다.
+
+```mermaid
+sequenceDiagram
+  participant CI as 배포 워크플로
+  participant Bucket as 정적 저장소
+  participant CDN as CDN
+  participant U as 사용자
+  CI->>Bucket: 1. 새 hash asset 업로드
+  CI->>CDN: 2. asset 경로 캐시 워밍 (선택)
+  CI->>Bucket: 3. entry HTML 전환
+  CI->>CDN: 4. entry HTML/manifest purge (대상 한정)
+  U->>CDN: 새 HTML 요청
+  CDN-->>U: 새 HTML
+  U->>CDN: 새 HTML이 참조하는 hash asset 요청
+  CDN-->>U: 새 asset (이미 캐시 또는 origin)
 ```
 
 ### 0.1 교차 검증 매트릭스
@@ -137,6 +197,8 @@ flowchart TD
 
 ## 2. Cache Key 설계
 
+> 비유: 도서관 분류번호와 같습니다. 너무 세분화하면 같은 책도 여러 번 들여놓아야 하고(낮은 hit), 너무 묶어 두면 다른 책을 잘못 꺼내옵니다(개인화 누출).
+
 캐시 키는 작을수록 hit ratio가 좋아집니다. 필요한 값만 포함합니다.
 
 | 요소 | 기본 기준 | 포함해야 하는 경우 |
@@ -149,9 +211,28 @@ flowchart TD
 
 무의식적으로 모든 query, cookie, header를 cache key에 넣으면 CDN cache hit ratio가 크게 떨어집니다.
 
+```mermaid
+flowchart TD
+  Req[들어온 요청] --> Q1{응답이 query에 따라 달라지는가}
+  Q1 -->|아니오| Skip1[query 제외]
+  Q1 -->|예| Add1[필요한 query만 포함]
+  Skip1 --> Q2{로그인 상태별 응답이 다른가}
+  Add1 --> Q2
+  Q2 -->|아니오| Skip2[cookie 제외]
+  Q2 -->|예| Add2[필요한 cookie만 포함]
+  Skip2 --> Q3{언어/기기/포맷 협상 필요}
+  Add2 --> Q3
+  Q3 -->|아니오| Skip3[header 제외]
+  Q3 -->|예| Add3[Accept-* 일부만 포함]
+  Skip3 --> Key[최종 cache key]
+  Add3 --> Key
+```
+
 ---
 
 ## 3. SPA/MPA 배포 계약
+
+> 일상 비유: 신메뉴 안내판(HTML)을 바꾸기 전에 재료(JS/CSS)를 먼저 준비해 두지 않으면, 손님이 시키는 메뉴가 주방에 없는 사태가 생깁니다.
 
 프론트엔드 배포에서 가장 흔한 장애는 "HTML은 새 버전, JS는 이전 버전" 또는 그 반대입니다.
 
@@ -166,9 +247,20 @@ flowchart TD
 
 배포 순서는 일반적으로 `assets 업로드 -> assets 검증 -> entry 문서 전환 -> entry 무효화 -> smoke test`입니다.
 
+```mermaid
+flowchart LR
+  Up["1. 새 hash asset 업로드"] --> Vf["2. asset URL HEAD 검증"]
+  Vf --> Sw["3. entry HTML 전환"]
+  Sw --> Pg["4. entry/manifest/sw.js purge"]
+  Pg --> Sm["5. smoke (HTML/asset/stale)"]
+  Sm --> Mn["6. RUM/hit ratio 관측"]
+```
+
 ---
 
 ## 4. Invalidation 원칙
+
+> 왜 중요한가: 전체 purge는 사용자에게 갑작스러운 latency 폭증을 안겨줍니다. 변경 범위만 정확히 끊는 능력이 캐시 운영 수준을 가릅니다.
 
 | 상황 | 권장 무효화 |
 | :--- | :--- |
@@ -180,9 +272,26 @@ flowchart TD
 
 `/*` 전체 무효화는 비용, 지연, cache warm-up 손실을 만들기 때문에 긴급 상황이 아니라면 피합니다.
 
+```mermaid
+flowchart TD
+  Trig{무효화 트리거}
+  Trig -->|일반 배포| Entry[entry HTML/manifest/sw.js만]
+  Trig -->|hash asset 변경| None[무효화 불필요]
+  Trig -->|잘못된 정적 파일| Path[해당 경로만]
+  Trig -->|보안/PII 노출| Sec[즉시 purge + 원본 삭제 + incident]
+  Trig -->|API 캐시 오염| Key[affected key 한정]
+  Entry --> Log[purge log + release id]
+  Path --> Log
+  Sec --> Log
+  Key --> Log
+  Log --> Verify[배포 후 smoke 재검증]
+```
+
 ---
 
 ## 5. 보안 헤더
+
+> 일상 비유: 보안 헤더는 건물 입구의 안내문/잠금 장치와 같습니다. 한 군데에서만 적용하면 다른 입구로 들어온 사용자에게는 적용되지 않습니다.
 
 CDN 또는 origin 중 한 곳에서 일관되게 보안 헤더를 적용합니다.
 

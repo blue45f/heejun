@@ -1,7 +1,7 @@
 # 11. CI/CD 파이프라인 표준
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
@@ -11,7 +11,9 @@
 
 ## 초심자용 한눈에 보기
 
-CI/CD는 “자동으로 검증하고, 위험이 보이면 멈추는” 라인입니다.
+CI/CD는 "자동으로 검증하고, 위험이 보이면 멈추는" 라인입니다.
+
+> 일상 비유: 공장의 컨베이어 벨트와 같습니다. 각 검사 구역(게이트)에서 불량을 발견하면 라인을 멈추고, 통과한 제품(아티팩트)만 포장 단계로 보냅니다. 같은 라인을 매번 똑같이 통과하므로 결과를 신뢰할 수 있습니다.
 
 ### 핵심 용어 빠르게 정리
 
@@ -22,6 +24,23 @@ CI/CD는 “자동으로 검증하고, 위험이 보이면 멈추는” 라인�
 | `빌드 게이트` | 실패하면 배포를 막는 필수 검사 |
 | `브랜치 정책` | 어떤 브랜치에서 어떤 동작을 허용할지 규칙 |
 | `원복` | 배포 실패 시 이전 상태로 되돌리는 절차 |
+| `SBOM` | 빌드 산출물에 들어간 의존성/버전 명세 |
+| `provenance` | 어떤 commit·workflow에서 만들어졌는지 증명 |
+
+### 빠른 실패 -> 느린 검증 단계 한눈에
+
+> 왜 중요한가: 비싼 검증을 일찍 실행하면 피드백 시간이 길어집니다. 비용이 낮은 검사를 앞에 두면 개발자가 더 빨리 수정할 수 있습니다.
+
+```mermaid
+flowchart LR
+  S1["1. install\n초"] --> S2["2. lint/type\n수십 초"]
+  S2 --> S3["3. unit/integration\n수 분"]
+  S3 --> S4["4. build + SBOM\n수 분"]
+  S4 --> S5["5. security/license\n수 분"]
+  S5 --> S6["6. preview deploy\n분 단위"]
+  S6 --> S7["7. e2e/accessibility/perf smoke\n분 단위"]
+  S7 --> S8["8. canary/release\n분~수십 분"]
+```
 
 
 
@@ -85,6 +104,8 @@ CI/CD는 “자동으로 검증하고, 위험이 보이면 멈추는” 라인�
 
 ### 0.0 파이프라인 순환 고리
 
+> 왜 중요한가: 파이프라인은 일회성 검사가 아니라 회고를 거쳐 다음 PR에 다시 적용되는 순환 구조입니다.
+
 ```mermaid
 flowchart TD
   A["개발자 변경"] --> B["Install / Lint / Type"]
@@ -93,7 +114,7 @@ flowchart TD
   D -->|미통과| E["수정 후 재요청"]
   D -->|통과| F["artifact 생성"]
   F --> G["checksum/SBOM/Provenance"]
-  G --> H["환경 승인(P reviewcanary/release)"]
+  G --> H["환경 승인(preview/canary/release)"]
   H --> I["배포/롤백 경로 검증"]
   I --> J["관측성 handoff"]
   J --> K["성능/안정성 회고"]
@@ -122,7 +143,21 @@ flowchart TD
 
 ### 0.3 공급망 증적 계약
 
-CI/CD의 공급망 보안은 “취약점 스캔을 실행했다”가 아니라, 소스에서 artifact까지 이어지는 증거 체인을 남기는 것입니다. SLSA v1.2는 provenance와 artifact 검증을, NIST SSDF는 secure SDLC 활동을 구조화하는 기준으로 사용합니다.
+> 일상 비유: 식품 포장에 원산지·유통기한·제조번호가 적혀 있어야 안심하고 먹을 수 있는 것과 같습니다. 코드도 어떤 commit에서 누가 어느 도구로 만들었는지 라벨이 붙어야 안전하게 배포할 수 있습니다.
+
+CI/CD의 공급망 보안은 "취약점 스캔을 실행했다"가 아니라, 소스에서 artifact까지 이어지는 증거 체인을 남기는 것입니다. SLSA v1.2는 provenance와 artifact 검증을, NIST SSDF는 secure SDLC 활동을 구조화하는 기준으로 사용합니다.
+
+```mermaid
+flowchart LR
+  Src["source\ncommit SHA"] --> Inst["install\nlockfile hash"]
+  Inst --> Build["build\nartifact digest"]
+  Build --> SBOM["SBOM\n의존성 목록"]
+  Build --> Prov["provenance\nworkflow id"]
+  SBOM --> Store["artifact 저장소\nchecksum"]
+  Prov --> Store
+  Store --> Verify["deploy 전 검증"]
+  Verify --> Release["release\napprover + env"]
+```
 
 | 증적 | 필수 필드 | 생성 시점 | 검증 시점 |
 | :--- | :--- | :--- | :--- |
@@ -233,6 +268,8 @@ change
 
 ## 2. 재현성 기준
 
+> 왜 중요한가: 같은 commit이 어제는 통과했는데 오늘은 실패한다면, 그것은 코드가 아니라 환경의 문제입니다. 재현성은 디버깅 시간을 가장 크게 줄여 줍니다.
+
 | 항목 | 기준 |
 | :--- | :--- |
 | 런타임 | Node/Bun/pnpm 등 실행 버전을 파일로 고정 |
@@ -242,9 +279,30 @@ change
 | 산출물 | checksum, build metadata, source revision 포함 |
 | 시간 의존성 | 테스트에서 현재 시간, locale, timezone 고정 |
 
+### 2.1 캐시 키 결정 트리
+
+> 비유: 도서관 분류 라벨과 같습니다. 너무 좁으면 새 책마다 라벨이 달라져 캐시가 거의 비고, 너무 넓으면 다른 책끼리 같은 라벨이 붙어 잘못된 책을 꺼냅니다.
+
+```mermaid
+flowchart TD
+  Q1{lockfile이 변경되었는가}
+  Q1 -->|예| New[새 키 생성]
+  Q1 -->|아니오| Q2{OS/아키텍처가 다른가}
+  Q2 -->|예| New
+  Q2 -->|아니오| Q3{런타임 버전이 다른가}
+  Q3 -->|예| New
+  Q3 -->|아니오| Q4{빌드 설정 파일 hash가 다른가}
+  Q4 -->|예| New
+  Q4 -->|아니오| Reuse[기존 키 재사용]
+  New --> Save[캐시 저장 + 메타 기록]
+  Reuse --> Hit[캐시 hit -> 시간 단축]
+```
+
 ---
 
 ## 3. 품질 게이트
+
+> 일상 비유: 병원에서 수술 전 체크리스트와 같습니다. 의사가 외워서 챙기는 게 아니라, 통과해야 다음 단계로 넘어가는 강제 절차여야 환자 안전이 보장됩니다.
 
 | 게이트 | 최소 요구사항 |
 | :--- | :--- |
@@ -258,6 +316,25 @@ change
 | Performance | bundle budget, Core Web Vitals smoke, Lighthouse/trace budget |
 
 게이트는 "권장"이 아니라 merge/deploy 조건이어야 합니다. 예외는 owner, 만료일, 보완 계획이 있는 RFC로만 허용합니다.
+
+```mermaid
+flowchart LR
+  In[PR 생성] --> G1[Type]
+  G1 -->|fail| Block[merge 차단]
+  G1 -->|pass| G2[Lint]
+  G2 -->|fail| Block
+  G2 -->|pass| G3[Unit]
+  G3 -->|fail| Block
+  G3 -->|pass| G4[Integration]
+  G4 -->|fail| Block
+  G4 -->|pass| G5[Contract]
+  G5 -->|fail| Block
+  G5 -->|pass| G6[E2E smoke]
+  G6 -->|fail| Block
+  G6 -->|pass| G7[A11y/Perf 예산]
+  G7 -->|fail| Block
+  G7 -->|pass| Pass[merge 가능]
+```
 
 ---
 
@@ -330,6 +407,8 @@ artifact 보관 기간은 비용과 감사 요구의 균형으로 정하되, rol
 
 ## 7. 배포 승인
 
+> 왜 중요한가: 승인 단계가 단순한 "관습"이 되면 사고 후 원인 파악이 어렵습니다. 어떤 증적을 보고 결정했는지가 책임 추적의 핵심입니다.
+
 production 배포는 자동화되어야 하지만 자동 승인까지 요구하지는 않습니다.
 
 | 조건 | 승인 정책 |
@@ -340,6 +419,20 @@ production 배포는 자동화되어야 하지만 자동 승인까지 요구하�
 | 긴급 hotfix | 사후 리뷰와 postmortem 필수 |
 
 승인은 "누가 버튼을 눌렀는가"보다 "어떤 증적을 보고 승인했는가"가 중요합니다.
+
+```mermaid
+flowchart TD
+  Risk{변경 위험도 평가}
+  Risk -->|낮음| Auto[자동 승격]
+  Risk -->|중간| Rev[리뷰어/Release Owner 승인]
+  Risk -->|높음| Rfc[RFC/ADR + rollback drill]
+  Risk -->|긴급 hotfix| Hot[사후 리뷰/postmortem]
+  Auto --> Evid[증적 기록: artifact id, gate report]
+  Rev --> Evid
+  Rfc --> Evid
+  Hot --> Evid
+  Evid --> Deploy[환경 승격]
+```
 
 ---
 

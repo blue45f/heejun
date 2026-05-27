@@ -1,7 +1,7 @@
 # 24. SEO 및 메타데이터 가이드
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
@@ -13,6 +13,8 @@
 
 SEO는 “검색에 잘 보이는 정보”를 메타데이터로 구조화해 전달하는 작업입니다.
 
+> **일상 비유**: SEO는 도서관 책의 청구기호와 색인카드 작업과 같습니다. 책 내용(콘텐츠)이 아무리 좋아도, 청구기호(URL)·표지 정보(title/description)·색인카드(structured data)가 없으면 사서(검색엔진)가 추천 목록에 올리지 못합니다.
+
 ### 핵심 용어 빠르게 정리
 
 | 용어 | 쉬운 뜻 |
@@ -22,6 +24,22 @@ SEO는 “검색에 잘 보이는 정보”를 메타데이터로 구조화해 �
 | `canonical` | 중복 URL의 대표 주소 지정 |
 | `structured data` | 검색엔진이 이해하기 쉬운 구조화 마크업 |
 | `크롤링` | 검색엔진이 사이트를 읽어가는 과정 |
+
+### SEO 파이프라인 한눈에 보기
+
+```mermaid
+flowchart LR
+  Page["페이지 콘텐츠"] --> Meta["메타데이터 생성"]
+  Meta --> Robots["robots/canonical/hreflang"]
+  Robots --> JSON["JSON-LD (구조화 데이터)"]
+  JSON --> OG["OG/Twitter 카드"]
+  OG --> HTML["렌더링된 HTML"]
+  HTML --> Test["검색 도구 검증<br/>(Rich Result, Lighthouse SEO)"]
+  Test -->|통과| Deploy["배포"]
+  Deploy --> Crawl["검색엔진 크롤"]
+  Crawl --> Index["색인"]
+  Index --> Search["검색 결과 노출"]
+```
 
 
 
@@ -148,6 +166,26 @@ AI가 생성한 SEO 산출물은 다음 기준을 통과해야 병합합니다.
 - 생성형 검색 대응은 기존 SEO 품질 기준을 대체하지 않음
 
 ## 2. 환경별 SEO 격리
+
+> **왜 중요한가**: preview 환경이 색인되면 production과 동일 콘텐츠가 두 곳에 존재하게 되어 검색엔진이 어떤 URL을 정답으로 봐야 할지 혼란합니다. 결과적으로 production 순위도 떨어집니다.
+>
+> **일상 비유**: 시제품(preview)을 매장 진열대(검색 결과)에 함께 두면 손님이 어느 게 정식 제품인지 모릅니다. 시제품은 작업실(차단)에만 두고, 정식 제품에는 "정품(canonical)" 표시를 붙입니다.
+
+### 환경별 색인 정책 흐름
+
+```mermaid
+flowchart TD
+  Req["요청 도착"] --> Env{"환경 감지<br/>DEPLOY_ENV"}
+  Env -->|production| P1["robots: index, follow"]
+  P1 --> P2["canonical: 자기 자신"]
+  P2 --> P3["sitemap 포함"]
+  Env -->|preview| Q1["robots: noindex, nofollow"]
+  Q1 -->|HTTP 헤더| Q2["X-Robots-Tag: noindex"]
+  Q2 -->|메타 태그| Q3["meta robots noindex"]
+  Q3 -->|canonical 강제| Q4["canonical: production URL"]
+  Q4 -->|sitemap 차단| Q5["sitemap에서 제외"]
+  Env -->|development| D1["robots.txt: Disallow /<br/>+ 기본 noindex"]
+```
 
 > Preview, staging, canary 환경이 검색 엔진에 인덱싱되면 중복 콘텐츠 문제가 발생한다. 환경별 SEO 격리는 모든 비프로덕션 환경의 필수 운영 기준이다.
 
@@ -315,6 +353,33 @@ export default function robots(): MetadataRoute.Robots {
 
 ### 2.4 Preview URL SEO 영향 차단 (canonical 관리)
 
+> **일상 비유**: canonical은 "이 사람의 본명은 누구입니까"라는 신원 카드입니다. 같은 사람이 별명(쿼리 파라미터), 가명(preview URL), 풀네임(production)으로 여러 곳에 나타나도, canonical 카드가 본명 하나를 가리키면 검색엔진은 중복 인격이 아니라 동일 인물로 합칩니다.
+
+이 그림은 한 URL을 받았을 때 어떤 canonical을 출력할지 결정하는 흐름입니다.
+
+```mermaid
+flowchart TD
+  In["요청 URL"] --> Q1{"production 도메인?"}
+  Q1 -->|아니오| Force["canonical = production 도메인 + path<br/>(preview/staging 영향 차단)"]
+  Q1 -->|예| Q2{"트래킹/세션 쿼리<br/>(?utm_=, ?session=)?"}
+  Q2 -->|예| Strip["쿼리 제거 후 canonical 생성"]
+  Q2 -->|아니오| Q3{"페이지네이션?<br/>(?page=N)"}
+  Q3 -->|예| Q4{"page == 1?"}
+  Q4 -->|예| Base["canonical = base URL<br/>(쿼리 없이)"]
+  Q4 -->|아니오| Keep["canonical = base?page=N<br/>(rel=prev/next 함께 출력)"]
+  Q3 -->|아니오| Q5{"trailing slash 정규화 필요?"}
+  Q5 -->|예| Norm["슬래시 제거"]
+  Q5 -->|아니오| AsIs["URL 그대로 canonical"]
+  Force --> Out["<link rel=canonical>"]
+  Strip --> Out
+  Base --> Out
+  Keep --> Out
+  Norm --> Out
+  AsIs --> Out
+```
+
+> **자주 하는 실수**: ① canonical을 절대 URL이 아닌 상대 경로로 출력 → 일부 크롤러가 다르게 해석합니다. ② preview URL을 그대로 canonical로 출력 → preview가 인덱싱되어 production과 중복 콘텐츠로 잡힙니다. ③ 페이지네이션 page=1을 `?page=1`로 출력 → base URL과 page=1이 동일 콘텐츠로 중복 인식됩니다.
+
 ```typescript
 // lib/seo/canonical.ts
 // canonical URL은 항상 Production 도메인을 가리킨다
@@ -481,6 +546,25 @@ export async function GET(request: NextRequest) {
 ---
 
 ## 3. Next.js 16 SEO 기본 설정
+
+> **왜 중요한가**: Next.js Metadata API는 레이아웃 계층을 따라 자동으로 병합되기 때문에 "어디서 설정하면 어디까지 적용되는가"를 미리 정해야 중복/누락이 줄어듭니다.
+>
+> **일상 비유**: 가족 옷장 같습니다. 상위 옷장(루트 레이아웃)에 기본 옷이 있고, 자녀 옷장(라우트 그룹)이 보충하고, 개인 서랍(페이지)이 최종 결정합니다. 누가 무엇을 가졌는지 미리 알아야 옷을 두 번 사는 일이 없어집니다.
+
+### 메타데이터 우선순위 계층
+
+```mermaid
+flowchart TD
+  Root["app/layout.tsx<br/>(전역 기본값)"] --> Group["app/(marketing)/layout.tsx<br/>(그룹 오버라이드)"]
+  Root --> Group2["app/(dashboard)/layout.tsx<br/>(noindex 일괄)"]
+  Group --> Page1["app/blog/[slug]/page.tsx<br/>generateMetadata"]
+  Group --> Page2["app/about/page.tsx<br/>정적 metadata"]
+  Group2 --> Page3["app/dashboard/page.tsx<br/>(robots 상속)"]
+  Page1 -.우선순위 가장 높음.-> Final["최종 렌더된 메타"]
+  Page2 -.병합.-> Final
+  Group -.병합.-> Final
+  Root -.병합.-> Final
+```
 
 ### 3.1 루트 레이아웃 메타데이터
 
@@ -676,6 +760,34 @@ export default function DashboardLayout({
 ---
 
 ## 4. 구조화 데이터 (JSON-LD)
+
+> **왜 중요한가**: 구조화 데이터는 검색엔진이 페이지 내용을 "기계적으로 정확히" 이해하게 도와 풍부한 검색 결과(rich result)를 만들 수 있는 단서를 제공합니다. 페이지 클릭률에 직접 영향을 줍니다.
+>
+> **일상 비유**: JSON-LD는 책 표지에 붙은 "ISBN, 저자, 출판일, 카테고리" 정보 라벨과 같습니다. 본문(콘텐츠)을 다 읽지 않아도 사서가 어떤 책인지 즉시 분류할 수 있게 해 줍니다.
+
+### 4.0 Structured Data 타입 선택 결정 트리
+
+```mermaid
+flowchart TD
+  Page["페이지 유형은?"] --> Q1{"콘텐츠 형태?"}
+  Q1 -->|글/뉴스/블로그| Art["Article / BlogPosting"]
+  Q1 -->|상품/판매| Prod["Product + Offer"]
+  Q1 -->|FAQ/QA| FAQ["FAQPage"]
+  Q1 -->|튜토리얼/가이드| HT["HowTo"]
+  Q1 -->|기업/조직 정보| Org["Organization"]
+  Q1 -->|이벤트| Ev["Event"]
+  Q1 -->|레시피| Rec["Recipe"]
+  Art --> Bread["+ BreadcrumbList<br/>(어디서나 권장)"]
+  Prod --> Bread
+  FAQ --> Bread
+  HT --> Bread
+  Org --> Site["+ WebSite<br/>(루트에만)"]
+  Bread --> Test["Rich Result Test 검증"]
+  Site --> Test
+  Test -->|통과| Pub["배포"]
+  Test -->|실패| Fix["필수 필드 보강"]
+  Fix --> Test
+```
 
 ### 4.1 JSON-LD 컴포넌트
 
@@ -1133,6 +1245,31 @@ async function validateOgTags(url: string): Promise<OgValidationResult> {
 
 ## 6. 사이트맵 및 robots.txt
 
+> **일상 비유**: 사이트맵은 도서관 도서 목록과 같습니다. 사서(검색엔진 크롤러)가 들어왔을 때 어디에 어떤 책이 있는지, 언제 새로 들어왔는지를 한눈에 안내합니다. robots.txt는 "사서 전용 통로"와 "일반 출입 금지" 표지판입니다.
+
+이 그림은 sitemap이 생성되어 검색엔진에 도달하는 전체 파이프라인을 보여줍니다.
+
+```mermaid
+flowchart TD
+  Build["빌드/런타임 시작"] --> Env{"환경 감지<br/>(production?)"}
+  Env -->|아니오| Empty["빈 sitemap 반환<br/>(노출 차단)"]
+  Env -->|예| Static["정적 라우트 수집<br/>(/about, /pricing 등)"]
+  Static --> Dynamic["동적 라우트 수집<br/>(CMS/DB → posts.slug)"]
+  Dynamic --> Filter["필터링<br/>noindex/비공개 제외"]
+  Filter --> Q{"URL 수 > 50,000?"}
+  Q -->|예| Split["sitemap-index.xml로 분할<br/>(50K 단위)"]
+  Q -->|아니오| Single["단일 sitemap.xml"]
+  Split --> Cache["edge cache + revalidate"]
+  Single --> Cache
+  Cache --> Ping["search console에 ping<br/>(중요 변경 시)"]
+  Ping --> Crawl["검색엔진 크롤"]
+  Crawl --> Index["인덱싱 결과 모니터"]
+  Index -->|오류| Fix["URL/lastmod 보정"]
+  Fix --> Dynamic
+```
+
+> **운영 팁**: `lastModified`는 진짜 콘텐츠가 변경된 시점이어야 합니다. 모든 URL이 `new Date()`로 같은 시각이면 크롤러는 "이 사이트는 신뢰할 수 없는 메타데이터를 준다"고 학습합니다.
+
 ### 6.1 정적 + 동적 사이트맵
 
 ```typescript
@@ -1247,6 +1384,27 @@ export async function GET(
 
 ## 7. SSR / SSG / ISR SEO 전략 비교
 
+> **왜 중요한가**: 검색 크롤러는 자바스크립트를 실행하긴 하지만 우선순위와 정확도가 떨어집니다. HTML이 즉시 도착하는 페이지가 색인되기 가장 안전합니다.
+>
+> **일상 비유**: SSG/SSR은 "음식을 미리 만들어 두는 즉석 식당", CSR은 "주문 후 처음부터 조리하는 정통 식당"입니다. 검색엔진은 빨리 받아 보는 즉석 식당을 선호합니다.
+
+### 렌더링 전략별 SEO 적합도
+
+```mermaid
+flowchart TD
+  Pg["페이지 요구사항"] --> Q1{"콘텐츠가 자주 바뀌나?"}
+  Q1 -->|거의 안 바뀜| Q2{"빌드 시점에 데이터 확정?"}
+  Q1 -->|시간 단위| ISR["ISR<br/>revalidate 사용"]
+  Q1 -->|매 요청 다름| Q3{"개인화 필요?"}
+  Q2 -->|예| SSG["SSG<br/>generateStaticParams"]
+  Q2 -->|아니오| ISR
+  Q3 -->|예| SSR["SSR<br/>force-dynamic"]
+  Q3 -->|아니오| Q4{"검색 색인 필요?"}
+  Q4 -->|예| SSR
+  Q4 -->|아니오| CSR["CSR<br/>대시보드/내부 도구"]
+  CSR --> NoIndex["noindex 권장"]
+```
+
 | 전략 | 크롤링 대응 | 초기 로딩 | 데이터 최신성 | 적합한 페이지 |
 |---|---|---|---|---|
 | **SSG** | 최적 (HTML 즉시 제공) | 가장 빠름 | 빌드 시점 고정 | 블로그, 문서, about |
@@ -1348,6 +1506,35 @@ export default async function ProductPage({ params }: PageProps) {
 
 ## 8. Core Web Vitals와 SEO
 
+> **일상 비유**: CWV는 식당의 위생 등급과 비슷합니다. 음식 맛(콘텐츠 품질)이 아무리 좋아도 위생 점수가 낮으면 손님이 줄어듭니다. LCP는 음식 나오는 속도, INP는 종업원 응대 속도, CLS는 식탁이 흔들리지 않는 정도입니다.
+
+이 그림은 CWV 데이터가 어디서 수집되어 어떤 결정으로 이어지는지 보여줍니다.
+
+```mermaid
+flowchart TD
+  User["실제 사용자 페이지 방문"] --> Lib["web-vitals 라이브러리<br/>(브라우저 측정)"]
+  Lib --> LCP["LCP<br/>(largest content)"]
+  Lib --> INP["INP<br/>(interaction)"]
+  Lib --> CLS["CLS<br/>(layout shift)"]
+  LCP --> Beacon["sendBeacon → /api/vitals"]
+  INP --> Beacon
+  CLS --> Beacon
+  Beacon --> RUM["RUM 저장소<br/>(field data, p75 집계)"]
+  Lab["Lighthouse CI<br/>(빌드 시점 lab data)"] --> Compare{"lab vs field 비교"}
+  RUM --> Compare
+  Compare -->|"field p75 < 임계값"| Pass["배포 게이트 통과"]
+  Compare -->|"field p75 >= 임계값"| Hold["릴리즈 보류 또는 page-level 차단"]
+  Hold --> Diag{"원인 분류"}
+  Diag -->|이미지 LCP| Img["우선 이미지 최적화<br/>preload, AVIF"]
+  Diag -->|JS 무거움 INP| JS["코드 분할/유저 인터랙션 디버그"]
+  Diag -->|레이아웃 CLS| Layout["폰트/이미지 width/height 명시"]
+  Img --> Lab
+  JS --> Lab
+  Layout --> Lab
+```
+
+> **핵심 원칙**: field data(실사용자 측정)는 lab data(빌드 시점 시뮬레이션)를 항상 이깁니다. 트래픽이 적어 field 신뢰도가 낮은 페이지만 lab을 fallback으로 사용합니다.
+
 ### 8.1 Web Vitals 수집 및 리포팅
 
 ```typescript
@@ -1445,6 +1632,25 @@ export function SeoImage({ src, alt, width, height, priority, className }: SeoIm
 
 ## 9. 국제화 SEO (hreflang)
 
+> **왜 중요한가**: 같은 콘텐츠를 여러 언어로 제공할 때 검색엔진은 "어느 언어 페이지가 누구를 위한 것인지" 알아야 합니다. hreflang이 없으면 한국어 사용자에게 영어 페이지가, 영어 사용자에게 한국어 페이지가 노출됩니다.
+>
+> **일상 비유**: hreflang은 다국어 식당의 메뉴판 표지와 같습니다. 한국어 손님에게 한국어 메뉴, 일본어 손님에게 일본어 메뉴를 정확히 안내하려면 표지에 "이 메뉴는 한국어/일본어/영어 버전이 있습니다"를 명시해야 합니다.
+
+### hreflang 양방향 연결 구조
+
+```mermaid
+flowchart LR
+  KO["/ko/about<br/>(한국어)<br/>alternates: ko, en, ja, x-default"]
+  EN["/en/about<br/>(영어)<br/>alternates: ko, en, ja, x-default"]
+  JA["/ja/about<br/>(일본어)<br/>alternates: ko, en, ja, x-default"]
+  KO <--> EN
+  EN <--> JA
+  KO <--> JA
+  Note["핵심: 각 페이지는 자기 자신을 포함한<br/>모든 언어 버전을 alternates에 선언"]
+```
+
+> **핵심 원칙**: 각 페이지는 자기 자신을 포함한 모든 언어 버전을 alternates로 선언해야 합니다. 한쪽만 선언하면 검색엔진이 무시할 수 있습니다.
+
 다국어 사이트에서는 `hreflang` 태그를 통해 검색 엔진에 언어/지역별 대체 페이지를 알려줘야 한다. 누락 시 중복 콘텐츠 패널티를 받을 수 있다.
 
 ### 9.1 hreflang 메타데이터 설정
@@ -1530,6 +1736,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 ---
 
 ## 10. SEO 모니터링 및 자동화 테스트
+
+> **일상 비유**: SEO 모니터링은 호텔의 청소 후 점검 카트와 같습니다. 객실(페이지)을 새로 단장(배포)한 뒤, 점검 체크리스트(메타·OG·JSON-LD·CWV)를 들고 한 바퀴 돌아 빠진 부분을 잡아냅니다. 모든 객실이 매번 점검을 통과해야 손님(검색엔진/사용자)이 들어옵니다.
+
+이 그림은 한 페이지가 배포되어 검색엔진에 인덱싱되기까지의 전체 sequence입니다.
+
+```mermaid
+sequenceDiagram
+  participant Dev as 개발자
+  participant CI as CI 파이프라인
+  participant App as 앱(SSR/SSG)
+  participant CDN as CDN
+  participant SC as Search Console
+  participant SE as 검색엔진 크롤러
+  Dev->>CI: PR 머지/배포 트리거
+  CI->>CI: lint + typecheck + SEO 회귀 테스트
+  CI->>App: 배포 시작
+  App->>App: generateMetadata + JSON-LD 렌더
+  App->>CDN: HTML 캐시 갱신
+  CI->>App: smoke (canonical/robots/sitemap)
+  CI-->>Dev: 게이트 통과 보고
+  CDN-->>SE: 사이트맵/페이지 응답
+  SE->>App: 크롤 요청
+  App-->>SE: 렌더된 HTML + 메타 + JSON-LD
+  SE->>SE: 인덱스 후보 평가 (canonical/robots 적용)
+  SE->>SC: 인덱스 상태/오류 리포트
+  SC-->>Dev: enhancement/CWV 알림
+  Dev->>CI: 회귀/수정 PR
+```
+
+> **핵심 관문**: ① CI smoke에서 canonical과 robots를 환경별로 검증, ② Search Console에서 인덱싱 거부 사유를 주기적으로 점검, ③ CWV field data가 lab data보다 우선합니다.
 
 ### 10.1 Playwright SEO 회귀 테스트
 
@@ -1698,6 +1934,36 @@ jobs:
 ---
 
 ## 11. 생성형 검색과 크롤링 제어
+
+> **왜 중요한가**: 생성형 검색은 별도 표준이 따로 있는 게 아니라, 기존 검색 품질 기준(발견 가능성, 구조화, 신뢰성)을 동일하게 더 엄격히 봅니다. 기존 SEO를 잘 한 페이지가 자동으로 유리합니다.
+>
+> **일상 비유**: 생성형 검색은 도서관 사서가 책 본문을 빠르게 발췌·요약해 손님에게 전달하는 일과 같습니다. 책에 색인카드(JSON-LD)와 명확한 표지(metadata)가 잘 정리돼 있어야 사서가 정확히 인용합니다.
+
+### 검색엔진 인덱싱 파이프라인
+
+```mermaid
+sequenceDiagram
+  participant Bot as 검색엔진 크롤러
+  participant CDN as CDN/Origin
+  participant Render as 렌더링 큐
+  participant Index as 색인 파이프라인
+  participant Search as 검색 결과
+  Bot->>CDN: GET sitemap.xml
+  CDN-->>Bot: URL 목록
+  loop 각 URL
+    Bot->>CDN: GET 페이지 (robots.txt 확인)
+    CDN-->>Bot: HTML + 헤더
+    alt JS 렌더 필요
+      Bot->>Render: 렌더링 큐 등록
+      Render-->>Bot: 렌더링된 HTML
+    end
+    Bot->>Index: HTML + 메타데이터 + JSON-LD
+    Index->>Index: canonical 확인 / 중복 병합
+    Index->>Index: structured data 검증
+    Index->>Search: 색인 추가 (eligible: rich result)
+  end
+  Search-->>Bot: 다음 크롤 일정 조정
+```
 
 생성형 검색 대응은 별도 “AI SEO” 전술을 추가하는 문제가 아니라, 검색엔진이 페이지를 발견하고 이해하고 신뢰할 수 있게 만드는 기존 원칙을 더 엄격하게 적용하는 문제입니다. 검색 사업자별 기능은 계속 바뀌므로, 표준 문서와 Search Console/로그 데이터를 함께 확인합니다.
 

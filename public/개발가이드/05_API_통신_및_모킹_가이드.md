@@ -1,11 +1,13 @@
 # 05. API 통신 및 모킹 가이드
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 초심자용 한눈에 보기
 
 이 문서는 프론트엔드와 서버가 주고받는 약속과 테스트를 쉽게 맞추는 방법입니다.
+
+> **일상 비유**: API 통신은 식당에서의 주문과 같습니다. 메뉴판(OpenAPI 명세)이 있어야 손님(프론트)과 주방(백엔드)이 같은 음식을 떠올리며, 가짜 메뉴(MSW)로 미리 리허설을 해두면 실제 영업에서 실수가 줄어듭니다.
 
 ### 핵심 용어 빠르게 정리
 
@@ -16,6 +18,28 @@
 | `요청/응답` | 클라이언트가 보내는 질문과 서버가 돌려주는 대답 |
 | `MSW` | 로컬 테스트용 가짜 서버 모킹 도구 |
 | `contract` | 서버/클라이언트가 같은 데이터 규칙을 공유하는 약속 |
+
+### Contract-First 흐름 한눈에 보기
+
+> 왜 중요한가: 합의된 계약(스펙)이 있어야 백엔드/프론트가 동시에 작업해도 충돌이 줄어듭니다.
+
+```mermaid
+sequenceDiagram
+  participant BE as 백엔드 팀
+  participant Spec as OpenAPI 스펙
+  participant CG as Codegen
+  participant FE as 프론트엔드
+  participant Mock as MSW
+
+  BE->>Spec: 엔드포인트/스키마 정의 (PR)
+  Spec->>CG: spec diff 트리거
+  CG->>FE: TS 타입 + API 클라이언트 생성
+  CG->>Mock: 핸들러 스켈레톤 생성
+  FE->>Mock: 로컬 개발 (실서버 없이)
+  FE->>BE: 통합 시 실제 호출로 전환
+  Mock-->>FE: 가상 응답 (성공/실패 모두)
+  BE-->>FE: 실 응답 (동일 스키마 보장)
+```
 
 
 
@@ -100,9 +124,11 @@ API 통신 표준은 특정 코드젠 도구가 아니라 **계약, 실패 모�
 
 ### 0.0 통신 파이프라인 한눈에 보기
 
+> 왜 중요한가: 한 줄의 명세 변경이 어디까지 흘러가는지 미리 보면 사고를 예방할 수 있습니다.
+
 ```mermaid
 flowchart TD
-  A[백엔드 명세(OpenAPI/IDL)] --> B[코드 생성기]
+  A["백엔드 명세 (OpenAPI/IDL)"] --> B[코드 생성기]
   B --> C[타입+클라이언트 공통 인터페이스]
   C --> D[인증/재시도/타임아웃/abort 정책]
   D --> E[도메인 서비스]
@@ -112,6 +138,58 @@ flowchart TD
   H --> I[Fixture 검증]
   I --> E
 ```
+
+### 0.0.1 통신 계층 아키텍처 단면도
+
+```mermaid
+flowchart TD
+  subgraph UI["UI 레이어"]
+    Comp[React Component]
+    Hook[Custom Hook]
+  end
+  subgraph SQ["서버 상태"]
+    TQ[TanStack Query]
+  end
+  subgraph Service["도메인 서비스"]
+    Service1[UserService]
+    Service2[OrderService]
+  end
+  subgraph Repo["Repository"]
+    Repo1[UserRepository]
+    Repo2[OrderRepository]
+  end
+  subgraph Client["HTTP 클라이언트"]
+    CF[customFetch wrapper]
+    Inter[interceptors]
+  end
+  subgraph Generated["생성 코드 (수정 금지)"]
+    GenAPI[generated/endpoints.ts]
+    GenModel[generated/models.ts]
+  end
+  subgraph Network["네트워크"]
+    Real[실 서버]
+    MSW[MSW 핸들러]
+  end
+
+  Comp --> Hook
+  Hook --> TQ
+  TQ --> Service1
+  TQ --> Service2
+  Service1 --> Repo1
+  Service2 --> Repo2
+  Repo1 --> GenAPI
+  Repo2 --> GenAPI
+  GenAPI --> CF
+  CF --> Inter
+  Inter --> Network
+  Network --> Real
+  Network --> MSW
+  GenModel -.타입.-> Repo1
+  GenModel -.타입.-> Repo2
+  GenModel -.타입.-> Service1
+```
+
+각 계층의 책임을 분리하면 한 곳의 변경이 다른 계층으로 새지 않습니다.
 
 ### 0.1 교차 검증 매트릭스
 
@@ -139,6 +217,8 @@ flowchart TD
 시스템 스펙(OpenAPI)을 기반으로 TypeScript 타입과 통신 함수를 자동으로 생성하여 데이터 정합성을 보장합니다.
 백엔드 팀이 스웨거 명세를 변경하면, 코드젠 도구가 자동으로 타입을 재생성하여 프론트엔드에서 즉시 타입 오류를 감지할 수 있습니다.
 
+> **일상 비유**: 명세 우선 개발은 건축에서의 설계도와 같습니다. 설계도(OpenAPI)가 먼저 있으면 전기공·배관공·미장공(여러 팀)이 동시에 작업해도 충돌이 줄어들고, 설계가 바뀌면 모두에게 그 영향이 즉시 보입니다.
+
 > **OpenAPI 버전 기준**: OpenAPI 3.2.0이 2025년 9월 공개된 최신 minor이며, streaming media type과 tag 구조 개선을 포함합니다. 다만 코드젠/문서/게이트웨이 호환성이 조직마다 다르므로 신규 표준은 **3.1 이상을 baseline**, **3.2는 도구 호환성 검증 후 recommended**로 적용합니다. 3.1은 JSON Schema 2020-12와 완전 호환되어 `nullable` 대신 `type: [string, "null"]` 형식의 유니온, `examples` 배열, `webhooks` 정의를 지원합니다.
 
 ### 1.1 코드젠 도구 비교
@@ -154,11 +234,45 @@ flowchart TD
 
 ### 1.2 워크플로우 개요
 
+> 일상 비유: 명세는 메뉴판이고, 코드젠은 메뉴판을 보고 키오스크 화면(타입+클라이언트)을 자동으로 그려주는 디자이너입니다.
+
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
 │ swagger.yaml │ ──→ │ Orval (코드젠) │ ──→ │ TypeScript 타입  │ ──→ │ API 함수 호출  │
 │ (백엔드 제공) │     │  orval.config │     │ + API 클라이언트  │     │ (프론트엔드)   │
 └─────────────┘     └──────────────┘     └─────────────────┘     └──────────────┘
+```
+
+```mermaid
+flowchart LR
+  Spec["api-spec.yaml<br/>(OpenAPI 3.1)"] --> Lint[spec lint]
+  Lint --> Diff[이전 버전 diff]
+  Diff --> Gen[Orval codegen]
+  Gen --> Types["models/*.ts<br/>(타입 정의)"]
+  Gen --> Endpoints["endpoints.ts<br/>(API 함수+훅)"]
+  Gen --> MockSk["MSW handler 스켈레톤"]
+  Types --> TS[tsc typecheck]
+  Endpoints --> TS
+  MockSk --> Manual[수동 fixture 보강]
+  TS --> Build[빌드/배포]
+  Manual --> Tests[단위/통합 테스트]
+```
+
+### 1.2.1 코드젠 도구 선택 결정 트리
+
+```mermaid
+flowchart TD
+  Start[코드젠 도구 선택] --> Q1{타입만 필요?}
+  Q1 -->|예| OT["openapi-typescript 7.x<br/>+ openapi-fetch"]
+  Q1 -->|아니오| Q2{훅까지 자동 생성?}
+  Q2 -->|아니오| Q3{기존 코드젠 부분 교체?}
+  Q3 -->|예| Kubb[Kubb 플러그인]
+  Q3 -->|아니오| OT
+  Q2 -->|예| Q4{MSW 핸들러도 자동 생성?}
+  Q4 -->|예| Orval[Orval v7+]
+  Q4 -->|아니오| Q5{Zod 스키마/RQ까지?}
+  Q5 -->|예| HeyAPI["@hey-api/openapi-ts"]
+  Q5 -->|아니오| Orval
 ```
 
 ### 1.3 Orval 설정 (orval.config.ts)
@@ -442,6 +556,8 @@ npx tsc --noEmit
 
 실제 인프라가 준비되기 전이나 격리된 테스트 환경에서 네트워크 요청을 인터셉트하여 가상 데이터를 제공합니다.
 
+> **일상 비유**: MSW는 영화 촬영장의 "그린 스크린"과 같습니다. 진짜 배경(서버) 없이도 같은 자세, 같은 카메라 워크(요청)로 촬영(테스트)할 수 있고, 마지막에 진짜 배경으로 교체해도 그림이 어긋나지 않습니다.
+
 **MSW(Mock Service Worker)의 핵심 원리:**
 - Service Worker를 통해 네트워크 레벨에서 요청을 인터셉트
 - 애플리케이션 코드를 전혀 수정하지 않고 가상 응답 제공
@@ -449,6 +565,46 @@ npx tsc --noEmit
 - 실제 HTTP 요청/응답과 동일한 동작을 보장
 
 > **MSW v1은 더 이상 지원되지 않습니다.** v2부터는 ① `req/res/ctx` 컴포지션이 사라지고 Fetch API `Response`를 직접 반환하는 방식으로 변경되었으며, ② Node.js 18+가 요구되고, ③ ESM 호환이 강화되었습니다. v1 프로젝트는 공식 codemod(`npx @msw/codemods`)로 일괄 마이그레이션할 수 있습니다.
+
+### 2.0 MSW 요청 인터셉트 흐름
+
+```mermaid
+sequenceDiagram
+  participant App as App 코드
+  participant Fetch as fetch / axios
+  participant SW as Service Worker / Node 인터셉터
+  participant Handler as MSW Handler
+  participant Real as 실제 서버
+
+  App->>Fetch: GET /api/users
+  Fetch->>SW: 네트워크 호출
+  alt 매칭 핸들러 있음
+    SW->>Handler: 요청 위임
+    Handler-->>SW: HttpResponse.json(...)
+    SW-->>Fetch: 가상 응답
+  else 매칭 없음 (onUnhandledRequest)
+    SW->>Real: 실제 요청 전달
+    Real-->>SW: 실 응답
+    SW-->>Fetch: pass-through
+  end
+  Fetch-->>App: 응답 객체
+```
+
+### 2.0.1 MSW 핸들러 라이프사이클
+
+```mermaid
+stateDiagram-v2
+  [*] --> Defined: handlers.ts 정의
+  Defined --> Registered: setupServer(...handlers) / setupWorker(...handlers)
+  Registered --> Listening: server.listen() / worker.start()
+  Listening --> Overridden: server.use(...override) (테스트 단위)
+  Overridden --> Listening: server.resetHandlers() (afterEach)
+  Listening --> BoundaryActive: server.boundary(async () => {...})
+  BoundaryActive --> Listening: boundary 종료 시 자동 격리 해제
+  Listening --> OneShotUsed: { once: true } 핸들러 사용
+  OneShotUsed --> Listening: server.restoreHandlers()
+  Listening --> [*]: server.close() (afterAll)
+```
 
 ### 2.1 설치 및 초기 설정
 
@@ -769,6 +925,29 @@ test('401 → refresh → 원래 요청 재시도', async () => {
 
 성공과 실패를 명시적인 객체로 반환하여 시스템의 견고함을 높입니다.
 
+> **일상 비유**: Result 패턴은 택배 영수증에 "배송 성공/배송 실패" 라벨이 미리 찍혀 있는 것과 같습니다. 박스를 열기 전(=값을 쓰기 전) 라벨을 반드시 보게 되므로 처리 누락이 사라집니다.
+
+### 3.0 Result 처리 흐름
+
+```mermaid
+flowchart TD
+  Call[API 호출] --> Wrap[customFetch wrapper]
+  Wrap --> Net{네트워크/응답 단계}
+  Net -->|2xx 응답| OK["ok(data)"]
+  Net -->|4xx/5xx| Map[status → ApiErrorCode 매핑]
+  Net -->|AbortError| TO["fail({code: TIMEOUT})"]
+  Net -->|예외/실패| NE["fail({code: NETWORK_ERROR})"]
+  Map --> FA["fail({code, message, details})"]
+  OK --> Consumer{호출 측 분기}
+  FA --> Consumer
+  TO --> Consumer
+  NE --> Consumer
+  Consumer -->|result.success === true| Use[result.data 사용]
+  Consumer -->|result.success === false| Handle[result.error 처리]
+  Handle --> Global[글로벌 핸들러]
+  Handle --> Local[로컬 UI 메시지]
+```
+
 ### 3.1 try/catch와의 비교
 
 | 관점 | try/catch | Result 패턴 |
@@ -981,6 +1160,25 @@ function UserProfile({ userResult }: Props) {
 
 비동기 리소스의 캐싱 및 상태 전이를 관리합니다. React 19의 `Suspense`와 연동하여 선언적인 데이터 로딩을 구현합니다.
 
+> **일상 비유**: TanStack Query는 도서관의 사서와 같습니다. 같은 책(데이터)을 누가 또 빌리겠다고 하면 책장(서버)까지 가지 않고 사서 책상 위(캐시)에서 바로 건네줍니다. 단, 너무 오래되면 stale 표시를 붙여 갱신을 알립니다.
+
+### 4.0 쿼리 상태 머신
+
+```mermaid
+stateDiagram-v2
+  [*] --> fetching: 첫 마운트 / 키 변경
+  fetching --> success: 응답 OK
+  fetching --> error: 응답 실패
+  success --> fresh: data 신선
+  fresh --> stale: staleTime 초과
+  stale --> fetching: refetch / focus / reconnect
+  error --> fetching: retry 결정 (지수 backoff)
+  success --> inactive: 마지막 옵저버 unmount
+  inactive --> gc: gcTime 경과
+  gc --> [*]
+  stale --> success: background refetch 성공
+```
+
 ### 4.1 QueryClient 전역 설정
 
 ```typescript
@@ -1114,6 +1312,30 @@ function CreateUserForm() {
 ### 4.4 Optimistic Update (낙관적 업데이트)
 
 서버 응답 전에 UI를 먼저 업데이트하여 즉각적인 사용자 경험을 제공합니다.
+
+> **일상 비유**: 카페에서 직원이 결제 전 음료 이름을 컵에 먼저 쓰는 것과 같습니다. 결제 실패 시 컵을 버리면 되지만, 손님 경험은 훨씬 빠르게 느껴집니다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant UI
+  participant Cache as Query Cache
+  participant Server
+
+  U->>UI: 좋아요 클릭
+  UI->>Cache: onMutate: snapshot + 낙관적 갱신
+  Cache-->>UI: 즉시 새 상태 반영
+  UI->>Server: POST /likes
+  alt 성공
+    Server-->>UI: 200 OK
+    UI->>Cache: onSettled: invalidate
+    Cache->>Server: 백그라운드 refetch
+  else 실패
+    Server-->>UI: 4xx/5xx
+    UI->>Cache: onError: snapshot 복원
+    Cache-->>UI: 이전 상태 복귀
+  end
+```
 
 ```typescript
 // src/features/user/useUpdateUser.ts
@@ -1265,6 +1487,8 @@ queryClient.invalidateQueries({ queryKey: userKeys.lists() });
 
 ## 5. Axios vs Fetch vs ky: HTTP 클라이언트 선택
 
+> 왜 중요한가: 클라이언트 선택은 단순 취향이 아닙니다. 번들·인터셉터·에러 처리 방식이 코드 곳곳의 추상화 비용에 직접 영향을 줍니다.
+
 | 기준 | **Fetch API** | **Axios** | **ky** |
 |------|:---:|:---:|:---:|
 | **번들 크기** | 0 KB (브라우저 내장) | ~13 KB (gzip) | ~3 KB (gzip) |
@@ -1276,6 +1500,25 @@ queryClient.invalidateQueries({ queryKey: userKeys.lists() });
 | **스트리밍** | ReadableStream 지원 | 제한적 | Fetch 기반이므로 지원 |
 | **Node.js** | 18+ 내장 | 완전 지원 | Fetch 기반 |
 | **진행률 추적** | ReadableStream으로 가능 | onUploadProgress 내장 | 미지원 |
+
+### HTTP 클라이언트 선택 결정 트리
+
+```mermaid
+flowchart TD
+  Start[클라이언트 선택] --> Q1{번들 크기가 결정적인가?}
+  Q1 -->|예| Q2{인터셉터/재시도 필요?}
+  Q2 -->|아니오| Fetch[Fetch API 그대로]
+  Q2 -->|예| Ky[ky]
+  Q1 -->|아니오| Q3{업로드 진행률 표시?}
+  Q3 -->|예| Axios[Axios]
+  Q3 -->|아니오| Q4{스트리밍/SSE/AbortController 활용?}
+  Q4 -->|예| Q5{재시도/타임아웃 내장 선호?}
+  Q5 -->|예| Ky
+  Q5 -->|아니오| Fetch
+  Q4 -->|아니오| Q6{이미 Axios 생태계?}
+  Q6 -->|예| Axios
+  Q6 -->|아니오| Ky
+```
 
 ### 5.1 선택 기준
 
@@ -1338,6 +1581,8 @@ const api = ky.create({
 
 ## 6. API 에러 핸들링 전략
 
+> 왜 중요한가: 에러를 한 곳에서만 처리하면 책임이 한쪽으로 쏠리고, 곳곳에서 처리하면 메시지가 중복됩니다. 계층별 책임을 분명히 나눠야 동일 에러를 일관되게 응대할 수 있습니다.
+
 ### 6.1 에러 계층 구조
 
 ```
@@ -1354,6 +1599,43 @@ const api = ky.create({
 │          컴포넌트 레벨 에러 처리                   │  → 폼 유효성 검증 에러
 │          (Result 패턴 분기)                       │  → 비즈니스 로직 에러
 └─────────────────────────────────────────────────┘
+```
+
+```mermaid
+flowchart TD
+  Err[에러 발생] --> L1{계층 판별}
+  L1 -->|HTTP 응답 단계| Global["글로벌 핸들러<br/>(인터셉터 / hooks)"]
+  L1 -->|쿼리/뮤테이션| RQ["TanStack Query<br/>onError + retry"]
+  L1 -->|렌더 중 throw| EB["React Error Boundary"]
+  L1 -->|폼/비즈니스| Comp["컴포넌트 레벨<br/>Result 분기"]
+
+  Global --> Action1["세션 만료 → /login<br/>토큰 갱신<br/>로깅"]
+  RQ --> Action2["재시도 결정<br/>onError 토스트"]
+  EB --> Action3["폴백 UI<br/>관측성 보고"]
+  Comp --> Action4["필드 메시지<br/>로컬 토스트"]
+
+  classDef l1 fill:#fff3e0,stroke:#fb8c00;
+  classDef l2 fill:#e3f2fd,stroke:#1976d2;
+  class Global,RQ,EB,Comp l1;
+  class Action1,Action2,Action3,Action4 l2;
+```
+
+### 6.1.1 재시도 의사결정 흐름
+
+```mermaid
+flowchart TD
+  Fail[요청 실패] --> Code{에러 코드}
+  Code -->|UNAUTHORIZED| Refresh["토큰 갱신 시도"]
+  Code -->|FORBIDDEN / NOT_FOUND / VALIDATION_ERROR / CONFLICT| NoRetry[재시도 금지]
+  Code -->|RATE_LIMITED| Backoff["Retry-After 준수<br/>지수 backoff"]
+  Code -->|NETWORK_ERROR / TIMEOUT / SERVER_ERROR| Count{failureCount < 2?}
+  Count -->|예| Wait[2^attempt 초 지연]
+  Wait --> Retry[재요청]
+  Count -->|아니오| Surface[에러 노출]
+  Refresh -->|성공| Retry
+  Refresh -->|실패| Logout[세션 종료]
+  Backoff --> Retry
+  NoRetry --> Surface
 ```
 
 ### 6.2 글로벌 에러 핸들러
@@ -1488,6 +1770,40 @@ export const queryClient = new QueryClient({
 ---
 
 ## 7. 인터셉터와 토큰 갱신 패턴
+
+> **일상 비유**: 인터셉터는 우편물 분류기와 같습니다. 보내기 전(요청)에는 발송 라벨(토큰, 추적 ID)을 붙이고, 받기 전(응답)에는 분실/지연을 골라내 적절한 후속 처리를 합니다.
+
+### 7.0 Silent Refresh 시퀀스
+
+> 왜 중요한가: 토큰 갱신 도중 동일 사용자에 의한 다중 요청이 동시에 들어오면 중복 갱신과 토큰 충돌이 발생합니다. 큐 기반 직렬화가 핵심입니다.
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant Client as apiClient
+  participant Server
+  participant Auth as Auth Server
+  participant Queue as failedQueue
+
+  App->>Client: GET /me (만료 토큰)
+  Client->>Server: Authorization: Bearer A
+  Server-->>Client: 401 Unauthorized
+  alt isRefreshing == false
+    Client->>Client: isRefreshing = true
+    Client->>Auth: POST /refresh
+    Auth-->>Client: 새 토큰 B
+    Client->>Queue: resolve(B) (대기 요청 일괄 처리)
+    Client->>Server: GET /me (B)
+    Server-->>Client: 200 OK
+    Client-->>App: 응답
+  else 이미 갱신 중
+    Client->>Queue: enqueue({resolve, reject})
+    Queue-->>Client: 새 토큰 B 수신 후 재요청
+    Client->>Server: GET /me (B)
+    Server-->>Client: 200 OK
+    Client-->>App: 응답
+  end
+```
 
 ### 7.1 요청/응답 인터셉터 (Axios 기준)
 
@@ -1688,6 +2004,8 @@ interceptors.request.use((config) => {
 
 > 연관: [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md)
 
+> **일상 비유**: API 계층은 식당의 작업 분할과 같습니다. 손님 응대(UI) → 주문서 작성(Hook) → 주방 분담(Service) → 재료 가져오기(Repository) → 가스레인지(HTTP 클라이언트). 한 사람이 다 하면 효율도 책임 추적도 흐려집니다.
+
 ### 8.1 계층 다이어그램
 
 ```
@@ -1712,6 +2030,51 @@ interceptors.request.use((config) => {
 │  └─ 인터셉터, 토큰 관리, 에러 변환               │
 └─────────────────────────────────────────────────┘
 ```
+
+```mermaid
+flowchart TD
+  subgraph UI["UI Layer"]
+    R[React Component]
+  end
+  subgraph Hook["Hook Layer"]
+    H1[useUsers]
+    H2[useCreateUser]
+  end
+  subgraph Svc["Service Layer"]
+    Svc1["userService<br/>(여러 Repo 조합)"]
+  end
+  subgraph Repo["Repository Layer"]
+    Rp1[userRepository]
+    Rp2[orderRepository]
+  end
+  subgraph Client["HTTP Client"]
+    Cf["customFetch / axios<br/>+ interceptors"]
+  end
+  Net[(Network)]
+
+  R --> H1
+  R --> H2
+  H1 --> Svc1
+  H2 --> Svc1
+  Svc1 --> Rp1
+  Svc1 --> Rp2
+  Rp1 --> Cf
+  Rp2 --> Cf
+  Cf --> Net
+
+  classDef ui fill:#e3f2fd,stroke:#1976d2;
+  classDef hook fill:#f3e5f5,stroke:#7b1fa2;
+  classDef svc fill:#fff3e0,stroke:#ef6c00;
+  classDef repo fill:#e8f5e9,stroke:#2e7d32;
+  classDef cli fill:#ffebee,stroke:#c62828;
+  class R ui;
+  class H1,H2 hook;
+  class Svc1 svc;
+  class Rp1,Rp2 repo;
+  class Cf cli;
+```
+
+각 계층은 한 방향으로만 의존합니다(상→하). 역방향 의존이 발견되면 boundary 위반입니다.
 
 ### 8.2 Repository 패턴
 

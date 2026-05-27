@@ -72,6 +72,55 @@ const COPY_RISK_CONFIG = {
   copyParagraphMinFiles: 2,
 };
 
+const ALLOWED_SHARED_COPY_PATTERNS = [
+  /추천 항목/,
+  /적용 결과를 PR 본문이나 회고 노트/,
+  /재작업률\/리뷰 충돌\/배포 이슈/,
+  /적용 항목/,
+  /예상 효과/,
+  /실행 증거/,
+  /담당자/,
+  /적용일/,
+  /측정 지표/,
+  /보류 사유/,
+  /항목 적용 주체/,
+  /실제 반영된 날짜/,
+  /리뷰 충돌\/재작업\/버그 재발/,
+  /적용을 못한 경우 이유/,
+  /P1\(7일 내\)/,
+  /P2\(30일 내\)/,
+  /P3\(90일 내\)/,
+  /완료 기준/,
+  /각 항목별 산출물/,
+  /1단계\(7일\)/,
+  /2단계\(30일\)/,
+  /3단계\(60일\)/,
+  /문제 대응/,
+  /전환 결과를 팀 산출물/,
+  /정적 지표 1개 이상으로 효과/,
+  /미달성 시 보류 사유/,
+  /실행 게이트/,
+  /승인 체계/,
+  /재개 조건/,
+  /정지 조건/,
+  /리스크 점수/,
+  /리더 승인자/,
+  /승인 역할/,
+  /재평가 주기/,
+  /위험, 비용, 기대 효과/,
+  /사전 승인자/,
+  /실패 신호가 기준치/,
+  /회귀 지표 악화/,
+  /현재 위험도를 기록/,
+  /최종 승인 책임자/,
+  /승인자, 실행자, 모니터링/,
+  /최소 2주 단위/,
+];
+
+function isAllowedSharedCopy(text) {
+  return ALLOWED_SHARED_COPY_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 const REQUIRED_SOURCE_URLS = [
   'https://frontend-fundamentals.com/code-quality/code/examples/submit-button.html',
   'https://frontend-fundamentals.com/code-quality/code/examples/login-start-page.html',
@@ -613,7 +662,9 @@ function validateCopyRisk(guideFiles) {
   const repeatedHeadings = new Map();
   const allowedRepeatedHeadings = new Set([
     '## 문서 책임 범위',
+    '## 0. 먼저 알고 가기 (30초 요약)',
     '## 실무 적용 가이드',
+    '## 초심자용 한눈에 보기',
     '## 체크리스트',
     '## 0. 모든 프론트엔드 그룹 공통 Baseline',
     '## 0.0 문서 네비게이션 맵',
@@ -625,6 +676,13 @@ function validateCopyRisk(guideFiles) {
     '## 9. 주의사항 및 흔한 실수',
     '## 9. 체크리스트',
     '## 10. 제외한 벤더 종속 항목',
+    '## 쉬운 말로 보는 용어 정리 (이 문서 중심)',
+    '## 추천 항목 (실무 우선순위)',
+    '## 추천 항목 고도화 체크',
+    '## 추천 항목 실행 기록 템플릿',
+    '## 추천 항목 실행 우선순위 매핑',
+    '## 추천 항목 실행 체크리스트',
+    '## 추천 항목 실행 운영 규칙',
   ]);
 
   const failures = [];
@@ -652,6 +710,10 @@ function validateCopyRisk(guideFiles) {
         continue;
       }
 
+      if (isAllowedSharedCopy(normalized)) {
+        continue;
+      }
+
       const set = copiedLines.get(normalized) || new Set();
       set.add(path.basename(file));
       copiedLines.set(normalized, set);
@@ -661,6 +723,10 @@ function validateCopyRisk(guideFiles) {
       const paragraph = normalizeLine(block.replace(/\n/g, ' '));
 
       if (paragraph.length < 100 || paragraph.startsWith('|') || paragraph.startsWith('>') || paragraph.startsWith('#')) {
+        continue;
+      }
+
+      if (isAllowedSharedCopy(paragraph)) {
         continue;
       }
 

@@ -1,7 +1,7 @@
 # 02. React 19 실무 가이드
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 초심자용 한눈에 보기
 
@@ -161,7 +161,34 @@ React 19 이후의 기능은 stable, stable-but-opt-in, security-gated, canary�
 
 ## 1. Actions: 비동기 상태 관리 패턴
 
-과거에는 데이터 갱신 시 `isLoading`, `error`, `data` 상태를 각각 `useState`로 직접 관리해야 했습니다. React 19의 **Actions**를 사용하면 비동기 함수의 시작과 끝을 React가 추적하여 자동으로 상태를 관리해줍니다.
+### 왜 중요한가
+
+과거에는 데이터 갱신 시 `isLoading`, `error`, `data` 상태를 각각 `useState`로 직접 관리해야 했습니다. 상태 3종 + try/catch/finally 보일러플레이트가 매 폼마다 반복되었고, 진행 중 중복 클릭 차단·낙관적 업데이트·롤백을 손으로 일일이 다뤄야 했습니다. React 19의 **Actions**를 사용하면 비동기 함수의 시작과 끝을 React가 추적하여 자동으로 상태를 관리해줍니다.
+
+> **일상 비유**: 배달앱에서 "주문하기"를 누르면 버튼이 자동으로 비활성화되고 진행 표시가 뜨며, 실패 시 메시지가 알아서 나타납니다. Actions는 React에서 같은 UX를 한 줄로 만들어줍니다.
+
+#### Actions 처리 시퀀스
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant Form as <form action={fn}>
+  participant React as React 19 런타임
+  participant Action as Action 함수
+  participant Server as 서버/Mutation
+
+  U->>Form: submit
+  Form->>React: action 호출 + FormData
+  React->>React: isPending = true
+  React-->>Form: 자식들의 useFormStatus 갱신
+  React->>Action: action(prevState, formData)
+  Action->>Server: 비동기 요청
+  Server-->>Action: 결과/오류
+  Action-->>React: 새 state 반환 (throw 금지)
+  React->>React: isPending = false
+  React-->>Form: state/isPending 업데이트
+  Form-->>U: 성공/실패 UI 반영
+```
 
 ### 1.1 `useActionState`: 비동기 작업과 상태의 결합
 
@@ -395,7 +422,31 @@ function ParentComponent() {
 
 ## 3. `use` Hook: 조건부 리소스 소비
 
-`use`는 React 19에서 새로 도입된 Hook으로, **Promise**나 **Context**를 렌더링 도중 읽을 수 있습니다. 기존 Hook들과 달리 `if`문, `for`문, `try/catch` 안에서도 호출 가능한 유일한 Hook입니다.
+### 왜 중요한가
+
+`use`는 React 19에서 새로 도입된 Hook으로, **Promise**나 **Context**를 렌더링 도중 읽을 수 있습니다. 기존 Hook들과 달리 `if`문, `for`문, `try/catch` 안에서도 호출 가능한 유일한 Hook입니다. 즉, 조건이 명확해진 시점에만 데이터를 "꺼내" 쓸 수 있어 불필요한 패칭과 중첩 Suspense를 줄여줍니다.
+
+> **일상 비유**: 카페에서 진동벨을 받아두고 자리를 잡은 뒤 필요할 때만 카운터로 가서 음료를 가져오는 것과 같습니다. `use(promise)`는 "준비됐을 때만 가져온다"는 패턴을 컴포넌트에 직접 표현합니다.
+
+#### Suspense + ErrorBoundary 계층 다이어그램
+
+```mermaid
+flowchart TD
+  subgraph Tree[컴포넌트 트리]
+    A[ErrorBoundary]
+    A --> B[Suspense fallback=Skeleton]
+    B --> C[UserProfile]
+    C --> D[use(userPromise)]
+  end
+  subgraph Flow[렌더링 흐름]
+    P1[Promise pending] -. throw .-> S1[Suspense가 fallback 렌더]
+    P2[Promise resolved] --> R1[UserProfile 본문 렌더]
+    P3[Promise rejected] -. throw .-> E1[ErrorBoundary fallback]
+  end
+  D --> P1
+  D --> P2
+  D --> P3
+```
 
 ### 3.1 Promise와 함께 사용 (Suspense 통합)
 
@@ -486,7 +537,38 @@ function ThemedButton({ showIcon }: { showIcon: boolean }) {
 
 ## 4. Server Functions & Actions
 
-`"use server"` 지시어로 선언된 함수는 서버에서만 실행되며, 클라이언트에서는 자동 생성된 RPC 참조를 통해 호출합니다. 네트워크 호출, 직렬화/역직렬화를 React가 자동으로 처리합니다.
+### 왜 중요한가
+
+`"use server"` 지시어로 선언된 함수는 서버에서만 실행되며, 클라이언트에서는 자동 생성된 RPC 참조를 통해 호출합니다. 네트워크 호출, 직렬화/역직렬화를 React가 자동으로 처리합니다. fetch 보일러플레이트 대신 함수 호출로 mutate를 표현할 수 있어 코드가 짧아지고, 서버 검증 결과를 그대로 폼 상태로 받아 표시할 수 있습니다.
+
+> **일상 비유**: 사내 인트라넷 신청서에서 "결재 올리기" 버튼이 사실은 멀리 떨어진 사내 서버에 요청을 보내지만, 사용자는 그저 양식만 채우면 됩니다. Server Functions는 클라이언트 코드에서 마치 로컬 함수처럼 보이지만 실제로는 서버에서 실행됩니다.
+
+#### Server Action 처리 시퀀스
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Browser as 브라우저
+  participant Form as <form action={createArticle}>
+  participant RSC as React Server Runtime
+  participant Action as "use server" 함수
+  participant DB as DB / 외부 시스템
+
+  Browser->>Form: submit (FormData)
+  Form->>RSC: action 참조 호출 + payload 직렬화
+  RSC->>Action: 서버에서 함수 실행
+  Action->>Action: Zod로 입력 검증
+  alt 검증 실패
+    Action-->>RSC: { success: false, fieldErrors }
+  else 검증 통과
+    Action->>DB: 데이터 변경
+    DB-->>Action: result
+    Action->>RSC: revalidatePath / tag 무효화
+    Action-->>RSC: { success: true, id }
+  end
+  RSC-->>Form: 결과 직렬화 응답
+  Form-->>Browser: useActionState 상태 갱신 + UI 반영
+```
 
 ### 4.1 기본 사용법: 폼 액션
 
@@ -621,7 +703,37 @@ function DeleteButton({ articleId }: { articleId: string }) {
 
 ## 5. `useOptimistic`: 낙관적 업데이트
 
+### 왜 중요한가
+
 네트워크 응답을 기다리지 않고 UI를 즉시 업데이트한 뒤, 서버 응답이 오면 실제 상태로 동기화합니다. 사용자 체감 속도를 극적으로 향상시킵니다.
+
+> **일상 비유**: 메신저에서 메시지를 보내면 회색 체크와 함께 즉시 화면에 표시됩니다. 서버가 응답하면 파란 체크로 바뀌고, 실패하면 빨간 느낌표로 변합니다. `useOptimistic`은 그 "즉시 회색 체크"를 React에서 표현하는 방법입니다.
+
+#### 낙관적 업데이트 시퀀스(성공/실패 분기)
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant UI as 컴포넌트
+  participant Opt as useOptimistic
+  participant Real as 실제 state
+  participant API as 서버
+
+  U->>UI: -/+ 버튼 클릭
+  UI->>Opt: addOptimistic({ id, delta })
+  Opt-->>UI: 즉시 반영된 화면(낙관적)
+  UI->>API: updateCartQuantity()
+  alt 성공
+    API-->>UI: 최신 items 반환
+    UI->>Real: setItems(latest)
+    Real-->>Opt: 기준 state 갱신
+    Opt-->>UI: 낙관적 결과와 동기화
+  else 실패
+    API-->>UI: 에러
+    Real-->>Opt: 기존 state 유지 -> 낙관적 변경 자동 롤백
+    UI-->>U: 에러 토스트 + 이전 수량 복귀
+  end
+```
 
 ### 5.1 장바구니 수량 변경 예제
 
@@ -733,10 +845,33 @@ function LikeButton({ articleId, initialLiked, initialCount }: LikeButtonProps) 
 
 ## 6. React Compiler 1.0 시대의 변화
 
+### 왜 중요한가
+
 React Compiler(구 React Forget)는 빌드 타임에 컴포넌트를 자동 메모이제이션합니다. 수동으로 `memo`, `useMemo`, `useCallback`을 작성할 필요가 사라집니다.
 
 > **2025년 10월: React Compiler 1.0 안정화 (GA)**
 > 1.0에서는 옵셔널 체이닝/배열 인덱스 의존성 분석, 라이브러리 호환성, 점진적 롤아웃 가이드가 정식화됐습니다. 실제 도입 효과는 공식 벤치마크 수치가 아니라 각 제품의 trace, interaction latency, bundle/hydration 지표로 검증합니다.
+
+> **일상 비유**: 자동변속기와 같습니다. 수동 변속(memo/useMemo/useCallback)도 잘 다루면 효율적이지만, 자동변속(Compiler)이면 운전자는 도로 상황(렌더링 의도)에만 집중할 수 있습니다. 단, 차종(라이브러리 호환성)이 자동변속을 지원해야 합니다.
+
+#### Compiler 최적화 흐름 비교
+
+```mermaid
+flowchart LR
+  subgraph Before[Before: 수동 메모]
+    A1[컴포넌트 정의] --> A2[memo로 감싸기]
+    A2 --> A3[useMemo로 계산 캐시]
+    A3 --> A4[useCallback로 참조 안정화]
+    A4 --> A5[의존성 배열 수동 관리]
+    A5 --> A6[부분 최적화 + 버그 위험]
+  end
+  subgraph After[After: Compiler 1.0]
+    B1[컴포넌트 정의] --> B2[react-hooks lint 통과]
+    B2 --> B3[Compiler가 의존성 추적]
+    B3 --> B4[자동 메모/캐시 코드 삽입]
+    B4 --> B5[일관된 최적화 + 회귀 추적]
+  end
+```
 
 ### 6.1 무엇이 바뀌나
 
@@ -998,6 +1133,27 @@ function Gallery({ id }: { id: string }) {
 ---
 
 ## 9. 마이그레이션 가이드: React 18 → 19
+
+### 왜 중요한가
+
+새 버전에서 사라진 API(`ReactDOM.render`, string ref 등)를 모른 채 업그레이드하면 빌드가 통째로 실패합니다. 단계별 게이트를 명확히 두면 회귀를 작은 단위로 잡고, 큰 일정 한 번보다 작은 점진 일정 여러 번이 안전합니다.
+
+#### 마이그레이션 단계 흐름
+
+```mermaid
+flowchart LR
+  A[패키지 업그레이드<br/>react@19, @types/react@19] --> B[codemod 실행<br/>render→createRoot 등]
+  B --> C{빌드/타입체크}
+  C -- 실패 --> B
+  C -- 통과 --> D[forwardRef 제거<br/>새 코드부터]
+  D --> E[useActionState 도입<br/>폼 컴포넌트]
+  E --> F[use/useOptimistic<br/>데이터 패칭]
+  F --> G[useEffectEvent/Activity<br/>까다로운 effect 정리]
+  G --> H[React Compiler 1.0<br/>opt-in 패키지부터]
+  H --> I{회귀 지표 OK?}
+  I -- 예 --> J[전역 확대]
+  I -- 아니오 --> K[Compiler opt-out<br/>해당 패키지 임시 제외]
+```
 
 ### 9.1 단계별 업그레이드
 

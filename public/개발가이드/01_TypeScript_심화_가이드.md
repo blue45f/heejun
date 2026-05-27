@@ -1,7 +1,7 @@
 # 01. TypeScript 심화 가이드
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 초심자용 한눈에 보기
 
@@ -164,7 +164,33 @@ TypeScript 버전 정책은 "새 기능을 빠르게 쓰기"보다 **타입 안�
 
 TypeScript의 타입은 **컴파일 타임에만 존재**합니다. 빌드가 완료된 JavaScript에는 타입 정보가 전혀 남아 있지 않습니다. 이 말은 외부 API, localStorage, URL 파라미터, 사용자 입력 등 **런타임에 들어오는 모든 데이터**에 대해 TypeScript가 아무런 보호도 제공하지 못한다는 뜻입니다.
 
+> **일상 비유**: 컴파일 타임 타입은 "공장 출하 전 도면 검수"와 같고, 런타임 검증은 "포장지를 뜯고 실제 부품이 도면대로 왔는지 확인"하는 단계입니다. 도면이 아무리 정확해도 실제 박스를 안 열어보면 잘못 배송된 부품을 알 수 없습니다.
+
 `as` 키워드로 타입을 강제 캐스팅하면 컴파일러는 만족하지만, 실제 데이터 구조가 다를 경우 런타임에서 예측 불가능한 오류가 발생합니다. Zod는 **스키마 정의 한 번으로 런타임 검증과 타입 추론을 동시에** 해결해주는 라이브러리입니다.
+
+#### 스키마 검증 처리 시퀀스
+
+```mermaid
+sequenceDiagram
+  participant Client as 클라이언트
+  participant API as 외부 API
+  participant Schema as Zod 스키마
+  participant Domain as 도메인 로직
+  participant Log as 모니터링
+
+  Client->>API: fetch(/api/user/:id)
+  API-->>Client: JSON 응답 (unknown 형태)
+  Client->>Schema: safeParse(response)
+  alt 스키마 통과
+    Schema-->>Client: result.success = true, data: User
+    Client->>Domain: 정규화된 User 사용
+    Domain-->>Client: 결과
+  else 스키마 실패
+    Schema-->>Client: result.success = false, issues
+    Client->>Log: 계약 불일치 기록 (필드/예상/실제)
+    Client-->>Client: fallback UI 또는 사용자 알림
+  end
+```
 
 ### Zod 4 (2025년 GA) 주요 변경점
 
@@ -318,7 +344,25 @@ type UserCorrect = z.infer<typeof UserSchema>;
 
 TypeScript의 타입 시스템은 **구조적 타이핑(Structural Typing)**을 사용합니다. 즉, 두 타입의 구조(형태)가 같으면 호환되는 것으로 판단합니다. 이 때문에 `UserId`와 `OrderId`가 둘 다 `string`이면 실수로 섞어 사용해도 컴파일러가 잡아주지 못합니다.
 
+> **일상 비유**: 같은 모양의 문(door) 열쇠라도 한 쪽엔 "현관용", 다른 쪽엔 "사무실용" 라벨이 붙어 있어야 잘못 가져가는 일이 없습니다. 브랜딩 타입은 그 라벨을 코드에 붙이는 일입니다.
+
 대규모 프로젝트에서 이런 실수는 **조용한 버그**로 이어집니다. 잘못된 ID로 API를 호출하면 데이터가 삭제되거나 잘못된 정보가 반환될 수 있습니다. **Branded Types**는 구조가 같은 타입이라도 논리적으로 구분되도록 "표식(brand)"을 붙여주는 패턴입니다.
+
+#### 브랜딩 타입 적용 결정 흐름
+
+```mermaid
+flowchart TD
+  A[새 식별자 도입] --> B{구조가 동일한<br/>다른 식별자가 있나?}
+  B -- 없음 --> C[일반 string/number 사용 가능]
+  B -- 있음 --> D{혼용 시 위험도?}
+  D -- 낮음 (UI 표시용) --> C
+  D -- 중간 (API 호출 인자) --> E[Brand 타입으로 분리]
+  D -- 높음 (삭제/결제) --> F[Brand + 런타임 검증 팩토리]
+  E --> G[as Brand 캐스팅은<br/>팩토리 함수 내부에서만]
+  F --> H[Zod .brand() + parse]
+  G --> I[사용처에서는 import 만]
+  H --> I
+```
 
 ### 2.1 브랜드 타입 구현 예시
 
@@ -646,7 +690,23 @@ const colorsImmutable = {
 
 **Discriminated Unions(판별 유니온)**은 하나의 "판별자(discriminant)" 프로퍼티를 기준으로 여러 타입 중 하나를 선택하는 패턴입니다. React 컴포넌트 Props 설계에서 특히 강력한데, `variant`나 `type` 같은 프로퍼티 값에 따라 다른 프로퍼티가 필수/금지되는 조건을 **타입 수준에서 강제**할 수 있습니다.
 
+> **일상 비유**: 우체국 송장 양식에서 "국내 배송"이면 우편번호가, "국제 배송"이면 국가코드가 필수입니다. 판별자(`shipping_type`)가 뒤따라야 할 필드를 결정합니다. 판별 유니온도 같은 원리입니다.
+
 이 패턴을 사용하면 "이 prop 조합은 허용하면 안 되는데..." 같은 런타임 버그를 컴파일 타임에 예방할 수 있습니다.
+
+#### 판별 유니온 좁히기(narrowing) 흐름
+
+```mermaid
+flowchart LR
+  A[ButtonProps 입력] --> B{props.variant ?}
+  B -- "primary" --> C[size: sm/md/lg 필수<br/>href: never]
+  B -- "link" --> D[href: string 필수<br/>size: never]
+  B -- "ghost" --> E[size: 선택적<br/>href: never]
+  C --> F[<button class=primary>]
+  D --> G[<a href=...>]
+  E --> H[<button class=ghost>]
+  B -. 알 수 없는 값 .-> X[assertNever<br/>컴파일 에러 발생]
+```
 
 ### 5.1 컴포넌트 Props에 적용
 
@@ -788,7 +848,29 @@ type GoodUnion =
 
 TypeScript의 타입 시스템은 **제어 흐름 분석(Control Flow Analysis)**을 통해 조건문 내부에서 타입을 자동으로 좁혀줍니다. 하지만 복잡한 비즈니스 로직에서는 기본 제공 연산자(`typeof`, `instanceof`, `in`)만으로는 부족할 때가 있습니다.
 
+> **일상 비유**: 병원 접수에서 "이름·주민번호·증상"을 단계적으로 물어가며 어떤 진료과로 보낼지 좁혀가는 과정과 같습니다. 한 번에 모든 정보를 묻는 대신, 알게 된 정보로 다음 질문을 좁혀갑니다.
+
 **사용자 정의 타입 가드(User-Defined Type Guard)**를 사용하면 개발자가 직접 타입 좁힘 로직을 정의하고, 이를 재사용 가능한 함수로 만들 수 있습니다. 타입 가드를 잘 활용하면 `as` 키워드 사용을 거의 없앨 수 있습니다.
+
+#### 타입 좁히기 분기 선택 가이드
+
+```mermaid
+flowchart TD
+  A[unknown 또는 union 입력] --> B{원시 타입 구분?<br/>string/number/boolean}
+  B -- 예 --> C[typeof 사용]
+  B -- 아니오 --> D{클래스 인스턴스 구분?}
+  D -- 예 --> E[instanceof 사용]
+  D -- 아니오 --> F{프로퍼티 존재로 구분?}
+  F -- 예 --> G[in 연산자 사용]
+  F -- 아니오 --> H{판별자 프로퍼티 있나?}
+  H -- 예 --> I[discriminated union<br/>switch case]
+  H -- 아니오 --> J[user-defined type guard<br/>x is T 시그니처]
+  C --> K[좁혀진 타입으로 안전 접근]
+  E --> K
+  G --> K
+  I --> K
+  J --> K
+```
 
 ### 6.1 기본 내로잉: typeof / instanceof / in
 
@@ -963,7 +1045,23 @@ if (isAdminGood(user)) {
 
 **제네릭(Generics)**은 "타입을 매개변수처럼" 사용하는 기능입니다. 함수나 클래스를 작성할 때 특정 타입에 종속되지 않으면서도 타입 안전성을 유지할 수 있게 해줍니다.
 
+> **일상 비유**: 도시락 통은 "어떤 음식이든 담을 수 있는 빈 공간"을 제공하지만, 통이 받아들이는 형태(밀폐, 사각형)는 정해져 있습니다. 제네릭은 비어 있되 형태가 정해진 도시락 통이며, `extends`는 "이 통은 액체만 받습니다" 같은 제약입니다.
+
 제네릭이 없다면 범용 유틸리티 함수를 만들 때 `any`를 사용하게 되고, 이는 타입 안전성을 완전히 포기하는 것입니다. 제네릭을 올바르게 활용하면 **재사용성과 타입 안전성을 동시에** 확보할 수 있습니다.
+
+#### 제네릭 추론 단계
+
+```mermaid
+flowchart LR
+  A["호출: findById(users, 'u1')"] --> B[1. 인자 타입 추출<br/>users: User[]]
+  B --> C[2. 제약 검사<br/>User extends HasId ?]
+  C -- 통과 --> D[3. T = User로 바인딩]
+  D --> E[4. T['id'] = User['id'] = string]
+  E --> F[5. 두 번째 인자가 string인지 검사]
+  F -- 통과 --> G[6. 반환 타입 User | undefined]
+  C -- 실패 --> X[컴파일 에러: 제약 위반]
+  F -- 실패 --> Y[컴파일 에러: id 타입 불일치]
+```
 
 ### 7.1 제네릭 제약 조건 (Constraints)
 
@@ -1168,6 +1266,32 @@ function processGood<T extends { id: string; name: string }>(data: T) { /* ... *
 ---
 
 ## 8. TypeScript 5.8-7.0 기능 채택 가이드
+
+### 왜 중요한가
+
+TypeScript는 6개월마다 새 기능을 추가하지만, "쓸 수 있다"와 "써도 안전하다"는 다릅니다. 런타임 변환·번들러 지원·에디터 호환성을 확인하지 않으면 갑자기 빌드가 깨질 수 있어, 단계적 채택 기준이 필요합니다.
+
+#### 버전별 채택 결정 흐름
+
+```mermaid
+flowchart TD
+  A[새 TS 기능 검토] --> B{기능 분류}
+  B -- 안정판 신문법<br/>satisfies/const generics --> C[즉시 채택<br/>lint 룰만 정비]
+  B -- 컴파일러 옵션<br/>erasableSyntaxOnly 등 --> D{런타임 매칭?}
+  D -- Node type stripping --> E[채택, 신규 코드 enum 금지]
+  D -- 번들러 사용 --> F[검토 후 채택]
+  B -- 신규 import 문법<br/>import defer --> G{모듈 출력 지원?}
+  G -- module: preserve/esnext --> H[shadow CI에서 검증]
+  G -- 미지원 --> I[보류]
+  B -- 7.0 Beta tsgo --> J[기존 tsc와 side-by-side]
+  J --> K[diagnostics diff/성능/도구 호환]
+  K -- 일치 --> L[shadow CI에 연결]
+  K -- 불일치 --> M[6.x 안정판 유지]
+  E --> N[CI 게이트 갱신]
+  F --> N
+  H --> N
+  L --> N
+```
 
 ### 8.1 `--erasableSyntaxOnly` (5.8)
 

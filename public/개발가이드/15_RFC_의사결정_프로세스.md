@@ -1,7 +1,7 @@
 # 15. RFC 의사결정 프로세스
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
@@ -9,9 +9,25 @@
 - 채택 기준, 반려 기준, 철회 기준을 문서 초기에 적어두세요.
 - 나중에 추적할 수 있도록 결정 배경을 짧게라도 남기는 것이 핵심입니다.
 
+> **왜 중요한가**: 결정 근거가 사라지면 같은 논쟁이 분기마다 반복되고, 운영자가 바뀔 때마다 학습 비용이 늘어납니다.
+>
+> **일상 비유**: 병원의 진료 기록과 같습니다. 환자가 다른 의사에게 가도 차트만 보면 과거 처방과 부작용을 알 수 있어 같은 실수를 막을 수 있죠.
+
 ## 초심자용 한눈에 보기
 
 의사결정은 빠른 투표보다, 근거를 남기고 나중에 되돌릴 수 있는 형태로 만드는 것입니다.
+
+```mermaid
+flowchart LR
+  Q[질문/문제 발생] --> CHECK{되돌리기 어려운가}
+  CHECK -->|쉽다| PR[PR로 처리]
+  CHECK -->|어렵다| RFC[RFC 작성]
+  RFC --> REVIEW[대안 비교 + 리뷰]
+  REVIEW --> DECIDE[결정 + ADR 기록]
+  DECIDE --> TRACK[운영 지표 관찰]
+  TRACK -->|문제 발견| REOPEN[Supersede 또는 회수]
+  TRACK -->|안정| KEEP[표준 유지]
+```
 
 ### 핵심 용어 빠르게 정리
 
@@ -122,6 +138,8 @@ flowchart TD
 
 ## 1. RFC가 필요한 경우
 
+> **왜 중요한가**: 모든 변경에 RFC를 강요하면 속도가 죽고, 아무 변경에도 RFC가 없으면 사고 비용이 폭발합니다. 두 위험 사이의 균형 기준이 이 표입니다.
+
 | RFC 필요 | RFC 불필요 |
 | :--- | :--- |
 | 프레임워크/상태관리/빌드 도구 교체 | 작은 컴포넌트 내부 리팩터 |
@@ -133,9 +151,32 @@ flowchart TD
 
 RFC는 모든 변경을 느리게 만들기 위한 절차가 아닙니다. 되돌리기 어려운 결정을 빠르게 잘하기 위한 장치입니다.
 
+### 1.1 RFC 필요 여부 의사결정 트리
+
+```mermaid
+flowchart TD
+  START([변경 제안]) --> Q1{되돌리는 데<br/>30분 이상 걸리는가}
+  Q1 -->|아니오| PR1[PR로 처리]
+  Q1 -->|예| Q2{2개 이상 팀의<br/>ownership에 영향?}
+  Q2 -->|예| RFC_NEED[RFC 필수]
+  Q2 -->|아니오| Q3{보안/개인정보/계약<br/>영향이 있는가}
+  Q3 -->|예| RFC_NEED
+  Q3 -->|아니오| Q4{성능 예산이나<br/>SLA를 변경?}
+  Q4 -->|예| RFC_NEED
+  Q4 -->|아니오| Q5{비용이 분기<br/>예산을 흔드는가}
+  Q5 -->|예| RFC_NEED
+  Q5 -->|아니오| LIGHT[Lightweight ADR로 충분]
+  RFC_NEED --> DRAFT[RFC Draft 시작]
+  LIGHT --> ADR_ONLY[PR에 ADR 링크]
+```
+
+비유: 자동차 정비와 같습니다. 와이퍼 교체는 그 자리에서 하지만(`PR`), 엔진 교체는 견적과 대안과 일정이 필요합니다(`RFC`).
+
 ---
 
 ## 2. RFC 라이프사이클
+
+> **왜 중요한가**: 단계 정의가 없으면 "어디까지 합의됐고 무엇을 남겨야 하는지"가 흐려지고, 리뷰가 영원히 끝나지 않습니다.
 
 ```text
 problem
@@ -156,6 +197,47 @@ problem
 | ADR | 최종 결정과 근거를 짧게 기록 |
 | Implementation | 작업이 RFC 링크를 참조하고 범위를 벗어나지 않음 |
 | Validation | 성공 지표와 철회 조건 확인 |
+
+### 2.1 RFC 상태 다이어그램
+
+```mermaid
+stateDiagram-v2
+  [*] --> Draft: 문제/대안 정리
+  Draft --> InReview: reviewer 지정
+  InReview --> Draft: 큰 수정 요청
+  InReview --> Approved: 합의 + 검증 통과
+  InReview --> Rejected: 비목적/비효율 판정
+  InReview --> Deferred: 정보/실험 필요
+  Deferred --> InReview: PoC 결과 도착
+  Approved --> Implemented: 코드 반영 완료
+  Implemented --> Validated: 운영 지표 OK
+  Validated --> Stable: 표준 유지
+  Stable --> Superseded: 후속 RFC가 대체
+  Stable --> Archived: 더 이상 유효하지 않음
+  Validated --> Rollback: 회수 조건 충족
+  Rollback --> Archived
+  Rejected --> [*]
+  Superseded --> [*]
+  Archived --> [*]
+```
+
+비유: 도서관 책의 상태와 같습니다. 신간(`Draft`) → 대출 중(`InReview`) → 보존서가(`Stable`) → 폐기(`Archived`) → 개정판으로 교체(`Superseded`).
+
+### 2.2 PoC → 채택 → 회수 라이프사이클
+
+```mermaid
+flowchart LR
+  POC[PoC<br/>소규모 실험] -->|성공 지표 충족| ADOPT[Adopt<br/>제한 공개]
+  POC -->|실패| DISCARD[Discard]
+  ADOPT -->|운영 안정| STANDARD[Standard<br/>전면 채택]
+  ADOPT -->|이슈 발생| REVISE[Revise<br/>조정]
+  REVISE --> ADOPT
+  STANDARD -->|새로운 대체안| SUPERSEDE[Superseded]
+  STANDARD -->|회수 조건 도달| WITHDRAW[Withdraw]
+  WITHDRAW --> POSTMORTEM[회수 사유 ADR 기록]
+  SUPERSEDE --> ARCHIVE[Archive]
+  WITHDRAW --> ARCHIVE
+```
 
 ---
 
@@ -236,6 +318,8 @@ ADR은 RFC보다 짧아야 합니다. 이후 온보딩과 코드리뷰에서 빠
 
 ## 5. 의사결정 원칙
 
+> **왜 중요한가**: 같은 사람이 같은 데이터로 다른 시점에 다른 결정을 내리지 않도록 원칙을 외부화해야 합니다.
+
 | 원칙 | 기준 |
 | :--- | :--- |
 | Reversibility | 되돌리기 쉬운 결정은 가볍게, 어려운 결정은 신중하게 |
@@ -245,9 +329,40 @@ ADR은 RFC보다 짧아야 합니다. 이후 온보딩과 코드리뷰에서 빠
 | Dissent | 반대 의견과 선택하지 않은 이유를 기록 |
 | Review | 결정이 낡으면 폐기하거나 대체 |
 
+### 5.1 역할과 책임 분담
+
+```mermaid
+flowchart TB
+  subgraph 제안["제안 단계"]
+    PROPOSER[Proposer<br/>문제/대안 작성]
+  end
+  subgraph 검토["검토 단계"]
+    REVIEWERS[Reviewers<br/>리스크/근거 질문]
+    SME[SME<br/>도메인 전문가]
+  end
+  subgraph 결정["결정 단계"]
+    OWNER[Decision Owner<br/>최종 결정 책임]
+    APPROVER[Approver<br/>승인 권한]
+  end
+  subgraph 운영["운영 단계"]
+    MAINTAINER[Maintainer<br/>구현/유지보수]
+    AUDITOR[Auditor<br/>지표/회수 점검]
+  end
+  PROPOSER --> REVIEWERS
+  PROPOSER --> SME
+  REVIEWERS --> OWNER
+  SME --> OWNER
+  OWNER --> APPROVER
+  APPROVER --> MAINTAINER
+  MAINTAINER --> AUDITOR
+  AUDITOR -->|회수/Supersede 필요| PROPOSER
+```
+
 ---
 
 ## 6. 표준 문서 분류
+
+> **왜 중요한가**: "권장(Guide)"인지 "필수(Standard)"인지 흐려지면, 리뷰에서 같은 문서를 두고 정반대로 해석합니다.
 
 | 문서 | 목적 | 예시 |
 | :--- | :--- | :--- |
@@ -261,9 +376,33 @@ ADR은 RFC보다 짧아야 합니다. 이후 온보딩과 코드리뷰에서 빠
 
 문서 유형이 섞이면 읽는 사람이 "권장"과 "필수"를 구분하기 어렵습니다.
 
+### 6.1 RFC 운영 일정 예시 (gantt)
+
+```mermaid
+gantt
+  title RFC 표준 일정 (2주 cadence 예시)
+  dateFormat  YYYY-MM-DD
+  axisFormat  %m-%d
+  section Draft
+  문제/대안 정리        :a1, 2030-01-05, 3d
+  Draft 공유            :a2, after a1, 1d
+  section Review
+  Review 기간          :b1, after a2, 5d
+  반대 의견 수렴        :b2, after b1, 2d
+  section Decision
+  결정/ADR 작성        :c1, after b2, 1d
+  section Implementation
+  구현/PoC 반영        :d1, after c1, 7d
+  Validation 지표 측정  :d2, after d1, 5d
+  section Followup
+  Stable 전환/Archive  :e1, after d2, 2d
+```
+
 ---
 
 ## 7. AI 활용 기준
+
+> **왜 중요한가**: AI는 빠른 초안에는 강하지만, 사후 책임은 사람이 집니다. 역할이 흐려지면 잘못된 결정의 회수 비용을 누구도 책임지지 않습니다.
 
 AI는 RFC 초안 작성, 대안 발굴, 리스크 체크리스트 생성, ADR 요약에 사용할 수 있습니다. 단, AI가 결정권자가 되어서는 안 됩니다.
 
@@ -271,6 +410,16 @@ AI는 RFC 초안 작성, 대안 발굴, 리스크 체크리스트 생성, ADR �
 - 민감 회의록, 고객 데이터, 내부 URL, secret은 AI에 전달하지 않습니다.
 - AI가 제안한 대안은 owner가 비용, 보안, 운영 영향 기준으로 검증합니다.
 - 최종 결정에는 사람 decision maker를 기록합니다.
+
+```mermaid
+flowchart LR
+  HUMAN[사람 Decision Owner] -->|문제 정의| AI[AI 보조]
+  AI -->|대안 후보 N개| HUMAN
+  HUMAN -->|근거/검증 요청| AI
+  AI -->|문서/체크리스트 초안| HUMAN
+  HUMAN -->|최종 결정 + ADR 서명| RECORD[(영구 기록)]
+  AI -.AI는 서명하지 않음.-> RECORD
+```
 
 ---
 

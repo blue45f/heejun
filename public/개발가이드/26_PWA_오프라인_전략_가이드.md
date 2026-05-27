@@ -1,17 +1,40 @@
 # 26. PWA & 오프라인 전략 가이드
 
 > **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](./00_개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
+> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
 > 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
+
+> **왜 중요한가**: 모바일·터널·엘리베이터에서 네트워크가 끊겨도 사용자는 작업을 계속하길 원하고, 다시 연결됐을 때 손실 없이 이어지길 기대합니다.
+>
+> **일상 비유**: PWA의 오프라인 전략은 ATM과 같습니다. ATM이 일시적으로 본점 시스템과 연결이 끊겨도 출금 가능하고, 연결이 복구되면 거래 내역이 본점으로 안전하게 동기화됩니다. 화면만 살아 있는 게 아니라 데이터 흐름이 유지되어야 합니다.
 
 - 오프라인 대응은 화면만 보이게 하는 것이 아니라 데이터 동기화 전략이 핵심입니다.
 - 동기화 큐, 재시도, 충돌 병합 정책을 먼저 정하세요.
 - 온라인 복귀 시 데이터 정합성 검증을 마지막에 반드시 넣습니다.
 
+### PWA 오프라인 핵심 의사결정 한눈에 보기
+
+```mermaid
+flowchart TD
+  Start([기능 설계 시작]) --> Q1{오프라인에서<br/>읽기가 필요한가}
+  Q1 -->|예| R1[App Shell + 데이터 캐싱<br/>Cache First / SWR]
+  Q1 -->|아니오| Q2{오프라인에서<br/>쓰기가 필요한가}
+  R1 --> Q2
+  Q2 -->|예| W1[IndexedDB 큐 + 동기화 엔진<br/>idempotency key 필수]
+  Q2 -->|아니오| Q3{재접속 시 알림이<br/>필요한가}
+  W1 --> Q3
+  Q3 -->|예| P1[Web Push + Background Sync<br/>VAPID 키 발급]
+  Q3 -->|아니오| Done([완료: 라이브러리 선택])
+  P1 --> Done
+  Done --> Final([Workbox / Serwist /<br/>직접 SW 작성 선택])
+```
+
 ## 초심자용 한눈에 보기
 
 오프라인 전략은 네트워크가 흔들릴 때도 핵심 기능이 죽지 않게 만드는 설계입니다.
+
+> **일상 비유**: 도서관 사서가 자주 빌려가는 책은 가까운 책장에 두고(캐시), 새 책 주문은 일단 메모에 적어두었다가(큐) 출판사 영업이 시작되면 한꺼번에 발송하는(동기화) 방식과 같습니다.
 
 ### 핵심 용어 빠르게 정리
 
@@ -89,6 +112,8 @@
 
 ### 0.0 PWA 오프라인 처리 흐름
 
+> **왜 중요한가**: 단계 순서가 어긋나면 캐시는 정의했는데 동기화 큐가 없거나, UX는 만들었는데 rollback이 없는 부분 적용으로 끝납니다. 아래 순서대로 진행해야 운영까지 닿습니다.
+
 ```mermaid
 flowchart TD
   A[오프라인 지원 기능 분석] --> B[캐시 책임 분리]
@@ -101,6 +126,31 @@ flowchart TD
   G -->|Pass| I[E2E offline + sync 검증]
   H --> C
   I --> J[운영 모니터링 + 큐 드레인/캐시 purge]
+```
+
+#### 캐시 책임 분리 한눈에 보기
+
+> **일상 비유**: 우편 시스템처럼 책임이 단계별로 다릅니다. 본사 창고(CDN), 지역 우체국(HTTP cache), 우체부 가방(Service Worker), 우편함(브라우저 메모리)이 같은 편지를 모두 보관하면 어디 편지가 최신인지 알 수 없습니다.
+
+```mermaid
+flowchart LR
+  subgraph 서버측[서버 계층]
+    A[Origin Server<br/>최신 진실]
+    B[Framework Cache<br/>SSR/ISR/RSC]
+  end
+  subgraph 네트워크[네트워크 계층]
+    C[CDN Cache<br/>지역별 엣지]
+    D[HTTP Cache<br/>브라우저 디스크]
+  end
+  subgraph 클라이언트[클라이언트 계층]
+    E[Service Worker Cache<br/>Cache Storage API]
+    F[Memory Cache<br/>현재 탭만]
+  end
+  A --> B --> C --> D --> E --> F
+  E -.오프라인 폴백.-> User([사용자])
+  F --> User
+  style A fill:#fff3e0
+  style E fill:#e3f2fd
 ```
 
 ### 0.1 교차 검증 매트릭스
@@ -126,6 +176,8 @@ flowchart TD
 
 ## 1. AI 기반 PWA 개발 자동화
 
+> **왜 중요한가**: Service Worker는 한 줄 실수로 모든 사용자에게 stale HTML이 박혀 화면 자체가 깨질 수 있습니다. AI 산출물은 빠르지만, "운영 환경에서 무엇이 부서질 수 있나"를 사람이 한 번 더 검증해야 안전합니다.
+
 이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)를 단일 출처로 따릅니다. 여기서는 Service Worker, 캐시, 오프라인 UX 검증에 필요한 도메인별 질문만 다룹니다.
 
 AI는 Service Worker 초안, 캐싱 전략 후보, 오프라인 UX 시나리오, 테스트 케이스를 빠르게 만들 수 있다. 최종 적용은 브라우저 호환성, 캐시 무효화 위험, 배포 롤백 가능성을 검증한 뒤 사람이 승인한다.
@@ -150,7 +202,41 @@ AI 보조 도구로 Service Worker를 만들 때는 다음 제약을 prompt에 �
 
 ## 2. 환경별 PWA 운영 전략
 
+> **왜 중요한가**: 한 SW가 모든 환경에서 동일하게 동작하면 preview의 캐시가 production을 덮어쓰거나, staging 알림이 실제 사용자에게 가는 사고가 납니다. 환경별 격벽을 미리 만들어 두면 사고가 1환경에서 멈춥니다.
+>
+> **일상 비유**: 약국에서 처방약·일반약·테스트 샘플을 같은 약장에 섞어두지 않듯, PWA도 환경별로 캐시 공간과 알림 채널을 격리해야 합니다.
+
 Preview, staging, canary, production 환경에서 PWA가 일관되게 동작하면서도 환경별 특성에 맞게 분리 운영하기 위한 전략이다.
+
+### 환경별 캐시 정책 비교 한눈에 보기
+
+```mermaid
+flowchart TB
+  subgraph PROD[Production]
+    P1[Precache: ON]
+    P2[API: NetworkFirst<br/>5분 TTL]
+    P3[Static: CacheFirst<br/>30일 TTL]
+  end
+  subgraph STG[Staging]
+    S1[Precache: ON]
+    S2[API: NetworkFirst<br/>1분 TTL]
+    S3[Static: CacheFirst<br/>짧은 TTL]
+  end
+  subgraph CAN[Canary]
+    C1[Precache: OFF]
+    C2[API: NetworkFirst<br/>30초 TTL]
+    C3[Static: SWR<br/>실시간 갱신]
+  end
+  subgraph PRE[Preview]
+    R1[Precache: OFF]
+    R2[API: NetworkOnly]
+    R3[Static: NetworkOnly]
+  end
+  style PROD fill:#e8f5e9
+  style STG fill:#fff8e1
+  style CAN fill:#f3e5f5
+  style PRE fill:#ffebee
+```
 
 ### 2.1 환경별 Service Worker 분리
 
@@ -875,6 +961,59 @@ export async function registerServiceWorkerSafely(
 
 ## 3. Service Worker 라이프사이클
 
+> **왜 중요한가**: SW의 install/activate/fetch 순서를 이해해야 "새 배포가 안 반영된다", "탭은 열려 있는데 옛날 UI다" 같은 문제를 진단할 수 있습니다. 라이프사이클은 SW 모든 문제의 출발점입니다.
+>
+> **일상 비유**: 식당의 셰프 교대와 같습니다. 새 셰프(새 SW)가 도착해 도구를 익히고(install), 기존 셰프와 교대(activate)한 뒤에야 주문(fetch)을 받습니다. 손님(탭)이 식사 중이면 교대를 늦추거나(`waiting`) 즉시 교대(`skipWaiting`)할지 정해야 합니다.
+
+### Service Worker 상태 전이도
+
+```mermaid
+stateDiagram-v2
+  [*] --> Parsed: 등록 register()
+  Parsed --> Installing: install 이벤트
+  Installing --> Installed: waitUntil() 성공
+  Installing --> Redundant: install 실패
+  Installed --> Waiting: 기존 SW 제어 중
+  Installed --> Activating: skipWaiting() 호출
+  Waiting --> Activating: 모든 탭 닫힘<br/>또는 사용자 새로고침
+  Activating --> Activated: activate 완료
+  Activated --> Fetch_handle: clients.claim()
+  Fetch_handle --> Activated: 다음 요청 대기
+  Activated --> Redundant: 새 SW가 activate
+  Redundant --> [*]
+  note right of Waiting: 가장 흔한 함정<br/>"새 SW가 반영 안 됨"
+  note right of Activated: navigation preload 활성화<br/>이전 캐시 정리 시점
+```
+
+### install / activate / fetch 시퀀스 흐름
+
+```mermaid
+sequenceDiagram
+  participant Browser as 브라우저
+  participant SW_New as 새 Service Worker
+  participant SW_Old as 기존 Service Worker
+  participant Cache as Cache Storage
+  participant Network as Origin
+
+  Browser->>SW_New: register('/sw.js')
+  SW_New->>SW_New: install 이벤트
+  SW_New->>Cache: addAll(PRECACHE_URLS)
+  Cache-->>SW_New: 프리캐시 완료
+  SW_New->>SW_New: skipWaiting() 호출
+  Note over SW_New,SW_Old: 교체 시점 결정
+  SW_New->>SW_Old: 즉시 교체
+  SW_Old-->>Browser: terminate
+  SW_New->>SW_New: activate 이벤트
+  SW_New->>Cache: 이전 버전 캐시 삭제
+  SW_New->>Browser: clients.claim()
+  Note over SW_New,Browser: fetch 핸들러 활성화
+  Browser->>SW_New: fetch /api/data
+  SW_New->>Network: 네트워크 우선
+  Network-->>SW_New: 200 OK
+  SW_New->>Cache: cache.put()
+  SW_New-->>Browser: Response
+```
+
 install, activate, fetch 전체 이벤트를 구현한다.
 
 ```typescript
@@ -1098,6 +1237,53 @@ export function acceptUpdate(): void {
 
 ## 5. 캐싱 전략 4종 비교
 
+> **왜 중요한가**: 잘못된 전략을 선택하면 인증 토큰이 캐시에 박혀 보안 사고가 나거나, 폰트를 매번 네트워크로 가져와 LCP가 망가집니다. 리소스 유형별로 전략을 명확히 매핑해야 합니다.
+>
+> **일상 비유**: 냉장고에 식재료를 넣는 방식과 같습니다. 자주 안 바뀌는 조미료(폰트=Cache First)는 안쪽 칸, 매일 다른 신선식품(API=Network First)은 가장 앞 칸에, 일주일 단위 식료품(CDN=SWR)은 백그라운드로 채워두고, 약(인증=Network Only)은 매번 약사에게 새로 받습니다.
+
+### 캐싱 전략 의사결정 트리
+
+```mermaid
+flowchart TD
+  Start([리소스 유형 확인]) --> Q1{민감 정보<br/>또는 결제 흐름?}
+  Q1 -->|예| NO[Network Only<br/>캐시 금지]
+  Q1 -->|아니오| Q2{거의 변하지<br/>않는가?}
+  Q2 -->|예<br/>예: 폰트, 로고| CF[Cache First<br/>장기 TTL]
+  Q2 -->|아니오| Q3{사용자별로<br/>달라지는가?}
+  Q3 -->|예<br/>예: 내 알림, 잔액| NF[Network First<br/>3초 타임아웃 후 캐시]
+  Q3 -->|아니오| Q4{빠른 응답이<br/>신선도보다 중요?}
+  Q4 -->|예<br/>예: CDN 이미지| SWR[Stale While Revalidate<br/>즉시 응답 + 백그라운드 갱신]
+  Q4 -->|아니오| NF
+  style NO fill:#ffcdd2
+  style CF fill:#c8e6c9
+  style NF fill:#bbdefb
+  style SWR fill:#fff9c4
+```
+
+### 전략별 동작 비교 (요청 시점별)
+
+```mermaid
+flowchart LR
+  subgraph CF_FLOW[Cache First]
+    direction TB
+    CF1[요청] --> CF2{캐시 hit?}
+    CF2 -->|yes| CF3[캐시 반환<br/>빠름]
+    CF2 -->|no| CF4[네트워크 → 캐시 저장]
+  end
+  subgraph NF_FLOW[Network First]
+    direction TB
+    NF1[요청] --> NF2[네트워크 시도]
+    NF2 -->|성공| NF3[응답 + 캐시 저장]
+    NF2 -->|실패/timeout| NF4[캐시 폴백]
+  end
+  subgraph SWR_FLOW[Stale While Revalidate]
+    direction TB
+    SWR1[요청] --> SWR2[캐시 즉시 반환]
+    SWR2 -.백그라운드.-> SWR3[네트워크 갱신]
+    SWR3 --> SWR4[다음 요청은 갱신본]
+  end
+```
+
 ### 비교표
 
 | 전략 | 네트워크 | 캐시 | 속도 | 신선도 | 적합 대상 |
@@ -1184,6 +1370,45 @@ registerRoute(
 
 ## 6. 오프라인 UX 패턴
 
+> **왜 중요한가**: 사용자는 "오프라인입니다" 문구만 보면 작업을 포기합니다. 무엇을 할 수 있고 무엇이 큐에 들어갔는지 명확히 보여주면 신뢰가 유지됩니다.
+>
+> **일상 비유**: 비행기 기내 모드와 같습니다. 메시지 앱이 "전송 중→나중에 전송됨→전송 완료"로 상태를 또렷이 보여주는 것처럼, 오프라인 UX도 작업의 라이프사이클을 시각적으로 드러내야 합니다.
+
+### 오프라인 사용자 작업 시퀀스
+
+```mermaid
+sequenceDiagram
+  participant User as 사용자
+  participant App as React App
+  participant Queue as IndexedDB 큐
+  participant SW as Service Worker
+  participant API as 서버 API
+
+  User->>App: 폼 제출 (오프라인)
+  App->>App: navigator.onLine === false
+  App->>Queue: enqueue(action)
+  Queue-->>App: id 반환
+  App-->>User: "전송 대기 중" 토스트
+  Note over User,API: 시간 경과 (오프라인 상태)
+  Note over User,API: --- 온라인 복귀 ---
+  App->>SW: registration.sync.register()
+  SW->>Queue: getPending()
+  Queue-->>SW: pending actions[]
+  loop 각 action 처리
+    SW->>API: fetch(action)
+    alt 성공
+      API-->>SW: 200 OK
+      SW->>Queue: markCompleted(id)
+    else 실패
+      API-->>SW: 4xx/5xx
+      SW->>Queue: markFailed(id) + retry++
+      Note over SW: 지수 백오프 대기
+    end
+  end
+  SW->>App: postMessage(SYNC_COMPLETE)
+  App-->>User: "X건 동기화 완료" 알림
+```
+
 ### 6.1 네트워크 상태 감지 훅
 
 ```typescript
@@ -1247,6 +1472,25 @@ interface NetworkInformation extends EventTarget {
 ```
 
 ### 6.2 IndexedDB 오프라인 큐
+
+> **일상 비유**: 카페에서 진동벨을 받는 것과 같습니다. 주문(action)은 큐에 들어가 번호표(id)를 받고, 음료가 준비되면(서버 응답 성공) 큐에서 제거됩니다. 실패하면 재시도 카운트를 올려 다시 줄을 세웁니다.
+
+#### 큐 항목 상태 전이도
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending: enqueue()
+  pending --> syncing: markSyncing()
+  syncing --> completed: 서버 200 OK
+  syncing --> pending: 실패 + retry < max
+  syncing --> failed: 실패 + retry >= max
+  completed --> [*]: 큐에서 제거
+  failed --> pending: 사용자 수동 재시도
+  failed --> [*]: dead-letter 이관
+  note right of pending: 큐에 대기 중<br/>아직 미발송
+  note right of syncing: fetch 진행 중<br/>중복 발송 금지
+  note right of failed: 최대 재시도 초과<br/>관측성 알람 대상
+```
 
 ```typescript
 // src/services/offline-queue.ts

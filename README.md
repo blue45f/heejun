@@ -15,6 +15,99 @@
 | 여러 팀이 같은 코드를 만진다 | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md) | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영 |
 | 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md) | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정 |
 
+### 상황별 문서 선택 결정 트리
+
+> 비유: 이 결정 트리는 **응급실 분류대**와 같습니다 — 가장 급한 증상부터 먼저 보고 그에 맞는 처치(문서)로 안내합니다.
+
+```mermaid
+flowchart TD
+  Start{"지금 가장 큰 고민은?"}
+  Start -->|"코드부터 시작"| A["00 → 01 → 02"]
+  Start -->|"품질·UX 개선"| B["07 → 08 → 19"]
+  Start -->|"배포 안정성"| C["11 → 14 → 09"]
+  Start -->|"PR 검증 환경"| D["27 → 10 → 11"]
+  Start -->|"협업·구조"| E["04 → 16 → 22"]
+  Start -->|"글로벌·오프라인"| F["23 → 24 → 26"]
+
+  A --> Out["선택한 경로로<br/>이동하여 첫 작업 수행"]
+  B --> Out
+  C --> Out
+  D --> Out
+  E --> Out
+  F --> Out
+
+  style A fill:#e3f2fd
+  style B fill:#e8f5e9
+  style C fill:#fff3e0
+  style D fill:#fce4ec
+  style E fill:#f3e5f5
+  style F fill:#e0f2f1
+```
+
+### 가이드 전체 흐름 한눈에 보기
+
+```mermaid
+flowchart LR
+  subgraph Core["Core Engineering"]
+    direction TB
+    C01[01 TS]
+    C02[02 React]
+    C03[03 상태]
+    C04[04 아키]
+    C05[05 API]
+    C06[06 보안]
+  end
+
+  subgraph Quality["Quality Gates"]
+    direction TB
+    Q07[07 테스트]
+    Q08[08 성능]
+    Q13[13 호환성]
+    Q19[19 접근성]
+  end
+
+  subgraph Ops["Delivery & Ops"]
+    direction TB
+    O09[09 장애]
+    O10[10 IaC]
+    O11[11 CI/CD]
+    O12[12 CDN]
+    O14[14 배포]
+    O22[22 모노레포]
+    O27[27 다중서버]
+  end
+
+  subgraph Gov["Governance & AI"]
+    direction TB
+    G15[15 RFC]
+    G16[16 리뷰]
+    G17[17 온보딩]
+    G18[18 AI]
+  end
+
+  subgraph UX["Product UX"]
+    direction TB
+    U20[20 디자인]
+    U21[21 MFE]
+    U23[23 i18n]
+    U24[24 SEO]
+    U25[25 모션]
+    U26[26 PWA]
+  end
+
+  Core --> Quality
+  Quality --> Ops
+  Core --> Ops
+  Quality --> UX
+  Ops --> Gov
+
+  style Core fill:#e8f5e9
+  style Quality fill:#fff8e1
+  style Ops fill:#fce4ec
+  style Gov fill:#f3e5f5
+  style UX fill:#e0f2f1
+```
+
 ## 작성 원칙
 
 - **쉽게 시작**: 각 문서는 "언제 이 기준을 쓰는지", "처음 적용할 순서", "PR에 남길 증거"를 포함합니다.
