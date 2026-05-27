@@ -97,6 +97,15 @@ const OPERATING_RULE_REQUIRED_ITEMS = [
   '재평가 주기',
 ];
 
+const OPERATING_RULE_DEFAULT_VALUES = {
+  '리스크 점수': '3(중간, 1~5 중 3)',
+  '리더 승인자': '도메인 리드 또는 운영 리드',
+  '승인 역할': '승인자, 실행자, 모니터링 담당자 명시',
+  '재평가 주기': '2주 단위',
+};
+
+const RECOMMENDATION_SECTION_HEADINGS = TEMPLATE_SECTIONS.map((section) => section.heading);
+
 function getSectionText(text, heading) {
   const start = text.indexOf(heading);
   if (start === -1) {
@@ -113,6 +122,66 @@ function getSectionText(text, heading) {
     end: nextSectionStart ?? text.length,
     content: text.slice(start, nextSectionStart ?? text.length),
   };
+}
+
+function isOperatingRuleLine(line, requiredOps) {
+  const match = line.match(/^-\s*`([^`]+)`\s*:\s*(.*)$/);
+  if (!match) {
+    return false;
+  }
+
+  const key = match[1].trim();
+  return requiredOps.includes(key);
+}
+
+function isSectionHeading(line) {
+  return /^##\s+/.test(line.trim());
+}
+
+function isChecklistItemLine(line) {
+  const trimmed = line.trim();
+  return /^-\s*\[[ xX]\]\s*`([^`]+)`\s*:\s*.+$/.test(trimmed);
+}
+
+function findNextSectionStart(lines, fromIndex) {
+  for (let i = fromIndex + 1; i < lines.length; i += 1) {
+    if (isSectionHeading(lines[i])) {
+      return i;
+    }
+  }
+  return lines.length;
+}
+
+function removeDuplicateSectionHeadings(text, headings) {
+  const lines = text.split('\n');
+  const headingSet = new Set(headings);
+  const seen = new Set();
+  const duplicates = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!headingSet.has(lines[i])) {
+      continue;
+    }
+
+    if (seen.has(lines[i])) {
+      const sectionEnd = findNextSectionStart(lines, i);
+      duplicates.push([i, sectionEnd]);
+      continue;
+    }
+
+    seen.add(lines[i]);
+  }
+
+  if (duplicates.length === 0) {
+    return text;
+  }
+
+  for (let i = duplicates.length - 1; i >= 0; i -= 1) {
+    const [start, end] = duplicates[i];
+    lines.splice(start, end - start);
+  }
+
+  return lines.join('\n');
 }
 
 function parseOperatingRuleValues(sectionText) {
@@ -138,6 +207,91 @@ function normalizeValue(value) {
 function isMissingValue(value) {
   const normalized = normalizeValue(value);
   return normalized.length === 0 || normalized === EMPTY_VALUE_TOKEN;
+}
+
+function getDefaultOperatingRuleValue(key, fileName) {
+  if (!OPERATING_RULE_DEFAULT_VALUES[key]) {
+    return EMPTY_VALUE_TOKEN;
+  }
+
+  if (key !== '리스크 점수') {
+    return OPERATING_RULE_DEFAULT_VALUES[key];
+  }
+
+  if (/(보안|IaC|배포|관측성|접근성|성능|인프라)/.test(fileName)) {
+    return '4(높음, 1~5 중 4)';
+  }
+
+  return OPERATING_RULE_DEFAULT_VALUES[key];
+}
+
+function countMissingOperatingValues(values) {
+  return OPERATING_RULE_REQUIRED_ITEMS.filter((item) => isMissingValue(values[item])).length;
+}
+
+function normalizeSectionValues(values, fileName) {
+  const normalized = {};
+  for (const key of OPERATING_RULE_REQUIRED_ITEMS) {
+    const value = values[key];
+    normalized[key] = isMissingValue(value) ? getDefaultOperatingRuleValue(key, fileName) : value;
+  }
+
+  return normalized;
+}
+
+function buildOperatingRuleSection(values, fileName) {
+  const normalized = normalizeSectionValues(values, fileName);
+  const lines = ['## 추천 항목 실행 운영 규칙', ''];
+
+  for (const key of OPERATING_RULE_REQUIRED_ITEMS) {
+    lines.push(`- \`${key}\` : ${normalized[key]}`);
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+function removeOrphanRuleLinesBeforeSection(text, checklistHeading, ruleHeading, requiredOps) {
+  const lines = text.split('\n');
+
+  const checklistStart = lines.indexOf(checklistHeading);
+  if (checklistStart === -1) {
+    return text;
+  }
+
+  let cursor = checklistStart + 1;
+  while (cursor < lines.length) {
+    const line = lines[cursor];
+    if (!line.trim()) {
+      cursor += 1;
+      continue;
+    }
+
+    if (isChecklistItemLine(line)) {
+      cursor += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  const ruleStart = lines.indexOf(ruleHeading, cursor);
+  if (ruleStart === -1) {
+    return text;
+  }
+
+  const orphanLines = lines.slice(cursor, ruleStart);
+  const allOrphanAsRules = orphanLines.every((line) => {
+    const trimmed = line.trim();
+    return trimmed.length === 0 || isOperatingRuleLine(line, requiredOps);
+  });
+
+  if (!allOrphanAsRules) {
+    return text;
+  }
+
+  const normalized = [...lines];
+  normalized.splice(cursor, ruleStart - cursor);
+  return normalized.join('\n');
 }
 
 function sectionOrderValid(text) {
@@ -205,45 +359,6 @@ function ensureSectionText(sectionName, text, requiredItems) {
   return `${text.slice(0, sectionStart)}${fixedSection}${text.slice(sectionEnd)}`;
 }
 
-function fillOperatingRuleValues(sectionText, requiredOps) {
-  const sectionLines = sectionText.split('\n');
-  const sectionHeading = sectionLines[0] ?? '';
-  const sectionBody = sectionLines.slice(1);
-  const itemPattern = /^-\s*`([^`]+)`\s*:\s*(.*)$/;
-  const touched = new Set();
-  const updatedBody = [...sectionBody];
-
-  for (let index = 0; index < updatedBody.length; index += 1) {
-    const line = updatedBody[index];
-    const match = line.match(itemPattern);
-    if (!match) {
-      continue;
-    }
-
-    const key = match[1].trim();
-    if (!requiredOps.includes(key)) {
-      continue;
-    }
-
-    touched.add(key);
-    if (isMissingValue(match[2])) {
-      updatedBody[index] = `- \`${key}\` : ${EMPTY_VALUE_TOKEN}`;
-    }
-  }
-
-  const missing = requiredOps.filter((item) => !touched.has(item));
-  if (missing.length === 0) {
-    return [sectionHeading, ...updatedBody].join('\n');
-  }
-
-  const missingLines = missing
-    .map((item) => `- \`${item}\` : ${EMPTY_VALUE_TOKEN}`)
-    .join('\n');
-
-  const trimmed = updatedBody.join('\n').trimEnd();
-  return [sectionHeading, `${trimmed}\n${missingLines}`].join('\n');
-}
-
 function makeSectionText(heading, body) {
   return [`${heading}`, '', ...body, ''].join('\n');
 }
@@ -263,18 +378,20 @@ async function fixFile(filePath) {
     '재평가 주기',
   ];
 
-  updated = ensureSectionText(
-    '## 추천 항목 실행 운영 규칙',
+  updated = removeDuplicateSectionHeadings(updated, RECOMMENDATION_SECTION_HEADINGS);
+
+  updated = removeOrphanRuleLinesBeforeSection(
     updated,
+    '## 추천 항목 실행 체크리스트',
+    '## 추천 항목 실행 운영 규칙',
     requiredOps,
   );
 
   const ruleSection = getSectionText(updated, '## 추천 항목 실행 운영 규칙');
   if (ruleSection) {
-    const section = fillOperatingRuleValues(ruleSection.content, requiredOps);
-    const beforeSection = updated.slice(0, ruleSection.start);
-    const afterSection = updated.slice(ruleSection.end);
-    updated = `${beforeSection}${section}${afterSection}`;
+    const ruleValues = parseOperatingRuleValues(ruleSection.content);
+    const rebuiltSection = buildOperatingRuleSection(ruleValues, path.basename(filePath));
+    updated = `${updated.slice(0, ruleSection.start)}${rebuiltSection}${updated.slice(ruleSection.end)}`;
   }
 
   const missingSections = TEMPLATE_SECTIONS.filter(
@@ -328,7 +445,7 @@ async function main() {
     const checklistBefore = hasRequiredChecklistItems(text);
     const operatingRulesBefore = hasRequiredOperatingRules(text);
 
-    if (shouldFix && (missingSections.length > 0 || !operatingRulesBefore)) {
+    if (shouldFix) {
       const changed = await fixFile(file);
       if (changed) {
         fixed.push(path.relative(ROOT, file));
@@ -339,12 +456,17 @@ async function main() {
     const sectionOrder = sectionOrderValid(text);
     const checklist = hasRequiredChecklistItems(text);
     const operatingRules = hasRequiredOperatingRules(text);
+    const operatingRuleValues = parseOperatingRuleValues(
+      getSectionText(text, '## 추천 항목 실행 운영 규칙')?.content ?? '',
+    );
+    const operatingRuleMissingCount = countMissingOperatingValues(operatingRuleValues);
 
     const row = {
       file: path.relative(ROOT, file),
       sectionOrder,
       checklist,
       operatingRules,
+      operatingRuleMissingCount,
       missingSections,
       ok: sectionOrder && checklist && operatingRules,
     };
@@ -360,6 +482,9 @@ async function main() {
       }
       if (!operatingRules) {
         missing.push('실행 운영 규칙 항목 누락 또는 값 미기재');
+      }
+      if (operatingRuleMissingCount > 0) {
+        missing.push(`운영 규칙 값 미기재: ${operatingRuleMissingCount}개`);
       }
       errors.push({
         file: row.file,
@@ -384,12 +509,12 @@ async function main() {
 
   if (mdReportPath) {
     const rows = [];
-    rows.push('| 파일 | 섹션 순서 | 체크리스트 | 운영 규칙 |');
-    rows.push('| --- | --- | --- | --- |');
+    rows.push('| 파일 | 섹션 순서 | 체크리스트 | 운영 규칙 | 운영 규칙 미기재 |');
+    rows.push('| --- | --- | --- | --- | --- |');
 
     for (const row of summary) {
       rows.push(
-        `| ${row.file} | ${normalizeBoolean(row.sectionOrder)} | ${normalizeBoolean(row.checklist)} | ${normalizeBoolean(row.operatingRules)} |`,
+        `| ${row.file} | ${normalizeBoolean(row.sectionOrder)} | ${normalizeBoolean(row.checklist)} | ${normalizeBoolean(row.operatingRules)} | ${row.operatingRuleMissingCount} |`,
       );
     }
 
