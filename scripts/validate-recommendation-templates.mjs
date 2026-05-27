@@ -63,6 +63,15 @@ const TEMPLATE_SECTIONS = [
       '- [ ] `문제 대응` : 미달성 시 보류 사유와 다음 실행 액션을 문서화',
     ],
   },
+  {
+    heading: '## 추천 항목 실행 운영 규칙',
+    body: [
+      '- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.',
+      '- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.',
+      '- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.',
+      '- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.',
+    ],
+  },
 ];
 
 const CHECKLIST_REQUIRED_ITEMS = [
@@ -70,6 +79,13 @@ const CHECKLIST_REQUIRED_ITEMS = [
   '2단계(30일)',
   '3단계(60일)',
   '문제 대응',
+];
+
+const OPERATING_RULE_REQUIRED_ITEMS = [
+  '실행 게이트',
+  '승인 체계',
+  '재개 조건',
+  '정지 조건',
 ];
 
 function sectionOrderValid(text) {
@@ -94,6 +110,18 @@ function hasRequiredChecklistItems(text) {
 
   const body = text.slice(start).split('\n').slice(1);
   return CHECKLIST_REQUIRED_ITEMS.every((item) =>
+    body.some((line) => line.includes(item)),
+  );
+}
+
+function hasRequiredOperatingRules(text) {
+  const start = text.indexOf('## 추천 항목 실행 운영 규칙');
+  if (start === -1) {
+    return false;
+  }
+
+  const body = text.slice(start).split('\n').slice(1);
+  return OPERATING_RULE_REQUIRED_ITEMS.every((item) =>
     body.some((line) => line.includes(item)),
   );
 }
@@ -145,6 +173,7 @@ async function main() {
 
     const sectionOrder = sectionOrderValid(text);
     const checklist = hasRequiredChecklistItems(text);
+    const operatingRules = hasRequiredOperatingRules(text);
 
     const missingSections = TEMPLATE_SECTIONS.filter(
       (section) => !text.includes(section.heading),
@@ -161,8 +190,9 @@ async function main() {
       file: path.relative(ROOT, file),
       sectionOrder,
       checklist,
+      operatingRules,
       missingSections,
-      ok: sectionOrder && checklist,
+      ok: sectionOrder && checklist && operatingRules,
     };
     summary.push(row);
 
@@ -173,6 +203,9 @@ async function main() {
       }
       if (!checklist) {
         missing.push('실행 체크리스트 항목 누락');
+      }
+      if (!operatingRules) {
+        missing.push('실행 운영 규칙 항목 누락');
       }
       errors.push({
         file: row.file,
@@ -197,12 +230,12 @@ async function main() {
 
   if (mdReportPath) {
     const rows = [];
-    rows.push('| 파일 | 섹션 순서 | 체크리스트 |');
-    rows.push('| --- | --- | --- |');
+    rows.push('| 파일 | 섹션 순서 | 체크리스트 | 운영 규칙 |');
+    rows.push('| --- | --- | --- | --- |');
 
     for (const row of summary) {
       rows.push(
-        `| ${row.file} | ${normalizeBoolean(row.sectionOrder)} | ${normalizeBoolean(row.checklist)} |`,
+        `| ${row.file} | ${normalizeBoolean(row.sectionOrder)} | ${normalizeBoolean(row.checklist)} | ${normalizeBoolean(row.operatingRules)} |`,
       );
     }
 
