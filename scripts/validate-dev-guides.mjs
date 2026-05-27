@@ -203,7 +203,22 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   ],
   [
     '27_다중_개발_서버_구축_가이드.md',
-    ['Multi-Environment', 'PR preview', 'Amplify Hosting', 'S3 artifact', 'GitHub Actions', 'OIDC', 'cleanup', 'static export'],
+    [
+      'Multi-Environment',
+      'PR preview',
+      'Amplify Hosting',
+      'S3 artifact',
+      'GitHub Actions',
+      'OIDC',
+      'cleanup',
+      'static export',
+      'AWS 서비스별 책임 매핑',
+      'AWS 구축 순서',
+      'AWS 공식 제약 체크리스트',
+      'CloudFront OAC',
+      'preview deploy role 최소 정책',
+      'cleanup workflow와 dry-run',
+    ],
   ],
 ]);
 
