@@ -26,6 +26,7 @@ const getArgValue = (prefix) => {
 const jsonReportPath = getArgValue('--json-report');
 const mdReportPath = getArgValue('--md-report');
 const shouldFix = hasFlag('--fix');
+const EMPTY_VALUE_TOKEN = '[작성 필요]';
 
 const TEMPLATE_SECTIONS = [
   {
@@ -96,6 +97,49 @@ const OPERATING_RULE_REQUIRED_ITEMS = [
   '재평가 주기',
 ];
 
+function getSectionText(text, heading) {
+  const start = text.indexOf(heading);
+  if (start === -1) {
+    return null;
+  }
+
+  const nextSectionStart = TEMPLATE_SECTIONS
+    .map((section) => text.indexOf(section.heading, start + heading.length))
+    .filter((position) => position >= 0)
+    .sort((a, b) => a - b)[0];
+
+  return {
+    start,
+    end: nextSectionStart ?? text.length,
+    content: text.slice(start, nextSectionStart ?? text.length),
+  };
+}
+
+function parseOperatingRuleValues(sectionText) {
+  const lines = sectionText.split('\n');
+  const itemPattern = /^-\s*`([^`]+)`\s*:\s*(.*)$/;
+  const values = {};
+
+  for (const line of lines) {
+    const match = line.match(itemPattern);
+    if (!match) {
+      continue;
+    }
+    values[match[1].trim()] = (match[2] ?? '').trim();
+  }
+
+  return values;
+}
+
+function normalizeValue(value) {
+  return (value ?? '').trim();
+}
+
+function isMissingValue(value) {
+  const normalized = normalizeValue(value);
+  return normalized.length === 0 || normalized === EMPTY_VALUE_TOKEN;
+}
+
 function sectionOrderValid(text) {
   const lines = text.split('\n');
   const positions = TEMPLATE_SECTIONS.map((section) =>
@@ -123,14 +167,14 @@ function hasRequiredChecklistItems(text) {
 }
 
 function hasRequiredOperatingRules(text) {
-  const start = text.indexOf('## 추천 항목 실행 운영 규칙');
-  if (start === -1) {
+  const section = getSectionText(text, '## 추천 항목 실행 운영 규칙');
+  if (!section) {
     return false;
   }
 
-  const body = text.slice(start).split('\n').slice(1);
-  return OPERATING_RULE_REQUIRED_ITEMS.every((item) =>
-    body.some((line) => line.includes(item)),
+  const values = parseOperatingRuleValues(section.content);
+  return OPERATING_RULE_REQUIRED_ITEMS.every(
+    (item) => values[item] && !isMissingValue(values[item]),
   );
 }
 
@@ -161,6 +205,45 @@ function ensureSectionText(sectionName, text, requiredItems) {
   return `${text.slice(0, sectionStart)}${fixedSection}${text.slice(sectionEnd)}`;
 }
 
+function fillOperatingRuleValues(sectionText, requiredOps) {
+  const sectionLines = sectionText.split('\n');
+  const sectionHeading = sectionLines[0] ?? '';
+  const sectionBody = sectionLines.slice(1);
+  const itemPattern = /^-\s*`([^`]+)`\s*:\s*(.*)$/;
+  const touched = new Set();
+  const updatedBody = [...sectionBody];
+
+  for (let index = 0; index < updatedBody.length; index += 1) {
+    const line = updatedBody[index];
+    const match = line.match(itemPattern);
+    if (!match) {
+      continue;
+    }
+
+    const key = match[1].trim();
+    if (!requiredOps.includes(key)) {
+      continue;
+    }
+
+    touched.add(key);
+    if (isMissingValue(match[2])) {
+      updatedBody[index] = `- \`${key}\` : ${EMPTY_VALUE_TOKEN}`;
+    }
+  }
+
+  const missing = requiredOps.filter((item) => !touched.has(item));
+  if (missing.length === 0) {
+    return [sectionHeading, ...updatedBody].join('\n');
+  }
+
+  const missingLines = missing
+    .map((item) => `- \`${item}\` : ${EMPTY_VALUE_TOKEN}`)
+    .join('\n');
+
+  const trimmed = updatedBody.join('\n').trimEnd();
+  return [sectionHeading, `${trimmed}\n${missingLines}`].join('\n');
+}
+
 function makeSectionText(heading, body) {
   return [`${heading}`, '', ...body, ''].join('\n');
 }
@@ -185,6 +268,14 @@ async function fixFile(filePath) {
     updated,
     requiredOps,
   );
+
+  const ruleSection = getSectionText(updated, '## 추천 항목 실행 운영 규칙');
+  if (ruleSection) {
+    const section = fillOperatingRuleValues(ruleSection.content, requiredOps);
+    const beforeSection = updated.slice(0, ruleSection.start);
+    const afterSection = updated.slice(ruleSection.end);
+    updated = `${beforeSection}${section}${afterSection}`;
+  }
 
   const missingSections = TEMPLATE_SECTIONS.filter(
     (section) => !text.includes(section.heading),
@@ -268,7 +359,7 @@ async function main() {
         missing.push('실행 체크리스트 항목 누락');
       }
       if (!operatingRules) {
-        missing.push('실행 운영 규칙 항목 누락');
+        missing.push('실행 운영 규칙 항목 누락 또는 값 미기재');
       }
       errors.push({
         file: row.file,
