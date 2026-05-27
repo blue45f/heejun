@@ -1,11 +1,11 @@
-# 01. TypeScript 심화 가이드 (2026 Edition)
+# 01. TypeScript 심화 가이드
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [02. React 19](./02_React19_실무_가이드.md), [07. 테스팅](./07_테스팅_가이드.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type Guard, Generics | **Update** | 2026.05 |
+| **핵심 테마** | Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type Guard, Generics | **Update** | 최신 기준 |
 
-> **본 가이드는 2026년 5월 기준 TypeScript 6.0 안정판을 기본선으로 둡니다.** TypeScript 5.8/5.9의 `--erasableSyntaxOnly`, `--module node20`, `import defer`는 지원 런타임과 번들러가 확인된 경우에만 opt-in합니다. TypeScript 7.0 Beta는 Go 기반 native toolchain 전환 후보로, 기존 `tsc`와 side-by-side로 검증한 뒤 채택합니다.
+> **본 가이드는 현재 공식 문서 기준 TypeScript 6.0 안정판을 기본선으로 둡니다.** TypeScript 5.8/5.9의 `--erasableSyntaxOnly`, `--module node20`, `import defer`는 지원 런타임과 번들러가 확인된 경우에만 opt-in합니다. TypeScript 7.0 Beta는 Go 기반 native toolchain 전환 후보로, 기존 `tsc`와 side-by-side로 검증한 뒤 채택합니다.
 
 ---
 
@@ -78,22 +78,6 @@ TypeScript 버전 정책은 "새 기능을 빠르게 쓰기"보다 **타입 안�
 
 ---
 
-
-### 2026 트렌드 고도화 체크포인트
-
-- **AI 보안 격리**: 민감정보·시크릿이 개입되는 영역은 AI 산출물 자동 반영 전에 보안 게이트를 통과해야 합니다.
-- **운영 지표 연동**: 성능(RUM p75), 장애율, 접근성/SEO 신호 중 최소 1개 이상의 지표와 조합해 채택·철회 여부를 판단합니다.
-- **브라우저/디바이스 지속성**: Baseline/feature detection 기반으로 기능을 출시하고, 미지원군에 대한 fallback 및 감시 항목을 문서화합니다.
-- **공급망 신뢰성**: lockfile 일치성, 의존성 감사, SBOM/attestation, secret scan 조건을 문서 체크리스트에 반영합니다.
-- **회복탄력성 설계**: 실험 기능은 rollback, fallback, canary 또는 flag 기반으로 실패 조건을 명시합니다.
-- **국제/접근성 동시 고려**: i18n, RTL, 다국어 텍스트 길이, 키보드/스크린리더, reduced-motion은 기능 도입 전 체크합니다.
-- **재검토 주기**: 월 1회 운영 증적을 기준으로 고도화/축소/중단 결정을 갱신합니다.
-
-### 2026 Trend Rollforward Triggers
-
-- **Stable 항목**은 공식 보안/호환성 고지 시 즉시 재평가 대상이 됩니다.
-- **Experimental Watch** 항목은 90일 내 지표 미달, major 회귀, 도입비용 과다 시 자동 철회 조건을 둡니다.
-- 문서와 릴리즈 노트 불일치가 발생하면 `00`과 각 도메인 문서를 5영업일 내 동기화합니다.
 
 ## 1. 런타임 안전성: Zod 4 기반의 스키마 검증
 
@@ -187,7 +171,7 @@ const PaginationSchema = z.object({
 });
 ```
 
-### 1.4 Standard Schema: 라이브러리 종속성 분리 (2026)
+### 1.4 Standard Schema: 라이브러리 종속성 분리
 
 `Standard Schema`는 Zod, Valibot, ArkType의 메인테이너들이 함께 만든 **60줄짜리 TypeScript 인터페이스 스펙**입니다. 검증 라이브러리가 아니라 "각 라이브러리가 공통으로 노출하는 형태"의 명세입니다. TanStack Form, Next.js Server Actions, tRPC 등은 이미 Standard Schema를 채택하여 사용자가 원하는 검증 라이브러리를 자유롭게 골라 쓸 수 있습니다.
 
@@ -213,7 +197,7 @@ const zodUser = await safeValidate(UserSchema, input);
 // const valibotUser = await safeValidate(v.object({ ... }), input);
 ```
 
-### 1.5 검증 라이브러리 선택 가이드 (2026 기준)
+### 1.5 검증 라이브러리 선택 가이드 (현재 기준)
 
 | 라이브러리 | 번들 크기 (gzip) | 성능 | 권장 시점 |
 | :--- | :--- | :--- | :--- |
@@ -489,7 +473,7 @@ TypeScript에서 변수에 타입을 명시적으로 선언하면(`: Type`) 컴�
 
 `satisfies` 연산자는 **"이 값이 특정 타입을 만족하는지 검사하되, 원래의 구체적인 타입 추론은 유지해줘"**라는 의미입니다. 타입 안전성과 타입 추론의 정밀함을 동시에 얻을 수 있는 매우 유용한 기능입니다.
 
-> **2026 적용 기준**: `satisfies`는 TypeScript 5.0 이후 안정적으로 사용할 수 있는 타입 검증 문법입니다. TypeScript 6.0/7.0 전환기에도 config 차이로 리터럴 타입이 넓어지는 문제를 줄이기 위해, 상수 설정·라우트 맵·디자인 토큰·API status map에는 `as`보다 `satisfies`를 우선합니다.
+> **현재 적용 기준**: `satisfies`는 TypeScript 5.0 이후 안정적으로 사용할 수 있는 타입 검증 문법입니다. TypeScript 6.0/7.0 전환기에도 config 차이로 리터럴 타입이 넓어지는 문제를 줄이기 위해, 상수 설정·라우트 맵·디자인 토큰·API status map에는 `as`보다 `satisfies`를 우선합니다.
 
 ### 4.1 기본 사용법
 
@@ -1190,7 +1174,7 @@ pnpm exec tsgo --noEmit
 신규 브라우저 번들 앱은 TypeScript 6.0 기준으로 아래 설정을 기본값에 가깝게 둡니다. Node 라이브러리, SSR 서버, CLI 패키지는 `module`, `moduleResolution`, `types`, `target`을 실제 배포 런타임에 맞게 별도 override합니다.
 
 ```jsonc
-// tsconfig.json (2026 권장 기본값)
+// tsconfig.json (현재 권장 기본값)
 {
   "compilerOptions": {
     "target": "es2025",
@@ -1270,7 +1254,7 @@ function getUserNameDefault(user: User | null): string {
 
 ### 9.3 `enum` 대신 `as const` 유니온 사용
 
-> **경고 (2026)**: `enum`은 (1) 트리쉐이킹이 어렵고, (2) TS 5.8의 `--erasableSyntaxOnly` 환경에서 사용 불가하며, (3) Node.js 22+/Deno/Bun의 네이티브 TS 실행과 호환되지 않습니다. **신규 코드는 모두 `as const` 객체 또는 리터럴 유니온으로 작성하세요.**
+> **경고 **: `enum`은 (1) 트리쉐이킹이 어렵고, (2) TS 5.8의 `--erasableSyntaxOnly` 환경에서 사용 불가하며, (3) Node.js 22+/Deno/Bun의 네이티브 TS 실행과 호환되지 않습니다. **신규 코드는 모두 `as const` 객체 또는 리터럴 유니온으로 작성하세요.**
 
 ```typescript
 // ❌ enum은 트리쉐이킹이 안 되고, --erasableSyntaxOnly에서 빌드 실패
@@ -1412,69 +1396,38 @@ AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개
 
 ---
 
-문서 최종 업데이트: 2026-05-27
+## 실무 적용 가이드
 
-### 2026 도메인별 고도화 포인트
+### 언제 이 문서를 펼칠까
 
-- **TypeScript 채용 전략 고도화**: `strict` 기본 강화, `erasableSyntaxOnly`·`importsNotUsedAsValues` 계열 플래그의 런타임 적합성을 프로젝트별로 실측하고, 신규 패키지에서만 점진 적용합니다.
-- **런타임-컴파일 공조 계약**: API boundary마다 검증 스키마를 표준화하고, `unknown` 바운더리 정책(입력 검증·예외 구분)을 lint/리뷰 체크리스트에 고정합니다.
-- **타입 계약 품질 지표**: `type test` 커버리지, API 코드젠 drift 체크, `exactOptionalPropertyTypes` 회귀율을 월간 지표로 관리합니다.
-- **표준 진화 대응**: TypeScript 신버전이나 TC39 타입 제안 도입 시 `tsc` 성능, 번들 영향, ts-ignore 폐기율을 사전 측정해 `변경 후보`로 관리합니다.
+- API 응답, URL 파라미터, localStorage처럼 외부 입력을 타입만 믿고 쓰고 있을 때
+- `any`, `as`, `!`가 늘어나 타입 오류가 런타임 오류로 넘어갈 때
+- 백엔드 계약과 프론트 타입이 따로 놀아 배포 후 mismatch가 발생할 때
 
+### 적용 순서
 
-### 2026 트렌드 운영 계약(Trend Ops Contract)
+1. 외부 입력 지점을 `unknown`으로 받는 boundary adapter로 모은다.
+2. Zod 또는 Standard Schema 호환 스키마로 런타임 검증을 추가한다.
+3. 검증된 값에서만 도메인 타입과 branded type을 만든다.
+4. 공용 타입 유틸은 타입 테스트를 붙이고, 예외 타입 단언은 파일 단위로 격리한다.
+5. generated type diff와 `tsc --noEmit` 결과를 PR에 남긴다.
 
-- **Trend Owner**: 도메인 문서 오너 + 00 가이드 운영 오너가 공동 승인합니다.
-- **Review Cadence**: 월 1회 운영 점검, 90일 단위 회귀 리뷰, 공식 변경 고지 발생 시 5영업일 내 재평가합니다.
-- **Release Gate Conditions**: 성능·보안·접근성·관측성·배포 안정성 지표 임계치 초과 시 배포 권고를 중단하고 롤백/재계획합니다.
-- **Evidence Contract**: 변경 PR, CI 산출물, 운영 지표 스냅샷, rollback 기록을 `문서 최종 업데이트` 근거로 링크/보관합니다.
+### 함께 두는 파일
 
+- 기능별 `model/schema.ts`, `model/types.ts`, `api/*.ts`, `*.test.ts`를 같은 feature 폴더에 둔다.
+- 여러 기능에서 재사용되는 타입은 값 객체, validator, 테스트가 함께 있을 때만 `shared`로 올린다.
+- generated type은 수동 도메인 타입과 섞지 않고 `api/generated`처럼 출처가 드러나는 위치에 둔다.
 
-### 2026 트렌드 실행 지표표
+### 흔한 실수
 
-| KPI | 측정 대상 | 기준선/임계값 | 점검 주기 | 증빙 |
-| :--- | :--- | :--- | :--- | :--- |
-| 성능 회귀율 | RUM/CI 성능 지표 | 기준 대비 악화율 10% 초과 시 실험 중단 검토 | 주간 | 성능 리포트 링크 |
-| 안정성 지표 | 에러율·SLO 위반 | 에러율 +1.5x 또는 SLO error budget 고갈률 2배 | 일간/릴리즈 후 즉시 | 관측성 대시보드 |
-| 보안·공급망 경고 | secret scan / dependency audit / 취약점 스캔 | 신규 critical/high 경고 1건 이상 | 배포 전/월간 | 감사 보고서/로그 |
-| 접근성·운영성 체크 | 키보드/스크린리더/배포 게이트 실패 | 릴리즈 게이트 실패율 0.5% 초과 | 릴리즈 전/월간 | 릴리즈 증적 |
+- API 응답에 `as User`를 바로 붙인다.
+- 도메인 ID를 모두 `string`으로 둬 서로 섞이게 만든다.
+- 타입 유틸을 `shared/types`에 모아 변경 범위를 추적할 수 없게 만든다.
+- 런타임 검증 없이 TypeScript 버전 업그레이드만으로 안전해졌다고 판단한다.
 
-### 2026 트렌드 상세 재구성(도메인별)
+### PR 완료 기준
 
-- TypeScript 7.x 채택 경로를 shadow CI에서 tsc 성능, 번들 영향, 타입 체크 시간과 함께 측정하고 안정성 합격 후 점진 채택합니다.
-- erasableSyntaxOnly 운영 규칙: 프로젝트별 타입 제거 범위를 테스트와 연결해 회귀율 2% 초과 시 해당 옵션 적용 범위를 축소합니다.
-- 타입 계약 drift 자동화: API 타입과 런타임 스키마 간 차이를 매일 비교해 차이 리포트가 존재하면 우선순위로 처리합니다.
-- unknown 정책 정형화: 런타임 경계 입력은 unknown에서 시작하고 에러 분류/메시지 정책을 공통 코드로 고정합니다.
-- 버전 전환 시 퇴행 관리: deprecated 문법 정리와 패턴 교체는 2개 릴리즈 간 단계적으로 승인합니다.
-
-- TS 6/7 전환의 정착 신호는 타입 체크 시간 10% 이상 감소, `tsserver` 재시작 빈도 감소, 빌드 실패 원인 분류 정확도 개선으로 판단해 무리한 전환을 피합니다.
-- `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`는 신규 코드에서 기본값으로 두되, 기존 대규모 레거시는 번들 단위로 단계적으로 확대합니다.
-- 스키마 진화 정책을 `zod v4` 및 런타임 검증 전략과 연결해 API 계약 변경 시점의 역호환성 사고를 줄입니다.
-- 타입 안정성 채택률은 번들 빌드 실패율과 연동해 낮은 안정성 구간의 코드만 별도 트랙으로 격리합니다.
-- 점진 전환 계획을 도메인별로 나누고, 각 단계 종료 시 `tsserver` 성능, 컴파일 시간, 테스트 실패 유형을 동결 기준으로 남깁니다.
-- 타입 시스템 전환은 API 변경성 영향, 빌드 시간, 에러 수정 비용을 세 축으로 평가해 안전 구간만 확장합니다.
-- 타입 회귀 대응은 `strict` 관련 설정을 점진 적용하고, 회귀율이 낮은 팀부터 확장 적용해 학습 비용을 낮춥니다.
-- 타입 전환 계획은 신규 모듈 유입 속도를 보며 성능·안정성 임계값이 동시 충족되는 구간만 확장합니다.
-- 팀별 숙련도와 협업 패턴을 반영해 컴파일 경고 대응 우선순위를 자동 설정합니다.
-
-### 2026 트렌드 실행 규칙(Measure-Action-Owner)
-- **측정 신호**: 도입 전후 성능/안정성/보안/운영성 지표를 단일 스냅샷으로 비교하고 회귀 방향을 즉시 판별합니다.
-- **임계치 트리거**: 임계치 초과 시 `Rollback Condition`으로 자동 분류되어 다음 릴리즈 단계로 진행하지 않습니다.
-- **운영 승인**: 문서 오너와 00 가이드 오너의 2인 승인 후에만 기본 채택 상태로 변경합니다.
-- **실행 보증**: 변경된 항목은 최소 1회 E2E 또는 관측성 재현 경로로 증빙하고 증거 링크를 남깁니다.
-- **롤백 경로**: 실패 징후가 누적되면 24시간 이내 feature flag off 또는 배포 속도 축소로 기본 경로를 복구합니다.
-- **학습 반영**: 실패 케이스와 재현 절차를 다음 분기 지표 스펙에 반영해 자동화 대상 후보로 우선 등록합니다.
-- **컴파일 신호 동기화**: 타입 에러 급증 모듈은 빌드 보호구간으로 이동시켜 기본 경로 채택을 늦춥니다.
-- **학습 비용 제어**: 팀별 타입 안정성 학습량과 실수율로 도입 속도를 단계 조정합니다.
-
-### 2026 트렌드 실행 체크리스트(자동화 트리거)
-- [ ] **Owner 지정**: 문서별 `Trend Owner`와 `Backup Owner`를 지정하고 월간 점검표와 연결한다.
-- [ ] **SLA 정의**: 임계치 초과 대응을 `24시간 / 72시간 / 1주일` 단계로 나누어 운영한다.
-- [ ] **Rollback Drill**: 실패 전개 조건에서 롤백 경로를 최소 한 번 시뮬레이션하고 날짜를 기록한다.
-- [ ] **증빙 링크**: 변경/실험/이슈에 대한 증거 링크를 PR 템플릿과 연동한다.
-- [ ] **자동 경고**: 지표 임계치 초과 시 자동 알람 라우팅이 제대로 작동하는지 확인한다.
-- [ ] **재학습 루프**: 실패 케이스를 다음 스프린트 우선순위 큐로 이관한다.
-- [ ] **검증 주기**: 월간 점검 스냅샷과 분기 회고 항목을 분리해 관리한다.
-- [ ] **결과 공유**: 주요 의사결정은 00의 운영 채널과 README Snapshot에 되돌린다.
-- [ ] **타입 정책 일치**: Strict/타입검증 정책의 변경이 TS 컴파일러 버전별로 정합되는지 점검한다.
-- [ ] **컴파일 전환 검증**: 마이그레이션 후보 모듈 1개 단위로 단계 검증한다.
+- [ ] `tsc --noEmit`이 통과한다.
+- [ ] 외부 입력 boundary에 성공/실패 fixture 테스트가 있다.
+- [ ] `any/as/!` 신규 사용은 이유와 제거 계획이 있다.
+- [ ] 함께 바뀌는 schema/type/client/test가 가까이 있다.

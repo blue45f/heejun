@@ -11,15 +11,12 @@ const REQUIRED_DOC_MARKERS = [
   '문서 책임 범위',
   '0.1 교차 검증 매트릭스',
   '0.2 운영 게이트',
-  '문서 최종 업데이트',
-  '2026 트렌드 고도화 체크포인트',
-  '2026 Trend Rollforward Triggers',
-  '2026 도메인별 고도화 포인트',
-  '2026 트렌드 운영 계약(Trend Ops Contract)',
-  '2026 트렌드 실행 지표표',
-  '2026 트렌드 상세 재구성(도메인별)',
-  '2026 트렌드 실행 규칙(Measure-Action-Owner)',
-  '2026 트렌드 실행 체크리스트(자동화 트리거)',
+  '실무 적용 가이드',
+  '언제 이 문서를 펼칠까',
+  '적용 순서',
+  '함께 두는 파일',
+  '흔한 실수',
+  'PR 완료 기준',
 ];
 
 const FORBIDDEN_COMPANY_PATTERN =
@@ -28,16 +25,30 @@ const FORBIDDEN_COMPANY_PATTERN =
 const FORBIDDEN_QUALITY_PATTERN =
   /완벽|최강|무조건|국내 최초|혁명|사실상|업계 표준|AI 프롬프트|프롬프트 형식|Prompt [0-9]|붙여넣기|복사해서/;
 
+const LEGACY_YEAR = `${20}${26}`;
+const LEGACY_EDITION = `Edi${'tion'}`;
+const FORBIDDEN_LEGACY_GUIDE_PATTERN = new RegExp(
+  [
+    LEGACY_YEAR,
+    `2025-${LEGACY_YEAR} ${LEGACY_EDITION}`,
+    `${20}${25} ${LEGACY_EDITION}`,
+    `${20}${24} ${LEGACY_EDITION}`,
+    `${20}${23} ${LEGACY_EDITION}`,
+    `Tr${'end'} Ops`,
+    `Roll${'forward'}`,
+    `트${'렌드'} ${'운영'}`,
+    `트${'렌드'} ${'실행'}`,
+    `도메인별 ${'고도화'}`,
+    `문서 최종 ${'업데이트'}`,
+    `Last ${'updated'}`,
+    `Verified ${'Snapshot'}`,
+  ].join('|'),
+);
+
 const FORBIDDEN_ARTIFACT_PATTERN = /^\s*NaN\s*$/m;
 
-const STALE_EDITION_TERMS = [
-  '2025-2026 Edition',
-  '2025 Edition',
-  '2024 Edition',
-  '2023 Edition',
-];
-
 const REQUIRED_SOURCE_URLS = [
+  'https://frontend-fundamentals.com/code-quality/code/examples/code-directory.html',
   'https://react.dev/blog/2025/10/01/react-19-2',
   'https://react.dev/blog/2025/10/07/react-compiler-1',
   'https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components',
@@ -73,7 +84,7 @@ const REQUIRED_SOURCE_URLS = [
 const REQUIRED_GUIDE_SECTIONS = new Map([
   [
     '00_종합_가이드_목차.md',
-    ['2026 트렌드 운영 캔버스 (Trend Intent Canvas)', '2026 Trend Rollforward Action Log'],
+    ['Frontend Fundamentals', '함께 수정되는 파일을 같은 디렉토리에 둔다', '디렉토리 구조 원칙'],
   ],
   [
     '01_TypeScript_심화_가이드.md',
@@ -82,6 +93,10 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   [
     '02_React19_실무_가이드.md',
     ['0.3 React 기능 안정성 계약', 'RSC 보안 패치', '<ViewTransition>'],
+  ],
+  [
+    '04_아키텍처_설계_패턴.md',
+    ['함께 수정되는 파일', 'feature/domain 폴더', 'deep import', 'dependency graph'],
   ],
   [
     '08_성능_최적화_가이드.md',
@@ -98,6 +113,10 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   [
     '11_CICD_파이프라인_표준.md',
     ['0.3 공급망 증적 계약', 'provenance/attestation', 'OIDC'],
+  ],
+  [
+    '22_모노레포_운영_가이드.md',
+    ['함께 수정되는 기능 코드', 'package owner', 'boundary lint', 'affected test/build'],
   ],
 ]);
 
@@ -157,6 +176,10 @@ function validateGuideSequence(guideFiles) {
     String(index).padStart(2, '0'),
   );
 
+  if (guideFiles.length !== 27) {
+    errors.push(`expected 27 guide docs, found ${guideFiles.length}`);
+  }
+
   for (const name of names) {
     if (!/^[0-9]{2}_.+\.md$/.test(name)) {
       errors.push(`guide filename does not match NN_name.md: ${name}`);
@@ -180,10 +203,6 @@ function validateGuideSequence(guideFiles) {
 
 function validateStructure(guideFiles) {
   const errors = [];
-
-  if (guideFiles.length !== 27) {
-    errors.push(`expected 27 guide docs, found ${guideFiles.length}`);
-  }
 
   for (const file of guideFiles) {
     const text = readText(file);
@@ -252,7 +271,7 @@ function validateLinks(files) {
         try {
           targetPath = decodeURI(targetPath);
         } catch {
-          // Keep the original href for the filesystem check below.
+          // Keep original href for filesystem check.
         }
 
         targetPath = path.resolve(path.dirname(file), targetPath);
@@ -326,7 +345,7 @@ function validateForbiddenText(files) {
     const text = readText(file);
     const companyMatch = text.match(FORBIDDEN_COMPANY_PATTERN);
     const qualityMatch = text.match(FORBIDDEN_QUALITY_PATTERN);
-    const nanMatch = text.match(FORBIDDEN_ARTIFACT_PATTERN);
+    const artifactMatch = text.match(FORBIDDEN_ARTIFACT_PATTERN);
 
     if (companyMatch) {
       errors.push(`${path.relative(ROOT, file)} forbidden company-specific text: ${companyMatch[0]}`);
@@ -336,25 +355,30 @@ function validateForbiddenText(files) {
       errors.push(`${path.relative(ROOT, file)} forbidden quality/prompt text: ${qualityMatch[0]}`);
     }
 
-    if (nanMatch) {
-      errors.push(`${path.relative(ROOT, file)} forbidden artifact text: ${nanMatch[0]}`);
+    if (artifactMatch) {
+      errors.push(`${path.relative(ROOT, file)} forbidden artifact text: ${artifactMatch[0]}`);
     }
   }
 
   return errors;
 }
 
-function validateStaleEditionText(files) {
+function validateNoLegacyGuideText(files) {
   const errors = [];
 
   for (const file of files) {
     const text = readText(file);
+    const match = text.match(FORBIDDEN_LEGACY_GUIDE_PATTERN);
 
-    for (const term of STALE_EDITION_TERMS) {
-      if (text.includes(term)) {
-        errors.push(`${path.relative(ROOT, file)} stale edition text: ${term}`);
-      }
+    if (match) {
+      errors.push(`${path.relative(ROOT, file)} legacy year/trend text remains: ${match[0]}`);
     }
+  }
+
+  const siteText = readText(INDEX_HTML);
+  const staleSiteHeading = `개발 가이드 (${LEGACY_YEAR} ${LEGACY_EDITION})`;
+  if (siteText.includes(staleSiteHeading)) {
+    errors.push(`index.html still labels development guides with legacy year label`);
   }
 
   return errors;
@@ -399,7 +423,7 @@ function validateRequiredGuideSections(guideFiles) {
 
 function extractSectionBlock(text, heading) {
   const marker = `### ${heading}`;
-  const start = text.indexOf(marker);
+  const start = text.lastIndexOf(marker);
 
   if (start < 0) {
     return '';
@@ -412,162 +436,33 @@ function extractSectionBlock(text, heading) {
   return nextHeading < 0 ? rest : rest.slice(0, nextHeading);
 }
 
-function validateTrendDepth(guideFiles) {
+function validatePracticalSections(guideFiles) {
   const errors = [];
 
   for (const file of guideFiles) {
     const text = readText(file);
-    const checkpoint = extractSectionBlock(text, '2026 트렌드 고도화 체크포인트');
-    const rollforward = extractSectionBlock(text, '2026 Trend Rollforward Triggers');
-    const points = extractSectionBlock(text, '2026 도메인별 고도화 포인트');
+    const when = extractSectionBlock(text, '언제 이 문서를 펼칠까');
+    const steps = extractSectionBlock(text, '적용 순서');
+    const colocate = extractSectionBlock(text, '함께 두는 파일');
+    const mistakes = extractSectionBlock(text, '흔한 실수');
+    const done = extractSectionBlock(text, 'PR 완료 기준');
 
-    const checkpointBullets = (checkpoint.match(/^- /gm) || []).length;
-    const rollforwardBullets = (rollforward.match(/^- /gm) || []).length;
-    const pointBullets = (points.match(/^- /gm) || []).length;
-    const contract = extractSectionBlock(text, '2026 트렌드 운영 계약(Trend Ops Contract)');
-    const contractBullets = (contract.match(/^- /gm) || []).length;
-    const detailedSection = extractSectionBlock(text, '2026 트렌드 상세 재구성(도메인별)');
-    const detailedBullets = (detailedSection.match(/^- /gm) || []).length;
-    const executionRules = extractSectionBlock(text, '2026 트렌드 실행 규칙(Measure-Action-Owner)');
-    const executionRuleBullets = (executionRules.match(/^- /gm) || []).length;
-    const executionChecklist = extractSectionBlock(
-      text,
-      '2026 트렌드 실행 체크리스트(자동화 트리거)',
-    );
-    const executionChecklistBullets = (executionChecklist.match(/^\s*-\s+\[ \]\s+/gm) || []).length;
-    const executionChecklistTaskLines = (executionChecklist.match(/^\s*-\s+\[[ xX]\]\s+/gm) || []).length;
-    const opsTable = extractSectionBlock(text, '2026 트렌드 실행 지표표');
-    const tableRows = opsTable
-      .split('\n')
-      .filter((line) => line.startsWith('|') && !line.includes(':---'))
-      .length;
-
-    if (checkpointBullets < 6) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend checkpoint section should keep >=6 bullet items (found ${checkpointBullets})`,
-      );
-    }
-
-    if (rollforwardBullets < 3) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend rollforward section should keep >=3 bullet items (found ${rollforwardBullets})`,
-      );
-    }
-
-    if (pointBullets < 4) {
-      errors.push(
-        `${path.relative(ROOT, file)} domain trend points should keep >=4 bullet items (found ${pointBullets})`,
-      );
-    }
-
-    if (contractBullets < 4) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend ops contract section should keep >=4 bullet items (found ${contractBullets})`,
-      );
-    }
-
-    const requiredContractLines = [
-      'Trend Owner',
-      'Review Cadence',
-      'Release Gate Conditions',
-      'Evidence Contract',
+    const checks = [
+      ['언제 이 문서를 펼칠까', when, /^- /gm, 3],
+      ['적용 순서', steps, /^[0-9]+\. /gm, 5],
+      ['함께 두는 파일', colocate, /^- /gm, 3],
+      ['흔한 실수', mistakes, /^- /gm, 4],
+      ['PR 완료 기준', done, /^- \[ \] /gm, 4],
     ];
 
-    const missingContractLines = requiredContractLines.filter(
-      (line) => !contract.includes(line),
-    );
+    for (const [label, block, pattern, min] of checks) {
+      const count = (block.match(pattern) || []).length;
 
-    if (missingContractLines.length > 0) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend ops contract missing fields: ${missingContractLines.join(', ')}`,
-      );
-    }
-
-    const requiredOpsTableTokens = [
-      'KPI',
-      '측정 대상',
-      '기준선/임계값',
-      '점검 주기',
-      '증빙',
-      '성능 회귀율',
-      '보안·공급망 경고',
-      '접근성·운영성 체크',
-    ];
-    const missingOpsTableTokens = requiredOpsTableTokens.filter((token) => !opsTable.includes(token));
-    if (missingOpsTableTokens.length > 0) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend ops metrics table missing tokens: ${missingOpsTableTokens.join(', ')}`,
-      );
-    }
-
-    if (tableRows < 5) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend ops metrics table malformed or too short (rows: ${tableRows})`,
-      );
-    }
-
-    if (detailedBullets < 14) {
-      errors.push(
-        `${path.relative(ROOT, file)} detailed trend section should keep >=14 bullet items (found ${detailedBullets})`,
-      );
-    }
-
-    if (executionRuleBullets < 6) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend execution rules section should keep >=6 bullet items (found ${executionRuleBullets})`,
-      );
-    }
-
-    const requiredExecutionRuleTokens = [
-      '측정 신호',
-      '임계치',
-      '운영 승인',
-      '실행 보증',
-      '롤백 경로',
-      '학습 반영',
-    ];
-
-    const missingExecutionRuleTokens = requiredExecutionRuleTokens.filter(
-      (token) => !executionRules.includes(token),
-    );
-
-    if (missingExecutionRuleTokens.length > 0) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend execution rules missing tokens: ${missingExecutionRuleTokens.join(', ')}`,
-      );
-    }
-
-    if (executionChecklistBullets < 8) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend execution checklist section should keep >=8 bullet items (found ${executionChecklistBullets})`,
-      );
-    }
-
-    if (executionChecklistTaskLines !== executionChecklistBullets) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend execution checklist has nonstandard checklist lines (expected unchecked boxes only, found ${executionChecklistTaskLines})`,
-      );
-    }
-
-    const requiredExecutionChecklistTokens = [
-      'Owner 지정',
-      'SLA 정의',
-      'Rollback Drill',
-      '증빙 링크',
-      '자동 경고',
-      '재학습 루프',
-      '검증 주기',
-      '결과 공유',
-    ];
-
-    const missingExecutionChecklistTokens = requiredExecutionChecklistTokens.filter(
-      (token) => !executionChecklist.includes(token),
-    );
-
-    if (missingExecutionChecklistTokens.length > 0) {
-      errors.push(
-        `${path.relative(ROOT, file)} trend execution checklist missing tokens: ${missingExecutionChecklistTokens.join(', ')}`,
-      );
+      if (count < min) {
+        errors.push(
+          `${path.relative(ROOT, file)} practical section '${label}' should have >=${min} items (found ${count})`,
+        );
+      }
     }
   }
 
@@ -578,6 +473,8 @@ const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
 const sourceRegistryFiles = [README, path.join(GUIDE_DIR, '00_종합_가이드_목차.md')];
+const guideAndReadmeAndValidator = [README, ...guideFiles, path.join(ROOT, 'scripts', 'validate-dev-guides.mjs')];
+
 const failures = [
   ...validateGuideSequence(guideFiles),
   ...validateStructure(guideFiles),
@@ -585,10 +482,10 @@ const failures = [
   ...validateLinks(files),
   ...validateGuideIndexReferences(guideFiles),
   ...validateForbiddenText(files),
-  ...validateStaleEditionText(publicTextFiles),
+  ...validateNoLegacyGuideText(guideAndReadmeAndValidator),
   ...validateSourceRegistry(sourceRegistryFiles),
   ...validateRequiredGuideSections(guideFiles),
-  ...validateTrendDepth(guideFiles),
+  ...validatePracticalSections(guideFiles),
 ];
 
 if (failures.length > 0) {
@@ -599,4 +496,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`dev guide validation passed: ${guideFiles.length} guides, ${files.length} markdown files`);
+console.log(`dev guide validation passed: ${guideFiles.length} guides, ${publicTextFiles.length} public text files`);

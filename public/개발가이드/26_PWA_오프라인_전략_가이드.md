@@ -1,16 +1,16 @@
-# 26. PWA & 오프라인 전략 가이드 (2026 Edition)
+# 26. PWA & 오프라인 전략 가이드
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CDN](./12_CDN_캐시_전략.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS | **Update** | 2026.05 |
+| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS | **Update** | 최신 기준 |
 
 ---
 
 > **"PWA의 핵심은 설치 배지가 아니라, 네트워크가 불안정해도 사용자의 작업을 잃지 않는 신뢰성이다."**
 > 본 가이드는 특정 PWA 플러그인이나 래퍼가 아니라 **Service Worker 라이프사이클, 캐시 책임 분리, 오프라인 UX, 동기화, 저장소 quota, 배포 안전성**을 기준으로 PWA를 설계하는 방법을 다룹니다. Workbox, Serwist, 프레임워크 플러그인은 구현 후보입니다.
 >
-> **2026년 5월 핵심 변화 요약**
+> **현재 5월 핵심 변화 요약**
 > - **Service Worker cache governance**: framework/server cache, CDN cache, browser HTTP cache, Service Worker cache의 책임을 분리해야 장애를 줄일 수 있습니다.
 > - **Web Push/설치 UX**: 모바일 브라우저별 설치/권한/알림 지원 차이가 크므로 기능 감지와 fallback UX가 필수입니다.
 > - **OPFS/Storage Buckets**: 대용량 오프라인 데이터는 IndexedDB만으로 처리하지 않고 파일성 데이터와 구조화 데이터를 분리합니다.
@@ -60,46 +60,6 @@
 
 ---
 
-
-### 2026 트렌드 고도화 체크포인트
-
-- **AI 보안 격리**: 민감정보·시크릿이 개입되는 영역은 AI 산출물 자동 반영 전에 보안 게이트를 통과해야 합니다.
-- **운영 지표 연동**: 성능(RUM p75), 장애율, 접근성/SEO 신호 중 최소 1개 이상의 지표와 조합해 채택·철회 여부를 판단합니다.
-- **브라우저/디바이스 지속성**: Baseline/feature detection 기반으로 기능을 출시하고, 미지원군에 대한 fallback 및 감시 항목을 문서화합니다.
-- **공급망 신뢰성**: lockfile 일치성, 의존성 감사, SBOM/attestation, secret scan 조건을 문서 체크리스트에 반영합니다.
-- **회복탄력성 설계**: 실험 기능은 rollback, fallback, canary 또는 flag 기반으로 실패 조건을 명시합니다.
-- **국제/접근성 동시 고려**: i18n, RTL, 다국어 텍스트 길이, 키보드/스크린리더, reduced-motion은 기능 도입 전 체크합니다.
-- **재검토 주기**: 월 1회 운영 증적을 기준으로 고도화/축소/중단 결정을 갱신합니다.
-
-### 2026 Trend Rollforward Triggers
-
-- **Stable 항목**은 공식 보안/호환성 고지 시 즉시 재평가 대상이 됩니다.
-- **Experimental Watch** 항목은 90일 내 지표 미달, major 회귀, 도입비용 과다 시 자동 철회 조건을 둡니다.
-- 문서와 릴리즈 노트 불일치가 발생하면 `00`과 각 도메인 문서를 5영업일 내 동기화합니다.
-
-## 목차
-
-1. [AI 기반 PWA 개발 자동화](#1-ai-기반-pwa-개발-자동화)
-2. [환경별 PWA 운영 전략](#2-환경별-pwa-운영-전략)
-   - [2.1 환경별 Service Worker 분리](#21-환경별-service-worker-분리)
-   - [2.2 환경별 매니페스트 동적 생성](#22-환경별-매니페스트-동적-생성)
-   - [2.3 Preview 환경 PWA 설치 차단](#23-preview-환경-pwa-설치-차단)
-   - [2.4 환경별 Push Notification 채널 분리](#24-환경별-push-notification-채널-분리)
-   - [2.5 Feature Flag 오프라인 기능 점진적 롤아웃](#25-feature-flag-오프라인-기능-점진적-롤아웃)
-   - [2.6 Service Worker 버전 충돌 방지](#26-service-worker-버전-충돌-방지)
-3. [Service Worker 라이프사이클](#3-service-worker-라이프사이클)
-4. [Workbox 7.x + Vite PWA 설정](#4-workbox-7x--vite-pwa-설정)
-5. [캐싱 전략 4종 비교](#5-캐싱-전략-4종-비교)
-6. [오프라인 UX 패턴](#6-오프라인-ux-패턴)
-7. [Web Push Notifications](#7-web-push-notifications)
-8. [App Manifest & 설치 프롬프트](#8-app-manifest--설치-프롬프트)
-8.5 [File System Access / OPFS / Storage Buckets API (2026)](#85-file-system-access--opfs--storage-buckets-api-2026)
-9. [Background Sync & Periodic Sync](#9-background-sync--periodic-sync)
-10. [Serwist (Next.js PWA 대안)](#10-serwist-nextjs-pwa-대안)
-11. [PWA 디버깅 & 트러블슈팅](#11-pwa-디버깅--트러블슈팅)
-12. [체크리스트](#12-체크리스트)
-
----
 
 ## 1. AI 기반 PWA 개발 자동화
 
@@ -971,7 +931,7 @@ async function handleNavigation(event: FetchEvent): Promise<Response> {
 
 ## 4. Workbox 7.x + Vite PWA 설정
 
-> **Workbox 운영 기준 (2026-05)**
+> **Workbox 운영 기준 (최신 공식 문서 기준)**
 > - 공식 릴리스 확인 시 7.4.x 라인이 최신으로 확인됩니다. patch 버전은 lockfile로 고정하고, major 업그레이드는 공식 release note와 별도 검증 PR을 거칩니다.
 > - `generateSW`는 단순 앱 셸 캐싱에 적합하고, `injectManifest`는 Push/Background Sync/커스텀 라우팅이 필요한 제품에 적합합니다.
 > - Vite에서는 `vite-plugin-pwa`가 Workbox 설정을 감싸므로, 플러그인 버전과 Workbox peer dependency를 함께 고정합니다.
@@ -1584,7 +1544,7 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 
 ## 7. Web Push Notifications
 
-> **2026년 모바일 브라우저 Web Push 핵심 제약**
+> **현재 모바일 브라우저 Web Push 핵심 제약**
 > - 일부 모바일 브라우저는 **홈 화면에 설치된 PWA (`display: standalone`)** 에서만 Push API가 동작한다. 일반 브라우저 탭에서는 권한 요청 자체가 거부될 수 있다.
 > - 권한 요청은 **사용자 제스처(클릭/탭) 직후에만** 호출 가능. `useEffect`나 페이지 로드 시 자동 호출 금지.
 > - manifest의 `display`가 `standalone` 또는 `fullscreen`이어야 한다. `minimal-ui`/`browser`로 폴백되면 Push 비활성화.
@@ -1938,11 +1898,11 @@ export async function runPWAAudit(): Promise<void> {
 
 ---
 
-## 8.5 File System Access / OPFS / Storage Buckets API (2026)
+## 8.5 File System Access / OPFS / Storage Buckets API
 
-2026년 PWA의 오프라인 저장 옵션은 IndexedDB만이 아니다. 대용량/구조적 데이터를 더 빠르고 안전하게 저장할 수 있는 API들이 Baseline에 합류했다.
+현재 PWA의 오프라인 저장 옵션은 IndexedDB만이 아니다. 대용량/구조적 데이터를 더 빠르고 안전하게 저장할 수 있는 API들이 Baseline에 합류했다.
 
-| API | 지원 (2026.05) | 용도 | 영속성 |
+| API | 지원 상태 | 용도 | 영속성 |
 |---|---|---|---|
 | **IndexedDB** | 모든 브라우저 | 구조적 JSON/Blob | 쿼터 내 영속 |
 | **Cache Storage** | 모든 브라우저 | Request/Response 캐싱 | 쿼터 내 영속 |
@@ -1959,7 +1919,7 @@ export async function runPWAAudit(): Promise<void> {
 
 export async function writeBlobToOpfs(path: string, blob: Blob): Promise<void> {
   const root = await navigator.storage.getDirectory();
-  // 경로 분할 -- 'video/2026/clip.mp4' 같은 중첩 경로 지원
+  // 경로 분할 -- 'video/최신/clip.mp4' 같은 중첩 경로 지원
   const segments = path.split('/').filter(Boolean);
   const fileName = segments.pop()!;
 
@@ -1998,7 +1958,7 @@ export async function readBlobFromOpfs(path: string): Promise<Blob | null> {
 ```typescript
 // src/services/storage-buckets.ts
 // 사용자 워크스페이스/프로젝트마다 버킷을 분리해 만료 정책을 다르게 적용
-// 2026년 기준 엔진별 지원 편차가 있으므로 progressive enhancement로 처리
+// 현재 기준 엔진별 지원 편차가 있으므로 progressive enhancement로 처리
 
 interface StorageBucketOptions {
   durability?: 'strict' | 'relaxed';
@@ -2535,7 +2495,7 @@ test.describe('PWA 오프라인 기능', () => {
 - [ ] 동기화 결과를 `postMessage`로 클라이언트에 알림
 - [ ] Periodic Background Sync 등록 시 브라우저 지원 여부 확인
 
-### 12.6 2026 신규 저장 API (Storage)
+### 12.6 최신 저장 API (Storage)
 
 - [ ] 대용량 파일 저장에 OPFS(`navigator.storage.getDirectory()`) 활용 검토
 - [ ] 사용자 폴더 R/W 필요 시 File System Access API + Persistent Permissions(Chrome 122+)
@@ -2576,69 +2536,40 @@ test.describe('PWA 오프라인 기능', () => {
 
 > **다음 단계**: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다. [12. CDN 캐시 전략](./12_CDN_캐시_전략.md)에서 CDN 레벨의 캐시 무효화 및 TTL 설정을 함께 확인하세요. 성능 지표 모니터링은 [08. 성능 최적화 가이드](./08_성능_최적화_가이드.md)를 참조하세요.
 
-문서 최종 업데이트: 2026-05-27
+---
 
-### 2026 도메인별 고도화 포인트
+## 실무 적용 가이드
 
-- **오프라인 핵심 기능 우선순위**: 오프라인에서 반드시 가능한 흐름(작성, 큐잉, 동기화)을 우선 규정하고 비즈니스 민감도를 반영해 단계별 제공합니다.
-- **스토리지 전략 분리**: 캐시/큐/파일형 데이터 저장소를 역할별로 분리하고 quota/eviction 정책을 문서화합니다.
-- **SW 버전 안전성**: 배포/업데이트/롤백 경로에서 SW 충돌을 최소화하기 위한 버전 규칙을 운영 문서에 고정합니다.
-- **디바이스별 폴백 경로**: 백그라운드 동기, 알림, Push 권한을 브라우저 지원군에 따라 조건부 분기시키고 테스트합니다.
+### 언제 이 문서를 펼칠까
 
+- 오프라인, 느린 네트워크, 재접속 상황에서 UX가 깨질 때
+- service worker update가 stale app이나 white screen을 만들 때
+- push/background sync 권한과 실패 처리가 필요할 때
 
-### 2026 트렌드 운영 계약(Trend Ops Contract)
+### 적용 순서
 
-- **Trend Owner**: 도메인 문서 오너 + 00 가이드 운영 오너가 공동 승인합니다.
-- **Review Cadence**: 월 1회 운영 점검, 90일 단위 회귀 리뷰, 공식 변경 고지 발생 시 5영업일 내 재평가합니다.
-- **Release Gate Conditions**: 성능·보안·접근성·관측성·배포 안정성 지표 임계치 초과 시 배포 권고를 중단하고 롤백/재계획합니다.
-- **Evidence Contract**: 변경 PR, CI 산출물, 운영 지표 스냅샷, rollback 기록을 `문서 최종 업데이트` 근거로 링크/보관합니다.
+1. 오프라인에서 반드시 동작할 flow와 동작하지 않아도 되는 flow를 나눈다.
+2. app shell, runtime data, media asset cache를 분리한다.
+3. service worker update와 rollback 전략을 정한다.
+4. sync retry, conflict, exhaustion 상태를 UI로 드러낸다.
+5. offline E2E와 cache manifest diff를 PR에 남긴다.
 
+### 함께 두는 파일
 
-### 2026 트렌드 실행 지표표
+- feature별 offline fallback, sync queue, conflict UI를 기능 폴더에 둔다.
+- 공통 service worker 전략은 app/platform 폴더에 둔다.
+- CDN cache 정책과 PWA runtime cache 정책은 링크하되 책임을 분리한다.
 
-| KPI | 측정 대상 | 기준선/임계값 | 점검 주기 | 증빙 |
-| :--- | :--- | :--- | :--- | :--- |
-| 성능 회귀율 | RUM/CI 성능 지표 | 기준 대비 악화율 10% 초과 시 실험 중단 검토 | 주간 | 성능 리포트 링크 |
-| 안정성 지표 | 에러율·SLO 위반 | 에러율 +1.5x 또는 SLO error budget 고갈률 2배 | 일간/릴리즈 후 즉시 | 관측성 대시보드 |
-| 보안·공급망 경고 | secret scan / dependency audit / 취약점 스캔 | 신규 critical/high 경고 1건 이상 | 배포 전/월간 | 감사 보고서/로그 |
-| 접근성·운영성 체크 | 키보드/스크린리더/배포 게이트 실패 | 릴리즈 게이트 실패율 0.5% 초과 | 릴리즈 전/월간 | 릴리즈 증적 |
+### 흔한 실수
 
-### 2026 트렌드 상세 재구성(도메인별)
+- 민감 API 응답을 무심코 캐시한다.
+- 새 service worker 활성화 후 기존 탭 동작을 테스트하지 않는다.
+- offline 실패를 단순 toast로만 처리한다.
+- push 권한 요청을 사용자 맥락 없이 먼저 띄운다.
 
-- 오프라인 우선 시나리오: 작성·동기화·읽기 흐름의 필수 경로를 먼저 정의하고 우선순위를 고정합니다.
-- 스토리지 정책 정교화: 캐시·큐·파일 저장을 용량·만료 정책으로 분리해 충돌을 방지합니다.
-- SW 롤백 자동화: Service Worker 버전 충돌 처리와 복구 절차를 자동화해 장애 시간을 줄입니다.
-- 알림·동기 분리: Push/백그라운드 동기 정책을 브라우저별 지원 범위로 분기합니다.
-- 네트워크 fallback: 연결 저하 구간에서 큐 작업 동작과 복구 타이밍을 정량 정의합니다.
+### PR 완료 기준
 
-- 오프라인 동기화는 데이터 신선도와 충돌 해결 규칙을 명시해 갱신 실패시 사용자 혼선을 줄입니다.
-- 서비스 워커 버전 관리는 점진적 업데이트와 백그라운드 동기화 정책을 분리해 예측 가능한 롤백 경로를 확보합니다.
-- 캐시 오염/스토리지 한계 이벤트를 감시하고 임계치 도달 시 저장소 정리 루틴을 강제합니다.
-- 오프라인 품질은 동기화 지연과 데이터 충돌 해결률을 함께 추적하고 임계치를 초과하면 동기화 정책을 보수적으로 전환합니다.
-- 저장소 정합성 점검은 앱 시작 시점/이동성/재연결 시나리오에서 반복해 사용자 데이터 손실 리스크를 선제 제거합니다.
-- 오프라인 정책 충돌은 저장소 동기화 실패 로그와 연동해 복구 우선순위를 자동 반영합니다.
-- 서비스워커 업데이트 실패율이 상승하면 rollout 속도를 낮추고 안전 구간을 확인합니다.
-- 오프라인 정책 실패율이 기준을 넘으면 신규 동기화 기능 배포를 지연하고 기존 경로를 우선 복구합니다.
-- 저장소 충돌 리스크가 큰 단말군은 캐싱 범위를 제한해 데이터 일관성을 확보합니다.
-
-### 2026 트렌드 실행 규칙(Measure-Action-Owner)
-- **측정 신호**: 도입 전후 성능/안정성/보안/운영성 지표를 단일 스냅샷으로 비교하고 회귀 방향을 즉시 판별합니다.
-- **임계치 트리거**: 임계치 초과 시 `Rollback Condition`으로 자동 분류되어 다음 릴리즈 단계로 진행하지 않습니다.
-- **운영 승인**: 문서 오너와 00 가이드 오너의 2인 승인 후에만 기본 채택 상태로 변경합니다.
-- **실행 보증**: 변경된 항목은 최소 1회 E2E 또는 관측성 재현 경로로 증빙하고 증거 링크를 남깁니다.
-- **롤백 경로**: 실패 징후가 누적되면 24시간 이내 feature flag off 또는 배포 속도 축소로 기본 경로를 복구합니다.
-- **학습 반영**: 실패 케이스와 재현 절차를 다음 분기 지표 스펙에 반영해 자동화 대상 후보로 우선 등록합니다.
-- **오프라인 실패 격리**: 동기화 실패 구간은 앱 구동 우선권을 낮은 기능에서 먼저 복구하도록 제어합니다.
-- **서비스워커 안전 전환**: SW 업데이트 지연이 누적되면 수동 경로로 즉시 전환하고 원인 분석 후 재시도합니다.
-
-### 2026 트렌드 실행 체크리스트(자동화 트리거)
-- [ ] **Owner 지정**: 문서별 `Trend Owner`와 `Backup Owner`를 지정하고 월간 점검표와 연결한다.
-- [ ] **SLA 정의**: 임계치 초과 대응을 `24시간 / 72시간 / 1주일` 단계로 나누어 운영한다.
-- [ ] **Rollback Drill**: 실패 전개 조건에서 롤백 경로를 최소 한 번 시뮬레이션하고 날짜를 기록한다.
-- [ ] **증빙 링크**: 변경/실험/이슈에 대한 증거 링크를 PR 템플릿과 연동한다.
-- [ ] **자동 경고**: 지표 임계치 초과 시 자동 알람 라우팅이 제대로 작동하는지 확인한다.
-- [ ] **재학습 루프**: 실패 케이스를 다음 스프린트 우선순위 큐로 이관한다.
-- [ ] **검증 주기**: 월간 점검 스냅샷과 분기 회고 항목을 분리해 관리한다.
-- [ ] **결과 공유**: 주요 의사결정은 00의 운영 채널과 README Snapshot에 되돌린다.
-- [ ] **동기화 실패 회수**: 실패율 증가 시 동기화 경로를 제한하고 원인 분석 리포트 작성한다.
-- [ ] **서비스워커 관측**: 업데이트 실패율과 캐시 상태를 정기 점검한다.
+- [ ] offline 핵심 flow가 통과한다.
+- [ ] SW update/rollback drill이 있다.
+- [ ] cache에 민감정보가 없다.
+- [ ] sync 실패와 conflict UX가 있다.

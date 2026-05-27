@@ -1,20 +1,20 @@
-# 02. React 19 실무 가이드 (2026 Edition)
+# 02. React 19 실무 가이드
 
 | 분류 | 핵심 기술 | 상태 | Stable |
 | :--- | :--- | :--- | :--- |
 | **연관 가이드** | [05. API 통신](./05_API_통신_및_모킹_가이드.md), [03. 상태 관리](./03_상태관리_패턴_가이드.md), [08. 성능 최적화](./08_성능_최적화_가이드.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | Actions, Server Functions, useActionState, useOptimistic, Ref as Props, React Compiler 1.0, Activity, useEffectEvent | **Update** | 2026.05 |
+| **핵심 테마** | Actions, Server Functions, useActionState, useOptimistic, Ref as Props, React Compiler 1.0, Activity, useEffectEvent | **Update** | 최신 기준 |
 
 ---
 
 > **"React 19은 클라이언트와 서버의 경계를 허물고, 비동기 데이터 흐름을 프레임워크 수준에서 네이티브하게 처리한다."**
 > 본 가이드는 수동으로 관리하던 비동기 상태를 React 엔진에 맡기고, 더 간결하고 안전한 코드를 작성하는 방법을 다룹니다.
 >
-> **2026년 5월 기준 메이저 마일스톤**
+> **현재 공식 문서 기준 메이저 마일스톤**
 > - **React 19.2 (2025-10 릴리스)**: `<Activity>` 컴포넌트, `useEffectEvent`, `cacheSignal`, Suspense SSR 배칭, Partial Pre-rendering, Node 환경 `renderToReadableStream` 안정화
 > - **React Compiler 1.0 (2025-10 GA)**: 안정 채널 배포. `babel-plugin-react-compiler`와 주요 프레임워크/빌드 도구 adapter를 기준으로 점진 도입합니다.
 > - **RSC 보안 패치 기준**: React Server Components를 사용하는 프레임워크/번들러는 `react-server-dom-webpack`, `react-server-dom-parcel`, `react-server-dom-turbopack` 19.2.4 이상을 기준으로 고정합니다.
-> - `<ViewTransition>` 은 아직 **canary**입니다(2026-05 기준). `useDeferredValue`/`startTransition`/Suspense 콜백 ↔ 콘텐츠 전환에서만 트리거됩니다.
+> - `<ViewTransition>` 은 아직 **canary**입니다(현재 공식 문서 기준). `useDeferredValue`/`startTransition`/Suspense 콜백 ↔ 콘텐츠 전환에서만 트리거됩니다.
 
 ---
 
@@ -80,22 +80,6 @@ React 19 이후의 기능은 stable, stable-but-opt-in, security-gated, canary�
 
 ---
 
-
-### 2026 트렌드 고도화 체크포인트
-
-- **AI 보안 격리**: 민감정보·시크릿이 개입되는 영역은 AI 산출물 자동 반영 전에 보안 게이트를 통과해야 합니다.
-- **운영 지표 연동**: 성능(RUM p75), 장애율, 접근성/SEO 신호 중 최소 1개 이상의 지표와 조합해 채택·철회 여부를 판단합니다.
-- **브라우저/디바이스 지속성**: Baseline/feature detection 기반으로 기능을 출시하고, 미지원군에 대한 fallback 및 감시 항목을 문서화합니다.
-- **공급망 신뢰성**: lockfile 일치성, 의존성 감사, SBOM/attestation, secret scan 조건을 문서 체크리스트에 반영합니다.
-- **회복탄력성 설계**: 실험 기능은 rollback, fallback, canary 또는 flag 기반으로 실패 조건을 명시합니다.
-- **국제/접근성 동시 고려**: i18n, RTL, 다국어 텍스트 길이, 키보드/스크린리더, reduced-motion은 기능 도입 전 체크합니다.
-- **재검토 주기**: 월 1회 운영 증적을 기준으로 고도화/축소/중단 결정을 갱신합니다.
-
-### 2026 Trend Rollforward Triggers
-
-- **Stable 항목**은 공식 보안/호환성 고지 시 즉시 재평가 대상이 됩니다.
-- **Experimental Watch** 항목은 90일 내 지표 미달, major 회귀, 도입비용 과다 시 자동 철회 조건을 둡니다.
-- 문서와 릴리즈 노트 불일치가 발생하면 `00`과 각 도메인 문서를 5영업일 내 동기화합니다.
 
 ## 1. Actions: 비동기 상태 관리 패턴
 
@@ -910,7 +894,7 @@ export const getRecommendations = cache(async (userId: string) => {
 - **Partial Pre-rendering (PPR)**: 정적 셸을 CDN/엣지에서 즉시 응답하고, 동적 영역만 스트리밍으로 채워 넣는 방식입니다. Next.js 16의 Cache Components와 함께 production 운영 패턴으로 정리되었습니다.
 - **Node `renderToReadableStream`**: 19.2부터 Node 환경에서도 Web Streams 기반 SSR이 안정 지원됩니다. Edge 런타임과 코드를 공유하기 쉬워졌습니다.
 
-### 8.5 `<ViewTransition>` (canary, 2026-05 기준 미안정)
+### 8.5 `<ViewTransition>` (canary, 현재 공식 문서 기준 미안정)
 
 `<ViewTransition>` 컴포넌트는 여전히 **canary 채널**에 머물러 있습니다. 다만 트리거 조건이 명확히 정리됐습니다.
 
@@ -1154,69 +1138,40 @@ AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개
 
 > **연관 가이드**: [01. TypeScript 심화](./01_TypeScript_심화_가이드.md) | [03. 상태 관리 패턴](./03_상태관리_패턴_가이드.md) | [05. API 통신](./05_API_통신_및_모킹_가이드.md) | [08. 성능 최적화](./08_성능_최적화_가이드.md) | [24. SEO 메타데이터](./24_SEO_메타데이터_가이드.md)
 
-문서 최종 업데이트: 2026-05-27
+---
 
-### 2026 도메인별 고도화 포인트
+## 실무 적용 가이드
 
-- **서버/클라이언트 경계 운영화**: action/form submit의 폴백, 취소·중복 제출 방어, 낙관적 업데이트 rollback을 E2E로 고정합니다.
-- **컴파일러 친화 패턴 정착**: React Compiler가 무효화되는 패턴을 lint 규칙으로 감시하고, 금지 패턴 우회 설계를 코드 템플릿화합니다.
-- **RSC 보안 계약**: 서버 컴포넌트 경계의 직렬화 가능성, `use`/Suspense 결합 실패 처리, secret 노출 경로를 리뷰 항목으로 분리합니다.
-- **상태 전이 실험 관리**: `Action`/`Transition` 중심 UX에서 지연율·실패율을 계측하고 악화 시 점진적 롤아웃으로 축소합니다.
+### 언제 이 문서를 펼칠까
 
+- 서버/클라이언트 컴포넌트 경계가 흐려져 hydration mismatch가 생길 때
+- form action, optimistic UI, error boundary를 어떤 단위로 둘지 결정해야 할 때
+- React Compiler나 canary API 도입 전 안전한 적용 범위가 필요할 때
 
-### 2026 트렌드 운영 계약(Trend Ops Contract)
+### 적용 순서
 
-- **Trend Owner**: 도메인 문서 오너 + 00 가이드 운영 오너가 공동 승인합니다.
-- **Review Cadence**: 월 1회 운영 점검, 90일 단위 회귀 리뷰, 공식 변경 고지 발생 시 5영업일 내 재평가합니다.
-- **Release Gate Conditions**: 성능·보안·접근성·관측성·배포 안정성 지표 임계치 초과 시 배포 권고를 중단하고 롤백/재계획합니다.
-- **Evidence Contract**: 변경 PR, CI 산출물, 운영 지표 스냅샷, rollback 기록을 `문서 최종 업데이트` 근거로 링크/보관합니다.
+1. route를 server shell, client interaction, fallback/error boundary로 나눈다.
+2. 서버에서 가져온 데이터와 클라이언트 상호작용 상태를 분리한다.
+3. form action은 성공, validation error, 네트워크 실패, optimistic rollback을 함께 설계한다.
+4. client component는 필요한 곳에만 두고 bundle diff를 확인한다.
+5. 핵심 flow E2E와 hydration/error trace를 PR에 남긴다.
 
+### 함께 두는 파일
 
-### 2026 트렌드 실행 지표표
+- 한 화면의 form 컴포넌트, action, validation schema, optimistic hook, test를 같은 feature 폴더에 둔다.
+- route 전용 loading/error/empty UI는 route 가까이에 둔다.
+- 여러 화면에서 재사용되는 headless UI만 `shared/ui`로 올린다.
 
-| KPI | 측정 대상 | 기준선/임계값 | 점검 주기 | 증빙 |
-| :--- | :--- | :--- | :--- | :--- |
-| 성능 회귀율 | RUM/CI 성능 지표 | 기준 대비 악화율 10% 초과 시 실험 중단 검토 | 주간 | 성능 리포트 링크 |
-| 안정성 지표 | 에러율·SLO 위반 | 에러율 +1.5x 또는 SLO error budget 고갈률 2배 | 일간/릴리즈 후 즉시 | 관측성 대시보드 |
-| 보안·공급망 경고 | secret scan / dependency audit / 취약점 스캔 | 신규 critical/high 경고 1건 이상 | 배포 전/월간 | 감사 보고서/로그 |
-| 접근성·운영성 체크 | 키보드/스크린리더/배포 게이트 실패 | 릴리즈 게이트 실패율 0.5% 초과 | 릴리즈 전/월간 | 릴리즈 증적 |
+### 흔한 실수
 
-### 2026 트렌드 상세 재구성(도메인별)
+- 모든 컴포넌트에 `use client`를 붙인다.
+- error boundary를 앱 최상단 하나로만 둬 전체 화면을 잃는다.
+- optimistic update의 실패 복구를 테스트하지 않는다.
+- compiler가 해결해줄 것이라 기대하고 불안정한 hook 패턴을 방치한다.
 
-- RSC 경계 계약 강화: 서버/클라이언트 경계의 직렬화 실패·secret 노출 경로·캐시 키 오염 케이스를 PR 체크리스트에 고정합니다.
-- Action/Transition 회귀 억제: 동시 제출·중복 제출·낙관적 업데이트 롤백을 사용자 시나리오 테스트로 고정하고 실패율 임계치 초과 시 단순 UX 모드로 되돌립니다.
-- React Compiler 호환성 관리: 컴파일러가 무효화되는 패턴을 lint 룰셋 등록하고 감지 시 재작성 가이드를 제시합니다.
-- ViewTransition는 UX 개선 효과가 계측될 때만 채택하고, 회귀가 크면 즉시 기본 경로로 회귀합니다.
-- Server Action 보안 운영: mutation 경로와 승인 스코프를 분리해 서버에서 추가 검증 및 재시도 정책을 의무화합니다.
+### PR 완료 기준
 
-- RSC/클라이언트 경계는 직렬화 실패와 캐시 키 오염이 가장 먼저 검증되어야 하며, 실패 케이스별 회귀 테스트를 2차 게이트로 고정합니다.
-- React Compiler는 성능/동일성 보장 조건을 함께 증빙할 때만 확장해, 렌더링 동작 변경이 큰 컴포넌트는 Watch로 유지합니다.
-- `ViewTransition`은 지표 개선이 확인된 시나리오만 기본 케이스로 승격하고, 핵심 흐름은 기존 라우팅과 동등한 동작을 보장하는 fallback를 우선합니다.
-- Server Actions/컴포넌트 경계에서 발생 가능한 직렬화 예외는 문서화하고, 예외 빈도를 기준으로 즉시 개선 주기를 예약합니다.
-- Suspense·RSC 실험은 사용자 체감 지표가 개선되는 시나리오부터 점진 적용하고, 회귀 우선순위는 Core Interaction 기준으로 재정렬합니다.
-- 서버 렌더링 경로의 캐시 재검증 정책을 문서화해, RSC 결과값 불일치가 감지되면 즉시 롤백 가능한 설계를 의무화합니다.
-- 실험적 기능은 기능 플래그, canary 트래픽, 사용자군 분리로 검증한 뒤 기본값 반영 여부를 결정합니다.
-- 컴파일러 경고의 진짜 비용을 측정해 lint 규칙 과다 등록을 방지하고 운영 불필요 부담을 줄입니다.
-- 사용자 상호작용 민감 경로는 실험군/대조군 비교 결과가 있을 때만 기본 렌더 패턴으로 채택합니다.
-
-### 2026 트렌드 실행 규칙(Measure-Action-Owner)
-- **측정 신호**: 도입 전후 성능/안정성/보안/운영성 지표를 단일 스냅샷으로 비교하고 회귀 방향을 즉시 판별합니다.
-- **임계치 트리거**: 임계치 초과 시 `Rollback Condition`으로 자동 분류되어 다음 릴리즈 단계로 진행하지 않습니다.
-- **운영 승인**: 문서 오너와 00 가이드 오너의 2인 승인 후에만 기본 채택 상태로 변경합니다.
-- **실행 보증**: 변경된 항목은 최소 1회 E2E 또는 관측성 재현 경로로 증빙하고 증거 링크를 남깁니다.
-- **롤백 경로**: 실패 징후가 누적되면 24시간 이내 feature flag off 또는 배포 속도 축소로 기본 경로를 복구합니다.
-- **학습 반영**: 실패 케이스와 재현 절차를 다음 분기 지표 스펙에 반영해 자동화 대상 후보로 우선 등록합니다.
-- **렌더링 회귀 게이트**: RSC/Action 경로에서 재현 가능한 회귀가 남는 경우 채택을 연기하고 기존 경로를 유지합니다.
-- **동적 전환 규칙**: ViewTransition 사용은 사용자군별 반응/성능 임계치가 충족될 때만 기본값으로 이동합니다.
-
-### 2026 트렌드 실행 체크리스트(자동화 트리거)
-- [ ] **Owner 지정**: 문서별 `Trend Owner`와 `Backup Owner`를 지정하고 월간 점검표와 연결한다.
-- [ ] **SLA 정의**: 임계치 초과 대응을 `24시간 / 72시간 / 1주일` 단계로 나누어 운영한다.
-- [ ] **Rollback Drill**: 실패 전개 조건에서 롤백 경로를 최소 한 번 시뮬레이션하고 날짜를 기록한다.
-- [ ] **증빙 링크**: 변경/실험/이슈에 대한 증거 링크를 PR 템플릿과 연동한다.
-- [ ] **자동 경고**: 지표 임계치 초과 시 자동 알람 라우팅이 제대로 작동하는지 확인한다.
-- [ ] **재학습 루프**: 실패 케이스를 다음 스프린트 우선순위 큐로 이관한다.
-- [ ] **검증 주기**: 월간 점검 스냅샷과 분기 회고 항목을 분리해 관리한다.
-- [ ] **결과 공유**: 주요 의사결정은 00의 운영 채널과 README Snapshot에 되돌린다.
-- [ ] **RSC 경계 검토**: 서버/클라이언트 경계 정책 변경은 렌더 이슈 재현 케이스와 함께 확인한다.
-- [ ] **컴파일러 안정성 확인**: React Compiler 적용 모듈은 회귀율 기준을 충족해야 채택 확대한다.
+- [ ] server/client 경계와 이유가 설명되어 있다.
+- [ ] loading/error/empty/rollback 상태가 있다.
+- [ ] 핵심 interaction E2E가 통과한다.
+- [ ] client bundle 증가가 확인되었거나 허용 근거가 있다.
