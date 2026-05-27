@@ -1,6 +1,8 @@
 name: Validate Dev Guides
 
 on:
+  schedule:
+    - cron: '0 3 1 * *'
   push:
     paths:
       - 'README.md'

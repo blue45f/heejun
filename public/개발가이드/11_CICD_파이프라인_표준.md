@@ -36,6 +36,24 @@
 | **Deploy** | 환경별 승인, canary/preview, rollback path | 자동 중단 |
 | **Evidence** | 테스트 결과, trace, coverage, accessibility/performance report 보관 | 감사 불가 시 실패 |
 
+### 0.0 파이프라인 순환 고리
+
+```mermaid
+flowchart TD
+  A["개발자 변경"] --> B["Install / Lint / Type"]
+  B --> C["테스트 / 보안 / 품질 게이트"]
+  C --> D{"게이트 통과"}
+  D -->|미통과| E["수정 후 재요청"]
+  D -->|통과| F["artifact 생성"]
+  F --> G["checksum/SBOM/Provenance"]
+  G --> H["환경 승인(P reviewcanary/release)"]
+  H --> I["배포/롤백 경로 검증"]
+  I --> J["관측성 handoff"]
+  J --> K["성능/안정성 회고"]
+  K --> A
+  E --> B
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
@@ -77,6 +95,73 @@ CI/CD의 공급망 보안은 “취약점 스캔을 실행했다”가 아니라
 
 ---
 
+
+### 0.4 파이프라인 상태 기계도
+
+빌드/검증/배포 각 단계의 실패 포인트를 도식으로 고정하면 변경 승인 기준이 더 명확해집니다.
+
+```text
+개발자 push
+   |
+   v
+[코드 통합]
+   |-- lint/type/lint boundary -- 실패 시 merge hold
+   |
+   v
+[테스트]
+   |-- unit/integration -> 실패: 수정 후 재푸시
+   |-- e2e/smoke -> 실패: 테스트 보강 + 재검증
+   |
+   v
+[아티팩트 생성]
+   |-- checksum / SBOM / provenance
+   |-- artifact immutable 저장
+   |
+   v
+[보안/품질 게이트]
+   |-- secret/dependency/audit pass
+   |
+   v
+[승격]
+   |-- preview 배포 -> canary -> release
+   |-- 각 단계에서 지표/알림/이력 보존
+   |
+   v
+[완료]
+   ├─ 성공: release note + monitoring handoff
+   └─ 실패: rollback/rebuild + 증적 보강
+```
+
+```text
+승격 실패 시 기본 되돌림 우선순위
+
+문제 발생
+  → 증적 미비 → artifact 재검토
+ → 증적 충분/문제 재현 → 테스트나 보안 게이트 보강
+  → 모두 통과 후 release candidate 승인
+```
+
+```mermaid
+flowchart TD
+  A["개발자 push"] --> B["코드 통합\nlint/type/boundary"]
+  B --> C["테스트\nunit/integration/e2e"]
+  C -->|실패| C1["수정 후 재푸시"]
+  C -->|통과| D["아티팩트 생성\nchecksum/SBOM/provenance"]
+  D --> E["보안/품질 게이트\nsecret/dependency/audit"]
+  E --> F["승격\npreview -> canary -> release"]
+  F -->|실패| G["rollback/rebuild + 증적 보강"]
+  F -->|성공| H["release note + monitoring handoff"]
+  G --> I["문제 범주 정리\n증적 미비/테스트 미비/보안 미통과"]
+  I --> C
+```
+
+```mermaid
+flowchart LR
+  A2["문제 발생"] --> B2["증적 미비"] --> C2["artifact 재검토"]
+  A2 --> D2["문제 재현"] --> E2["테스트/보안 게이트 보강"]
+  C2 --> F2["release candidate 승인"]
+  E2 --> F2
+```
 
 ## 1. 파이프라인 구조
 

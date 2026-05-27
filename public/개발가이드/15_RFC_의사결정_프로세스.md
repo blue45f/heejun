@@ -34,6 +34,25 @@
 | **철회 조건** | 어떤 지표/상황이면 결정을 되돌릴지 명시 | rollback criteria |
 | **검토 주기** | 표준 문서는 owner와 review cadence 보유 | maintenance plan |
 
+### 0.0 RFC 운영 루프
+
+```mermaid
+flowchart TD
+  A[이슈/문제 제기] --> B[영향 분석]
+  B --> C{RFC 필요 여부}
+  C -->|필요| D[Draft 작성]
+  C -->|불필요| E[PR로 직접 처리]
+  D --> F[Review + 대안 비교]
+  F --> G[Decision]
+  G -->|승인| H[ADR 기록]
+  G -->|보류| I[실험/추적]
+  H --> J[구현]
+  J --> K[Validation]
+  K --> L[Revisit 또는 Archive]
+  I --> L
+  K -->|재발생| F
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |

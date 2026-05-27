@@ -35,6 +35,23 @@
 | **Drift 감지** | 콘솔 수동 변경과 실제 상태 차이를 주기적으로 탐지 | drift report, reconciliation |
 | **비용 통제** | 리소스 owner, environment, ttl, service 태그를 강제 | budget alert, cost dashboard |
 
+### 0.0 인프라 변경 파이프라인
+
+```mermaid
+flowchart TD
+  A[요청/이슈] --> B[IaC 코드 작성]
+  B --> C[plan 생성]
+  C --> D{정책/보안 게이트}
+  D -->|통과| E[apply]
+  D -->|차단| F[ADR 보완 또는 수정]
+  E --> G[리소스 적용]
+  G --> H[drift check + 검증]
+  H --> I{drift 존재}
+  I -->|있음| J[재조정 PR]
+  I -->|없음| K[운영 + 비용 모니터링]
+  J --> C
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |

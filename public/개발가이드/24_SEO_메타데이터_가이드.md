@@ -40,6 +40,22 @@
 | **Crawlability** | 주요 콘텐츠와 링크는 SSR/SSG 또는 검색엔진이 처리 가능한 HTML 구조로 제공합니다. |
 | **Field performance** | Core Web Vitals는 lab score가 아니라 field data와 release regression으로 관리합니다. |
 
+### 0.0 SEO 메타데이터 생산 흐름
+
+```mermaid
+flowchart TD
+  A[페이지/콘텐츠 타입 결정] --> B[메타데이터 엔진 실행]
+  B --> C[Canonical/Hreflang/robots 자동 생성]
+  C --> D[Structured Data(JSON-LD) 생성]
+  D --> E[HTML 렌더링 + 스냅샷]
+  E --> F{검색·AI·접근성 검증}
+  F -->|Fail| G[메타/구조화 데이터 수정]
+  F -->|Pass| H[환경별 공개/차단 정책 적용]
+  G --> B
+  H --> I[CI/SMOKE + field CWV 연동]
+  I --> J[배포 증적 저장]
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |

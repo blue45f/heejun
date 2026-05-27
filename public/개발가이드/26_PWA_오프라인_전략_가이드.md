@@ -40,6 +40,22 @@
 | **저장소 관리** | Cache Storage, IndexedDB, OPFS, quota/eviction 정책을 고려합니다. |
 | **지원 편차 대응** | Push, install prompt, Background Sync, file API는 feature detection과 fallback을 둡니다. |
 
+### 0.0 PWA 오프라인 처리 흐름
+
+```mermaid
+flowchart TD
+  A[오프라인 지원 기능 분석] --> B[캐시 책임 분리]
+  B --> C[Service Worker 라우트 전략 정의]
+  C --> D[쓰기 작업은 큐 + idempotency 적용]
+  D --> E[오프라인 UX 메시지/충돌 처리]
+  E --> F[등록/업데이트/rollback 정책 적용]
+  F --> G{배포 환경별 동작 확인}
+  G -->|Fail| H[지원 브라우저 fallback 또는 기능 축소]
+  G -->|Pass| I[E2E offline + sync 검증]
+  H --> C
+  I --> J[운영 모니터링 + 큐 드레인/캐시 purge]
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |

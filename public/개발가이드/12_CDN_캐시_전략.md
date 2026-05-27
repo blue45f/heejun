@@ -34,6 +34,24 @@
 | **보안 헤더** | HSTS, CSP, X-Content-Type-Options, Referrer-Policy 등 공통 헤더 적용 | header audit |
 | **관측성** | hit/miss, origin latency, 4xx/5xx, regional anomaly 추적 | CDN dashboard/RUM |
 
+### 0.0 캐시 요청/무효화 흐름
+
+```mermaid
+flowchart TD
+  A[빌드 산출물 생성] --> B{자산 유형}
+  B -->|hash된 정적 자산| C[장기 캐시 + immutable]
+  B -->|진입점 HTML/manifest| D[짧은 TTL]
+  C --> E[CDN 업로드]
+  D --> E
+  E --> F[브라우저 요청]
+  F --> G{캐시 히트}
+  G -->|HIT| H[즉시 응답]
+  G -->|MISS| I[Origin 응답 후 헤더 기반 갱신]
+  I --> E
+  J[배포 이벤트] --> K[entry 전환 + 대상 purge]
+  K --> H
+```
+
 ### 0.1 교차 검증 매트릭스
 
 | 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
