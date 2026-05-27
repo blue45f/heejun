@@ -3,6 +3,22 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import process from 'node:process';
 
+function parseJsonReportPath(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+
+    if (arg === '--json-report') {
+      return argv[i + 1] ?? '';
+    }
+
+    if (arg.startsWith('--json-report=')) {
+      return arg.slice('--json-report='.length);
+    }
+  }
+
+  return '';
+}
+
 const ROOT = process.cwd();
 const GUIDE_DIR = path.join(ROOT, 'public', '개발가이드');
 const README = path.join(ROOT, 'README.md');
@@ -738,6 +754,20 @@ function writeGithubSummary(summary) {
   fs.writeFileSync(summaryPath, `${lines.join('\n')}\n`);
 }
 
+function writeJsonReport(summary, reportPath) {
+  if (!reportPath) {
+    return;
+  }
+
+  const payload = {
+    ...summary,
+    generatedAt: new Date().toISOString(),
+    exitCode: summary.failures.length > 0 ? 1 : 0,
+  };
+
+  fs.writeFileSync(reportPath, `${JSON.stringify(payload, null, 2)}\n`);
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
@@ -745,6 +775,7 @@ const sourceRegistryFiles = [README, path.join(GUIDE_DIR, '00_종합_가이드_�
 const guideAndReadmeAndValidator = [README, ...guideFiles, path.join(ROOT, 'scripts', 'validate-dev-guides.mjs')];
 
 const copyRisk = validateCopyRisk(guideFiles);
+const jsonReportPath = parseJsonReportPath(process.argv.slice(2));
 
 const failures = [
   ...validateGuideSequence(guideFiles),
@@ -774,6 +805,7 @@ const summary = {
 
 if (failures.length > 0) {
   writeGithubSummary(summary);
+  writeJsonReport(summary, jsonReportPath);
   console.error(`dev guide validation failed (${failures.length})`);
   for (const failure of failures) {
     console.error(`- ${failure}`);
@@ -795,5 +827,6 @@ if (copyRisk.metrics.crossLineDupes > 0 || copyRisk.metrics.crossParagraphDupes 
   );
 }
 
+writeJsonReport(summary, jsonReportPath);
 writeGithubSummary(summary);
 console.log(`dev guide validation passed: ${guideFiles.length} guides, ${publicTextFiles.length} public text files`);
