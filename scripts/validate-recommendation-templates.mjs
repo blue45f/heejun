@@ -68,8 +68,12 @@ const TEMPLATE_SECTIONS = [
     body: [
       '- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.',
       '- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.',
+      '- `리스크 점수` : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.',
+      '- `리더 승인자` : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.',
+      '- `승인 역할` : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.',
       '- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.',
       '- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.',
+      '- `재평가 주기` : 최소 2주 단위로 상태를 리뷰하고 조정한다.',
     ],
   },
 ];
@@ -86,6 +90,10 @@ const OPERATING_RULE_REQUIRED_ITEMS = [
   '승인 체계',
   '재개 조건',
   '정지 조건',
+  '리스크 점수',
+  '리더 승인자',
+  '승인 역할',
+  '재평가 주기',
 ];
 
 function sectionOrderValid(text) {
@@ -126,6 +134,33 @@ function hasRequiredOperatingRules(text) {
   );
 }
 
+function ensureSectionText(sectionName, text, requiredItems) {
+  const sectionPos = text.indexOf(sectionName);
+  if (sectionPos < 0) {
+    return text;
+  }
+
+  const nextSectionPos = TEMPLATE_SECTIONS
+    .map((section) => text.indexOf(section.heading, sectionPos + sectionName.length))
+    .filter((pos) => pos >= 0)
+    .sort((a, b) => a - b)[0] ?? text.length;
+
+  const sectionStart = sectionPos;
+  const sectionEnd = nextSectionPos;
+  const sectionBody = text.slice(sectionStart, sectionEnd);
+  const missing = requiredItems.filter((item) => !sectionBody.includes(item));
+  if (missing.length === 0) {
+    return text;
+  }
+
+  const insertion = missing
+    .map((item) => '- `' + item + '` : ')
+    .join('\n');
+  const fixedSection = `${sectionBody.trimEnd()}\n${insertion}\n\n`;
+
+  return `${text.slice(0, sectionStart)}${fixedSection}${text.slice(sectionEnd)}`;
+}
+
 function makeSectionText(heading, body) {
   return [`${heading}`, '', ...body, ''].join('\n');
 }
@@ -133,11 +168,34 @@ function makeSectionText(heading, body) {
 async function fixFile(filePath) {
   const text = await fs.readFile(filePath, 'utf8');
   let updated = text;
+
+  const requiredOps = [
+    '실행 게이트',
+    '승인 체계',
+    '리스크 점수',
+    '리더 승인자',
+    '승인 역할',
+    '재개 조건',
+    '정지 조건',
+    '재평가 주기',
+  ];
+
+  updated = ensureSectionText(
+    '## 추천 항목 실행 운영 규칙',
+    updated,
+    requiredOps,
+  );
+
   const missingSections = TEMPLATE_SECTIONS.filter(
     (section) => !text.includes(section.heading),
   );
 
   if (missingSections.length === 0) {
+    if (updated !== text) {
+      await fs.writeFile(filePath, updated, 'utf8');
+      return true;
+    }
+
     return false;
   }
 
@@ -165,26 +223,31 @@ async function main() {
   const fixed = [];
 
   for (const file of files) {
-    const text = await fs.readFile(file, 'utf8');
+    let text = await fs.readFile(file, 'utf8');
 
     if (!text.includes('## 추천 항목 ')) {
       continue;
     }
 
-    const sectionOrder = sectionOrderValid(text);
-    const checklist = hasRequiredChecklistItems(text);
-    const operatingRules = hasRequiredOperatingRules(text);
-
     const missingSections = TEMPLATE_SECTIONS.filter(
       (section) => !text.includes(section.heading),
     ).map((section) => section.heading);
 
-    if (shouldFix && missingSections.length > 0) {
+    const sectionOrderBefore = sectionOrderValid(text);
+    const checklistBefore = hasRequiredChecklistItems(text);
+    const operatingRulesBefore = hasRequiredOperatingRules(text);
+
+    if (shouldFix && (missingSections.length > 0 || !operatingRulesBefore)) {
       const changed = await fixFile(file);
       if (changed) {
         fixed.push(path.relative(ROOT, file));
+        text = await fs.readFile(file, 'utf8');
       }
     }
+
+    const sectionOrder = sectionOrderValid(text);
+    const checklist = hasRequiredChecklistItems(text);
+    const operatingRules = hasRequiredOperatingRules(text);
 
     const row = {
       file: path.relative(ROOT, file),
