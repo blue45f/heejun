@@ -4,6 +4,79 @@
 
 프론트엔드 개발을 처음 설계할 때부터 배포, 운영, 접근성, 성능, 보안, AI 협업까지 한 흐름으로 이어서 볼 수 있는 실무형 개발 가이드입니다. 문서는 특정 회사나 도구에 맞춘 규정집이 아니라, 실제 프로젝트에서 바로 확인하고 적용할 수 있는 판단 기준, 구현 순서, 검증 방법을 중심으로 정리합니다.
 
+## 한눈에 보는 가이드 현황
+
+| 영역 | 수치 |
+| :--- | :---: |
+| 개발 가이드 문서 | **28개** |
+| 시각화 다이어그램 (Mermaid) | **293개** |
+| 문서당 평균 다이어그램 | **10.5개** |
+| 일상 비유 도입 문서 | **28/28** |
+| 검증 자동화 (CI/Verify) | `node scripts/validate-dev-guides.mjs` 통과 |
+
+### 문서별 다이어그램 분포
+
+```mermaid
+flowchart LR
+  subgraph TOP["다이어그램이 많은 문서 Top 5"]
+    direction TB
+    T1["07 테스팅 — 19개"]
+    T2["06 보안 — 16개"]
+    T3["05 API/모킹 — 15개"]
+    T4["08 성능 — 14개"]
+    T5["20 디자인시스템 — 14개"]
+  end
+
+  subgraph MID["중간 — 10~13개"]
+    direction TB
+    M1["03 상태관리, 04 아키텍처<br/>21 MFE, 22 모노레포<br/>14 배포, 24 SEO<br/>25 모션, 26 PWA, 27 다중서버"]
+  end
+
+  subgraph LOW["기본 — 7~9개"]
+    direction TB
+    L1["00 종합, 01 TS, 02 React<br/>09 장애, 10 IaC, 11 CI/CD<br/>12 CDN, 13 호환성, 15 RFC<br/>16 리뷰, 17 온보딩, 18 AI<br/>19 접근성, 23 i18n"]
+  end
+
+  style TOP fill:#e8f5e9,stroke:#2e7d32
+  style MID fill:#fff8e1,stroke:#f9a825
+  style LOW fill:#e3f2fd,stroke:#1565c0
+```
+
+### 도입한 시각화 유형
+
+```mermaid
+mindmap
+  root((시각화 패턴))
+    Mermaid 다이어그램
+      flowchart
+        의사결정 트리
+        워크플로우
+        의존성 그래프
+      sequenceDiagram
+        OAuth/OIDC 흐름
+        MSW 인터셉트
+        장애 대응 시퀀스
+      stateDiagram-v2
+        PR/RFC 라이프사이클
+        Service Worker 상태
+        쿼리 캐시 상태
+      gantt
+        온보딩 30/60/90
+        마이그레이션 일정
+        CI 캐시 효과
+      mindmap
+        용어사전 카테고리
+        시각화 패턴 자체
+    보조 설명
+      일상 비유
+        병원/요리/도서관/우편/공장
+      "왜 중요한가" 도입부
+        섹션별 1문장 동기 설명
+      비교 표
+        Before/After
+        선택지 매트릭스
+```
+
 ## 빠른 사용법
 
 | 상황 | 먼저 볼 문서 | 바로 할 일 |
