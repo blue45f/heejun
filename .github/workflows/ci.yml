@@ -29,3 +29,9 @@ jobs:
 
       - name: Validate development guides
         run: node scripts/validate-dev-guides.mjs
+
+      - name: Check recommendation validator syntax
+        run: node --check scripts/validate-recommendation-templates.mjs
+
+      - name: Validate recommendation templates
+        run: node scripts/validate-recommendation-templates.mjs
