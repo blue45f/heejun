@@ -8,3 +8,6 @@ node_modules/
 
 # 디버깅/검증용 일회성 스크린샷
 /*.png
+
+# Claude Code 로컬 메타 (lock 파일, 사용자별 settings 등)
+.claude/
