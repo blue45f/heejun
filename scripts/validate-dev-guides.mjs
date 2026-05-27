@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import process from 'node:process';
 
 const ROOT = process.cwd();
@@ -571,11 +572,128 @@ function validatePracticalSections(guideFiles) {
   return errors;
 }
 
+function normalizeLine(line) {
+  return line
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[\u2000-\u200B\uFEFF]/g, '');
+}
+
+function md5(value) {
+  return createHash('md5').update(value).digest('hex');
+}
+
+function validateCopyRisk(guideFiles) {
+  const copiedLines = new Map();
+  const copiedParagraphs = new Map();
+  const repeatedHeadings = new Map();
+  const allowedRepeatedHeadings = new Set([
+    '## 문서 책임 범위',
+    '## 실무 적용 가이드',
+    '## 체크리스트',
+    '## 0. 모든 프론트엔드 그룹 공통 Baseline',
+    '## 0.0 문서 네비게이션 맵',
+    '## 0.1 교차 검증 매트릭스',
+    '## 0.2 운영 게이트',
+    '## 0.3 가이드 학습 플로우 도식',
+    '## 2.0 구현 예시',
+    '## 3.0 마무리',
+    '## 9. 주의사항 및 흔한 실수',
+    '## 9. 체크리스트',
+    '## 10. 제외한 벤더 종속 항목',
+  ]);
+
+  const failures = [];
+  const warnings = [];
+
+  for (const file of guideFiles) {
+    const rawText = readText(file);
+    const text = stripCode(rawText);
+
+    for (const line of text.split('\n')) {
+      const normalized = normalizeLine(line);
+      if (!normalized) continue;
+
+      if (normalized.startsWith('## ')) {
+        const set = repeatedHeadings.get(normalized) || new Set();
+        set.add(path.basename(file));
+        repeatedHeadings.set(normalized, set);
+      }
+
+      if (normalized.length < 45) {
+        continue;
+      }
+
+      if (/^\|/.test(normalized) || /^>/.test(normalized) || /^#/.test(normalized)) {
+        continue;
+      }
+
+      const set = copiedLines.get(normalized) || new Set();
+      set.add(path.basename(file));
+      copiedLines.set(normalized, set);
+    }
+
+    for (const block of text.split(/\n\s*\n+/)) {
+      const paragraph = normalizeLine(block.replace(/\n/g, ' '));
+
+      if (paragraph.length < 100 || paragraph.startsWith('|') || paragraph.startsWith('>') || paragraph.startsWith('#')) {
+        continue;
+      }
+
+      const key = md5(paragraph.toLowerCase());
+      const set = copiedParagraphs.get(key) || new Set();
+      set.add(path.basename(file));
+      copiedParagraphs.set(key, set);
+    }
+  }
+
+  const crossLineDupes = [];
+  for (const [line, files] of copiedLines.entries()) {
+    if (files.size >= 2) {
+      crossLineDupes.push([line, files]);
+    }
+  }
+
+  const crossParagraphDupes = [];
+  for (const [digest, files] of copiedParagraphs.entries()) {
+    if (files.size >= 2) {
+      crossParagraphDupes.push([digest, files]);
+    }
+  }
+
+  for (const [heading, files] of repeatedHeadings.entries()) {
+    if (files.size >= 4 && !allowedRepeatedHeadings.has(heading)) {
+      warnings.push(`copy-risk warning: non-standard heading "${heading}" appears in ${files.size} docs`);
+    }
+  }
+
+  if (crossLineDupes.length > 0) {
+    failures.push(
+      `cross-file duplicate lines detected (${crossLineDupes.length}). ` +
+      `Sample: ${crossLineDupes
+        .slice(0, 3)
+        .map(([, files]) => files.size)
+        .join(', ')}`,
+    );
+  }
+
+  if (crossParagraphDupes.length > 0) {
+    failures.push(
+      `cross-file duplicate paragraph blocks detected (${crossParagraphDupes.length}). ` +
+      'Review whether content is intentionally shared template.',
+    );
+  }
+
+  return { failures, warnings, metrics: { crossLineDupes: crossLineDupes.length, crossParagraphDupes: crossParagraphDupes.length } };
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
 const sourceRegistryFiles = [README, path.join(GUIDE_DIR, '00_종합_가이드_목차.md')];
 const guideAndReadmeAndValidator = [README, ...guideFiles, path.join(ROOT, 'scripts', 'validate-dev-guides.mjs')];
+
+const copyRisk = validateCopyRisk(guideFiles);
 
 const failures = [
   ...validateGuideSequence(guideFiles),
@@ -588,6 +706,7 @@ const failures = [
   ...validateSourceRegistry(sourceRegistryFiles),
   ...validateRequiredGuideSections(guideFiles),
   ...validatePracticalSections(guideFiles),
+  ...copyRisk.failures,
 ];
 
 if (failures.length > 0) {
@@ -596,6 +715,20 @@ if (failures.length > 0) {
     console.error(`- ${failure}`);
   }
   process.exit(1);
+}
+
+if (copyRisk.warnings.length > 0) {
+  console.log('dev guide copy-risk warnings:');
+  for (const warning of copyRisk.warnings) {
+    console.log(`- ${warning}`);
+  }
+}
+
+if (copyRisk.metrics.crossLineDupes > 0 || copyRisk.metrics.crossParagraphDupes > 0) {
+  console.log(
+    `copy-risk metrics: repeated line blocks=${copyRisk.metrics.crossLineDupes}, ` +
+      `repeated paragraph blocks=${copyRisk.metrics.crossParagraphDupes}`,
+  );
 }
 
 console.log(`dev guide validation passed: ${guideFiles.length} guides, ${publicTextFiles.length} public text files`);
