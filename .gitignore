@@ -2,3 +2,9 @@
 .DS_Store
 node_modules/
 *.log
+
+# Playwright MCP 임시 스냅샷
+.playwright-mcp/
+
+# 디버깅/검증용 일회성 스크린샷
+/*.png
