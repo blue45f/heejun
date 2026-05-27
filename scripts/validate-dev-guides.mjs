@@ -48,7 +48,33 @@ const FORBIDDEN_LEGACY_GUIDE_PATTERN = new RegExp(
 const FORBIDDEN_ARTIFACT_PATTERN = /^\s*NaN\s*$/m;
 
 const REQUIRED_SOURCE_URLS = [
+  'https://frontend-fundamentals.com/code-quality/code/examples/submit-button.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/login-start-page.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/use-page-state-readability.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/condition-name.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/magic-number-readability.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/user-policy.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/ternary-operator.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/comparison-order.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/http.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/use-user.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/hidden-logic.html',
   'https://frontend-fundamentals.com/code-quality/code/examples/code-directory.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/magic-number-cohesion.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/form-fields.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/use-page-state-coupling.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/use-bottom-sheet.html',
+  'https://frontend-fundamentals.com/code-quality/code/examples/item-edit-modal.html',
+  'https://docs.coderabbit.ai/getting-started/yaml-configuration',
+  'https://docs.coderabbit.ai/configuration/path-instructions',
+  'https://docs.coderabbit.ai/tools',
+  'https://github.com/secretlint/secretlint',
+  'https://mswjs.io/docs/integrations/node',
+  'https://commitlint.js.org/guides/getting-started.html',
+  'https://commitlint.js.org/reference/configuration.html',
+  'https://typicode.github.io/husky/get-started.html',
+  'https://eslint.org/docs/latest/rules/no-warning-comments',
+  'https://eslint.org/docs/latest/rules/no-inline-comments',
   'https://react.dev/blog/2025/10/01/react-19-2',
   'https://react.dev/blog/2025/10/07/react-compiler-1',
   'https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components',
@@ -84,19 +110,35 @@ const REQUIRED_SOURCE_URLS = [
 const REQUIRED_GUIDE_SECTIONS = new Map([
   [
     '00_종합_가이드_목차.md',
-    ['Frontend Fundamentals', '함께 수정되는 파일을 같은 디렉토리에 둔다', '디렉토리 구조 원칙'],
+    ['Frontend Fundamentals 코드 품질 매트릭스', 'CodeRabbit', 'secretlint', 'commitlint', 'Props Drilling'],
   ],
   [
     '01_TypeScript_심화_가이드.md',
-    ['0.3 TypeScript 6/7 전환 계약', 'TypeScript 7.0 Beta', 'Standard Schema'],
+    ['0.3 TypeScript 6/7 전환 계약', 'TypeScript 7.0 Beta', 'Standard Schema', '복잡한 조건', '매직 넘버', '반환 타입'],
   ],
   [
     '02_React19_실무_가이드.md',
-    ['0.3 React 기능 안정성 계약', 'RSC 보안 패치', '<ViewTransition>'],
+    ['0.3 React 기능 안정성 계약', 'RSC 보안 패치', '<ViewTransition>', '같이 실행되지 않는 코드', '구현 상세', 'Props Drilling'],
+  ],
+  [
+    '03_상태관리_패턴_가이드.md',
+    ['usePageState', '쿼리 파라미터별', '반환 계약'],
   ],
   [
     '04_아키텍처_설계_패턴.md',
-    ['함께 수정되는 파일', 'feature/domain 폴더', 'deep import', 'dependency graph'],
+    ['함께 수정되는 파일', 'feature/domain 폴더', 'deep import', 'dependency graph', '중복 허용', '숨은 의존성'],
+  ],
+  [
+    '05_API_통신_및_모킹_가이드.md',
+    ['MSW Node.js', 'setupServer', '목업 테스트', '숨은 동작', '반환 계약'],
+  ],
+  [
+    '06_웹_보안_심화_가이드.md',
+    ['secretlint', '.secretlintrc', '.secretlintignore'],
+  ],
+  [
+    '07_테스팅_가이드.md',
+    ['목업 테스트 신뢰도', 'MSW lifecycle', 'fixture 전략'],
   ],
   [
     '08_성능_최적화_가이드.md',
@@ -112,7 +154,19 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   ],
   [
     '11_CICD_파이프라인_표준.md',
-    ['0.3 공급망 증적 계약', 'provenance/attestation', 'OIDC'],
+    ['0.3 공급망 증적 계약', 'provenance/attestation', 'OIDC', 'Husky', 'commitlint', 'secretlint'],
+  ],
+  [
+    '16_AI_협업_코드리뷰_가이드.md',
+    ['CodeRabbit', '.coderabbit.yaml', 'path_instructions', '주석 룰'],
+  ],
+  [
+    '17_신규_입사자_온보딩_가이드.md',
+    ['로컬 품질 도구', 'husky init', 'commitlint', 'secretlint', 'MSW handler'],
+  ],
+  [
+    '20_디자인_시스템_가이드.md',
+    ['폼의 응집도', 'Props Drilling', 'Context API', '중복 허용'],
   ],
   [
     '22_모노레포_운영_가이드.md',

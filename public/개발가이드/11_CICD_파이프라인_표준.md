@@ -231,6 +231,62 @@ production 배포는 자동화되어야 하지만 자동 승인까지 요구하�
 
 ---
 
+## 10. 로컬 Hook과 Commit Gate
+
+로컬 hook은 CI를 대체하지 않습니다. 개발자가 push 전에 빠르게 알 수 있는 오류만 잡고, 권위 있는 판정은 CI가 담당합니다.
+
+### 10.1 Husky 기본 설정
+
+```bash
+pnpm add --save-dev husky lint-staged @commitlint/cli @commitlint/config-conventional secretlint @secretlint/secretlint-rule-preset-recommend
+pnpm exec husky init
+```
+
+Husky `init`은 `.husky/pre-commit`을 만들고 `package.json`의 `prepare` script를 갱신합니다. hook에는 POSIX shell에서 동작하는 짧은 명령만 둡니다.
+
+```sh
+# .husky/pre-commit
+pnpm exec lint-staged
+pnpm exec secretlint "**/*"
+```
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+### 10.2 commitlint 기준
+
+```javascript
+export default {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['feat', 'fix', 'docs', 'refactor', 'test', 'chore', 'ci', 'perf', 'revert'],
+    ],
+  },
+};
+```
+
+- commitlint 설정 파일은 `commitlint.config.js`, `commitlint.config.mjs`, `.commitlintrc.*` 중 하나로 둡니다.
+- `export default` 형식은 `type: "module"` 프로젝트의 `commitlint.config.js` 또는 `commitlint.config.mjs`로 둡니다. CommonJS 프로젝트는 `commitlint.config.cjs`와 `module.exports`를 사용해 Node 로딩 차이를 피합니다.
+- squash merge를 쓰더라도 PR title과 merge commit message가 같은 규칙을 통과해야 release note 자동화가 안정적입니다.
+
+### 10.3 hook에 넣을 것과 CI에 둘 것
+
+| 위치 | 넣을 작업 | 제외할 작업 |
+| :--- | :--- | :--- |
+| `pre-commit` | staged lint/format, secretlint, 빠른 타입 단서 검사 | 전체 build, 전체 E2E, 외부 API 의존 테스트 |
+| `commit-msg` | commitlint | branch policy, PR title 검증 |
+| PR CI | frozen install, lint, type, unit, MSW integration, build, secret scan | 개인 환경에만 있는 editor task |
+| protected branch | required checks, review approval, provenance | 로컬 hook 성공 여부 |
+
+`HUSKY=0`으로 hook을 우회한 commit은 PR 본문에 이유와 CI 결과를 남깁니다. 반복 우회가 생기면 hook이 너무 느리거나 noisy하다는 신호로 보고 명령을 재조정합니다.
+
+---
+
 ## 실무 적용 가이드
 
 ### 언제 이 문서를 펼칠까

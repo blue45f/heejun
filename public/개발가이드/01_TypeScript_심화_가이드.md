@@ -1396,6 +1396,61 @@ AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개
 
 ---
 
+## 13. Frontend Fundamentals 기반 타입 코드 품질
+
+TypeScript 코드는 타입이 있다는 이유만으로 예측 가능해지지 않습니다. 조건, 상수, 반환 타입, 주석이 실제 동작과 같은 언어를 써야 합니다.
+
+### 13.1 복잡한 조건에는 이름을 붙인다
+
+- `filter`, `some`, `every`, `&&`, `||`가 두 단계 이상 중첩되면 `isSameCategory`, `isPriceInRange`처럼 조건의 목적을 드러냅니다.
+- 같은 predicate가 두 번 이상 쓰이거나 정책 변경 가능성이 있으면 함수로 분리하고 단위 테스트를 붙입니다.
+- 한 번만 쓰이고 한 줄로 읽히는 단순 변환은 이름을 늘리지 않아도 됩니다. 이름은 맥락을 줄일 때만 추가합니다.
+
+```typescript
+const matchedProducts = products.filter((product) => {
+  const isSameCategory = product.categoryId === targetCategoryId;
+  const isPriceInRange = minPrice <= product.price && product.price <= maxPrice;
+
+  return isSameCategory && isPriceInRange;
+});
+```
+
+### 13.2 매직 넘버는 단위와 변경 이유를 이름에 담는다
+
+- 시간값은 `_MS`, `_SEC`, `_MIN`처럼 단위를 붙입니다.
+- 정책값은 `MAX_NAME_LENGTH`, `MIN_AGE`, `RETRY_DELAY_MS`처럼 도메인 의미를 드러냅니다.
+- animation duration, retry delay, API timeout처럼 관련 구현이 함께 바뀌는 값은 해당 feature 폴더에 둡니다.
+
+### 13.3 같은 종류의 함수는 반환 타입을 통일한다
+
+- `useUser`, `useServerTime` 같은 query hook은 `UseQueryResult`를 반환할지, `data`만 반환할지 팀 단위로 통일합니다.
+- validation 함수는 boolean과 `{ ok, reason }` 객체를 섞지 않습니다. 실패 이유가 필요하면 discriminated union으로 통일합니다.
+- 반환 타입을 명시해 호출자가 `if (result)` 같은 암묵적 truthy 판단에 기대지 않게 합니다.
+
+```typescript
+type ValidationResult = { ok: true } | { ok: false; reason: string };
+
+function checkIsNameValid(name: string): ValidationResult {
+  if (name.length === 0) {
+    return { ok: false, reason: 'name is required' };
+  }
+
+  if (name.length >= MAX_NAME_LENGTH) {
+    return { ok: false, reason: 'name is too long' };
+  }
+
+  return { ok: true };
+}
+```
+
+### 13.4 주석은 타입과 이름으로 표현할 수 없는 맥락만 남긴다
+
+- "무엇을 하는지" 설명하는 주석은 함수명, 변수명, 타입명으로 옮깁니다.
+- "왜 이렇게 해야 하는지", "언제 제거해야 하는지", "어떤 외부 제약 때문인지"는 주석으로 남길 수 있습니다.
+- `eslint-disable`, `TODO`, `FIXME`는 owner, issue, 만료 조건 없이 남기지 않습니다.
+
+---
+
 ## 실무 적용 가이드
 
 ### 언제 이 문서를 펼칠까

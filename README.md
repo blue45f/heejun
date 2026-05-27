@@ -105,10 +105,39 @@
 | 성능 | bundle diff, Lighthouse 또는 RUM p75 영향 |
 | 보안 | secret scan, dependency audit, CSP/header 영향 |
 | 배포 | build artifact, rollback 방법, release health 확인 기준 |
+| 리뷰 자동화 | CodeRabbit finding 처리 결과, path instruction 영향, 사람 reviewer 확인 |
+| 커밋 품질 | commitlint 결과, Husky hook 범위, 우회 사유 |
+| 주석/문서 | `TODO/FIXME` owner, inline comment 사유, 문서 업데이트 |
 
 ## 공식 출처
 
+- [Frontend Fundamentals: 같이 실행되지 않는 코드 분리하기](https://frontend-fundamentals.com/code-quality/code/examples/submit-button.html)
+- [Frontend Fundamentals: 구현 상세 추상화하기](https://frontend-fundamentals.com/code-quality/code/examples/login-start-page.html)
+- [Frontend Fundamentals: 로직 종류에 따라 합쳐진 함수 쪼개기](https://frontend-fundamentals.com/code-quality/code/examples/use-page-state-readability.html)
+- [Frontend Fundamentals: 복잡한 조건에 이름 붙이기](https://frontend-fundamentals.com/code-quality/code/examples/condition-name.html)
+- [Frontend Fundamentals: 매직 넘버에 이름 붙이기](https://frontend-fundamentals.com/code-quality/code/examples/magic-number-readability.html)
+- [Frontend Fundamentals: 시점 이동 줄이기](https://frontend-fundamentals.com/code-quality/code/examples/user-policy.html)
+- [Frontend Fundamentals: 삼항 연산자 단순하게 하기](https://frontend-fundamentals.com/code-quality/code/examples/ternary-operator.html)
+- [Frontend Fundamentals: 왼쪽에서 오른쪽으로 읽히게 하기](https://frontend-fundamentals.com/code-quality/code/examples/comparison-order.html)
+- [Frontend Fundamentals: 이름 겹치지 않게 관리하기](https://frontend-fundamentals.com/code-quality/code/examples/http.html)
+- [Frontend Fundamentals: 같은 종류의 함수는 반환 타입 통일하기](https://frontend-fundamentals.com/code-quality/code/examples/use-user.html)
+- [Frontend Fundamentals: 숨은 로직 드러내기](https://frontend-fundamentals.com/code-quality/code/examples/hidden-logic.html)
 - [Frontend Fundamentals: 함께 수정되는 파일을 같은 디렉토리에 두기](https://frontend-fundamentals.com/code-quality/code/examples/code-directory.html)
+- [Frontend Fundamentals: 매직 넘버 없애기](https://frontend-fundamentals.com/code-quality/code/examples/magic-number-cohesion.html)
+- [Frontend Fundamentals: 폼의 응집도 생각하기](https://frontend-fundamentals.com/code-quality/code/examples/form-fields.html)
+- [Frontend Fundamentals: 책임을 하나씩 관리하기](https://frontend-fundamentals.com/code-quality/code/examples/use-page-state-coupling.html)
+- [Frontend Fundamentals: 중복 코드 허용하기](https://frontend-fundamentals.com/code-quality/code/examples/use-bottom-sheet.html)
+- [Frontend Fundamentals: Props Drilling 지우기](https://frontend-fundamentals.com/code-quality/code/examples/item-edit-modal.html)
+- [CodeRabbit YAML configuration](https://docs.coderabbit.ai/getting-started/yaml-configuration)
+- [CodeRabbit path-based review instructions](https://docs.coderabbit.ai/configuration/path-instructions)
+- [CodeRabbit third-party tools overview](https://docs.coderabbit.ai/tools)
+- [secretlint](https://github.com/secretlint/secretlint)
+- [MSW Node.js integration](https://mswjs.io/docs/integrations/node)
+- [commitlint getting started](https://commitlint.js.org/guides/getting-started.html)
+- [commitlint configuration](https://commitlint.js.org/reference/configuration.html)
+- [Husky get started](https://typicode.github.io/husky/get-started.html)
+- [ESLint no-warning-comments](https://eslint.org/docs/latest/rules/no-warning-comments)
+- [ESLint no-inline-comments](https://eslint.org/docs/latest/rules/no-inline-comments)
 - [React 19.2 release](https://react.dev/blog/2025/10/01/react-19-2)
 - [React Compiler v1.0](https://react.dev/blog/2025/10/07/react-compiler-1)
 - [React Server Components security advisory](https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components)

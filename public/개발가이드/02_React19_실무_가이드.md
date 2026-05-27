@@ -1140,6 +1140,36 @@ AI 사용 정책과 검증 책임은 [18. AI 개발 워크플로우](./18_AI_개
 
 ---
 
+## 12. React 컴포넌트 가독성/결합도 규칙
+
+React 컴포넌트는 UI와 부수 효과가 한 파일에 쉽게 섞입니다. Frontend Fundamentals의 예시를 React 리뷰 기준으로 바꾸면 다음 규칙이 됩니다.
+
+### 12.1 같이 실행되지 않는 코드는 컴포넌트로 분리한다
+
+- 권한, feature flag, 상태에 따라 완전히 다른 UI와 effect가 실행되면 wrapper만 분기를 갖고 하위 컴포넌트는 한 경로만 담당합니다.
+- disabled UI와 interactive UI가 서로 다른 effect를 가진다면 `ViewerSubmitButton`, `AdminSubmitButton`처럼 분리합니다.
+- 분리 후 각 컴포넌트의 test는 자기 경로만 검증하고, 상위 wrapper test는 분기 선택만 검증합니다.
+
+### 12.2 구현 상세는 화면 의도 밖으로 밀어낸다
+
+- 로그인 여부 확인 후 redirect, 권한 guard, confirm dialog 같은 흐름 제어는 route guard, wrapper, HOC, 전용 버튼 컴포넌트로 옮깁니다.
+- 화면 컴포넌트는 "무엇을 보여주는지"가 먼저 읽혀야 하고, 인증/동의/로깅 구현은 이름 있는 경계 안에 있어야 합니다.
+- 단, wrapper가 너무 많은 정책을 숨기면 예측 가능성이 떨어지므로 props와 반환값에서 부수 효과가 드러나야 합니다.
+
+### 12.3 Props Drilling은 composition을 먼저 검토한다
+
+- 중간 컴포넌트가 사용하지 않는 prop을 넘기기만 한다면 `children` composition으로 depth를 줄입니다.
+- 깊이가 깊고 같은 데이터를 여러 하위 컴포넌트가 직접 사용한다면 Context API를 검토합니다.
+- Context는 모든 prop 전달의 대체제가 아닙니다. 컴포넌트 역할을 드러내는 핵심 prop은 그대로 두는 편이 낫습니다.
+
+### 12.4 중첩 삼항과 숨은 effect를 리뷰에서 차단한다
+
+- 세 가지 이상 상태를 계산하는 중첩 삼항은 `if` 또는 상태 계산 함수로 풀어 조건 순서를 드러냅니다.
+- 클릭 handler 안에서 logging, analytics, mutation, navigation이 함께 실행되면 순서와 실패 정책을 명시합니다.
+- 이름이 단순 조회처럼 보이는 함수 안에 logging, sync, navigation을 숨기지 않습니다.
+
+---
+
 ## 실무 적용 가이드
 
 ### 언제 이 문서를 펼칠까

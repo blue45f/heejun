@@ -419,7 +419,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-### 2.3 Node.js 환경 설정 (setupServer) — 테스트용
+### 2.3 MSW Node.js 환경 설정 (setupServer) — 테스트용
 
 ```typescript
 // src/mocks/server.ts — Node.js 환경(테스트)에서 MSW 활성화
@@ -444,6 +444,14 @@ afterEach(() => server.resetHandlers());
 // 모든 테스트 후 서버 종료
 afterAll(() => server.close());
 ```
+
+### 2.3.1 목업 테스트 운영 원칙
+
+- Node 테스트는 `setupServer`를 전역 test setup에서 한 번 시작하고, `afterEach`에서 `resetHandlers`, `afterAll`에서 `close`를 호출합니다.
+- 처리되지 않은 요청은 기본적으로 `onUnhandledRequest: 'error'`로 실패시켜 mock-pass/prod-fail을 줄입니다. 외부 asset이나 analytics처럼 우회가 필요한 요청은 명시적으로 handler 또는 bypass 정책을 남깁니다.
+- handler는 테스트 파일 안에 숨기지 말고 feature의 `api` 또는 `mocks`에 두어 local dev, Storybook, integration test가 같은 fixture를 재사용하게 합니다.
+- 목업 테스트는 성공 응답만 보지 않습니다. validation error, auth error, timeout, network error, rate limit, empty list를 최소 fixture로 둡니다.
+- mock이 실제 계약을 대체하지 않도록 OpenAPI/GraphQL/protobuf diff 또는 실제 API smoke와 함께 운영합니다.
 
 ### 2.4 핸들러 설계 (Domain-Neutral)
 
@@ -1924,6 +1932,30 @@ const { data: userName } = useQuery({
 
 > **다음 단계:** [07. 테스팅 가이드](./07_테스팅_가이드.md)에서 MSW를 활용한 통합 테스트 전략을 확인하세요.
 > **연관 가이드:** [04. 아키텍처 설계 패턴](./04_아키텍처_설계_패턴.md) | [06. 웹 보안 심화 가이드](./06_웹_보안_심화_가이드.md) | [09. 장애 대응 및 관측성 표준](./09_장애_대응_및_관측성_표준.md)
+
+---
+
+## 12. API 코드 예측 가능성 규칙
+
+API 계층은 이름과 반환 타입이 조금만 흔들려도 화면 전체의 에러 처리가 깨집니다.
+
+### 12.1 wrapper 이름에 숨은 동작을 드러낸다
+
+- 인증 토큰을 붙이는 client는 `http.get`이 아니라 `authHttp.getWithAuth`처럼 이름에서 부수 동작을 알 수 있게 합니다.
+- retry, tracing, logging, refresh token, idempotency key 삽입은 wrapper 이름, 옵션, 반환 타입 중 하나로 드러냅니다.
+- fetch 함수가 데이터 조회처럼 보이는데 analytics logging이나 navigation을 실행하면 숨은 로직입니다. 호출부 orchestration으로 옮깁니다.
+
+### 12.2 같은 계열 API 함수의 반환 계약을 통일한다
+
+- endpoint client는 `Result<T, ApiError>` 또는 throw 기반 중 하나로 통일하고 섞지 않습니다.
+- query hook은 query object 반환, data-only 반환 중 하나를 기능 그룹 안에서 고정합니다.
+- validation 함수는 boolean과 객체 반환을 섞지 않고 `{ ok: true } | { ok: false; reason: string }`처럼 분기 가능한 타입을 사용합니다.
+
+### 12.3 mock과 계약 파일을 같은 변경 단위로 둔다
+
+- client, schema, MSW handler, fixture, contract test는 같은 feature 폴더에 둡니다.
+- generated file은 수동 수정하지 않고, "수동 편집 금지" 주석과 재생성 명령을 함께 둡니다.
+- mock handler가 추가되면 실제 API 계약과 깨지는 부분이 없는지 diff를 남깁니다.
 
 ---
 
