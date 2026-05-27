@@ -48,6 +48,14 @@ const FORBIDDEN_LEGACY_GUIDE_PATTERN = new RegExp(
 
 const FORBIDDEN_ARTIFACT_PATTERN = /^\s*NaN\s*$/m;
 
+const COPY_RISK_CONFIG = {
+  headingWarningMinFiles: 4,
+  copyLineMinLength: 45,
+  copyLineMinFiles: 2,
+  copyParagraphMinLength: 100,
+  copyParagraphMinFiles: 2,
+};
+
 const REQUIRED_SOURCE_URLS = [
   'https://frontend-fundamentals.com/code-quality/code/examples/submit-button.html',
   'https://frontend-fundamentals.com/code-quality/code/examples/login-start-page.html',
@@ -620,7 +628,7 @@ function validateCopyRisk(guideFiles) {
         repeatedHeadings.set(normalized, set);
       }
 
-      if (normalized.length < 45) {
+      if (normalized.length < COPY_RISK_CONFIG.copyLineMinLength) {
         continue;
       }
 
@@ -649,20 +657,20 @@ function validateCopyRisk(guideFiles) {
 
   const crossLineDupes = [];
   for (const [line, files] of copiedLines.entries()) {
-    if (files.size >= 2) {
+    if (files.size >= COPY_RISK_CONFIG.copyLineMinFiles) {
       crossLineDupes.push([line, files]);
     }
   }
 
   const crossParagraphDupes = [];
   for (const [digest, files] of copiedParagraphs.entries()) {
-    if (files.size >= 2) {
+    if (files.size >= COPY_RISK_CONFIG.copyParagraphMinFiles) {
       crossParagraphDupes.push([digest, files]);
     }
   }
 
   for (const [heading, files] of repeatedHeadings.entries()) {
-    if (files.size >= 4 && !allowedRepeatedHeadings.has(heading)) {
+    if (files.size >= COPY_RISK_CONFIG.headingWarningMinFiles && !allowedRepeatedHeadings.has(heading)) {
       warnings.push(`copy-risk warning: non-standard heading "${heading}" appears in ${files.size} docs`);
     }
   }
@@ -687,6 +695,49 @@ function validateCopyRisk(guideFiles) {
   return { failures, warnings, metrics: { crossLineDupes: crossLineDupes.length, crossParagraphDupes: crossParagraphDupes.length } };
 }
 
+function writeGithubSummary(summary) {
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+
+  if (!summaryPath) {
+    return;
+  }
+
+  const lines = [
+    '# Dev Guide Validation',
+    '',
+    `- 총 문서 수: ${summary.guides}`,
+    `- 정적 텍스트 파일 수: ${summary.publicTextFiles}`,
+    '',
+    `- 중복 라인 블록: ${summary.copyRisk.metrics.crossLineDupes}`,
+    `- 중복 문단 블록: ${summary.copyRisk.metrics.crossParagraphDupes}`,
+    '',
+    `- 경고: ${summary.warnings.length}`,
+    `- 실패: ${summary.failures.length}`,
+  ];
+
+  if (summary.warnings.length > 0) {
+    lines.push('');
+    lines.push('## 경고');
+    for (const item of summary.warnings) {
+      lines.push(`- ${item}`);
+    }
+  }
+
+  if (summary.failures.length > 0) {
+    lines.push('');
+    lines.push('## 실패');
+    for (const item of summary.failures) {
+      lines.push(`- ${item}`);
+    }
+  } else {
+    lines.push('');
+    lines.push('## 결과');
+    lines.push('문서 검증 통과');
+  }
+
+  fs.writeFileSync(summaryPath, `${lines.join('\n')}\n`);
+}
+
 const files = markdownFiles();
 const guideFiles = files.filter((file) => path.dirname(file) === GUIDE_DIR);
 const publicTextFiles = [INDEX_HTML, ...files];
@@ -709,7 +760,20 @@ const failures = [
   ...copyRisk.failures,
 ];
 
+const summary = {
+  guides: guideFiles.length,
+  publicTextFiles: publicTextFiles.length,
+  failures,
+  warnings: copyRisk.warnings,
+  copyRisk: {
+    metrics: copyRisk.metrics,
+    failed: copyRisk.failures.length,
+    warned: copyRisk.warnings.length,
+  },
+};
+
 if (failures.length > 0) {
+  writeGithubSummary(summary);
   console.error(`dev guide validation failed (${failures.length})`);
   for (const failure of failures) {
     console.error(`- ${failure}`);
@@ -731,4 +795,5 @@ if (copyRisk.metrics.crossLineDupes > 0 || copyRisk.metrics.crossParagraphDupes 
   );
 }
 
+writeGithubSummary(summary);
 console.log(`dev guide validation passed: ${guideFiles.length} guides, ${publicTextFiles.length} public text files`);
