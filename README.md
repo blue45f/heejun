@@ -11,6 +11,7 @@
 | 새 프로젝트를 시작한다 | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md) | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정 |
 | 기존 서비스 품질을 올린다 | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md) | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가 |
 | 배포가 불안정하다 | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md) | build once, deploy many, rollback artifact, release health를 먼저 확인 |
+| PR마다 검증 URL이 필요하다 | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
 | 여러 팀이 같은 코드를 만진다 | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md) | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영 |
 | 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md) | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정 |
 
@@ -73,6 +74,7 @@
 | 12 | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md) | cache-control, immutable asset, invalidation, security header |
 | 14 | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md) | canary, feature flag, rollback, post-deploy monitor |
 | 22 | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md) | package boundary, task graph, cache, release ownership |
+| 27 | [다중 개발 서버 구축 가이드](public/개발가이드/27_다중_개발_서버_구축_가이드.md) | multi-environment, PR preview, Amplify, S3 artifact, GitHub Actions |
 
 ### Governance And AI
 
@@ -168,6 +170,22 @@
 - [SLSA specification](https://slsa.dev/spec/)
 - [GitHub artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)
 - [GitHub Actions OIDC](https://docs.github.com/en/actions/concepts/security/openid-connect)
+- [AWS Amplify web previews for pull requests](https://docs.aws.amazon.com/amplify/latest/userguide/pr-previews.html)
+- [AWS Amplify pattern-based feature branch deployments](https://docs.aws.amazon.com/amplify/latest/userguide/pattern-based-feature-branch-deployments.html)
+- [AWS Amplify manual deployments](https://docs.aws.amazon.com/amplify/latest/userguide/manual-deploys.html)
+- [AWS CLI amplify start-deployment](https://docs.aws.amazon.com/cli/latest/reference/amplify/start-deployment.html)
+- [AWS Amplify environment variables](https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html)
+- [AWS Amplify deploying Next.js SSR applications](https://docs.aws.amazon.com/amplify/latest/userguide/deploy-nextjs-app.html)
+- [AWS Amplify support for Next.js](https://docs.aws.amazon.com/amplify/latest/userguide/ssr-amplify-support.html)
+- [Next.js static export guide](https://nextjs.org/docs/14/app/building-your-application/deploying/static-exports)
+- [GitHub Actions deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)
+- [GitHub Actions OIDC in AWS](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)
+- [aws-actions configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials)
+- [AWS CLI s3 sync](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html)
+- [CloudFront invalidation paths](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/invalidation-specifying-objects.html)
+- [S3 and CloudFront cache-control](https://docs.aws.amazon.com/whitepapers/latest/build-static-websites-aws/controlling-how-long-amazon-s3-content-is-cached-by-amazon-cloudfront.html)
+- [S3 static website hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)
+- [AWS Amplify Hosting from S3 announcement](https://aws.amazon.com/blogs/aws/simplify-and-enhance-amazon-s3-static-website-hosting-with-aws-amplify/)
 
 ## 유지보수
 

@@ -105,6 +105,22 @@ const REQUIRED_SOURCE_URLS = [
   'https://slsa.dev/spec/',
   'https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations',
   'https://docs.github.com/en/actions/concepts/security/openid-connect',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/pr-previews.html',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/pattern-based-feature-branch-deployments.html',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/manual-deploys.html',
+  'https://docs.aws.amazon.com/cli/latest/reference/amplify/start-deployment.html',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/deploy-nextjs-app.html',
+  'https://docs.aws.amazon.com/amplify/latest/userguide/ssr-amplify-support.html',
+  'https://nextjs.org/docs/14/app/building-your-application/deploying/static-exports',
+  'https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments',
+  'https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws',
+  'https://github.com/aws-actions/configure-aws-credentials',
+  'https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html',
+  'https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/invalidation-specifying-objects.html',
+  'https://docs.aws.amazon.com/whitepapers/latest/build-static-websites-aws/controlling-how-long-amazon-s3-content-is-cached-by-amazon-cloudfront.html',
+  'https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html',
+  'https://aws.amazon.com/blogs/aws/simplify-and-enhance-amazon-s3-static-website-hosting-with-aws-amplify/',
 ];
 
 const REQUIRED_GUIDE_SECTIONS = new Map([
@@ -172,6 +188,10 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
     '22_모노레포_운영_가이드.md',
     ['함께 수정되는 기능 코드', 'package owner', 'boundary lint', 'affected test/build'],
   ],
+  [
+    '27_다중_개발_서버_구축_가이드.md',
+    ['Multi-Environment', 'PR preview', 'Amplify Hosting', 'S3 artifact', 'GitHub Actions', 'OIDC', 'cleanup', 'static export'],
+  ],
 ]);
 
 function readText(file) {
@@ -226,12 +246,12 @@ function guideBasenames(guideFiles) {
 function validateGuideSequence(guideFiles) {
   const errors = [];
   const names = guideBasenames(guideFiles);
-  const expectedPrefixes = Array.from({ length: 27 }, (_, index) =>
+  const expectedPrefixes = Array.from({ length: 28 }, (_, index) =>
     String(index).padStart(2, '0'),
   );
 
-  if (guideFiles.length !== 27) {
-    errors.push(`expected 27 guide docs, found ${guideFiles.length}`);
+  if (guideFiles.length !== 28) {
+    errors.push(`expected 28 guide docs, found ${guideFiles.length}`);
   }
 
   for (const name of names) {
