@@ -177,8 +177,135 @@ flowchart LR
 
 ---
 
+### 0.4 PR 리뷰 게이트 계약
 
-### 0.4 파이프라인 상태 기계도
+> 일상 비유: 출고 전 마지막 검사자는 이전 제품을 승인한 기록이 아니라, 지금 컨베이어 위에 올라온 바로 그 제품을 확인해야 합니다. PR도 최신 commit에 대한 리뷰 증거가 필요합니다.
+
+CodeRabbit 같은 AI 리뷰 도구를 도입한 저장소는 리뷰를 "참고 코멘트"로만 두지 말고 merge gate로 연결합니다. 핵심은 PR에 CodeRabbit 리뷰가 하나 있었는지가 아니라, **현재 PR head SHA에 달린 최신 CodeRabbit 리뷰가 승인 상태인지** 확인하는 것입니다.
+
+```mermaid
+flowchart TD
+  PR["pull_request opened / synchronize"] --> CI["lint / type / test / build"]
+  PR --> CR["CodeRabbit review gate"]
+  CR --> Head{"리뷰 commit_id == PR head SHA"}
+  Head -->|아니오| Wait["최신 리뷰 대기 또는 @coderabbitai review"]
+  Head -->|예| State{"latest state"}
+  State -->|APPROVED| Green["required status check 통과"]
+  State -->|CHANGES_REQUESTED| Fix["리뷰 반영 후 새 commit push"]
+  State -->|COMMENTED / DISMISSED / 기타| ReReview["재리뷰 요청"]
+  CI --> Merge{"required checks 모두 통과"}
+  Green --> Merge
+  Merge -->|통과| MergeReady["merge 가능"]
+  Merge -->|실패| Hold["merge 차단"]
+  Fix --> PR
+  Wait --> PR
+  ReReview --> PR
+```
+
+| 항목 | 기준 | 실패 시 |
+| :--- | :--- | :--- |
+| CodeRabbit 설정 | `.coderabbit.yaml`이 있는 저장소만 리뷰 게이트를 둔다 | 미설치 저장소에 게이트만 추가하면 PR이 영구적으로 막힐 수 있음 |
+| 최신성 | `pulls.listReviews` 결과 중 CodeRabbit 리뷰의 `commit_id`가 PR `head.sha`와 같아야 함 | 새 commit push 후 과거 approve 재사용 금지 |
+| 상태 | 최신 head SHA의 CodeRabbit 리뷰 state가 `APPROVED`여야 함 | `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`는 merge 차단 |
+| 브랜치 보호 | required status check에 `CodeRabbit review gate`와 저장소의 quality aggregator 체크를 추가하고 required conversation resolution을 켠다 | workflow 파일만 있으면 실패 체크나 미해결 리뷰 스레드를 무시하고 merge할 수 있음 |
+| PR 템플릿 | `CodeRabbit review gate` 통과 여부와 finding disposition을 기록 | accept/reject/follow-up 근거 없이 merge 금지 |
+| 자동 머지 | Dependabot은 safe bump 정책으로, 일반 PR은 `automerge`/`auto-merge` 라벨로만 auto-merge 후보로 둔다 | production dependency major나 명시적 의도 없는 일반 PR 자동 병합 금지 |
+
+```yaml
+name: CodeRabbit review gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review-gate:
+    name: CodeRabbit review gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+```
+
+자동 머지는 이 게이트와 충돌하지 않게 설계합니다. Dependabot PR은 patch/minor, GitHub Actions 업데이트, direct development major처럼 blast radius가 낮은 범위만 auto-merge 후보로 둡니다. 일반 PR은 `automerge`/`auto-merge` 라벨이 붙은 경우에만 후보로 두고, 실제 병합은 브랜치 보호의 required checks와 conversation resolution이 모두 통과할 때만 일어나게 합니다. production dependency major나 아키텍처 변경 PR은 CodeRabbit과 사람 reviewer가 모두 확인한 뒤 수동 병합합니다.
+
+CodeRabbit을 쓰는 저장소는 수동 실행용 `.github/workflows/branch-protection.yml`을 둡니다. 이 워크플로우는 `GH_ADMIN_TOKEN` 시크릿이 있을 때만 실행되며, GitHub Branch Protection API로 아래 조건을 적용합니다.
+
+- required status checks: 저장소별 quality aggregator, `CodeRabbit review gate`
+- `strict: true`: base branch 최신화 후 merge
+- `required_conversation_resolution: true`: 미해결 리뷰 스레드가 있으면 merge 대기
+- `required_approving_review_count`: 기본 `0`, 사람 승인까지 강제하려면 workflow dispatch 입력값으로 `1` 이상 지정
+- GitHub Branch Protection API에는 `required_status_checks.contexts`만 넣는다. `contexts`와 `checks`를 동시에 넣으면 일부 API schema에서 422가 발생할 수 있다.
+
+---
+
+### 0.5 GitHub Actions 운영 표준
+
+> 왜 중요한가: CI는 "돌아가는 YAML"보다 "반복 가능한 운영 계약"이어야 합니다. timeout, concurrency, permission, required check 이름이 저장소마다 흔들리면 같은 실패도 다른 방식으로 처리되어 merge 정책이 약해집니다.
+
+워크스페이스 하위 git 프로젝트는 아래 공통 규칙을 따른다.
+
+| 항목 | 표준 | 이유 |
+| :--- | :--- | :--- |
+| 실행 진입점 | package 프로젝트는 `pnpm run verify`를 로컬/CI 공통 검증 명령으로 둔다 | 개발자와 CI가 같은 계약을 실행 |
+| 설치 | lockfile 기반 `pnpm install --frozen-lockfile` | dependency drift 차단 |
+| 권한 | workflow 또는 job에 `permissions`를 명시하고 기본은 `contents: read` | `GITHUB_TOKEN` 최소 권한 유지 |
+| 동시성 | 모든 workflow에 top-level `concurrency`를 둔다 | 오래된 PR 실행 취소, deploy race 방지 |
+| 시간 제한 | 모든 job에 `timeout-minutes`를 둔다 | 무한 대기와 runner 비용 누수 차단 |
+| lint | CI용 `lint`는 검사만 하고 자동 수정은 `lint:fix`로 분리 | CI가 PR 소스를 몰래 바꾸지 않게 함 |
+| Action 버전 | 검증된 최신 major를 쓰고, 구버전 major가 남으면 audit에서 실패시킨다 | deprecated runtime/보안 경고 조기 제거 |
+| 자동 머지 | Dependabot safe bump 또는 명시적 `automerge`/`auto-merge` 라벨만 사용 | 의도 없는 일반 PR 자동 병합 방지 |
+
+현재 표준화한 GitHub Actions 버전 baseline은 다음과 같다.
+
+| 용도 | 기준 |
+| :--- | :--- |
+| checkout | `actions/checkout@v6` |
+| Node.js | `actions/setup-node@v6` |
+| pnpm | `pnpm/action-setup@v6` |
+| artifact | `actions/upload-artifact@v7` |
+| GitHub API script | `actions/github-script@v9` |
+| CodeQL | `github/codeql-action@v4` |
+| Dependabot metadata | `dependabot/fetch-metadata@v3` |
+| Docker build/publish | `docker/setup-qemu-action@v4`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`, `docker/build-push-action@v7` |
+| Google Cloud deploy | `google-github-actions/auth@v3`, `google-github-actions/setup-gcloud@v3` |
+
+공통 workflow 파일은 저장소군별로 아래처럼 배치한다.
+
+| 파일 | 대상 | 역할 |
+| :--- | :--- | :--- |
+| `.github/workflows/dependabot-auto-merge.yml` | 모든 git 프로젝트 | Dependabot safe bump만 auto-merge 후보로 등록 |
+| `.github/workflows/coderabbit-gate.yml` | `.coderabbit.yaml`이 있는 프로젝트 | 최신 PR head SHA의 CodeRabbit `APPROVED` 리뷰를 required check로 노출 |
+| `.github/workflows/auto-merge-on-green.yml` | `.coderabbit.yaml`이 있는 프로젝트 | `automerge`/`auto-merge` 라벨이 붙은 일반 PR에 auto-merge 활성화 |
+| `.github/workflows/branch-protection.yml` | `.coderabbit.yaml`이 있는 프로젝트 | `GH_ADMIN_TOKEN`으로 required checks와 conversation resolution 적용 |
+
+브랜치 보호 워크플로우는 저장소별 quality aggregator 이름을 정확히 사용해야 한다. required check 이름이 실제 job 이름과 다르면 GitHub가 영구 대기 상태로 남길 수 있다.
+
+| 저장소 | required status checks |
+| :--- | :--- |
+| `PromptMarket` | `Quality gate`, `CodeRabbit review gate` |
+| `spa-seo-gateway` | `Quality gate`, `CodeRabbit review gate` |
+| `orbit-ui` | `빌드 및 테스트`, `린트`, `CodeRabbit review gate` |
+| `remote-devtools` | `CI pass gate`, `enforce-pr-checklist`, `CodeRabbit review gate` |
+| `pettography` | `Frontend verify`, `Backend verify`, `CodeRabbit review gate` |
+| `react-boilerplates` | `Verify`, `CodeRabbit review gate` |
+
+Dependabot 자동 머지는 아래 조건 중 하나만 만족할 때 auto-merge를 활성화한다.
+
+- `version-update:semver-patch`
+- `version-update:semver-minor`
+- `package-ecosystem == github_actions`
+- `version-update:semver-major` 이면서 `dependency-type == direct:development`
+
+production dependency major는 자동 머지하지 않는다. breaking change, migration, runtime risk를 PR 본문에 남기고 사람 reviewer가 확인한 뒤 병합한다.
+
+---
+
+### 0.6 파이프라인 상태 기계도
 
 빌드/검증/배포 각 단계의 실패 포인트를 도식으로 고정하면 변경 승인 기준이 더 명확해집니다.
 
@@ -338,7 +465,55 @@ flowchart LR
 
 ---
 
-## 4. 보안과 공급망
+## 4. 리액트 빌드 도입 가이드
+
+React 앱을 새로 열거나 major 업그레이드를 할 때는 릴리스보다 먼저 아래 체크리스트를 고정합니다.
+
+### 4.1 스크립트 표준
+
+```json
+{
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
+    "preview": "vite preview"
+  }
+}
+```
+
+- 앱/서비스 패키지는 `build`와 `typecheck`를 같은 커밋 기준에서 함께 운영합니다.
+- 라이브러리 패키지는 `build`를 먼저, `typecheck`(`tsc --noEmit` 또는 `tsc -b`)를 다음 단계로 분리해 잡아둡니다.
+- Storybook이 있는 리포지토리는 `build-storybook`을 PR 게이트에서 `build`와 분리 실행합니다.
+
+### 4.2 PR 제출 표준
+
+리액트 변경 PR은 아래 네 증거를 `PR 설명`에 포함합니다.
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm build` 로그
+- Storybook이 있으면 `pnpm build-storybook` 로그
+- 실패 시 `rollback` 포인트(플래그/경로)와 복원 계획
+- `dist/` 또는 `storybook-static/` 산출물 위치
+
+### 4.3 도입 순서
+
+1. 루트 빌드 가드 정비
+   - `lint` → `typecheck` → `test` → `build` 순서를 PR 필수 단계로 둡니다.
+2. 프로젝트별 적용
+   - 앱 패키지는 최소 `build`,`typecheck`,`preview`를 맞춥니다.
+   - monorepo 패키지는 의존 관계 순서대로 `pnpm --filter <pkg> run build` 형태로 분해합니다.
+3. 증거 수집
+   - 번들 산출물 크기/수명, Storybook 빌드 결과, 실패 로그를 함께 저장해 공유합니다.
+
+```bash
+# 예시: 프로젝트별 단계 실행
+pnpm --filter @scope/app run typecheck
+pnpm --filter @scope/app run build
+pnpm --filter @scope/app run build-storybook
+```
+
+---
+
+## 5. 보안과 공급망
 
 | 영역 | 기준 |
 | :--- | :--- |
@@ -351,9 +526,11 @@ flowchart LR
 
 보안 검사는 가장 늦은 production 직전에 처음 돌리면 비용이 큽니다. PR 단계에서 빠른 secret/dependency scan을 먼저 실행합니다.
 
-### 4.1 provenance 검증 예시
+### 5.1 provenance 검증 예시
 
 아래 예시는 특정 플랫폼 문법을 표준으로 강제하기 위한 것이 아니라, 어떤 CI에서도 필요한 permission과 검증 흐름을 보여주기 위한 참고입니다.
+
+React 빌드 도입 가이드는 [02. React 19 실무 가이드의 13. 리액트 빌드 도입 가이드](./02_React19_실무_가이드.md#13-%EB%A6%AC%EC%95%A1%ED%8A%B8-%EB%B9%8C%EB%93%9C-%EB%8F%84%EC%9E%85-%EA%B0%80%EC%9D%B4%EB%93%9C)도 함께 참조하세요.
 
 ```yaml
 permissions:
@@ -376,7 +553,7 @@ steps:
 
 ---
 
-## 5. Branch와 Release 전략
+## 6. Branch와 Release 전략
 
 | 전략 | 기준 |
 | :--- | :--- |
@@ -390,7 +567,7 @@ steps:
 
 ---
 
-## 6. Artifact 보관
+## 7. Artifact 보관
 
 | 산출물 | 보관 기준 |
 | :--- | :--- |
@@ -405,7 +582,7 @@ artifact 보관 기간은 비용과 감사 요구의 균형으로 정하되, rol
 
 ---
 
-## 7. 배포 승인
+## 8. 배포 승인
 
 > 왜 중요한가: 승인 단계가 단순한 "관습"이 되면 사고 후 원인 파악이 어렵습니다. 어떤 증적을 보고 결정했는지가 책임 추적의 핵심입니다.
 
@@ -436,7 +613,7 @@ flowchart TD
 
 ---
 
-## 8. 체크리스트
+## 9. 체크리스트
 
 - [ ] lockfile 기반 frozen install을 강제하는가
 - [ ] lint/type/unit이 PR마다 빠르게 실행되는가
@@ -451,17 +628,17 @@ flowchart TD
 
 ---
 
-## 9. 제외한 벤더 종속 항목
+## 10. 제외한 벤더 종속 항목
 
 공통 개발 가이드에는 특정 CI 플랫폼의 action 이름, 특정 패키지 매니저만을 전제로 한 캐시 설정, 특정 알림 도구, 특정 secret manager, 특정 클라우드 배포 명령을 표준으로 포함하지 않습니다. 이 문서는 어떤 자동화 플랫폼에서도 구현 가능한 파이프라인 단계, 게이트, 증적, 승인 기준만 남깁니다.
 
 ---
 
-## 10. 로컬 Hook과 Commit Gate
+## 11. 로컬 Hook과 Commit Gate
 
 로컬 hook은 CI를 대체하지 않습니다. 개발자가 push 전에 빠르게 알 수 있는 오류만 잡고, 권위 있는 판정은 CI가 담당합니다.
 
-### 10.1 Husky 기본 설정
+### 11.1 Husky 기본 설정
 
 ```bash
 pnpm add --save-dev husky lint-staged @commitlint/cli @commitlint/config-conventional secretlint @secretlint/secretlint-rule-preset-recommend
@@ -481,7 +658,7 @@ pnpm exec secretlint "**/*"
 pnpm exec commitlint --edit "$1"
 ```
 
-### 10.2 commitlint 기준
+### 11.2 commitlint 기준
 
 ```javascript
 export default {
@@ -500,7 +677,7 @@ export default {
 - `export default` 형식은 `type: "module"` 프로젝트의 `commitlint.config.js` 또는 `commitlint.config.mjs`로 둡니다. CommonJS 프로젝트는 `commitlint.config.cjs`와 `module.exports`를 사용해 Node 로딩 차이를 피합니다.
 - squash merge를 쓰더라도 PR title과 merge commit message가 같은 규칙을 통과해야 release note 자동화가 안정적입니다.
 
-### 10.3 hook에 넣을 것과 CI에 둘 것
+### 11.3 hook에 넣을 것과 CI에 둘 것
 
 | 위치 | 넣을 작업 | 제외할 작업 |
 | :--- | :--- | :--- |
