@@ -1462,6 +1462,43 @@ React를 새로 도입하거나 버전을 올린 뒤에는 기능 구현 이전�
 - 실패한 경우 원인 코드/설정 diff + rollback plan
 - 배포 전에 `build` artifact 위치(예: `dist/`, storybook dist) 저장 경로
 
+### 13.6 프로젝트별 빌드 도입 실행 템플릿
+
+실서비스/템플릿 레포에서 가장 많이 쓰는 형태로 정리하면 아래 절차를 그대로 가져가면 됩니다.
+
+1. 대상 패키지의 빌드 스크립트 정합성 점검
+   - `build`는 항상 `tsc`/`vite` 결과를 같은 커밋 기준으로 묶어야 한다.
+   - `typecheck`는 `--noEmit` 또는 `tsc -b --noEmit`으로 분리 실행 가능하게 둔다.
+   - `preview`는 PR에서 산출물 검증을 위해 옵션만 고정해 둔다.
+
+   ```bash
+   # 예시: monorepo에서 app 패키지 기준
+   pnpm --filter @scope/app run typecheck
+   pnpm --filter @scope/app run build
+   pnpm --filter @scope/app run preview -- --host 127.0.0.1 --port 4173
+   ```
+
+2. 루트 게이트에 반영
+   - `lint + typecheck + test + build`를 한 번에 통과하는 경로를 마련한다.
+   - Storybook이 있으면 `build-storybook`은 독립 job으로 분리해 리소스·시간 상한을 다르게 둔다.
+
+   ```bash
+   pnpm lint
+   pnpm typecheck
+   pnpm build
+   pnpm build-storybook
+   ```
+
+3. 실패 대응 기준 공유
+   - 번들 급증: 의존성 중복, `external` 누락, `peerDependencies` 과도 의존 여부를 우선 점검
+   - 타입 체인 실패: lockfile/tsconfig/base 경로 우선순위를 맞춘 뒤 재현
+   - SSR/CSR 경계 오류: server-only import를 `use client` 경계 밖으로 빼거나 boundary 분리
+
+4. PR 증빙 최소 양식
+   - `pnpm build` 로그, 배포 산출물 경로(`dist`, `storybook-static`)  
+   - 회귀 포인트(예: `hydrate` 경고, bundle size diff)  
+   - 롤백 가능 조건(기능 플래그/경로 복귀 포함)
+
 이 체크가 끝나면 "React 기능 변경 -> 테스트 -> 빌드 -> 배포"가 한 루틴이 됩니다.
 
 ## 실무 적용 가이드
