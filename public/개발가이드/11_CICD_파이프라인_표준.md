@@ -597,6 +597,29 @@ pnpm --filter @scope/app run build
 pnpm --filter @scope/app run build-storybook
 ```
 
+### 4.5 리액트 빌드 실제 도입 체크리스트
+
+아래 체크리스트는 리액트가 있는 패키지로 확장되는 프로젝트에 공통 적용합니다.
+
+- [ ] `build`, `typecheck`, `lint` 스크립트가 변경 패키지 기준으로 모두 존재한다.
+- [ ] Storybook이 있는 패키지는 `storybook`/`build-storybook`가 함께 존재하고, 실행 시 `@storybook/react` 계열을 10.x로 맞췄다.
+- [ ] 루트 CI에서 `pnpm install --frozen-lockfile` 후 `lint -> typecheck -> test -> build`가 기본 게이트로 실행된다.
+- [ ] `build`와 `build-storybook`는 실패 원인 추적을 위해 별도 job/job step으로 실행한다.
+- [ ] PR 본문에 `dist/`, `storybook-static/` 산출물 경로와 실패 재현 명령을 남긴다.
+
+```bash
+# 실제 적용 시점 권장 순서
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm build-storybook   # 필요한 경우만
+```
+
+- 릴리스용 빌드 산출물은 항상 `dist/`를 단일 기준으로 고정하고, Storybook 산출물은 증적 보조 자료로만 활용한다.
+- 실패가 빈번한 프로젝트는 `storybook` job을 따로 분리해 재시도 회복 탄력성을 높인다.
+
 
 
 ---
