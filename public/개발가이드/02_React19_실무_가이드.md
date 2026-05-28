@@ -1404,6 +1404,66 @@ React 컴포넌트는 UI와 부수 효과가 한 파일에 쉽게 섞입니다. 
 
 ---
 
+## 13. 리액트 빌드 도입 가이드
+
+React를 새로 도입하거나 버전을 올린 뒤에는 기능 구현 이전에 빌드 파이프라인을 먼저 고정해야 배포 리스크를 줄일 수 있습니다.
+
+가장 먼저 정해야 할 것은 **동일한 기준에서 같은 빌드가 실패 없이 반복 실행되는지**입니다.
+
+### 13.1 앱/라이브러리별 최소 빌드 스크립트
+
+현재 레포 구조에서 최소 기준은 아래입니다.
+
+| 구분 | `package.json` 스크립트 | 설명 |
+| --- | --- | --- |
+| 앱 | `build: "tsc -b && vite build"` | 타입체크를 build와 동일 커밋 기준으로 고정 |
+| 앱 | `typecheck: "tsc -b"` | `build` 이전 실패 재현용, CI 분리 실행 |
+| 앱 | `preview: "vite preview"` | 빌드 산출물 확인용 로컬 점검 |
+| 라이브러리 | `build: "vite build"` | 번들 output만 산출 |
+| 라이브러리 | `typecheck: "tsc --noEmit"` 또는 `tsc -b --pretty false` | TS 설정을 소비 프로젝트 기준으로 재현 |
+
+요구사항이 있는 패키지(예: monorepo shared package)는 위 기준에서 시작하고, 필요 시 `build.lib`/`build.lib.formats`를 추가합니다.
+
+### 13.2 빌드 스택 고정
+
+- `vite.config.ts` 또는 빌드 설정 파일에 `@vitejs/plugin-react`를 넣고, React 19 런타임 기준으로 `jsx: "react-jsx"`가 동작하는지 확인합니다.
+- React 19 기준 새 규칙을 사용한다면 `react-refresh` 의존성을 앱 코드에서 중복 선언하지 말고 공통 규칙/설정에서 일원화합니다.
+- 컴포넌트 라이브러리는 소비 앱이 의존성 충돌을 피할 수 있도록 `peerDependencies`와 `peerDependenciesMeta`를 맞추고, 외부 번들링(`external`) 범위를 명시합니다.
+
+### 13.3 도입 체크 순서
+
+1. 의존성 고정
+   - `pnpm add` 또는 `pnpm up --latest`로 정렬 후 root/패키지 lockfile 갱신
+   - React/ReactDOM/빌드도구는 동일 패턴(같은 minor 라인)으로 맞춤
+2. 로컬 재현 빌드
+   - `pnpm lint`
+   - `pnpm typecheck`
+   - `pnpm test:run`(가능하면 기존 smoke 테스트 포함)
+   - `pnpm build`
+3. 산출물 점검
+   - 빌드 결과 크기 추세를 저장 (`node_modules/.cache`는 제외한 dist/폴더만 비교)
+   - 에러가 생기면 `pnpm build --mode development`로 sourcemap 로그를 남겨 회귀 원인 추적
+4. CI 연결
+   - PR 게이트에서 `build`를 의무 단계로 두고, 병렬 실행이 가능하면 `lint`/`test`/`build`를 분리
+   - Storybook 빌드가 필요하면 `build-storybook`을 별도 job으로 분리해 타임아웃과 메모리 리소스를 분리
+
+### 13.4 실패 대처 기준
+
+- **번들 크기 급증**: 트리 흔들기(tree-shaking) 실패, 중복 의존성 증식부터 확인합니다.
+- **SSR/CSR 경계 오류**: `use client`, `window`/`document` 직접 접근 위치를 다시 점검하고 boundary를 더 작게 나눕니다.
+- **타입 체인 실패**: `tsc -b`에서 `skipLibCheck` 남용 여부를 확인하고, `skipLibCheck`를 빌드 게이트에서 점점 줄입니다.
+- **증분 빌드 불안정**: 캐시 키 입력(`package.json`, lockfile, `tsconfig`, 빌드 설정)을 재정의하여 캐시 오염을 방지합니다.
+
+### 13.5 PR 게이트 제출 포맷(최소)
+
+해당 변경을 PR에 올릴 때는 아래 증거를 최소 1개씩 남깁니다.
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm build` 실행 로그
+- 실패한 경우 원인 코드/설정 diff + rollback plan
+- 배포 전에 `build` artifact 위치(예: `dist/`, storybook dist) 저장 경로
+
+이 체크가 끝나면 "React 기능 변경 -> 테스트 -> 빌드 -> 배포"가 한 루틴이 됩니다.
+
 ## 실무 적용 가이드
 
 ### 언제 이 문서를 펼칠까
