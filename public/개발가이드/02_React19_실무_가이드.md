@@ -1495,9 +1495,71 @@ React를 새로 도입하거나 버전을 올린 뒤에는 기능 구현 이전�
    - SSR/CSR 경계 오류: server-only import를 `use client` 경계 밖으로 빼거나 boundary 분리
 
 4. PR 증빙 최소 양식
-   - `pnpm build` 로그, 배포 산출물 경로(`dist`, `storybook-static`)  
-   - 회귀 포인트(예: `hydrate` 경고, bundle size diff)  
+   - `pnpm build` 로그, 배포 산출물 경로(`dist`, `storybook-static`)
+   - 회귀 포인트(예: `hydrate` 경고, bundle size diff)
    - 롤백 가능 조건(기능 플래그/경로 복귀 포함)
+
+### 13.7 Storybook 10 도입 가이드(React 프로젝트 공통)
+
+React 앱에서 Storybook 10을 병행할 때는 앱 빌드와 분리된 독립 배포 산출물로 관리한다.
+
+#### 13.7.1 필수 스크립트
+
+최소 아래 스크립트를 맞춘다.
+
+| 목적 | 권장 스크립트 |
+| --- | --- |
+| 앱 번들 빌드 | `build: "tsc -b && vite build"` |
+| 앱 타입체크 | `typecheck: "tsc -b --pretty false --noEmit"` |
+| 앱 미리보기 | `preview: "vite preview --host 0.0.0.0 --port 4173"` |
+| Storybook 빌드 | `build-storybook: "storybook build"` |
+| Storybook 미리보기 | `storybook: "storybook dev --port 6006"` |
+
+> 실제 패키지 스크립트명은 팀 규칙에 맞춰 유지하되, PR에서 `build-storybook`이 반드시 독립적으로 재현되어야 한다.
+
+#### 13.7.2 Storybook 10으로 업그레이드 전 점검
+
+- 설치 버전은 `storybook@10` 계열로 고정하고, 런타임 설정은 `framework: "@storybook/react-vite"` 또는 `storybook/test`와 동일하게 적용한다.
+- `main.ts`(혹은 `main.ts` 대체 파일)에서 `stories`, `addons`, `typescript.checker`를 프로젝트 경계 기준으로 고정한다.
+- `vite.config.ts`를 직접 수정할 때는 스토리북 번들러와 앱 번들러에서 JSX 런타임 설정(`react-jsx`)이 일치하는지 확인한다.
+- alias/path alias는 앱과 Storybook에서 동일한 경로 해석을 쓰도록 `viteFinal` 또는 `webpackFinal`에 공통 테이블을 둔다.
+
+#### 13.7.3 Storybook + CI 권장 패턴
+
+- 앱 빌드보다 Storybook 빌드는 독립 job으로 실행한다.
+- `build`와 `build-storybook` 실패를 분리하면 회귀 원인(컴파일/번들 vs CSF/Addon) 파악이 쉬워진다.
+- PR 병합은 앱 빌드가 통과된 뒤 storybook 빌드도 통과하도록 게이트를 나눌 수 있다.
+
+예시(순차 실행):
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm build-storybook
+```
+
+예시(CI 병렬 실행):
+
+```yaml
+jobs:
+  - name: lint-and-typecheck
+  - name: build
+  - name: build-storybook
+```
+
+예시 산출물 경로 규칙:
+
+- 앱: `dist/`
+- 스토리북: `storybook-static/`
+
+#### 13.7.4 실패 대응 기준
+
+- Storybook 타입 오류: `tsconfig.d.ts`를 앱과 같은 기준 경로(`types`, `paths`)로 맞춘 뒤 `storybook build`를 재실행.
+- 번들 충돌: storybook의 `addons` 캐시/의존성 충돌은 `node_modules` 삭제 후 락파일 동기화부터 재설치.
+- 렌더링 불일치: 해당 스토리 단위에 `play`/`playwright` smoke를 추가해 스냅샷 회귀를 줄인다.
+
+이 항목까지 반영하면 React 빌드와 Storybook 10 빌드가 서로 섞이지 않고, 롤백 및 증적 수집이 가능한 루틴이 완성됩니다.
 
 이 체크가 끝나면 "React 기능 변경 -> 테스트 -> 빌드 -> 배포"가 한 루틴이 됩니다.
 
