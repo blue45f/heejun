@@ -16,9 +16,10 @@
     "check:validators": "node --check scripts/validate-dev-guides.mjs && node --check scripts/validate-recommendation-templates.mjs",
     "validate:guides": "node scripts/validate-dev-guides.mjs",
     "validate:recommendations": "node scripts/validate-recommendation-templates.mjs",
-    "verify": "pnpm run check:validators && pnpm run validate:guides && pnpm run validate:recommendations",
+    "verify": "pnpm run validate:architecture && pnpm run check:validators && pnpm run validate:guides && pnpm run validate:recommendations",
     "verify:push": "pnpm run verify",
-    "ci": "pnpm run verify"
+    "ci": "pnpm run verify",
+    "validate:architecture": "node scripts/validate-architecture.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
