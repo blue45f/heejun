@@ -471,19 +471,72 @@ React 앱을 새로 열거나 major 업그레이드를 할 때는 릴리스보�
 
 ### 4.1 스크립트 표준
 
+#### 4.1.1 앱 패키지 기본 스크립트
+
 ```json
 {
   "scripts": {
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build-storybook": "storybook build"
   }
 }
 ```
 
 - 앱/서비스 패키지는 `build`와 `typecheck`를 같은 커밋 기준에서 함께 운영합니다.
 - 라이브러리 패키지는 `build`를 먼저, `typecheck`(`tsc --noEmit` 또는 `tsc -b`)를 다음 단계로 분리해 잡아둡니다.
-- Storybook이 있는 리포지토리는 `build-storybook`을 PR 게이트에서 `build`와 분리 실행합니다.
+- Storybook 10이 있는 리포지토리는 `build-storybook`을 PR 게이트에서 `build`와 분리 실행합니다.
+
+#### 4.1.2 라이브러리/컴포넌트 패키지 기본 스크립트
+
+```json
+{
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build-storybook": "storybook build"
+  }
+}
+```
+
+- 라이브러리는 `build` 산출물의 품질 검증을 위해 `typecheck`를 독립 job 또는 단계로 둡니다.
+- Storybook이 의존성 캐시를 크게 쓰는 모노레포에서는 `storybook` 관련 의존성 캐시를 앱 캐시와 분리합니다.
+- `build-storybook`은 `--webpack-stats-json` 또는 `--ci` 플래그를 프로젝트 정책에 맞춰 고정하고, 실패 로그를 artifact로 남깁니다.
+
+#### 4.1.3 monorepo 실행 패턴
+
+```bash
+# 앱/라이브러리 타입 혼합 monorepo
+pnpm --filter @scope/app run lint
+pnpm --filter @scope/app run typecheck
+pnpm --filter @scope/app run build
+pnpm --filter @scope/storybook run build-storybook
+pnpm --filter @scope/app run test
+```
+
+- `--filter`는 변경 영향 범위를 좁히되, 실패 시 어떤 패키지가 첫 실패인지 바로 추적 가능하게 합니다.
+- `build`와 `build-storybook`는 서로 다른 캐시 키(`hashOfFiles`)로 분리해 분쟁 없이 재시도합니다.
+- 공통 번들러/TS 설정을 바꾸면 `pnpm install --force`를 먼저 실행해 lockfile 동기화를 맞춥니다.
+
+#### 4.1.4 Storybook 10 고정 규칙
+
+- Storybook runtime은 `storybook` 10 기반으로 고정하고 `framework: "@storybook/react-vite"`를 앱 런타임과 동일한 `react`/`vite` 버전 선에서 관리합니다.
+- CI에서 storybook 빌드 실패는 **컴포넌트 호환성 이슈**와 **번들러/alias 이슈**를 각각 분리해 라벨링합니다.
+- Storybook 타입 오류는 앱 타입스크립트 설정(`types`, `paths`, `baseUrl`)과 동일한 경로 규칙을 적용한 뒤 재시도합니다.
+
+  ```bash
+  # Storybook 10 + React + Vite 템플릿 기준 최소 명령
+  pnpm install
+  pnpm lint
+  pnpm typecheck
+  pnpm build
+  pnpm build-storybook
+  ```
 
 ### 4.2 PR 제출 표준
 
@@ -504,12 +557,47 @@ React 앱을 새로 열거나 major 업그레이드를 할 때는 릴리스보�
 3. 증거 수집
    - 번들 산출물 크기/수명, Storybook 빌드 결과, 실패 로그를 함께 저장해 공유합니다.
 
+### 4.4 CI 권장 파이프라인 (분리 실행)
+
+```yaml
+jobs:
+  build:
+    name: React Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  build_storybook:
+    name: Storybook Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build-storybook
+```
+
+- 앱 빌드와 Storybook 빌드를 분리하면 회귀 원인을 빨리 가릴 수 있습니다.
+- 실패가 잦은 프로젝트는 Storybook job에 별도 `--quiet`/`--output-dir` 정책을 두고 로그 보존 기간을 늘립니다.
+- `build`는 릴리스 승격 경로의 유일한 입력으로 쓰이고, Storybook은 문서/컴포넌트 공유 경로로만 취급합니다.
+
 ```bash
 # 예시: 프로젝트별 단계 실행
 pnpm --filter @scope/app run typecheck
 pnpm --filter @scope/app run build
 pnpm --filter @scope/app run build-storybook
 ```
+
+
 
 ---
 

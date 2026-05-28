@@ -84,6 +84,7 @@ mindmap
 | 새 프로젝트를 시작한다 | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md) | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정 |
 | 기존 서비스 품질을 올린다 | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md) | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가 |
 | 배포가 불안정하다 | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md) | build once, deploy many, rollback artifact, release health를 먼저 확인 |
+| 리액트 빌드가 흔들린다 | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [02. React 19 실무](public/개발가이드/02_React19_실무_가이드.md) | 앱/라이브러리 빌드 스크립트, Storybook 10, PR 게이트 순서를 통합 점검 |
 | PR마다 검증 URL이 필요하다 | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
 | 여러 팀이 같은 코드를 만진다 | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md) | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영 |
 | 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md) | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정 |
@@ -236,7 +237,7 @@ flowchart LR
 |----|----------|-------|
 | 09 | [장애 대응 및 관측성 표준](public/개발가이드/09_장애_대응_및_관측성_표준.md) | RUM, error tracking, alert, severity, postmortem |
 | 10 | [인프라 및 IaC 가이드](public/개발가이드/10_인프라_IaC_가이드.md) | IaC, preview environment, workload identity, drift, cost |
-| 11 | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md) | deterministic install, quality gate, artifact, attestation |
+| 11 | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md) | React 빌드/Storybook 빌드 가이드, deterministic install, timeout/concurrency/permissions, Dependabot safe auto-merge, CodeRabbit review gate, branch protection |
 | 12 | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md) | cache-control, immutable asset, invalidation, security header |
 | 14 | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md) | canary, feature flag, rollback, post-deploy monitor |
 | 22 | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md) | package boundary, task graph, cache, release ownership |
@@ -273,7 +274,7 @@ flowchart LR
 | 성능 | bundle diff, Lighthouse 또는 RUM p75 영향 |
 | 보안 | secret scan, dependency audit, CSP/header 영향 |
 | 배포 | build artifact, rollback 방법, release health 확인 기준 |
-| 리뷰 자동화 | CodeRabbit finding 처리 결과, path instruction 영향, 사람 reviewer 확인 |
+| 리뷰 자동화 | CodeRabbit review gate 통과, finding 처리 결과, path instruction 영향, required conversation resolution, 사람 reviewer 확인 |
 | 커밋 품질 | commitlint 결과, Husky hook 범위, 우회 사유 |
 | 주석/문서 | `TODO/FIXME` owner, inline comment 사유, 문서 업데이트 |
 
