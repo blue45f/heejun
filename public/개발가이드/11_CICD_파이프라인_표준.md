@@ -700,6 +700,43 @@ pnpm verify            # 위 명령을 한 번에 점검
 > 기준 임계치 예시: `vite build` 실패 0건, storybook build 실패 0건, 5분 이상 걸리는 빌드는 성능 리스크 리뷰.
 
 
+### 4.7 PR 룰(Repository 공통 규약)
+
+팀/프로젝트 공통으로 PR을 같은 방식으로 처리하기 위해 아래 규약을 적용합니다.
+
+#### 4.7.1 PR 템플릿 강제 규약
+
+- PR 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 체크리스트를 모두 완료해야 합니다.
+- PR 제목은 Conventional Commits 규칙을 지킵니다.
+- 문서/코드 변경이 함께 있으면 `기능`, `영향 범위`, `회귀 대응`을 한 번에 정리합니다.
+
+#### 4.7.2 PR 제출 전 증빙 규약
+
+- `pnpm run verify` 또는 저장소별 최소 게이트가 통과했는지 PR 본문에 증빙합니다.
+- 변경 증거(`pnpm lint`, `pnpm typecheck`, `pnpm build` 또는 패키지별 게이트 실행 결과)를 남깁니다.
+- 회귀 대응: 실패 시 재현 명령, 롤백 포인트, `dist/` / `storybook-static/` 보유 여부를 기록합니다.
+- 동일 PR에서 `skipped` 상태가 있으면 병합을 보류합니다.
+
+#### 4.7.3 리뷰 게이트 규약
+
+- CodeRabbit이 설치된 저장소는 `CodeRabbit review gate`가 최신 head SHA 기준 `APPROVED` 상태여야 합니다.
+- CodeRabbit이 없는 저장소는 최소 1명의 사람 리뷰 승인으로 병합을 진행합니다.
+- 병합 전 `required_conversation_resolution` 및 `required_status_checks`가 동작하도록 브랜치 보호 규칙을 맞춥니다.
+
+#### 4.7.4 라벨 기반 자동 병합 규약
+
+- `automerge` / `auto-merge` 라벨은 명시적 동의가 있을 때만 사용합니다.
+- `dependabot`은 patch/minor/CI 업데이트처럼 blast radius가 낮은 항목만 자동 병합 대상으로 둡니다.
+- production major, migration, runtime risk 변경은 라벨 자동 병합에서 제외하고 사람 승인으로 처리합니다.
+
+#### 4.7.5 CI 상태 체크 최소 항목(예시)
+
+- 필수 체크 예시: `Quality gate`, `CI pass gate`, `CodeRabbit review gate`, `enforce-pr-checklist`
+- 저장소별 필수 체크는 브랜치 보호에서 `required_status_checks.contexts`로 고정하고, 이름 변경은 템플릿/스크립트와 동시에 수행합니다.
+- 동일 PR에서 코드/문서/리뷰 체크 항목이 누락되면 “병합 보류” 상태로 관리합니다.
+
+> 운영상 예외가 필요하면 해당 PR에 `skip` 사유와 보완 plan을 기록하고, 처리일자/담당자를 남겨 추후 삭제합니다.
+
 
 ---
 
