@@ -620,6 +620,85 @@ pnpm build-storybook   # 필요한 경우만
 - 릴리스용 빌드 산출물은 항상 `dist/`를 단일 기준으로 고정하고, Storybook 산출물은 증적 보조 자료로만 활용한다.
 - 실패가 빈번한 프로젝트는 `storybook` job을 따로 분리해 재시도 회복 탄력성을 높인다.
 
+### 4.6 신규/마이그레이션 프로젝트용 도입 템플릿
+
+React 리포지토리를 처음 열 때는 다음 3단계 템플릿으로 시작하세요.  
+`react + vite + react-router + storybook + vitest`를 기준으로 작성했습니다.
+
+1. **빌드 레이어 고정**
+
+```json
+{
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "lint": "eslint .",
+    "lint:security": "eslint . --max-warnings=0 && pnpm lint:secrets && pnpm audit:security",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "preview": "vite preview",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook",
+    "prepare": "husky"
+  }
+}
+```
+
+- `verify`는 로컬/CI에서 같은 순서를 사용해 “로컬 통과 = CI 통과”를 맞춥니다.
+- 라이브러리 패키지는 `build`를 `tsc -b`로 시작하고, 앱은 `vite build`와 함께 쓰는 것을 기본값으로 둡니다.
+- Storybook은 `build`와 분리 실행하고, 실패 시 `storybook build` 로그를 artifact에 붙입니다.
+
+2. **루트 CI/훅 계약 정합성**
+
+```yaml
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v6
+      - run: corepack pnpm --version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm build-storybook
+```
+
+- 예시 훅:
+  - `.husky/pre-commit`: `pnpm exec lint-staged`
+  - `.husky/commit-msg`: `pnpm exec commitlint --edit "$1"`
+
+- CI는 lockfile 고정, `frozen-lockfile`, `verify` 흐름이 핵심입니다.
+- Husky `pre-commit`, `commit-msg`는 빠른 피드백을 책임지고, 전체 검증은 CI가 책임집니다.
+
+3. **도입 완료 판정**
+
+- `dist/` 경로가 단일 release 기준인지 확인한다.
+- `storybook-static/` 산출물의 경로, 용량 제한, 업로드 정책을 정의한다.
+- 새로 추가한 `build`/`typecheck`/`lint`/`build-storybook` 로그를 PR 본문에 첨부한다.
+- 회귀가 잦은 패키지는 job 분리 후 `timeout-minutes`, `concurrency`, `retry-on-fail` 정책을 추가한다.
+
+이 템플릿은 모든 React 패키지에서 동일 순서를 유지하면 PR 검증 재현성에 가장 유리합니다.
+
+```bash
+# 도입 완료 후 팀 공통 실행 커맨드
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm build-storybook   # Storybook 사용 시만
+pnpm verify            # 위 명령을 한 번에 점검
+```
+
+필요시 프로젝트 운영팀 문서에 “성공 기준 임계치”를 추가해 PR 기준을 고정하세요.
+
+> 기준 임계치 예시: `vite build` 실패 0건, storybook build 실패 0건, 5분 이상 걸리는 빌드는 성능 리스크 리뷰.
+
 
 
 ---

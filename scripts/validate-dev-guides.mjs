@@ -257,11 +257,11 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
   ],
   [
     '11_CICD_파이프라인_표준.md',
-    ['0.3 공급망 증적 계약', 'provenance/attestation', 'OIDC', 'Husky', 'commitlint', 'secretlint'],
+    ['0.3 공급망 증적 계약', '0.4 PR 리뷰 게이트 계약', '0.5 GitHub Actions 운영 표준', 'CodeRabbit review gate', 'branch-protection.yml', 'timeout-minutes', 'dependabot/fetch-metadata@v3', 'provenance/attestation', 'OIDC', 'Husky', 'commitlint', 'secretlint'],
   ],
   [
     '16_AI_협업_코드리뷰_가이드.md',
-    ['CodeRabbit', '.coderabbit.yaml', 'path_instructions', '주석 룰'],
+    ['CodeRabbit', '.coderabbit.yaml', 'path_instructions', '주석 룰', 'CodeRabbit 리뷰 게이트', 'branch-protection.yml', 'required_approving_review_count'],
   ],
   [
     '17_신규_입사자_온보딩_가이드.md',

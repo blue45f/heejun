@@ -1,0 +1,39 @@
+{
+  "name": "heejun",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.4.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --strictPort",
+    "check:validators": "node --check scripts/validate-dev-guides.mjs && node --check scripts/validate-recommendation-templates.mjs",
+    "validate:guides": "node scripts/validate-dev-guides.mjs",
+    "validate:recommendations": "node scripts/validate-recommendation-templates.mjs",
+    "verify": "pnpm run check:validators && pnpm run validate:guides && pnpm run validate:recommendations",
+    "verify:push": "pnpm run verify",
+    "ci": "pnpm run verify"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
+    "prettier": "^3.8.3",
+    "vite": "^6.3.5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md,mdx,yml,yaml,html}": [
+      "prettier --write"
+    ]
+  }
+}

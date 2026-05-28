@@ -18,9 +18,12 @@ jobs:
   verify:
     name: Validate guides
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 체크아웃
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Node.js 설정
         uses: actions/setup-node@v6
         with:
@@ -34,3 +37,5 @@ jobs:
         run: node --check scripts/validate-recommendation-templates.mjs
       - name: Validate recommendation templates
         run: node scripts/validate-recommendation-templates.mjs
+      - name: Build portfolio
+        run: pnpm build
