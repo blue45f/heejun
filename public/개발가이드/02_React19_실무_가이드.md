@@ -1559,6 +1559,35 @@ jobs:
 - 번들 충돌: storybook의 `addons` 캐시/의존성 충돌은 `node_modules` 삭제 후 락파일 동기화부터 재설치.
 - 렌더링 불일치: 해당 스토리 단위에 `play`/`playwright` smoke를 추가해 스냅샷 회귀를 줄인다.
 
+### 13.8 저장소별 React 빌드 도입 템플릿
+
+React 도입/업그레이드 작업을 저장소 단위로 정형화할 때는 아래 템플릿을 그대로 가져가고, 프로젝트 이름만 바꿔 쓰면 된다.
+
+#### 공통 최소 스크립트(저장소 루트/패키지 기준)
+
+| 레벨 | 스크립트 | 목적 |
+| --- | --- | --- |
+| 앱 패키지 | `build`, `typecheck`, `preview`, `lint`, `test` | 앱 빌드/타입체크/로컬 확인/정적 검사/테스트 통합 |
+| 공통 패키지 | `build`, `typecheck`, `test` | 번들 타입 안정성 확보 |
+| 스토리북 | `build-storybook` (+ 필요 시 `storybook`) | 컴포넌트 카탈로그 독립 산출물 |
+| 루트 | `verify` 또는 `verify:push` | PR/Push 전 일괄 게이트 |
+
+#### PR 제출 직전 고정 체크리스트
+
+```text
+1. 의존성 정렬: pnpm up --latest --filter <target>... && lockfile 동기화
+2. 앱/패키지: lint -> typecheck -> test -> build -> build-storybook (로그 보관)
+3. Husky 훅 검증: pre-commit/pre-push 실행 결과가 CI와 동일해야 함
+4. 산출물 증빙: dist/ 또는 storybook-static/ 경로와 번들 크기 추이 기록
+5. 실패 시 즉시 롤백 조건과 대체 전략 문서화
+```
+
+#### 권장 분리 기준(React + Storybook 공존 환경)
+
+- 앱 빌드와 스토리북 빌드는 서로 다른 CI 잡으로 나눠 실패 원인을 분리한다.
+- PR 병합 전, 앱 빌드가 통과되었고 스토리북 빌드도 별도 통과를 만족해야 한다.
+- Storybook 설정은 앱 런타임 번들러(`vite`/`react-jsx`)와 `paths`/`aliases`를 공유한다.
+
 이 항목까지 반영하면 React 빌드와 Storybook 10 빌드가 서로 섞이지 않고, 롤백 및 증적 수집이 가능한 루틴이 완성됩니다.
 
 이 체크가 끝나면 "React 기능 변경 -> 테스트 -> 빌드 -> 배포"가 한 루틴이 됩니다.
