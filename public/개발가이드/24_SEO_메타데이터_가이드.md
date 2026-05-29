@@ -111,7 +111,7 @@ flowchart LR
 flowchart TD
   A[페이지/콘텐츠 타입 결정] --> B[메타데이터 엔진 실행]
   B --> C[Canonical/Hreflang/robots 자동 생성]
-  C --> D[Structured Data(JSON-LD) 생성]
+  C --> D["Structured Data(JSON-LD) 생성"]
   D --> E[HTML 렌더링 + 스냅샷]
   E --> F{검색·AI·접근성 검증}
   F -->|Fail| G[메타/구조화 데이터 수정]

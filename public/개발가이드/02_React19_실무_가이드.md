@@ -436,7 +436,7 @@ flowchart TD
     A[ErrorBoundary]
     A --> B[Suspense fallback=Skeleton]
     B --> C[UserProfile]
-    C --> D[use(userPromise)]
+    C --> D["use(userPromise)"]
   end
   subgraph Flow[렌더링 흐름]
     P1[Promise pending] -. throw .-> S1[Suspense가 fallback 렌더]
@@ -715,22 +715,22 @@ function DeleteButton({ articleId }: { articleId: string }) {
 sequenceDiagram
   participant U as 사용자
   participant UI as 컴포넌트
-  participant Opt as useOptimistic
+  participant OptimisticState as useOptimistic
   participant Real as 실제 state
   participant API as 서버
 
   U->>UI: -/+ 버튼 클릭
-  UI->>Opt: addOptimistic({ id, delta })
-  Opt-->>UI: 즉시 반영된 화면(낙관적)
+  UI->>OptimisticState: addOptimistic({ id, delta })
+  OptimisticState-->>UI: 즉시 반영된 화면(낙관적)
   UI->>API: updateCartQuantity()
   alt 성공
     API-->>UI: 최신 items 반환
     UI->>Real: setItems(latest)
-    Real-->>Opt: 기준 state 갱신
-    Opt-->>UI: 낙관적 결과와 동기화
+    Real-->>OptimisticState: 기준 state 갱신
+    OptimisticState-->>UI: 낙관적 결과와 동기화
   else 실패
     API-->>UI: 에러
-    Real-->>Opt: 기존 state 유지 -> 낙관적 변경 자동 롤백
+    Real-->>OptimisticState: 기존 state 유지 -> 낙관적 변경 자동 롤백
     UI-->>U: 에러 토스트 + 이전 수량 복귀
   end
 ```

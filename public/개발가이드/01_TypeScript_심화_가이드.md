@@ -355,11 +355,11 @@ flowchart TD
   A[새 식별자 도입] --> B{구조가 동일한<br/>다른 식별자가 있나?}
   B -- 없음 --> C[일반 string/number 사용 가능]
   B -- 있음 --> D{혼용 시 위험도?}
-  D -- 낮음 (UI 표시용) --> C
-  D -- 중간 (API 호출 인자) --> E[Brand 타입으로 분리]
-  D -- 높음 (삭제/결제) --> F[Brand + 런타임 검증 팩토리]
+  D -->|"낮음 (UI 표시용)"| C
+  D -->|"중간 (API 호출 인자)"| E[Brand 타입으로 분리]
+  D -->|"높음 (삭제/결제)"| F["Brand + 런타임 검증 팩토리"]
   E --> G[as Brand 캐스팅은<br/>팩토리 함수 내부에서만]
-  F --> H[Zod .brand() + parse]
+  F --> H["Zod .brand() + parse"]
   G --> I[사용처에서는 import 만]
   H --> I
 ```
@@ -1053,14 +1053,14 @@ if (isAdminGood(user)) {
 
 ```mermaid
 flowchart LR
-  A["호출: findById(users, 'u1')"] --> B[1. 인자 타입 추출<br/>users: User[]]
-  B --> C[2. 제약 검사<br/>User extends HasId ?]
-  C -- 통과 --> D[3. T = User로 바인딩]
-  D --> E[4. T['id'] = User['id'] = string]
-  E --> F[5. 두 번째 인자가 string인지 검사]
-  F -- 통과 --> G[6. 반환 타입 User | undefined]
-  C -- 실패 --> X[컴파일 에러: 제약 위반]
-  F -- 실패 --> Y[컴파일 에러: id 타입 불일치]
+  A["호출: findById(users, 'u1')"] --> B["1. 인자 타입 추출<br/>users: User[]"]
+  B --> C["2. 제약 검사<br/>User extends HasId ?"]
+  C -- 통과 --> D["3. T = User로 바인딩"]
+  D --> E["4. T['id'] = User['id'] = string"]
+  E --> F["5. 두 번째 인자가 string인지 검사"]
+  F -- 통과 --> G["6. 반환 타입 User | undefined"]
+  C -- 실패 --> X["컴파일 에러: 제약 위반"]
+  F -- 실패 --> Y["컴파일 에러: id 타입 불일치"]
 ```
 
 ### 7.1 제네릭 제약 조건 (Constraints)
