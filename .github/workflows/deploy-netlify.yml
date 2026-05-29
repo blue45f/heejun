@@ -1,0 +1,66 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'public/**'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'netlify.toml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-netlify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip deployment when Netlify secrets are not configured
+        if: env.NETLIFY_AUTH_TOKEN == '' || env.NETLIFY_SITE_ID == ''
+        run: echo "NETLIFY_AUTH_TOKEN or NETLIFY_SITE_ID is not configured; skipping Netlify deployment."
+
+      - uses: pnpm/action-setup@v6
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+
+      - uses: actions/setup-node@v6
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Validate docs page
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+        run: |
+          node scripts/validate-dev-guides.mjs
+          node scripts/validate-recommendation-templates.mjs
+
+      - name: Install Netlify CLI
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+        run: npm i -g netlify-cli@latest
+
+      - name: Deploy production site
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+        run: |
+          netlify deploy \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --site "$NETLIFY_SITE_ID" \
+            --prod \
+            --dir "." \
+            --message "deploy($GITHUB_SHA)"
