@@ -3,6 +3,9 @@
 node_modules/
 *.log
 
+# Vite 빌드 산출물 (Netlify가 빌드)
+dist/
+
 # Playwright MCP 임시 스냅샷
 .playwright-mcp/
 
