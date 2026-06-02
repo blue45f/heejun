@@ -25,11 +25,20 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: pnpm 설정
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.4.0
+
       - name: Node.js 설정
         uses: actions/setup-node@v6
         with:
           node-version: 24
           check-latest: true
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Check validator syntax
         run: node --check scripts/validate-dev-guides.mjs

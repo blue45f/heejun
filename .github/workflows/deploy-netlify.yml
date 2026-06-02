@@ -42,8 +42,12 @@ jobs:
       - uses: actions/setup-node@v6
         if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
+
+      - name: Install dependencies
+        if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
+        run: pnpm install --frozen-lockfile
 
       - name: Validate docs page
         if: env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
