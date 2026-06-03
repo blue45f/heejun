@@ -10,9 +10,6 @@
   },
   "scripts": {
     "prepare": "husky",
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --strictPort",
     "check:validators": "node --check scripts/validate-dev-guides.mjs && node --check scripts/validate-recommendation-templates.mjs",
     "validate:guides": "node scripts/validate-dev-guides.mjs",
     "validate:recommendations": "node scripts/validate-recommendation-templates.mjs",
@@ -26,8 +23,7 @@
     "@commitlint/config-conventional": "^21.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
-    "prettier": "^3.8.3",
-    "vite": "^8.0.14"
+    "prettier": "^3.8.3"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
