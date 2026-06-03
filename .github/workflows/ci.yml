@@ -27,8 +27,6 @@ jobs:
 
       - name: pnpm 설정
         uses: pnpm/action-setup@v6
-        with:
-          version: 11.4.0
 
       - name: Node.js 설정
         uses: actions/setup-node@v6
