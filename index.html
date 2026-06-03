@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // FOUC 방지 — paint 전에 테마를 복원한다 (의존성 없음).
+      // 우선순위: 저장된 선택 > OS prefers-color-scheme. 'light'/'dark'만
+      // data-theme로 고정하고, 'system'/미설정은 OS 미디어쿼리에 위임한다.
+      ;(function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          if (saved === 'dark' || saved === 'light') {
+            document.documentElement.setAttribute('data-theme', saved)
+          }
+        } catch (e) {}
+      })()
+    </script>
     <meta
       name="description"
       content="김희준 - 18년 경력 시니어 웹프론트엔드 개발자. React, TypeScript, AWS 전문."
@@ -37,6 +51,7 @@
        * Every neutral is tinted toward it (chroma 0.004–0.02). Documented in docs/DESIGN.md.
        */
       :root {
+        color-scheme: light;
         /* accent (ink) */
         --ink: oklch(0.32 0.046 215); /* dominant: header field, name, h2 numerals */
         --ink-strong: oklch(0.26 0.05 215); /* hover / pressed */
@@ -63,6 +78,54 @@
         --t-h3: clamp(1.18rem, 1.08rem + 0.5vw, 1.4rem);
         --t-h2: clamp(1.55rem, 1.3rem + 1.1vw, 2.1rem);
         --t-name: clamp(2.6rem, 1.9rem + 3.2vw, 4.4rem);
+      }
+
+      /*
+       * Dark theme — same token NAMES, dark "Petrol Ink" values (H≈215 preserved).
+       * Neutrals stay tinted toward the petrol hue; the ink accent lifts in
+       * lightness so it reads as luminous ink on a deep field, not pure black.
+       * Applied via prefers-color-scheme (auto) OR an explicit [data-theme]
+       * override set by the pre-paint bootstrap below.
+       */
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+
+        /* accent (ink) — lifted for contrast on dark field */
+        --ink: oklch(0.78 0.07 215); /* dominant: name, h2 numerals, links */
+        --ink-strong: oklch(0.86 0.06 215); /* hover / pressed */
+        --ink-soft: oklch(0.66 0.05 215); /* company names, kickers */
+
+        /* tinted neutrals (never #000 / #fff) — petrol-tinted darks */
+        --paper: oklch(0.19 0.012 215); /* page background */
+        --surface: oklch(0.23 0.014 215); /* section field */
+        --raise: oklch(0.27 0.016 215); /* recessed panels, tags */
+        --line: oklch(0.34 0.014 215); /* hairlines */
+        --line-soft: oklch(0.3 0.012 215);
+
+        --text: oklch(0.9 0.012 215); /* body */
+        --text-2: oklch(0.74 0.014 215); /* secondary / meta */
+        --text-3: oklch(0.6 0.013 215); /* tertiary / dates */
+      }
+
+      /* Auto dark via OS preference — unless the user pinned light. */
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+
+          --ink: oklch(0.78 0.07 215);
+          --ink-strong: oklch(0.86 0.06 215);
+          --ink-soft: oklch(0.66 0.05 215);
+
+          --paper: oklch(0.19 0.012 215);
+          --surface: oklch(0.23 0.014 215);
+          --raise: oklch(0.27 0.016 215);
+          --line: oklch(0.34 0.014 215);
+          --line-soft: oklch(0.3 0.012 215);
+
+          --text: oklch(0.9 0.012 215);
+          --text-2: oklch(0.74 0.014 215);
+          --text-3: oklch(0.6 0.013 215);
+        }
       }
 
       * {
@@ -197,6 +260,52 @@
       header a:hover {
         color: var(--surface);
         text-decoration-color: currentColor;
+      }
+
+      /* Skip-to-content link: hidden until keyboard focus, then pinned to the
+       * top-left as the first interactive control. Uses semantic tokens so it
+       * adapts to dark mode automatically. */
+      .skip-link {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        margin: 8px;
+        padding: 10px 16px;
+        background: var(--ink);
+        color: var(--surface);
+        border-radius: var(--radius);
+        font-weight: 600;
+        text-decoration: none;
+        transform: translateY(-150%);
+        transition: transform 160ms var(--ease);
+      }
+      .skip-link:focus,
+      .skip-link:focus-visible {
+        transform: translateY(0);
+        outline: 2px solid var(--ink-strong);
+        outline-offset: 2px;
+      }
+      :root[data-theme='dark'] .skip-link {
+        background: oklch(0.78 0.07 215);
+        color: oklch(0.19 0.012 215);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .skip-link {
+          background: oklch(0.78 0.07 215);
+          color: oklch(0.19 0.012 215);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .skip-link {
+          transition: none;
+        }
+      }
+      /* Programmatic focus target (skip-link destination): no oversized outline
+       * around the whole landmark; real focus rings on interactive controls
+       * are untouched. */
+      #main-content:focus {
+        outline: none;
       }
 
       h1 {
@@ -561,7 +670,70 @@
         }
       }
 
+      /*
+       * Dark-mode header treatment — the header uses var(--ink) as its
+       * background and var(--surface) as text. In dark mode those tokens flip
+       * (light ink / dark surface), which would turn the drenched petrol field
+       * into a pale panel. To preserve the "Petrol Ink" brand character we
+       * re-pin the header to a deep petrol field with light text using fixed
+       * petrol values (H≈215). A shared @keyframes-free helper class keeps the
+       * watermark, eyebrow and sig-rule legible on the dark field.
+       *
+       * Mirrored for both triggers: explicit [data-theme='dark'] (any OS) and
+       * auto OS dark when the user has not pinned light.
+       */
+      :root[data-theme='dark'] header {
+        background: oklch(0.26 0.046 215);
+        color: oklch(0.97 0.005 215);
+      }
+      :root[data-theme='dark'] header::after {
+        background: linear-gradient(155deg, oklch(0.28 0.05 215) 0%, oklch(0.24 0.044 220) 100%);
+      }
+      :root[data-theme='dark'] .hero-mark {
+        color: oklch(0.36 0.052 215);
+      }
+      :root[data-theme='dark'] header a {
+        color: oklch(0.97 0.005 215);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) header {
+          background: oklch(0.26 0.046 215);
+          color: oklch(0.97 0.005 215);
+        }
+        :root:not([data-theme='light']) header::after {
+          background: linear-gradient(155deg, oklch(0.28 0.05 215) 0%, oklch(0.24 0.044 220) 100%);
+        }
+        :root:not([data-theme='light']) .hero-mark {
+          color: oklch(0.36 0.052 215);
+        }
+        :root:not([data-theme='light']) header a {
+          color: oklch(0.97 0.005 215);
+        }
+      }
+
       @media print {
+        /*
+         * Output preservation: the printed/PDF resume always uses the light
+         * "Petrol Ink" palette regardless of the active screen theme, so dark
+         * mode never bleeds ink-heavy backgrounds onto paper. Re-pin the
+         * semantic tokens to their light values for any [data-theme] state.
+         */
+        :root,
+        :root[data-theme='dark'] {
+          color-scheme: light;
+          --ink: oklch(0.32 0.046 215);
+          --ink-strong: oklch(0.26 0.05 215);
+          --ink-soft: oklch(0.52 0.038 215);
+          --paper: oklch(0.985 0.004 215);
+          --surface: oklch(0.997 0.002 215);
+          --raise: oklch(0.965 0.006 215);
+          --line: oklch(0.92 0.008 215);
+          --line-soft: oklch(0.95 0.006 215);
+          --text: oklch(0.27 0.018 215);
+          --text-2: oklch(0.46 0.016 215);
+          --text-3: oklch(0.6 0.013 215);
+        }
+
         .save-buttons {
           display: none !important;
         }
@@ -605,7 +777,8 @@
     </style>
   </head>
   <body>
-    <main class="container">
+    <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+    <main class="container" id="main-content" tabindex="-1">
       <header>
         <div class="hero-mark" aria-hidden="true">18<sub>yrs</sub></div>
         <div class="eyebrow">시니어 프론트엔드 · 디자인 시스템 리드</div>
