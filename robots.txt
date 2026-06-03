@@ -1,0 +1,20 @@
+# robots.txt — heejun.store
+# 정적 사이트(index.html + public/). 공개 가이드/참고자료만 크롤링 허용하고
+# 개인정보(PII)가 담긴 경로(경력증명서/연봉/자격증/졸업증명서/급여)는 차단한다.
+
+User-agent: *
+# 비민감 공개 콘텐츠: 개발 가이드 + 참고자료
+Allow: /public/%EA%B0%9C%EB%B0%9C%EA%B0%80%EC%9D%B4%EB%93%9C/
+Allow: /public/%EC%B0%B8%EA%B3%A0%EC%9E%90%EB%A3%8C/
+
+# PII 차단 — 개인 신상/경력/보상/학력 문서 (URL 인코딩 + 평문 둘 다 명시)
+Disallow: /public/%EA%B2%BD%EB%A0%A5%EC%A6%9D%EB%AA%85%EC%84%9C/
+Disallow: /public/%EC%97%B0%EB%B4%89%20%ED%98%91%EC%9D%98/
+Disallow: /public/%EC%9E%90%EA%B2%A9%EC%A6%9D/
+Disallow: /public/%EC%A1%B8%EC%97%85%EC%A6%9D%EB%AA%85%EC%84%9C/
+Disallow: /public/경력증명서/
+Disallow: /public/연봉 협의/
+Disallow: /public/자격증/
+Disallow: /public/졸업증명서/
+
+Sitemap: https://heejun.store/sitemap.xml
