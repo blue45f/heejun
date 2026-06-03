@@ -42,5 +42,3 @@ jobs:
         run: node --check scripts/validate-recommendation-templates.mjs
       - name: Validate recommendation templates
         run: node scripts/validate-recommendation-templates.mjs
-      - name: Build portfolio
-        run: pnpm build
