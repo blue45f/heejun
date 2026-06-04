@@ -263,6 +263,27 @@
         color: var(--ink-strong);
       }
 
+      /* Keyboard focus ring: a single owned petrol ring for every interactive
+       * control, never the UA default. Pointer users see nothing (focus-visible),
+       * keyboard users get a clear 2px ink ring with offset so it reads against
+       * the paper body. Outline (not box-shadow) so it never disturbs layout. */
+      a:focus-visible,
+      .save-button:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+      }
+      /* Body links are tight inline targets; a small radius rounds the ring to
+       * the text run without implying a button. The save buttons keep their own
+       * 8px radius so the ring traces the control. */
+      a:focus-visible {
+        border-radius: 3px;
+      }
+      /* On the drenched header field the body ink is too dark to register;
+       * lift the ring to the light header tone. */
+      header a:focus-visible {
+        outline-color: oklch(0.82 0.05 215);
+      }
+
       header a {
         color: var(--surface);
         text-decoration-color: oklch(0.7 0.04 215);
@@ -394,8 +415,15 @@
         font-size: var(--t-h3);
         font-weight: 650;
         letter-spacing: -0.015em;
-        margin-top: 28px;
+        margin-top: clamp(30px, 4vw, 40px);
         margin-bottom: 12px;
+      }
+      /* Rhythm: the section head already carries its own generous bottom air, so
+       * the first subhead under an h2 binds tight to it instead of stacking two
+       * large gaps. Sibling subheads keep the wider separation. This sharpens
+       * the head→group→group cadence rather than flattening it. */
+      h2 + h3 {
+        margin-top: 0;
       }
 
       .section > div {
@@ -445,6 +473,17 @@
         width: 9px;
         height: 1px;
         background: var(--ink-soft);
+        transform-origin: left center;
+        transition:
+          transform 0.22s var(--ease),
+          background-color 0.22s var(--ease);
+      }
+      /* Drafting gesture: resting on an achievement row draws its tick mark out
+       * to a full rule in the brand ink. transform/opacity only on a decorative
+       * pseudo, so the row text never reflows. */
+      .achievement:hover::before {
+        transform: scaleX(2);
+        background: var(--ink);
       }
 
       .skill-grid {
@@ -499,9 +538,24 @@
       .project-card h3 {
         margin-top: 0;
         margin-bottom: 4px;
+        transition: color 0.22s var(--ease);
       }
       .project-card .job-period {
         margin-bottom: 12px;
+      }
+      /* Ledger-row hover: the project title deepens to brand ink as the cursor
+       * rests on the row. Color only — no card lift, no side-stripe, no chrome,
+       * so the open-ledger composition is preserved. */
+      .project-card:hover h3 {
+        color: var(--ink);
+      }
+      :root[data-theme='dark'] .project-card:hover h3 {
+        color: var(--ink-strong);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .project-card:hover h3 {
+          color: var(--ink-strong);
+        }
       }
 
       .section a {
@@ -517,10 +571,17 @@
       }
 
       .lede {
-        font-size: clamp(1.05rem, 1rem + 0.35vw, 1.22rem);
-        line-height: 1.72;
+        font-size: clamp(1.1rem, 1rem + 0.55vw, 1.32rem);
+        line-height: 1.66;
+        letter-spacing: -0.012em;
         color: var(--text);
-        max-width: 68ch;
+        max-width: 66ch;
+        text-wrap: pretty;
+      }
+      /* The lede opens each editorial section; its lead sentence carries a hair
+       * more ink weight so the eye lands there first, then settles into prose. */
+      .lede strong {
+        font-weight: 680;
       }
 
       /* ── One quiet button family in the brand ink ── */
@@ -631,19 +692,43 @@
       /* Sections start hidden, then reveal as they enter the viewport
        * (toggled by an IntersectionObserver below). No-JS / no-IO fallback:
        * .reveal-ready is only added when the observer is wired, so without
-       * JS the content is fully visible. */
-      .reveal-ready .section {
+       * JS the content is fully visible.
+       *
+       * The reveal is staggered in two layers: the numbered section head
+       * settles first, then the body follows behind it. The head leads so the
+       * numeral kicker reads as an index being placed, not a panel sliding. */
+      .reveal-ready .section > h2,
+      .reveal-ready .section > :not(h2) {
         opacity: 0;
-        transform: translate3d(0, 22px, 0);
+        transform: translate3d(0, 18px, 0);
         transition:
-          opacity 0.8s var(--ease),
-          transform 0.8s var(--ease);
+          opacity 0.7s var(--ease),
+          transform 0.7s var(--ease);
         will-change: opacity, transform;
       }
-      .reveal-ready .section.is-in {
+      .reveal-ready .section > :not(h2) {
+        transform: translate3d(0, 12px, 0);
+        transition-delay: 90ms;
+      }
+      .reveal-ready .section.is-in > h2,
+      .reveal-ready .section.is-in > :not(h2) {
         opacity: 1;
         transform: none;
         will-change: auto;
+      }
+
+      /* The h2 numeral kicker draws in a hair behind its heading: the index
+       * mark lands last, like a stamp. opacity + transform only. */
+      .reveal-ready .section > h2::before {
+        opacity: 0;
+        transform: translateY(-0.15em) translateX(-0.18em);
+        transition:
+          opacity 0.55s var(--ease) 0.12s,
+          transform 0.55s var(--ease) 0.12s;
+      }
+      .reveal-ready .section.is-in > h2::before {
+        opacity: 1;
+        transform: translateY(-0.15em);
       }
 
       @media (max-width: 768px) {
@@ -670,10 +755,17 @@
           animation: none !important;
           transition: none !important;
         }
-        /* never let a reveal leave content hidden for motion-sensitive users */
-        .reveal-ready .section {
+        /* never let a reveal leave content hidden for motion-sensitive users:
+         * the reveal now targets section children and the h2 numeral kicker, so
+         * the guard must force every one of them visible regardless of state. */
+        .reveal-ready .section > h2,
+        .reveal-ready .section > :not(h2),
+        .reveal-ready .section > h2::before {
           opacity: 1 !important;
           transform: none !important;
+        }
+        .reveal-ready .section > h2::before {
+          transform: translateY(-0.15em) !important;
         }
         header .sig-rule {
           transform: scaleX(1) !important;
@@ -779,9 +871,18 @@
           page-break-inside: avoid;
           border-top: 1px solid var(--line);
           padding: 20px 0;
-          /* reveal layer must never hide content in print/PDF */
+        }
+        /* reveal layer must never hide content in print/PDF: force the staggered
+         * section head, body, and numeral kicker visible for the capture. */
+        .reveal-ready .section,
+        .reveal-ready .section > h2,
+        .reveal-ready .section > :not(h2),
+        .reveal-ready .section > h2::before {
           opacity: 1 !important;
           transform: none !important;
+        }
+        .reveal-ready .section > h2::before {
+          transform: translateY(-0.15em) !important;
         }
       }
     </style>
@@ -1363,7 +1464,7 @@
         </div>
 
         <div class="project-card">
-          <h3>WEBDEX — 웹툰·웹소설 통합 인덱스</h3>
+          <h3>WEBDEX · 웹툰·웹소설 통합 인덱스</h3>
           <div class="job-period">Personal Project | Public repo: blue45f/webtoon-index</div>
           <div>
             • 네이버·카카오·리디·레진 등 국내 웹툰·웹소설 플랫폼의 공개 카탈로그를 교차-수집(약
