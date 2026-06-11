@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="public/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
     <script>
       // FOUC 방지 — paint 전에 테마를 복원한다 (의존성 없음).
       // 우선순위: 저장된 선택 > OS prefers-color-scheme. 'light'/'dark'만
@@ -29,10 +31,14 @@
     <meta property="og:url" content="https://heejun.store" />
     <meta property="og:site_name" content="김희준 포트폴리오" />
     <meta property="og:locale" content="ko_KR" />
-    <!-- og:image 생략: 비민감 대표 이미지 자산이 없고, 개인 사진은 PII이므로 추가하지 않는다. -->
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://heejun.store/public/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="김희준 — 시니어 웹프론트엔드 개발자 포트폴리오" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="김희준 - 시니어 웹프론트엔드 개발자" />
     <meta name="twitter:description" content="18년 경력의 시니어 웹프론트엔드 개발자 포트폴리오" />
+    <meta name="twitter:image" content="https://heejun.store/public/og-image.png" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#1f3a44" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#16242a" media="(prefers-color-scheme: dark)" />
