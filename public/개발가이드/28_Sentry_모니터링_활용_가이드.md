@@ -64,6 +64,20 @@
 | Release health    | 이전 release 대비 error/latency 비교       | Release owner  | canary 중지, flag off, rollback                 |
 | Privacy review    | beforeSend, Replay masking, scrubbing rule | Security owner | sampling 축소, Replay 비활성화, event 필터 추가 |
 
+## 0.3 기존 PDF 대조 결과
+
+다운로드 폴더의 `PDF_14_Sentry_모니터링.pdf`는 운영 문화와 대시보드 사례가 강점이었고, 일부 SDK 예시는 현재 공식 문서 기준과 달랐습니다. 이 문서에는 아래 기준으로 반영했습니다.
+
+| PDF 주제                   | 반영 위치           | 처리 기준                                                          |
+| :------------------------- | :------------------ | :----------------------------------------------------------------- |
+| 주간 Sentry 리포트         | 15. 운영 리포트     | 절대 건수보다 전주 대비 변화율과 owner 상태를 보는 방식으로 반영   |
+| 이슈 생명주기              | 15.2 이슈 생명주기  | Detected, Investigating, Fixing, Resolved 단계로 정리              |
+| 비용 최적화와 샘플링       | 6.1 샘플링과 비용   | `tracesSampleRate`, `tracesSampler`, replay sampling 기준으로 갱신 |
+| Source Map 설정            | 3.4, 3.5 source map | Vite와 Webpack 공식 plugin 흐름으로 재작성                         |
+| Session Replay             | 7. Replay           | 현재 `replayIntegration()` 기준과 masking 원칙만 유지              |
+| Web Vitals와 성능 대시보드 | 6, 15.3 dashboard   | FID 중심 예시는 제외하고 INP/LCP/CLS, trace p75/p95 중심으로 반영  |
+| 조직명, 도메인, 금액 예시  | 제외                | 특정 조직 값과 고정 비용은 공통 개발가이드에 넣지 않음             |
+
 ## 1. 적용 범위
 
 | 범위          | 이 문서에서 정하는 것                                                    | 제외하는 것                        |
@@ -270,6 +284,41 @@ export default defineConfig(({ mode }) => {
 - 배포 artifact에 `.map` 파일이 남지 않았는지 확인합니다.
 - source map 업로드가 실패하면 배포 성공으로 보지 않습니다.
 
+### 3.5 Webpack/legacy build 소스맵
+
+기존 Webpack 프로젝트는 Vite로 옮기기 전에도 같은 release/source map 계약을 지켜야 합니다. PDF에 있던 `SourceMapDevToolPlugin` 중심 예시는 현재 공식 플러그인 흐름에 맞춰 아래처럼 정리합니다.
+
+```bash
+pnpm add -D @sentry/webpack-plugin
+```
+
+```js
+// webpack.config.js
+const { sentryWebpackPlugin } = require('@sentry/webpack-plugin')
+
+module.exports = {
+  devtool: 'hidden-source-map',
+  plugins: [
+    sentryWebpackPlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
+    }),
+  ],
+}
+```
+
+Webpack 프로젝트도 원칙은 같습니다.
+
+- source map은 production build에서만 생성하고 업로드합니다.
+- `SENTRY_AUTH_TOKEN`은 CI secret에서만 읽습니다.
+- `.js.map` 파일은 Sentry 업로드 후 삭제하거나 CDN/server에서 접근을 차단합니다.
+- watch/development mode upload를 운영 검증으로 보지 않습니다.
+- `noSources`를 켜면 Sentry에서 원본 코드 context가 부족할 수 있으므로 stack trace 품질을 확인합니다.
+
 ## 4. Next.js 프로젝트 적용
 
 Next.js는 전용 SDK가 runtime별 설정을 만듭니다. 공식 wizard를 우선 사용합니다.
@@ -393,6 +442,58 @@ export async function submitCheckout(orderId: string) {
 }
 ```
 
+### 6.1 샘플링과 비용 관리
+
+Sentry 비용은 대부분 정상 trace, normal replay, 반복 이슈에서 늘어납니다. 에러 가시성은 유지하고 성능 데이터는 통계적으로 충분한 수준만 남기는 방식으로 조정합니다.
+
+| 데이터                        | 시작 기준                                  | 높이는 경우                           | 낮추는 경우                                 |
+| :---------------------------- | :----------------------------------------- | :------------------------------------ | :------------------------------------------ |
+| Error event                   | SDK 필터링 후 전송 유지                    | 신규 release, canary, 핵심 flow       | bot/extension/noise는 inbound filter로 제외 |
+| Performance trace             | production 5~20%, staging 100%             | checkout/payment/login 같은 핵심 flow | quota 초과, 충분한 표본 확보                |
+| Error replay                  | error session은 100%에 가깝게 시작         | 재현 어려운 UI 오류, CS 문의 증가     | PII 위험 route, replay storage 과다         |
+| Normal replay                 | 낮은 비율 또는 비활성화                    | 사용성 분석 목적이 명확할 때          | 비용 증가, 개인정보 검토 미완료             |
+| Long animation frame/resource | 문제 route 중심으로 query와 alert를 만든다 | INP/LCP 회귀가 특정 release에 묶일 때 | 단순 참고 지표라 행동으로 이어지지 않을 때  |
+
+샘플링 결정은 route 중요도와 트래픽을 함께 봅니다.
+
+| route 유형              | trace sample | replay 기준                           | 운영 메모                             |
+| :---------------------- | :----------- | :------------------------------------ | :------------------------------------ |
+| 결제, 주문, 로그인      | 높게 시작    | error replay 유지                     | 작은 회귀도 P0/P1 후보로 본다         |
+| 검색, 상품 목록, 홈     | 중간         | error replay 중심                     | p75/p95와 전환율을 같이 본다          |
+| 관리자, 내부 도구       | 낮게 시작    | 필요 시 수동 활성화                   | 사용자 수가 적어 절대 건수보다 재현성 |
+| 개인정보 입력 많은 화면 | trace 중심   | normal replay 비활성화 또는 추가 승인 | masking 검증 없이는 replay 확대 금지  |
+
+route별로 비율을 달리해야 하면 `tracesSampleRate` 대신 `tracesSampler`를 둡니다.
+
+```ts
+Sentry.init({
+  dsn,
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampler: ({ name, attributes, inheritOrSampleWith }) => {
+    if (name.includes('/checkout') || attributes?.flow === 'checkout') {
+      return 1.0
+    }
+
+    if (name.includes('/login') || attributes?.flow === 'auth') {
+      return inheritOrSampleWith(0.5)
+    }
+
+    if (name.includes('/metrics') || name.includes('/health')) {
+      return 0
+    }
+
+    return inheritOrSampleWith(0.1)
+  },
+})
+```
+
+운영 원칙은 다음과 같습니다.
+
+- 에러 이벤트를 줄일 때는 sampling보다 `ignoreErrors`, inbound filter, grouping/fingerprint 조정부터 검토합니다.
+- 샘플링 변경은 비용 절감만 보지 말고 탐지 시간, 재현 성공률, P0/P1 누락 여부를 함께 봅니다.
+- 샘플링 값은 코드 상수나 env config로 관리하고, 변경 사유와 재평가 날짜를 남깁니다.
+- canary 기간에는 trace/replay 비율을 높이고, 안정화 후 traffic과 quota에 맞춰 낮춥니다.
+
 ## 7. Session Replay 활용
 
 Replay는 stack trace만으로 알 수 없는 사용자 행동, 네트워크 실패, console log, route transition을 함께 봅니다.
@@ -431,6 +532,25 @@ Sentry UI 구성 순서:
 4. filter는 severity, assigned team, tag(`feature`, `route`, `release`)로 좁힙니다.
 5. action은 Slack/email/on-call/ticket/webhook 중 하나 이상을 지정합니다.
 6. 알림 메시지에는 release, environment, owner, rollback runbook, Sentry issue link가 포함되어야 합니다.
+
+### 8.1 알림 성숙도 단계
+
+알림은 처음부터 정교하게 맞추기 어렵습니다. 초기에 넓게 관찰하되, 운영 채널에는 행동 가능한 신호만 남기는 방식으로 줄입니다.
+
+| 단계        | 목적                     | 설정 방향                                         | 종료 조건                            |
+| :---------- | :----------------------- | :------------------------------------------------ | :----------------------------------- |
+| 관찰        | 어떤 오류가 나는지 파악  | staging/preview 또는 backlog 채널에 넓게 수집     | 반복 패턴과 핵심 flow 영향이 분류됨  |
+| 필터링      | 노이즈 제거              | browser extension, bot, known false positive 제외 | P0/P1 후보가 노이즈에 묻히지 않음    |
+| 빈도 기준   | 대규모 장애만 즉시 알림  | 짧은 window의 급증, 사용자 영향, regression 중심  | 산발적 오류가 on-call을 깨우지 않음  |
+| 심각도 기준 | 대응 속도와 채널 분리    | P0/P1은 on-call, P2는 feature owner, P3는 backlog | 알림마다 owner와 다음 행동이 정해짐  |
+| 주간 조정   | 기준 유지 또는 폐기 판단 | 전주 오탐, 누락, 해결 시간, event volume 리뷰     | threshold, routing, runbook이 갱신됨 |
+
+알림을 production on-call에 연결하기 전에는 다음을 확인합니다.
+
+- 같은 조건으로 staging이나 backlog 채널에서 충분히 관찰했다.
+- 알림 수신자가 즉시 할 수 있는 행동이 runbook에 있다.
+- alert rule에 `release`, `environment`, `feature`, `route`, `team` 중 최소 두 개 이상의 필터가 있다.
+- 오탐을 줄이는 방법이 issue ignore가 아니라 조건, grouping, ownership 조정으로 정리되어 있다.
 
 Trace alert는 Explore > Traces에서 쿼리를 만든 뒤 Alert로 저장합니다. threshold는 static, percent change, anomaly 중 하나를 쓰되 처음에는 static으로 시작해 오탐을 줄입니다.
 
@@ -537,7 +657,57 @@ Sentry의 server-side data scrubbing과 advanced data scrubbing은 마지막 방
 7. 완화 후 error rate, crash-free session, p75/p95 latency가 회복됐는지 확인합니다.
 8. issue를 resolved 처리할 때는 follow-up test, alert tuning, runbook 수정 중 하나를 같이 남깁니다.
 
-## 15. 체크리스트
+## 15. 운영 리포트와 대시보드
+
+운영 리포트의 핵심은 절대 건수가 아니라 변화율과 대응 상태입니다. 서비스 규모가 다르면 같은 1,000건도 의미가 달라지므로, 이전 기간 대비 변화와 핵심 flow 영향을 같이 봅니다.
+
+### 15.1 주간 리포트
+
+| 항목                | 볼 것                                       | 후속 조치                       |
+| :------------------ | :------------------------------------------ | :------------------------------ |
+| 전체 추세           | error event, transaction, error rate 변화   | 증가율이 큰 project/route 확인  |
+| 신규/회귀 이슈      | new issue, regression, suspect commit       | owner 지정, severity 확정       |
+| 핵심 flow           | checkout/login/search 등 route별 실패율     | P0/P1 여부 판단                 |
+| 성능 회귀           | p75/p90/p95 trace, long animation frame     | sample trace와 replay 연결      |
+| Replay 인사이트     | dead click, rage click, 긴 spinner, console | 재현 단계와 fallback 개선       |
+| 알림 품질           | 오탐, 누락, 미해결 알림                     | threshold/filter/routing 조정   |
+| 비용과 event volume | trace/replay/event quota 사용량             | sampling, inbound filter 재조정 |
+
+주간 운영 리듬은 다음처럼 단순하게 둡니다.
+
+- 월요일: 전주 Sentry 리포트를 발행하고 증가율이 큰 project와 route를 표시한다.
+- 주중: P0/P1은 runbook으로 즉시 처리하고, P2/P3는 owner와 다음 patch를 지정한다.
+- 금요일: 해결된 issue, 미해결 issue, 알림 오탐, sampling 변경 필요성을 리뷰한다.
+
+### 15.2 이슈 생명주기
+
+| 단계          | 정의                           | Sentry 증거                                  | 종료 조건                          |
+| :------------ | :----------------------------- | :------------------------------------------- | :--------------------------------- |
+| Detected      | 새 패턴 또는 회귀가 포착됨     | issue link, release, affected users          | owner와 severity가 지정됨          |
+| Investigating | 원인과 영향 범위를 확인 중     | stack trace, replay, trace, recent deploy    | root cause 후보가 좁혀짐           |
+| Fixing        | 수정 PR 또는 완화 조치 진행 중 | PR link, canary result, alert silence reason | production 배포 또는 flag off 완료 |
+| Resolved      | 발생 중단과 지표 회복이 확인됨 | error rate, crash-free session, p75/p95 회복 | follow-up test/runbook이 남음      |
+
+이슈를 닫을 때는 단순히 resolved 처리만 하지 않습니다. 재발 방지 테스트, alert tuning, runbook 수정, grouping/fingerprint 조정 중 하나를 같이 남깁니다.
+
+### 15.3 프로젝트/그룹 대시보드
+
+| 대시보드              | 포함할 항목                                                                 |
+| :-------------------- | :-------------------------------------------------------------------------- |
+| Project dashboard     | 일일 error, transaction, error rate, top errors, slow transactions, release |
+| Feature dashboard     | route/feature tag별 신규 이슈, 핵심 flow 실패율, replay sample              |
+| Performance dashboard | LCP/INP/CLS, page load, navigation, API span, long animation frame          |
+| Group dashboard       | project별 error rate, 전주 대비 변화율, P0/P1 미해결 수, alert 오탐률       |
+| Cost dashboard        | event volume, trace sample, replay sample, quota burn rate                  |
+
+대시보드는 보는 화면이 아니라 행동을 만드는 화면이어야 합니다.
+
+- Top error는 affected users와 release 회귀 여부를 같이 표시합니다.
+- 성능 대시보드는 평균보다 p75/p95와 특정 route 회귀를 먼저 보여줍니다.
+- group dashboard는 프로젝트 순위를 절대 건수가 아니라 error rate와 증가율 기준으로 봅니다.
+- 비용 대시보드는 sampling 조정의 근거로만 쓰고, P0/P1 탐지를 줄이는 방식으로 비용을 낮추지 않습니다.
+
+## 16. 체크리스트
 
 - [ ] `@sentry/react` 또는 `@sentry/nextjs` 최신 버전을 package lock으로 고정했다.
 - [ ] DSN은 환경 변수에서 읽고, `SENTRY_AUTH_TOKEN`은 CI secret에만 둔다.
@@ -549,6 +719,10 @@ Sentry의 server-side data scrubbing과 advanced data scrubbing은 마지막 방
 - [ ] ownership rule 또는 CODEOWNERS mapping으로 issue owner가 자동 제안된다.
 - [ ] release health를 배포 gate와 rollback 판단에 사용한다.
 - [ ] server-side data scrubbing과 SDK `beforeSend` 필터링을 모두 점검했다.
+- [ ] 주간 Sentry 리포트 owner와 발행 주기가 정해져 있다.
+- [ ] project/feature/performance/group/cost dashboard가 같은 tag 기준을 쓴다.
+- [ ] Detected -> Investigating -> Fixing -> Resolved 생명주기가 issue 상태에 반영된다.
+- [ ] 알림 오탐, event volume, sampling 변경 필요성을 정기 리뷰한다.
 
 ## 실무 적용 가이드
 
@@ -618,7 +792,7 @@ Sentry의 server-side data scrubbing과 advanced data scrubbing은 마지막 방
 - `승인 역할` : 작성자, 검토자, release owner, 모니터링 담당자를 분리해 기록한다.
 - `재평가 주기` : 2주 단위로 알림 오탐, sampling, 개인정보 필터, source map 상태를 확인한다.
 
-## 16. 공식 문서 기준
+## 17. 공식 문서 기준
 
 - [Sentry React SDK](https://docs.sentry.io/platforms/javascript/guides/react/)
 - [Sentry Next.js SDK](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
