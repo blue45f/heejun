@@ -1346,7 +1346,7 @@
             >develuv/study</a
           >
           <div class="contact-chip">
-            개인 프로젝트: PromptMarket, ProtoLive, ToonSpectrum, 이력서공방
+            개인 프로젝트: PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum
           </div>
           <div class="contact-chip">1981년 · 서울 송파구 방이동</div>
         </div>
@@ -1960,6 +1960,44 @@
         </div>
 
         <div class="project-card">
+          <h3>Multi-env Lab · 멀티 개발환경 레퍼런스</h3>
+          <div class="job-period">
+            Personal Project | Public repo: blue45f/multi-environment-setting
+          </div>
+          <figure class="project-snapshot" aria-label="Multi-env Lab 홈 화면 스냅샷">
+            <img
+              src="public/project-snapshots/multi-beta-guide.jpg"
+              alt="Multi-env Lab 홈 화면 스냅샷"
+              decoding="async"
+            />
+          </figure>
+          <div>
+            • 같은 정적 앱을 preview, staging, production에 배포하고 환경별 차이는 런타임
+            <code>env.json</code>으로 주입하는 멀티환경 레퍼런스입니다.<br />
+            • PR마다 격리된 preview 경로, staging 검증, production 승격 흐름을 한 화면에서 볼 수
+            있게 구성했습니다.<br />
+            • S3/CloudFront, GitHub Actions OIDC, runtime config 분리를 제품형 데모로 설명하는 개발
+            인프라 프로젝트입니다.
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>TypeScript, Next.js, GitHub Actions, S3/CloudFront, Vercel</span>
+          </div>
+          <div style="margin-top: 12px">
+            <a href="https://multi-beta-guide.vercel.app/" target="_blank" rel="noopener noreferrer"
+              >Live Demo</a
+            >
+            &nbsp;|&nbsp;
+            <a
+              href="https://github.com/blue45f/multi-environment-setting"
+              target="_blank"
+              rel="noopener noreferrer"
+              >GitHub</a
+            >
+          </div>
+        </div>
+
+        <div class="project-card">
           <h3>ToonSpectrum · 웹툰·웹소설 통합 인덱스</h3>
           <div class="job-period">Personal Project | Public repo: blue45f/toonspectrum</div>
           <figure class="project-snapshot" aria-label="ToonSpectrum 홈 화면 스냅샷">
@@ -2435,8 +2473,9 @@
         <h2 data-index="09">기술 활동 및 기여</h2>
         <div>
           • <strong>개인 프로젝트</strong>는 본문의 <strong>"개인 프로젝트"</strong> 섹션을 참고
-          (PromptMarket, ProtoLive, ToonSpectrum, 이력서공방, Family Care Platform, RotiFolk,
-          Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools, SPA SEO Gateway)<br />
+          (PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum, 이력서공방, Family Care Platform,
+          RotiFolk, Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools, SPA SEO
+          Gateway)<br />
           • <strong>GitHub Study Group</strong>:
           <a href="https://github.com/develuv/study" target="_blank" rel="noopener noreferrer"
             >https://github.com/develuv/study</a
@@ -2935,29 +2974,69 @@
         button.disabled = false
       }
 
+      function stripUnsupportedPdfColorFunctions(cssText) {
+        return cssText
+          .replace(/[a-zA-Z-]+\s*:\s*[^;{}]*(?:color-mix|oklab|oklch)[^;{}]*;/g, '')
+          .replace(/color-mix\([^;{}]*(?:\([^)]*\)[^;{}]*)*\)/g, '#d7e0e0')
+          .replace(/oklch\([^)]*\)/g, '#1c343b')
+          .replace(/oklab\([^)]*\)/g, '#1c343b')
+      }
+
       function sanitizePdfClone(clonedDocument) {
         clonedDocument.documentElement.classList.add('pdf-capture')
-        clonedDocument.querySelectorAll('style').forEach((style) => {
-          style.textContent = style.textContent
-            .replace(/[a-zA-Z-]+\s*:\s*[^;{}]*(?:color-mix|oklab)[^;{}]*;/g, '')
-            .replace(/oklch\([^)]*\)/g, '#1c343b')
-            .replace(/color-mix\([^;{}]*\)/g, '#d7e0e0')
-            .replace(/mask-image:[^;{}]*;/g, '')
+        clonedDocument.querySelectorAll('style, link[rel="stylesheet"]').forEach((node) => {
+          node.remove()
         })
         const safeStyle = clonedDocument.createElement('style')
         safeStyle.textContent = `
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #f5f8f8 !important;
+            color: #1c343b !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+            line-height: 1.68 !important;
+          }
+          main {
+            width: min(100%, 1040px) !important;
+            margin: 0 auto !important;
+            padding: 24px !important;
+            box-sizing: border-box !important;
+          }
           .pdf-capture *,
           .pdf-capture *::before,
           .pdf-capture *::after {
             background-image: none !important;
+            background-color: transparent !important;
+            border-color: #d7e0e0 !important;
+            caret-color: #1c343b !important;
+            color: #1c343b !important;
+            fill: #1c343b !important;
             mask-image: none !important;
             mix-blend-mode: normal !important;
+            outline-color: #527782 !important;
             filter: none !important;
             box-shadow: none !important;
+            stroke: #1c343b !important;
+            text-decoration-color: #527782 !important;
             text-shadow: none !important;
+            transform: none !important;
+          }
+          .pdf-capture header,
+          .pdf-capture .section {
+            display: block !important;
+            margin: 0 0 18px !important;
+            padding: 24px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 8px !important;
+            box-sizing: border-box !important;
           }
           .pdf-capture body { background: #f5f8f8 !important; }
-          .pdf-capture header { background: #0b3338 !important; }
+          .pdf-capture header {
+            background: #0b3338 !important;
+            color: #fbfcfc !important;
+          }
           .pdf-capture header,
           .pdf-capture header h1,
           .pdf-capture header a,
@@ -2966,6 +3045,28 @@
           .pdf-capture .contact-chip {
             color: #fbfcfc !important;
             opacity: 1 !important;
+          }
+          .pdf-capture .eyebrow,
+          .pdf-capture .contact-label,
+          .pdf-capture h2::before {
+            color: #a06f17 !important;
+          }
+          .pdf-capture h1,
+          .pdf-capture h2,
+          .pdf-capture h3 {
+            margin: 0 0 10px !important;
+            line-height: 1.24 !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+          .pdf-capture h1 { font-size: 36px !important; }
+          .pdf-capture h2 { font-size: 26px !important; }
+          .pdf-capture h3 { font-size: 19px !important; }
+          .pdf-capture div,
+          .pdf-capture p,
+          .pdf-capture a,
+          .pdf-capture span {
+            font-size: 14px !important;
           }
           .pdf-capture .eyebrow,
           .pdf-capture .contact-label {
@@ -2980,8 +3081,32 @@
           }
           .pdf-capture .impact-stat,
           .pdf-capture .contact-chip { background: #17464d !important; }
+          .pdf-capture .contact-info,
+          .pdf-capture .impact-grid,
+          .pdf-capture .skill-grid {
+            display: block !important;
+          }
+          .pdf-capture .contact-chip,
+          .pdf-capture .impact-stat,
+          .pdf-capture .skill-tag {
+            display: inline-block !important;
+            margin: 0 6px 6px 0 !important;
+            padding: 4px 8px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 6px !important;
+          }
           .pdf-capture .project-card,
-          .pdf-capture .section { background: #fbfcfc !important; }
+          .pdf-capture .section {
+            background: #fbfcfc !important;
+          }
+          .pdf-capture .project-card {
+            margin: 0 0 16px !important;
+            padding: 16px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 8px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
           .pdf-capture .project-snapshot {
             width: 420px !important;
             max-width: 100% !important;
@@ -2997,10 +3122,39 @@
             object-fit: contain !important;
             transform: none !important;
           }
+          .pdf-capture .save-buttons,
+          .pdf-capture .hero-stage,
+          .pdf-capture .hero-mark,
+          .pdf-capture canvas {
+            display: none !important;
+          }
         `
         clonedDocument.head.appendChild(safeStyle)
         clonedDocument.querySelectorAll('canvas, .hero-stage, .hero-mark').forEach((node) => {
           node.remove()
+        })
+      }
+
+      function getPdfCaptureScale(element) {
+        const maxCanvasSide = 12000
+        const maxCanvasPixels = 10000000
+        const requestedScale = Math.min(1.25, window.devicePixelRatio || 1.25)
+        const captureWidth = Math.max(
+          element.scrollWidth,
+          element.offsetWidth,
+          document.documentElement.scrollWidth,
+        )
+        const captureHeight = Math.max(element.scrollHeight, element.offsetHeight)
+        const maxScaleBySide = Math.min(maxCanvasSide / captureWidth, maxCanvasSide / captureHeight)
+        const maxScaleByArea = Math.sqrt(maxCanvasPixels / (captureWidth * captureHeight))
+        const maxScale = Math.min(maxScaleBySide, maxScaleByArea)
+
+        return Math.max(0.1, Math.min(requestedScale, maxScale))
+      }
+
+      function getPdfCaptureTargets(element) {
+        return Array.from(element.children).filter((node) => {
+          return node instanceof HTMLElement && node.offsetHeight > 0
         })
       }
 
@@ -3049,7 +3203,7 @@
         )
       }
 
-      function appendCanvasToPdf(pdf, canvas) {
+      function appendCanvasToPdf(pdf, canvas, startOnNewPage) {
         const pageWidth = pdf.internal.pageSize.getWidth()
         const pageHeight = pdf.internal.pageSize.getHeight()
         const margin = 8
@@ -3085,7 +3239,7 @@
             sliceHeight,
           )
 
-          if (pageIndex > 0) pdf.addPage()
+          if (startOnNewPage || pageIndex > 0) pdf.addPage()
           const imageHeight = (sliceHeight * imageWidth) / canvas.width
           pdf.addImage(
             pageCanvas.toDataURL('image/jpeg', 0.96),
@@ -3098,66 +3252,32 @@
 
           sourceY += sliceHeight
           pageIndex += 1
+          startOnNewPage = false
         }
       }
 
       async function savePDF() {
         const button = document.querySelector('.pdf-save')
         const originalText = button.innerHTML
-        button.innerHTML = 'PDF 생성 중…'
+        button.innerHTML = 'PDF 창 여는 중…'
         button.disabled = true
 
-        const saveButtons = document.querySelector('.save-buttons')
-        saveButtons.style.display = 'none'
         const root = document.documentElement
+        const previousScrollY = window.scrollY
         root.classList.add('pdf-capture')
 
-        // Ensure every reveal-gated section is visible before html2canvas captures.
         if (typeof window.__revealAllSections === 'function') window.__revealAllSections()
 
-        try {
-          await loadPdfLibraries()
-          const element = document.querySelector('main')
-          await waitForImages(element)
-          const canvas = await html2canvas(element, {
-            scale: Math.min(2, window.devicePixelRatio || 1.5),
-            useCORS: true,
-            logging: false,
-            letterRendering: true,
-            backgroundColor: '#f5f8f8',
-            scrollX: 0,
-            scrollY: -window.scrollY,
-            windowWidth: document.documentElement.offsetWidth,
-            windowHeight: element.scrollHeight,
-            onclone: sanitizePdfClone,
-          })
-
-          if (!canvasHasVisibleContent(canvas)) {
-            throw new Error('PDF 캡처 결과가 비어 있습니다.')
-          }
-
-          const pdf = new window.jspdf.jsPDF({
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait',
-            compress: true,
-          })
-          appendCanvasToPdf(pdf, canvas)
-          pdf.save('김희준_이력서.pdf')
-
-          saveButtons.style.display = 'flex'
-          button.innerHTML = 'PDF 저장 완료'
-          button.disabled = false
-          setTimeout(() => {
-            button.innerHTML = originalText
-          }, 2000)
-        } catch (error) {
-          console.error('PDF 생성 오류:', error)
-          alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
-          resetButton(button, saveButtons, originalText)
-        } finally {
+        const cleanup = () => {
+          window.scrollTo(0, previousScrollY)
           root.classList.remove('pdf-capture')
+          button.disabled = false
+          button.innerHTML = originalText
         }
+
+        window.addEventListener('afterprint', cleanup, { once: true })
+        window.print()
+        setTimeout(cleanup, 1500)
       }
 
       function printPDF() {
