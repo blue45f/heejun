@@ -13,4 +13,15 @@ dist/
 /*.png
 
 # Claude Code 로컬 메타 (lock 파일, 사용자별 settings 등)
-.claude/
+!.claude/
+.claude/*
+!.claude/agents/
+!.claude/agents/**
+!.claude/commands/
+!.claude/commands/**
+!.claude/skills/
+!.claude/skills/**
+.claude/settings*.json
+.claude/*.local.*
+.claude/_workspace/
+_workspace/

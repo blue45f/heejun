@@ -22,7 +22,7 @@
   - html2pdf.js — `cdnjs.cloudflare.com`(실패 시 `unpkg.com`으로 폴백)
   - Pretendard 가변 폰트 CSS·woff2 — `cdn.jsdelivr.net`
 - 동적 API 호출, 인증, 데이터베이스, 환경변수 기반 런타임 비밀이 **전혀 없습니다.**
-  따라서 백엔드 Dockerfile / render.yaml / fly.toml 같은 서버 배포 산출물은
+  그래서 백엔드 Dockerfile / render.yaml / fly.toml 같은 서버 배포 산출물은
   이 저장소에 **의도적으로 두지 않습니다**(추가하면 실제 형상과 어긋남).
 
 ```mermaid

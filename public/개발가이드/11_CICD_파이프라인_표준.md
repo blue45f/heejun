@@ -1,8 +1,5 @@
 # 11. CI/CD 파이프라인 표준
 
-> **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
-> 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
 - CI는 변경 검증, CD는 배포/확장 규칙을 지키게 하는 게이트입니다.
@@ -17,15 +14,15 @@ CI/CD는 "자동으로 검증하고, 위험이 보이면 멈추는" 라인입니
 
 ### 핵심 용어 빠르게 정리
 
-| 용어 | 쉬운 뜻 |
-| --- | --- |
-| `파이프라인` | 커밋 후 실행되는 자동 검증/배포 단계 |
-| `아티팩트` | 빌드 결과물(배포 가능한 산출물) |
-| `빌드 게이트` | 실패하면 배포를 막는 필수 검사 |
-| `브랜치 정책` | 어떤 브랜치에서 어떤 동작을 허용할지 규칙 |
-| `원복` | 배포 실패 시 이전 상태로 되돌리는 절차 |
-| `SBOM` | 빌드 산출물에 들어간 의존성/버전 명세 |
-| `provenance` | 어떤 commit·workflow에서 만들어졌는지 증명 |
+| 용어          | 쉬운 뜻                                    |
+| ------------- | ------------------------------------------ |
+| `파이프라인`  | 커밋 후 실행되는 자동 검증/배포 단계       |
+| `아티팩트`    | 빌드 결과물(배포 가능한 산출물)            |
+| `빌드 게이트` | 실패하면 배포를 막는 필수 검사             |
+| `브랜치 정책` | 어떤 브랜치에서 어떤 동작을 허용할지 규칙  |
+| `원복`        | 배포 실패 시 이전 상태로 되돌리는 절차     |
+| `SBOM`        | 빌드 산출물에 들어간 의존성/버전 명세      |
+| `provenance`  | 어떤 commit·workflow에서 만들어졌는지 증명 |
 
 ### 빠른 실패 -> 느린 검증 단계 한눈에
 
@@ -42,12 +39,10 @@ flowchart LR
   S7 --> S8["8. canary/release\n분~수십 분"]
 ```
 
-
-
-| 분류 | 인프라 & 배포 | 상태 | Stable |
-| :--- | :--- | :--- | :--- |
+| 분류            | 인프라 & 배포                                                                                                                                                                                                               | 상태          | Stable    |
+| :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------ | :-------- |
 | **연관 가이드** | [07. 테스팅](./07_테스팅_가이드.md), [10. 인프라](./10_인프라_IaC_가이드.md), [12. CDN 캐시](./12_CDN_캐시_전략.md), [14. 배포](./14_배포_프로세스_체크리스트.md), [27. 다중 개발 서버](./27_다중_개발_서버_구축_가이드.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | 재현 가능한 빌드, 품질 게이트, 보안 검사, artifact, approval, 배포 자동화 | **Update** | 최신 기준 |
+| **핵심 테마**   | 재현 가능한 빌드, 품질 게이트, 보안 검사, artifact, approval, 배포 자동화                                                                                                                                                   | **Update**    | 최신 기준 |
 
 ---
 
@@ -55,52 +50,49 @@ flowchart LR
 
 ---
 
-
 ## 추천 항목 (실무 우선순위)
 
 - **시작 추천**: 최소 하나의 실패 게이트를 정해 merge/deploy 조건으로 만듭니다.
 - **안정 추천**: artifact 무결성(SBOM/체크섬) 점검을 필수 단계로 추가합니다.
 - **운영 추천**: 롤백 시나리오는 배포 전 dry run로 한 번 확인해 실제 장애 대응 시간을 단축하세요.
 
-
 ## 추천 항목 고도화 체크
 
-- `즉시 적용` — 추천 항목 1개를 이번 주 내에 실제 작업 1건에 반영한다.
-- `1주 내 정리` — 적용 결과를 PR 본문이나 회고 노트에 간단히 기록한다.
-- `1개월 내 점검` — 재작업률/리뷰 충돌/배포 이슈 중 적어도 한 항목이 개선되었는지 확인한다.
-
+- `첫 적용` — deterministic install, quality aggregator, branch protection 중 하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+- `증거 정리` — workflow run, required check 목록, artifact attestation를 같은 작업 기록에 남긴다.
+- `재점검` — CI 대기 시간, flaky job, bypass merge 수가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
 
 ## 추천 항목 실행 기록 템플릿
 
-- `담당자` : 항목 적용 주체(문서 오너/팀원)를 명시
-- `적용일` : 실제 반영된 날짜 및 작업 ID를 남김
-- `측정 지표` : 리뷰 충돌/재작업/버그 재발 중 1개 이상 수치로 기록
-- `보류 사유` : 적용을 못한 경우 이유를 1줄 기록하고 다음 액션을 지정
+- `작업` : deterministic install, quality aggregator, branch protection 적용 범위를 어느 화면, 패키지, 문서에 둘지 적는다.
+- `증거` : workflow run, required check 목록, artifact attestation 중 실제로 남긴 항목만 링크한다.
+- `판정` : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.
+- `다음 점검` : CI 대기 시간, flaky job, bypass merge 수를 다시 볼 날짜와 담당자를 지정한다.
 
 ## 문서 책임 범위
 
-| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
-| :--- | :--- |
-| install/lint/type/test/build/security/artifact 품질 게이트 | [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md) |
-| artifact provenance, SBOM, checksum, environment approval | [10. 인프라](./10_인프라_IaC_가이드.md), [14. 배포](./14_배포_프로세스_체크리스트.md) |
-| cache, CDN, preview deploy와 release 증적 | [12. CDN 캐시](./12_CDN_캐시_전략.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
-| PR preview, branch environment, S3 artifact deploy workflow | [27. 다중 개발 서버](./27_다중_개발_서버_구축_가이드.md) |
-| CI 예외와 flaky gate의 리뷰/승인 기준 | [16. 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [15. RFC](./15_RFC_의사결정_프로세스.md) |
+| 이 문서가 결정하는 것                                       | 단일 출처로 따르는 문서                                                                   |
+| :---------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
+| install/lint/type/test/build/security/artifact 품질 게이트  | [07. 테스팅](./07_테스팅_가이드.md), [06. 보안](./06_웹_보안_심화_가이드.md)              |
+| artifact provenance, SBOM, checksum, environment approval   | [10. 인프라](./10_인프라_IaC_가이드.md), [14. 배포](./14_배포_프로세스_체크리스트.md)     |
+| cache, CDN, preview deploy와 release 증적                   | [12. CDN 캐시](./12_CDN_캐시_전략.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md)     |
+| PR preview, branch environment, S3 artifact deploy workflow | [27. 다중 개발 서버](./27_다중_개발_서버_구축_가이드.md)                                  |
+| CI 예외와 flaky gate의 리뷰/승인 기준                       | [16. 코드리뷰](./16_AI_협업_코드리뷰_가이드.md), [15. RFC](./15_RFC_의사결정_프로세스.md) |
 
 ---
 
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
-| 단계 | 최소 기준 | 실패 시 |
-| :--- | :--- | :--- |
-| **Install** | lockfile 기반 frozen install, 런타임 버전 고정 | 즉시 실패 |
-| **Static check** | format, lint, type check, import boundary | merge 차단 |
-| **Test** | unit, integration, contract, 핵심 E2E smoke | merge 또는 deploy 차단 |
-| **Build** | production build, sourcemap 정책, bundle budget | deploy 차단 |
-| **Security** | secret scan, dependency audit, license policy, SBOM/attestation | severity 기준 차단 |
-| **Artifact** | immutable artifact 생성, checksum, 보관 기간 명시 | deploy 차단 |
-| **Deploy** | 환경별 승인, canary/preview, rollback path | 자동 중단 |
-| **Evidence** | 테스트 결과, trace, coverage, accessibility/performance report 보관 | 감사 불가 시 실패 |
+| 단계             | 최소 기준                                                           | 실패 시                |
+| :--------------- | :------------------------------------------------------------------ | :--------------------- |
+| **Install**      | lockfile 기반 frozen install, 런타임 버전 고정                      | 즉시 실패              |
+| **Static check** | format, lint, type check, import boundary                           | merge 차단             |
+| **Test**         | unit, integration, contract, 핵심 E2E smoke                         | merge 또는 deploy 차단 |
+| **Build**        | production build, sourcemap 정책, bundle budget                     | deploy 차단            |
+| **Security**     | secret scan, dependency audit, license policy, SBOM/attestation     | severity 기준 차단     |
+| **Artifact**     | immutable artifact 생성, checksum, 보관 기간 명시                   | deploy 차단            |
+| **Deploy**       | 환경별 승인, canary/preview, rollback path                          | 자동 중단              |
+| **Evidence**     | 테스트 결과, trace, coverage, accessibility/performance report 보관 | 감사 불가 시 실패      |
 
 ### 0.0 파이프라인 순환 고리
 
@@ -124,20 +116,20 @@ flowchart TD
 
 ### 0.1 교차 검증 매트릭스
 
-| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| Artifact provenance | SLSA specification | SBOM/provenance 생성, checksum 검증 | 배포 artifact 추적성 | provenance 없는 artifact는 production 승격 금지 |
-| Frozen install | package manager 공식 lockfile 정책 | frozen install CI | dependency drift incident | emergency patch는 lockfile PR 필수 |
-| Quality gate | 각 도구 공식 CLI와 팀 위험 모델 | lint/type/test/build report | escaped defect, rollback rate | flaky gate는 owner/expiry로 격리 |
+| 권고                | 1차 출처                           | 실행 증거                           | 운영 증거                     | 철회 조건                                       |
+| :------------------ | :--------------------------------- | :---------------------------------- | :---------------------------- | :---------------------------------------------- |
+| Artifact provenance | SLSA specification                 | SBOM/provenance 생성, checksum 검증 | 배포 artifact 추적성          | provenance 없는 artifact는 production 승격 금지 |
+| Frozen install      | package manager 공식 lockfile 정책 | frozen install CI                   | dependency drift incident     | emergency patch는 lockfile PR 필수              |
+| Quality gate        | 각 도구 공식 CLI와 팀 위험 모델    | lint/type/test/build report         | escaped defect, rollback rate | flaky gate는 owner/expiry로 격리                |
 
 ### 0.2 운영 게이트
 
-| Gate | Evidence | Owner | Rollback |
-| :--- | :--- | :--- | :--- |
-| 품질 검증 | lint, type, test, build, security report | CI owner | merge/deploy 차단 |
-| Artifact provenance | checksum, SBOM, provenance, source revision | Release owner | artifact 폐기와 재빌드 |
-| 환경 승격 | approval record, environment policy | Release manager | promotion 중단 또는 이전 환경으로 회귀 |
-| Flaky gate 관리 | retry log, quarantine issue, 만료일 | QA owner | owner 없는 quarantine 해제와 gate 복구 |
+| Gate                | Evidence                                    | Owner           | Rollback                               |
+| :------------------ | :------------------------------------------ | :-------------- | :------------------------------------- |
+| 품질 검증           | lint, type, test, build, security report    | CI owner        | merge/deploy 차단                      |
+| Artifact provenance | checksum, SBOM, provenance, source revision | Release owner   | artifact 폐기와 재빌드                 |
+| 환경 승격           | approval record, environment policy         | Release manager | promotion 중단 또는 이전 환경으로 회귀 |
+| Flaky gate 관리     | retry log, quarantine issue, 만료일         | QA owner        | owner 없는 quarantine 해제와 gate 복구 |
 
 ---
 
@@ -159,21 +151,21 @@ flowchart LR
   Verify --> Release["release\napprover + env"]
 ```
 
-| 증적 | 필수 필드 | 생성 시점 | 검증 시점 |
-| :--- | :--- | :--- | :--- |
-| Source revision | commit SHA, branch/tag, author/reviewer, protected status | merge | build 시작 전 |
-| Dependency evidence | lockfile hash, package manager version, audit/signature result | install | PR과 release |
-| SBOM | package name/version/license, transitive dependency, artifact id | build 직후 | release 승인, incident triage |
-| Provenance/attestation | source repository, workflow id, runner/builder, subject digest | artifact 생성 직후 | deploy 승격 전 |
-| Checksum | artifact digest, signing/attestation reference | artifact 업로드 | rollback/download 전 |
-| Deployment evidence | environment, approver, release id, rollback artifact | promotion | incident/postmortem |
+| 증적                   | 필수 필드                                                        | 생성 시점          | 검증 시점                     |
+| :--------------------- | :--------------------------------------------------------------- | :----------------- | :---------------------------- |
+| Source revision        | commit SHA, branch/tag, author/reviewer, protected status        | merge              | build 시작 전                 |
+| Dependency evidence    | lockfile hash, package manager version, audit/signature result   | install            | PR과 release                  |
+| SBOM                   | package name/version/license, transitive dependency, artifact id | build 직후         | release 승인, incident triage |
+| Provenance/attestation | source repository, workflow id, runner/builder, subject digest   | artifact 생성 직후 | deploy 승격 전                |
+| Checksum               | artifact digest, signing/attestation reference                   | artifact 업로드    | rollback/download 전          |
+| Deployment evidence    | environment, approver, release id, rollback artifact             | promotion          | incident/postmortem           |
 
-| 통제 | 기준 | 실패 시 |
-| :--- | :--- | :--- |
-| 최소 권한 token | job별 `contents: read`, 필요한 경우에만 `id-token: write`, `attestations: write` | workflow permission 축소 전 merge 보류 |
-| OIDC | 장기 cloud key 대신 job 단위 short-lived token | secret 기반 배포는 만료일 있는 예외로만 허용 |
-| Action/재사용 workflow 고정 | mutable ref 대신 SHA pin 또는 검증된 immutable release 정책 | high-risk workflow는 실행 차단 |
-| Artifact 검증 | deploy job이 checksum/provenance를 검증한 artifact만 사용 | artifact 폐기와 재빌드 |
+| 통제                        | 기준                                                                             | 실패 시                                      |
+| :-------------------------- | :------------------------------------------------------------------------------- | :------------------------------------------- |
+| 최소 권한 token             | job별 `contents: read`, 필요한 경우에만 `id-token: write`, `attestations: write` | workflow permission 축소 전 merge 보류       |
+| OIDC                        | 장기 cloud key 대신 job 단위 short-lived token                                   | secret 기반 배포는 만료일 있는 예외로만 허용 |
+| Action/재사용 workflow 고정 | mutable ref 대신 SHA pin 또는 검증된 immutable release 정책                      | high-risk workflow는 실행 차단               |
+| Artifact 검증               | deploy job이 checksum/provenance를 검증한 artifact만 사용                        | artifact 폐기와 재빌드                       |
 
 ---
 
@@ -202,14 +194,14 @@ flowchart TD
   ReReview --> PR
 ```
 
-| 항목 | 기준 | 실패 시 |
-| :--- | :--- | :--- |
-| CodeRabbit 설정 | `.coderabbit.yaml`이 있는 저장소만 리뷰 게이트를 둔다 | 미설치 저장소에 게이트만 추가하면 PR이 영구적으로 막힐 수 있음 |
-| 최신성 | `pulls.listReviews` 결과 중 CodeRabbit 리뷰의 `commit_id`가 PR `head.sha`와 같아야 함 | 새 commit push 후 과거 approve 재사용 금지 |
-| 상태 | 최신 head SHA의 CodeRabbit 리뷰 state가 `APPROVED`여야 함 | `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`는 merge 차단 |
-| 브랜치 보호 | required status check에 `CodeRabbit review gate`와 저장소의 quality aggregator 체크를 추가하고 required conversation resolution을 켠다 | workflow 파일만 있으면 실패 체크나 미해결 리뷰 스레드를 무시하고 merge할 수 있음 |
-| PR 템플릿 | `CodeRabbit review gate` 통과 여부와 finding disposition을 기록 | accept/reject/follow-up 근거 없이 merge 금지 |
-| 자동 머지 | Dependabot은 safe bump 정책으로, 일반 PR은 `automerge`/`auto-merge` 라벨로만 auto-merge 후보로 둔다 | production dependency major나 명시적 의도 없는 일반 PR 자동 병합 금지 |
+| 항목            | 기준                                                                                                                                   | 실패 시                                                                          |
+| :-------------- | :------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| CodeRabbit 설정 | `.coderabbit.yaml`이 있는 저장소만 리뷰 게이트를 둔다                                                                                  | 미설치 저장소에 게이트만 추가하면 PR이 영구적으로 막힐 수 있음                   |
+| 최신성          | `pulls.listReviews` 결과 중 CodeRabbit 리뷰의 `commit_id`가 PR `head.sha`와 같아야 함                                                  | 새 commit push 후 과거 approve 재사용 금지                                       |
+| 상태            | 최신 head SHA의 CodeRabbit 리뷰 state가 `APPROVED`여야 함                                                                              | `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`는 merge 차단                       |
+| 브랜치 보호     | required status check에 `CodeRabbit review gate`와 저장소의 quality aggregator 체크를 추가하고 required conversation resolution을 켠다 | workflow 파일만 있으면 실패 체크나 미해결 리뷰 스레드를 무시하고 merge할 수 있음 |
+| PR 템플릿       | `CodeRabbit review gate` 통과 여부와 finding disposition을 기록                                                                        | accept/reject/follow-up 근거 없이 merge 금지                                     |
+| 자동 머지       | Dependabot은 safe bump 정책으로, 일반 PR은 `automerge`/`auto-merge` 라벨로만 auto-merge 후보로 둔다                                    | production dependency major나 명시적 의도 없는 일반 PR 자동 병합 금지            |
 
 ```yaml
 name: CodeRabbit review gate
@@ -249,50 +241,50 @@ CodeRabbit을 쓰는 저장소는 수동 실행용 `.github/workflows/branch-pro
 
 워크스페이스 하위 git 프로젝트는 아래 공통 규칙을 따른다.
 
-| 항목 | 표준 | 이유 |
-| :--- | :--- | :--- |
-| 실행 진입점 | package 프로젝트는 `pnpm run verify`를 로컬/CI 공통 검증 명령으로 둔다 | 개발자와 CI가 같은 계약을 실행 |
-| 설치 | lockfile 기반 `pnpm install --frozen-lockfile` | dependency drift 차단 |
-| 권한 | workflow 또는 job에 `permissions`를 명시하고 기본은 `contents: read` | `GITHUB_TOKEN` 최소 권한 유지 |
-| 동시성 | 모든 workflow에 top-level `concurrency`를 둔다 | 오래된 PR 실행 취소, deploy race 방지 |
-| 시간 제한 | 모든 job에 `timeout-minutes`를 둔다 | 무한 대기와 runner 비용 누수 차단 |
-| lint | CI용 `lint`는 검사만 하고 자동 수정은 `lint:fix`로 분리 | CI가 PR 소스를 몰래 바꾸지 않게 함 |
-| Action 버전 | 검증된 최신 major를 쓰고, 구버전 major가 남으면 audit에서 실패시킨다 | deprecated runtime/보안 경고 조기 제거 |
-| 자동 머지 | Dependabot safe bump 또는 명시적 `automerge`/`auto-merge` 라벨만 사용 | 의도 없는 일반 PR 자동 병합 방지 |
+| 항목        | 표준                                                                   | 이유                                   |
+| :---------- | :--------------------------------------------------------------------- | :------------------------------------- |
+| 실행 진입점 | package 프로젝트는 `pnpm run verify`를 로컬/CI 공통 검증 명령으로 둔다 | 개발자와 CI가 같은 계약을 실행         |
+| 설치        | lockfile 기반 `pnpm install --frozen-lockfile`                         | dependency drift 차단                  |
+| 권한        | workflow 또는 job에 `permissions`를 명시하고 기본은 `contents: read`   | `GITHUB_TOKEN` 최소 권한 유지          |
+| 동시성      | 모든 workflow에 top-level `concurrency`를 둔다                         | 오래된 PR 실행 취소, deploy race 방지  |
+| 시간 제한   | 모든 job에 `timeout-minutes`를 둔다                                    | 무한 대기와 runner 비용 누수 차단      |
+| lint        | CI용 `lint`는 검사만 하고 자동 수정은 `lint:fix`로 분리                | CI가 PR 소스를 몰래 바꾸지 않게 함     |
+| Action 버전 | 검증된 최신 major를 쓰고, 구버전 major가 남으면 audit에서 실패시킨다   | deprecated runtime/보안 경고 조기 제거 |
+| 자동 머지   | Dependabot safe bump 또는 명시적 `automerge`/`auto-merge` 라벨만 사용  | 의도 없는 일반 PR 자동 병합 방지       |
 
 현재 표준화한 GitHub Actions 버전 baseline은 다음과 같다.
 
-| 용도 | 기준 |
-| :--- | :--- |
-| checkout | `actions/checkout@v6` |
-| Node.js | `actions/setup-node@v6` |
-| pnpm | `pnpm/action-setup@v6` |
-| artifact | `actions/upload-artifact@v7` |
-| GitHub API script | `actions/github-script@v9` |
-| CodeQL | `github/codeql-action@v4` |
-| Dependabot metadata | `dependabot/fetch-metadata@v3` |
+| 용도                 | 기준                                                                                                                                                 |
+| :------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| checkout             | `actions/checkout@v6`                                                                                                                                |
+| Node.js              | `actions/setup-node@v6`                                                                                                                              |
+| pnpm                 | `pnpm/action-setup@v6`                                                                                                                               |
+| artifact             | `actions/upload-artifact@v7`                                                                                                                         |
+| GitHub API script    | `actions/github-script@v9`                                                                                                                           |
+| CodeQL               | `github/codeql-action@v4`                                                                                                                            |
+| Dependabot metadata  | `dependabot/fetch-metadata@v3`                                                                                                                       |
 | Docker build/publish | `docker/setup-qemu-action@v4`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`, `docker/build-push-action@v7` |
-| Google Cloud deploy | `google-github-actions/auth@v3`, `google-github-actions/setup-gcloud@v3` |
+| Google Cloud deploy  | `google-github-actions/auth@v3`, `google-github-actions/setup-gcloud@v3`                                                                             |
 
 공통 workflow 파일은 저장소군별로 아래처럼 배치한다.
 
-| 파일 | 대상 | 역할 |
-| :--- | :--- | :--- |
-| `.github/workflows/dependabot-auto-merge.yml` | 모든 git 프로젝트 | Dependabot safe bump만 auto-merge 후보로 등록 |
-| `.github/workflows/coderabbit-gate.yml` | `.coderabbit.yaml`이 있는 프로젝트 | 최신 PR head SHA의 CodeRabbit `APPROVED` 리뷰를 required check로 노출 |
-| `.github/workflows/auto-merge-on-green.yml` | `.coderabbit.yaml`이 있는 프로젝트 | `automerge`/`auto-merge` 라벨이 붙은 일반 PR에 auto-merge 활성화 |
-| `.github/workflows/branch-protection.yml` | `.coderabbit.yaml`이 있는 프로젝트 | `GH_ADMIN_TOKEN`으로 required checks와 conversation resolution 적용 |
+| 파일                                          | 대상                               | 역할                                                                  |
+| :-------------------------------------------- | :--------------------------------- | :-------------------------------------------------------------------- |
+| `.github/workflows/dependabot-auto-merge.yml` | 모든 git 프로젝트                  | Dependabot safe bump만 auto-merge 후보로 등록                         |
+| `.github/workflows/coderabbit-gate.yml`       | `.coderabbit.yaml`이 있는 프로젝트 | 최신 PR head SHA의 CodeRabbit `APPROVED` 리뷰를 required check로 노출 |
+| `.github/workflows/auto-merge-on-green.yml`   | `.coderabbit.yaml`이 있는 프로젝트 | `automerge`/`auto-merge` 라벨이 붙은 일반 PR에 auto-merge 활성화      |
+| `.github/workflows/branch-protection.yml`     | `.coderabbit.yaml`이 있는 프로젝트 | `GH_ADMIN_TOKEN`으로 required checks와 conversation resolution 적용   |
 
 브랜치 보호 워크플로우는 저장소별 quality aggregator 이름을 정확히 사용해야 한다. required check 이름이 실제 job 이름과 다르면 GitHub가 영구 대기 상태로 남길 수 있다.
 
-| 저장소 | required status checks |
-| :--- | :--- |
-| `PromptMarket` | `Quality gate`, `CodeRabbit review gate` |
-| `spa-seo-gateway` | `Quality gate`, `CodeRabbit review gate` |
-| `orbit-ui` | `빌드 및 테스트`, `린트`, `CodeRabbit review gate` |
-| `remote-devtools` | `CI pass gate`, `enforce-pr-checklist`, `CodeRabbit review gate` |
-| `pettography` | `Frontend verify`, `Backend verify`, `CodeRabbit review gate` |
-| `react-boilerplates` | `Verify`, `CodeRabbit review gate` |
+| 저장소               | required status checks                                           |
+| :------------------- | :--------------------------------------------------------------- |
+| `PromptMarket`       | `Quality gate`, `CodeRabbit review gate`                         |
+| `spa-seo-gateway`    | `Quality gate`, `CodeRabbit review gate`                         |
+| `orbit-ui`           | `빌드 및 테스트`, `린트`, `CodeRabbit review gate`               |
+| `remote-devtools`    | `CI pass gate`, `enforce-pr-checklist`, `CodeRabbit review gate` |
+| `pettography`        | `Frontend verify`, `Backend verify`, `CodeRabbit review gate`    |
+| `react-boilerplates` | `Verify`, `CodeRabbit review gate`                               |
 
 Dependabot 자동 머지는 아래 조건 중 하나만 만족할 때 auto-merge를 활성화한다.
 
@@ -397,14 +389,14 @@ change
 
 > 왜 중요한가: 같은 commit이 어제는 통과했는데 오늘은 실패한다면, 그것은 코드가 아니라 환경의 문제입니다. 재현성은 디버깅 시간을 가장 크게 줄여 줍니다.
 
-| 항목 | 기준 |
-| :--- | :--- |
-| 런타임 | Node/Bun/pnpm 등 실행 버전을 파일로 고정 |
-| 의존성 | lockfile 변경은 리뷰 대상, install은 frozen 모드 |
-| 환경 변수 | build-time과 runtime 변수를 분리 |
-| 캐시 | lockfile, OS, 런타임 버전을 cache key에 포함 |
-| 산출물 | checksum, build metadata, source revision 포함 |
-| 시간 의존성 | 테스트에서 현재 시간, locale, timezone 고정 |
+| 항목        | 기준                                             |
+| :---------- | :----------------------------------------------- |
+| 런타임      | Node/Bun/pnpm 등 실행 버전을 파일로 고정         |
+| 의존성      | lockfile 변경은 리뷰 대상, install은 frozen 모드 |
+| 환경 변수   | build-time과 runtime 변수를 분리                 |
+| 캐시        | lockfile, OS, 런타임 버전을 cache key에 포함     |
+| 산출물      | checksum, build metadata, source revision 포함   |
+| 시간 의존성 | 테스트에서 현재 시간, locale, timezone 고정      |
 
 ### 2.1 캐시 키 결정 트리
 
@@ -431,16 +423,16 @@ flowchart TD
 
 > 일상 비유: 병원에서 수술 전 체크리스트와 같습니다. 의사가 외워서 챙기는 게 아니라, 통과해야 다음 단계로 넘어가는 강제 절차여야 환자 안전이 보장됩니다.
 
-| 게이트 | 최소 요구사항 |
-| :--- | :--- |
-| Type | `tsc --noEmit` 또는 동등한 type check 통과 |
-| Lint | React Hooks/Compiler, 접근성, import boundary 규칙 포함 |
-| Unit | 핵심 유틸, hooks, reducers, domain logic |
-| Integration | API mocking, form validation, error handling |
-| Contract | OpenAPI/GraphQL/schema breaking change 검출 |
-| E2E | 로그인, 탐색, 주요 전환, 결제/저장 등 핵심 flow |
-| Accessibility | 자동 검사 + 핵심 flow keyboard smoke |
-| Performance | bundle budget, Core Web Vitals smoke, Lighthouse/trace budget |
+| 게이트        | 최소 요구사항                                                 |
+| :------------ | :------------------------------------------------------------ |
+| Type          | `tsc --noEmit` 또는 동등한 type check 통과                    |
+| Lint          | React Hooks/Compiler, 접근성, import boundary 규칙 포함       |
+| Unit          | 핵심 유틸, hooks, reducers, domain logic                      |
+| Integration   | API mocking, form validation, error handling                  |
+| Contract      | OpenAPI/GraphQL/schema breaking change 검출                   |
+| E2E           | 로그인, 탐색, 주요 전환, 결제/저장 등 핵심 flow               |
+| Accessibility | 자동 검사 + 핵심 flow keyboard smoke                          |
+| Performance   | bundle budget, Core Web Vitals smoke, Lighthouse/trace budget |
 
 게이트는 "권장"이 아니라 merge/deploy 조건이어야 합니다. 예외는 owner, 만료일, 보완 계획이 있는 RFC로만 허용합니다.
 
@@ -699,7 +691,6 @@ pnpm verify            # 위 명령을 한 번에 점검
 
 > 기준 임계치 예시: `vite build` 실패 0건, storybook build 실패 0건, 5분 이상 걸리는 빌드는 성능 리스크 리뷰.
 
-
 ### 4.7 PR 룰(Repository 공통 규약)
 
 팀/프로젝트 공통으로 PR을 같은 방식으로 처리하기 위해 아래 규약을 적용합니다.
@@ -737,19 +728,18 @@ pnpm verify            # 위 명령을 한 번에 점검
 
 > 운영상 예외가 필요하면 해당 PR에 `skip` 사유와 보완 plan을 기록하고, 처리일자/담당자를 남겨 추후 삭제합니다.
 
-
 ---
 
 ## 5. 보안과 공급망
 
-| 영역 | 기준 |
-| :--- | :--- |
-| Secret | commit, build log, artifact, client bundle에 secret 노출 금지 |
-| Dependency | 심각도와 exploitability 기준으로 차단 정책 운영 |
-| SBOM | production artifact와 함께 생성 및 보관 |
-| Provenance | artifact가 어떤 commit과 workflow에서 나왔는지 증명 |
-| Permission | CI token은 job별 최소 권한 |
-| OIDC | 장기 cloud key 대신 임시 workload identity 사용 |
+| 영역       | 기준                                                          |
+| :--------- | :------------------------------------------------------------ |
+| Secret     | commit, build log, artifact, client bundle에 secret 노출 금지 |
+| Dependency | 심각도와 exploitability 기준으로 차단 정책 운영               |
+| SBOM       | production artifact와 함께 생성 및 보관                       |
+| Provenance | artifact가 어떤 commit과 workflow에서 나왔는지 증명           |
+| Permission | CI token은 job별 최소 권한                                    |
+| OIDC       | 장기 cloud key 대신 임시 workload identity 사용               |
 
 보안 검사는 가장 늦은 production 직전에 처음 돌리면 비용이 큽니다. PR 단계에서 빠른 secret/dependency scan을 먼저 실행합니다.
 
@@ -782,13 +772,13 @@ steps:
 
 ## 6. Branch와 Release 전략
 
-| 전략 | 기준 |
-| :--- | :--- |
-| Trunk-based | 작은 PR, feature flag, 빠른 통합 |
+| 전략           | 기준                                           |
+| :------------- | :--------------------------------------------- |
+| Trunk-based    | 작은 PR, feature flag, 빠른 통합               |
 | Release branch | 규제/검증 기간이 긴 제품에서만 제한적으로 사용 |
-| Feature flag | deploy와 release 분리, kill switch 필수 |
-| Canary | 일부 사용자/트래픽/환경에서 지표 확인 후 확대 |
-| Rollback | artifact rollback과 flag off를 모두 준비 |
+| Feature flag   | deploy와 release 분리, kill switch 필수        |
+| Canary         | 일부 사용자/트래픽/환경에서 지표 확인 후 확대  |
+| Rollback       | artifact rollback과 flag off를 모두 준비       |
 
 긴 수명 feature branch는 merge conflict와 테스트 공백을 만들기 쉽습니다. 큰 기능은 작은 PR과 feature flag로 나눕니다.
 
@@ -796,14 +786,14 @@ steps:
 
 ## 7. Artifact 보관
 
-| 산출물 | 보관 기준 |
-| :--- | :--- |
-| Build output | release와 rollback 기간 동안 보관 |
-| Test report | 실패 원인 분석 가능한 기간 동안 보관 |
-| E2E trace/video | 실패 시 항상 보관 |
-| Coverage | 추세 분석 목적의 요약 보관 |
-| SBOM/provenance | 감사 요구 기간에 맞춰 보관 |
-| Source map | 접근 제한, 업로드 후 public 노출 금지 |
+| 산출물          | 보관 기준                             |
+| :-------------- | :------------------------------------ |
+| Build output    | release와 rollback 기간 동안 보관     |
+| Test report     | 실패 원인 분석 가능한 기간 동안 보관  |
+| E2E trace/video | 실패 시 항상 보관                     |
+| Coverage        | 추세 분석 목적의 요약 보관            |
+| SBOM/provenance | 감사 요구 기간에 맞춰 보관            |
+| Source map      | 접근 제한, 업로드 후 public 노출 금지 |
 
 artifact 보관 기간은 비용과 감사 요구의 균형으로 정하되, rollback 가능한 기간보다 짧아서는 안 됩니다.
 
@@ -815,12 +805,12 @@ artifact 보관 기간은 비용과 감사 요구의 균형으로 정하되, rol
 
 production 배포는 자동화되어야 하지만 자동 승인까지 요구하지는 않습니다.
 
-| 조건 | 승인 정책 |
-| :--- | :--- |
-| 낮은 위험 | 모든 게이트 통과 시 자동 승격 |
-| 중간 위험 | reviewer 또는 release owner 승인 |
-| 높은 위험 | RFC/ADR, rollback drill, 변경 창 필요 |
-| 긴급 hotfix | 사후 리뷰와 postmortem 필수 |
+| 조건        | 승인 정책                             |
+| :---------- | :------------------------------------ |
+| 낮은 위험   | 모든 게이트 통과 시 자동 승격         |
+| 중간 위험   | reviewer 또는 release owner 승인      |
+| 높은 위험   | RFC/ADR, rollback drill, 변경 창 필요 |
+| 긴급 hotfix | 사후 리뷰와 postmortem 필수           |
 
 승인은 "누가 버튼을 눌렀는가"보다 "어떤 증적을 보고 승인했는가"가 중요합니다.
 
@@ -897,7 +887,7 @@ export default {
       ['feat', 'fix', 'docs', 'refactor', 'test', 'chore', 'ci', 'perf', 'revert'],
     ],
   },
-};
+}
 ```
 
 - commitlint 설정 파일은 `commitlint.config.js`, `commitlint.config.mjs`, `.commitlintrc.*` 중 하나로 둡니다.
@@ -906,12 +896,12 @@ export default {
 
 ### 11.3 hook에 넣을 것과 CI에 둘 것
 
-| 위치 | 넣을 작업 | 제외할 작업 |
-| :--- | :--- | :--- |
-| `pre-commit` | staged lint/format, secretlint, 빠른 타입 단서 검사 | 전체 build, 전체 E2E, 외부 API 의존 테스트 |
-| `commit-msg` | commitlint | branch policy, PR title 검증 |
-| PR CI | frozen install, lint, type, unit, MSW integration, build, secret scan | 개인 환경에만 있는 editor task |
-| protected branch | required checks, review approval, provenance | 로컬 hook 성공 여부 |
+| 위치             | 넣을 작업                                                             | 제외할 작업                                |
+| :--------------- | :-------------------------------------------------------------------- | :----------------------------------------- |
+| `pre-commit`     | staged lint/format, secretlint, 빠른 타입 단서 검사                   | 전체 build, 전체 E2E, 외부 API 의존 테스트 |
+| `commit-msg`     | commitlint                                                            | branch policy, PR title 검증               |
+| PR CI            | frozen install, lint, type, unit, MSW integration, build, secret scan | 개인 환경에만 있는 editor task             |
+| protected branch | required checks, review approval, provenance                          | 로컬 hook 성공 여부                        |
 
 `HUSKY=0`으로 hook을 우회한 commit은 PR 본문에 이유와 CI 결과를 남깁니다. 반복 우회가 생기면 hook이 너무 느리거나 noisy하다는 신호로 보고 명령을 재조정합니다.
 
@@ -955,27 +945,25 @@ export default {
 
 ## 추천 항목 실행 우선순위 매핑
 
-- `P1(7일 내)` — 추천 항목 1개를 우선 적용하고 1회 사용자 관측 신호(에러율/실패율/지연)와 연결한다.
-- `P2(30일 내)` — 추천 항목 1개를 팀 내 표준/템플릿에 반영해 재사용성을 확보한다.
-- `P3(90일 내)` — 추천 항목 1개를 다른 관련 문서에 역링크로 연동해 중복 작업을 줄인다.
-- `완료 기준` — 각 항목별 산출물(예: PR 링크/체크리스트/회고 노트)을 1개 이상 남긴다.
+- `P1(7일 내)` — deterministic install, quality aggregator, branch protection 중 하나를 작은 변경 1건에 적용하고 증거(workflow run)를 남긴다.
+- `P2(30일 내)` — CI/CD 게이트 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에 고정한다.
+- `P3(90일 내)` — CI 대기 시간, flaky job, bypass merge 수 추이를 보고 기준을 유지할지 조정할지 결정한다.
+- `완료 기준` — CI 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
 
 ## 추천 항목 실행 체크리스트
 
-- [ ] `1단계(7일)` : 추천 항목 1개를 실제 작업으로 전환
-- [ ] `2단계(30일)` : 전환 결과를 팀 산출물(ADR/PR/체크리스트)에 반영
-- [ ] `3단계(60일)` : 정적 지표 1개 이상으로 효과 검증
-- [ ] `문제 대응` : 미달성 시 보류 사유와 다음 실행 액션을 문서화
-
-
+- [ ] `1단계(7일)` : deterministic install, quality aggregator, branch protection 적용 대상을 1개로 좁힌다.
+- [ ] `2단계(30일)` : 증거(workflow run, required check 목록, artifact attestation)를 PR, ADR, 회고 중 한 곳에 연결한다.
+- [ ] `3단계(60일)` : CI 대기 시간, flaky job, bypass merge 수가 기준 안에 들어왔는지 확인한다.
+- [ ] `문제 대응` : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에 남긴다.
 
 ## 추천 항목 실행 운영 규칙
 
-- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.
-- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.
-- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.
-- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.
-- `리스크 점수` : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.
-- `리더 승인자` : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.
-- `승인 역할` : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.
-- `재평가 주기` : 최소 2주 단위로 상태를 리뷰하고 조정한다.
+- `실행 게이트` : required check가 실제 branch protection에 연결됐는지 확인한다.
+- `승인 체계` : CI 오너가 영향 범위와 rollback 담당자를 적용 전에 확인한다.
+- `재개 조건` : 최신 head SHA 기준 모든 required check가 통과하면 merge를 허용한다.
+- `정지 조건` : workflow만 있고 branch protection 강제력이 없으면 표준 적용으로 보지 않는다.
+- `리스크 점수` : required job 수, secret 권한, 배포 자동화 범위로 산정한다.
+- `리더 승인자` : 릴리스 엔지니어가 최종 승인 책임을 맡는다.
+- `승인 역할` : CI/CD 게이트 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+- `재평가 주기` : workflow 변경 때마다 branch protection을 재동기화한다.

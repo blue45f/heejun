@@ -6,13 +6,13 @@
 
 ## 한눈에 보는 가이드 현황
 
-| 영역 | 수치 |
-| :--- | :---: |
-| 개발 가이드 문서 | **28개** |
-| 시각화 다이어그램 (Mermaid) | **293개** |
-| 문서당 평균 다이어그램 | **10.5개** |
-| 일상 비유 도입 문서 | **28/28** |
-| 검증 자동화 (CI/Verify) | `node scripts/validate-dev-guides.mjs` 통과 |
+| 영역                        |                    수치                     |
+| :-------------------------- | :-----------------------------------------: |
+| 개발 가이드 문서            |                  **28개**                   |
+| 시각화 다이어그램 (Mermaid) |                  **297개**                  |
+| 문서당 평균 다이어그램      |                 **10.6개**                  |
+| 일상 비유 도입 문서         |                  **28/28**                  |
+| 검증 자동화 (CI/Verify)     | `node scripts/validate-dev-guides.mjs` 통과 |
 
 ### 문서별 다이어그램 분포
 
@@ -50,6 +50,7 @@ mindmap
     Mermaid 다이어그램
       flowchart
         의사결정 트리
+        판정 게이트
         워크플로우
         의존성 그래프
       sequenceDiagram
@@ -79,15 +80,15 @@ mindmap
 
 ## 빠른 사용법
 
-| 상황 | 먼저 볼 문서 | 바로 할 일 |
-|------|--------------|------------|
-| 새 프로젝트를 시작한다 | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md) | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정 |
-| 기존 서비스 품질을 올린다 | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md) | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가 |
-| 배포가 불안정하다 | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md) | build once, deploy many, rollback artifact, release health를 먼저 확인 |
-| 리액트 빌드가 흔들린다 | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [02. React 19 실무](public/개발가이드/02_React19_실무_가이드.md) | 앱/라이브러리 빌드 스크립트, Storybook 10, PR 게이트 순서를 통합 점검 |
-| PR마다 검증 URL이 필요하다 | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
-| 여러 팀이 같은 코드를 만진다 | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md) | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영 |
-| 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md) | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정 |
+| 상황                                 | 먼저 볼 문서                                                                                                                                                                                     | 바로 할 일                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 새 프로젝트를 시작한다               | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md)      | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정                  |
+| 기존 서비스 품질을 올린다            | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md)                          | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가                     |
+| 배포가 불안정하다                    | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md)   | build once, deploy many, rollback artifact, release health를 먼저 확인               |
+| 리액트 빌드가 흔들린다               | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [02. React 19 실무](public/개발가이드/02_React19_실무_가이드.md)                                                                    | 앱/라이브러리 빌드 스크립트, Storybook 10, PR 게이트 순서를 통합 점검                |
+| PR마다 검증 URL이 필요하다           | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
+| 여러 팀이 같은 코드를 만진다         | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md)    | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영               |
+| 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md)                   | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정            |
 
 ### 상황별 문서 선택 결정 트리
 
@@ -192,91 +193,91 @@ flowchart LR
 
 ## 최신 기술 기준 요약
 
-| 영역 | 현재 가이드의 기본 판단 |
-|------|--------------------------|
-| React | React 19 라인, Actions, Server Components, React Compiler, Error Boundary/Suspense 경계를 실무 기준으로 다룹니다. canary API는 별도 플래그와 철회 조건이 있을 때만 사용합니다. |
-| TypeScript | TypeScript 6 안정 라인을 기본으로 보고, TypeScript 7 native toolchain은 별도 검증 명령으로 병행 확인합니다. `any`보다 boundary validation과 `satisfies`를 우선합니다. |
-| Framework/Build | Next.js App Router, Vite/Rolldown 계열, Tailwind CSS v4처럼 현재 주류 도구를 다루되 lockfile과 공식 release note로 검증합니다. |
-| Testing | Vitest, Playwright, Storybook, MSW, contract test를 조합하고, 핵심 사용자 흐름의 실패 trace를 반드시 보관합니다. |
-| Security | OWASP, OAuth Security BCP, CSP, Trusted Types, secret scan, SBOM/provenance를 프론트엔드 배포의 일부로 봅니다. |
-| Performance | Core Web Vitals는 lab 점수보다 실제 사용자 p75를 우선합니다. LCP, INP, CLS, bundle budget, third-party script를 함께 봅니다. |
-| Accessibility | WCAG 2.2 AA, 키보드 조작, focus order, screen reader 흐름, reduced motion을 release gate로 연결합니다. |
-| Operations | deploy와 release를 분리하고, feature flag, canary, rollback artifact, release health, postmortem action을 한 묶음으로 관리합니다. |
+| 영역            | 현재 가이드의 기본 판단                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| React           | React 19 라인, Actions, Server Components, React Compiler, Error Boundary/Suspense 경계를 실무 기준으로 다룹니다. canary API는 별도 플래그와 철회 조건이 있을 때만 사용합니다. |
+| TypeScript      | TypeScript 6 안정 라인을 기본으로 보고, TypeScript 7 native toolchain은 별도 검증 명령으로 병행 확인합니다. `any`보다 boundary validation과 `satisfies`를 우선합니다.          |
+| Framework/Build | Next.js App Router, Vite/Rolldown 계열, Tailwind CSS v4처럼 현재 주류 도구를 다루되 lockfile과 공식 release note로 검증합니다.                                                 |
+| Testing         | Vitest, Playwright, Storybook, MSW, contract test를 조합하고, 핵심 사용자 흐름의 실패 trace를 반드시 보관합니다.                                                               |
+| Security        | OWASP, OAuth Security BCP, CSP, Trusted Types, secret scan, SBOM/provenance를 프론트엔드 배포의 일부로 봅니다.                                                                 |
+| Performance     | Core Web Vitals는 lab 점수보다 실제 사용자 p75를 우선합니다. LCP, INP, CLS, bundle budget, third-party script를 함께 봅니다.                                                   |
+| Accessibility   | WCAG 2.2 AA, 키보드 조작, focus order, screen reader 흐름, reduced motion을 release gate로 연결합니다.                                                                         |
+| Operations      | deploy와 release를 분리하고, feature flag, canary, rollback artifact, release health, postmortem action을 한 묶음으로 관리합니다.                                              |
 
 ## 문서 구성
 
 ### System Map
 
-| No | Document | Focus |
-|----|----------|-------|
-| 00 | [종합 가이드 목차](public/개발가이드/00_종합_가이드_목차.md) | 전체 구조, 읽는 순서, 공통 완료 기준 |
+| No  | Document                                                     | Focus                                |
+| --- | ------------------------------------------------------------ | ------------------------------------ |
+| 00  | [종합 가이드 목차](public/개발가이드/00_종합_가이드_목차.md) | 전체 구조, 읽는 순서, 공통 완료 기준 |
 
 ### Core Engineering
 
-| No | Document | Focus |
-|----|----------|-------|
-| 01 | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md) | strict mode, boundary validation, schema, native toolchain 전환 |
-| 02 | [React 19 실무 가이드](public/개발가이드/02_React19_실무_가이드.md) | Actions, Compiler, Server Components, Suspense/Error Boundary |
-| 03 | [상태관리 패턴 가이드](public/개발가이드/03_상태관리_패턴_가이드.md) | 서버 상태, UI 상태, URL state, optimistic update |
-| 04 | [아키텍처 설계 패턴](public/개발가이드/04_아키텍처_설계_패턴.md) | feature boundary, Clean Architecture, server/client 경계 |
-| 05 | [API 통신 및 모킹 가이드](public/개발가이드/05_API_통신_및_모킹_가이드.md) | OpenAPI, codegen, MSW, Result pattern, contract test |
-| 06 | [웹 보안 심화 가이드](public/개발가이드/06_웹_보안_심화_가이드.md) | 인증, CSP, Trusted Types, dependency, supply chain |
+| No  | Document                                                                   | Focus                                                           |
+| --- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 01  | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md)   | strict mode, boundary validation, schema, native toolchain 전환 |
+| 02  | [React 19 실무 가이드](public/개발가이드/02_React19_실무_가이드.md)        | Actions, Compiler, Server Components, Suspense/Error Boundary   |
+| 03  | [상태관리 패턴 가이드](public/개발가이드/03_상태관리_패턴_가이드.md)       | 서버 상태, UI 상태, URL state, optimistic update                |
+| 04  | [아키텍처 설계 패턴](public/개발가이드/04_아키텍처_설계_패턴.md)           | feature boundary, Clean Architecture, server/client 경계        |
+| 05  | [API 통신 및 모킹 가이드](public/개발가이드/05_API_통신_및_모킹_가이드.md) | OpenAPI, codegen, MSW, Result pattern, contract test            |
+| 06  | [웹 보안 심화 가이드](public/개발가이드/06_웹_보안_심화_가이드.md)         | 인증, CSP, Trusted Types, dependency, supply chain              |
 
 ### Quality Gates
 
-| No | Document | Focus |
-|----|----------|-------|
-| 07 | [테스팅 가이드](public/개발가이드/07_테스팅_가이드.md) | unit, integration, E2E, visual regression, mutation testing |
-| 08 | [성능 최적화 가이드](public/개발가이드/08_성능_최적화_가이드.md) | Core Web Vitals, bundle budget, RUM, attribution |
-| 13 | [브라우저 호환성 가이드](public/개발가이드/13_브라우저_호환성_가이드.md) | Baseline, feature detection, polyfill, cross-browser smoke |
-| 19 | [웹 접근성 가이드](public/개발가이드/19_웹_접근성_가이드.md) | WCAG, ARIA, keyboard, screen reader, evidence |
+| No  | Document                                                                 | Focus                                                       |
+| --- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| 07  | [테스팅 가이드](public/개발가이드/07_테스팅_가이드.md)                   | unit, integration, E2E, visual regression, mutation testing |
+| 08  | [성능 최적화 가이드](public/개발가이드/08_성능_최적화_가이드.md)         | Core Web Vitals, bundle budget, RUM, attribution            |
+| 13  | [브라우저 호환성 가이드](public/개발가이드/13_브라우저_호환성_가이드.md) | Baseline, feature detection, polyfill, cross-browser smoke  |
+| 19  | [웹 접근성 가이드](public/개발가이드/19_웹_접근성_가이드.md)             | WCAG, ARIA, keyboard, screen reader, evidence               |
 
 ### Delivery And Operations
 
-| No | Document | Focus |
-|----|----------|-------|
-| 09 | [장애 대응 및 관측성 표준](public/개발가이드/09_장애_대응_및_관측성_표준.md) | RUM, error tracking, alert, severity, postmortem |
-| 10 | [인프라 및 IaC 가이드](public/개발가이드/10_인프라_IaC_가이드.md) | IaC, preview environment, workload identity, drift, cost |
-| 11 | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md) | React 빌드/Storybook 빌드 가이드, deterministic install, timeout/concurrency/permissions, Dependabot safe auto-merge, CodeRabbit review gate, branch protection |
-| 12 | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md) | cache-control, immutable asset, invalidation, security header |
-| 14 | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md) | canary, feature flag, rollback, post-deploy monitor |
-| 22 | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md) | package boundary, task graph, cache, release ownership |
-| 27 | [다중 개발 서버 구축 가이드](public/개발가이드/27_다중_개발_서버_구축_가이드.md) | multi-environment, PR preview, Amplify, S3 artifact, GitHub Actions |
+| No  | Document                                                                         | Focus                                                                                                                                                           |
+| --- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 09  | [장애 대응 및 관측성 표준](public/개발가이드/09_장애_대응_및_관측성_표준.md)     | RUM, error tracking, alert, severity, postmortem                                                                                                                |
+| 10  | [인프라 및 IaC 가이드](public/개발가이드/10_인프라_IaC_가이드.md)                | IaC, preview environment, workload identity, drift, cost                                                                                                        |
+| 11  | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md)            | React 빌드/Storybook 빌드 가이드, deterministic install, timeout/concurrency/permissions, Dependabot safe auto-merge, CodeRabbit review gate, branch protection |
+| 12  | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md)                           | cache-control, immutable asset, invalidation, security header                                                                                                   |
+| 14  | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md)     | canary, feature flag, rollback, post-deploy monitor                                                                                                             |
+| 22  | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md)             | package boundary, task graph, cache, release ownership                                                                                                          |
+| 27  | [다중 개발 서버 구축 가이드](public/개발가이드/27_다중_개발_서버_구축_가이드.md) | multi-environment, PR preview, Amplify, S3 artifact, GitHub Actions                                                                                             |
 
 ### Governance And AI
 
-| No | Document | Focus |
-|----|----------|-------|
-| 15 | [RFC 의사결정 프로세스](public/개발가이드/15_RFC_의사결정_프로세스.md) | RFC, ADR, PoC, risk, rollback criteria |
-| 16 | [AI 협업 코드리뷰 가이드](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) | small PR, review evidence, AI finding triage |
-| 17 | [신규 입사자 온보딩 가이드](public/개발가이드/17_신규_입사자_온보딩_가이드.md) | dev setup, first PR, permission, mentoring |
-| 18 | [AI 개발 워크플로우 종합](public/개발가이드/18_AI_개발_워크플로우_종합.md) | context policy, AI task boundary, verification |
+| No  | Document                                                                       | Focus                                          |
+| --- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| 15  | [RFC 의사결정 프로세스](public/개발가이드/15_RFC_의사결정_프로세스.md)         | RFC, ADR, PoC, risk, rollback criteria         |
+| 16  | [AI 협업 코드리뷰 가이드](public/개발가이드/16_AI_협업_코드리뷰_가이드.md)     | small PR, review evidence, AI finding triage   |
+| 17  | [신규 입사자 온보딩 가이드](public/개발가이드/17_신규_입사자_온보딩_가이드.md) | dev setup, first PR, permission, mentoring     |
+| 18  | [AI 개발 워크플로우 종합](public/개발가이드/18_AI_개발_워크플로우_종합.md)     | context policy, AI task boundary, verification |
 
 ### Product Architecture And Experience
 
-| No | Document | Focus |
-|----|----------|-------|
-| 20 | [디자인 시스템 가이드](public/개발가이드/20_디자인_시스템_가이드.md) | token, component API, headless primitive, migration |
-| 21 | [마이크로 프론트엔드 가이드](public/개발가이드/21_마이크로_프론트엔드_가이드.md) | host/remote contract, shared dependency, independent deploy |
-| 23 | [국제화 가이드](public/개발가이드/23_국제화_가이드.md) | ICU message, placeholder, RTL, pseudo-localization |
-| 24 | [SEO 및 메타데이터 가이드](public/개발가이드/24_SEO_메타데이터_가이드.md) | metadata, structured data, sitemap, indexing |
-| 25 | [웹 애니메이션 모션 가이드](public/개발가이드/25_웹_애니메이션_모션_가이드.md) | motion budget, View Transitions, reduced motion |
-| 26 | [PWA 오프라인 전략 가이드](public/개발가이드/26_PWA_오프라인_전략_가이드.md) | service worker, offline cache, sync, push, fallback |
+| No  | Document                                                                         | Focus                                                       |
+| --- | -------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 20  | [디자인 시스템 가이드](public/개발가이드/20_디자인_시스템_가이드.md)             | token, component API, headless primitive, migration         |
+| 21  | [마이크로 프론트엔드 가이드](public/개발가이드/21_마이크로_프론트엔드_가이드.md) | host/remote contract, shared dependency, independent deploy |
+| 23  | [국제화 가이드](public/개발가이드/23_국제화_가이드.md)                           | ICU message, placeholder, RTL, pseudo-localization          |
+| 24  | [SEO 및 메타데이터 가이드](public/개발가이드/24_SEO_메타데이터_가이드.md)        | metadata, structured data, sitemap, indexing                |
+| 25  | [웹 애니메이션 모션 가이드](public/개발가이드/25_웹_애니메이션_모션_가이드.md)   | motion budget, View Transitions, reduced motion             |
+| 26  | [PWA 오프라인 전략 가이드](public/개발가이드/26_PWA_오프라인_전략_가이드.md)     | service worker, offline cache, sync, push, fallback         |
 
 ## PR에 남길 공통 증거
 
-| 변경 유형 | 최소 증거 |
-|-----------|-----------|
-| 타입/아키텍처 | `tsc --noEmit`, boundary lint, 변경한 계층 설명 |
-| UI/상태 | unit/integration test, loading/error/empty 상태 캡처 또는 trace |
-| API | contract diff, MSW handler, 실패 응답 처리 테스트 |
-| 접근성 | axe 결과, keyboard smoke, focus order 확인 |
-| 성능 | bundle diff, Lighthouse 또는 RUM p75 영향 |
-| 보안 | secret scan, dependency audit, CSP/header 영향 |
-| 배포 | build artifact, rollback 방법, release health 확인 기준 |
-| 리뷰 자동화 | CodeRabbit review gate 통과, finding 처리 결과, path instruction 영향, required conversation resolution, 사람 reviewer 확인 |
-| 커밋 품질 | commitlint 결과, Husky hook 범위, 우회 사유 |
-| 주석/문서 | `TODO/FIXME` owner, inline comment 사유, 문서 업데이트 |
+| 변경 유형     | 최소 증거                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 타입/아키텍처 | `tsc --noEmit`, boundary lint, 변경한 계층 설명                                                                             |
+| UI/상태       | unit/integration test, loading/error/empty 상태 캡처 또는 trace                                                             |
+| API           | contract diff, MSW handler, 실패 응답 처리 테스트                                                                           |
+| 접근성        | axe 결과, keyboard smoke, focus order 확인                                                                                  |
+| 성능          | bundle diff, Lighthouse 또는 RUM p75 영향                                                                                   |
+| 보안          | secret scan, dependency audit, CSP/header 영향                                                                              |
+| 배포          | build artifact, rollback 방법, release health 확인 기준                                                                     |
+| 리뷰 자동화   | CodeRabbit review gate 통과, finding 처리 결과, path instruction 영향, required conversation resolution, 사람 reviewer 확인 |
+| 커밋 품질     | commitlint 결과, Husky hook 범위, 우회 사유                                                                                 |
+| 주석/문서     | `TODO/FIXME` owner, inline comment 사유, 문서 업데이트                                                                      |
 
 ## 공식 출처
 

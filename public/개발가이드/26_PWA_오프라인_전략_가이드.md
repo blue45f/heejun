@@ -1,8 +1,5 @@
 # 26. PWA & 오프라인 전략 가이드
 
-> **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
-> 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
 > **왜 중요한가**: 모바일·터널·엘리베이터에서 네트워크가 끊겨도 사용자는 작업을 계속하길 원하고, 다시 연결됐을 때 손실 없이 이어지길 기대합니다.
@@ -38,20 +35,18 @@ flowchart TD
 
 ### 핵심 용어 빠르게 정리
 
-| 용어 | 쉬운 뜻 |
-| --- | --- |
+| 용어             | 쉬운 뜻                                                   |
+| ---------------- | --------------------------------------------------------- |
 | `Service Worker` | 브라우저에서 네트워크와 캐시를 중간에서 처리하는 스크립트 |
-| `동기화 큐` | 오프라인에서 만든 변경 요청을 저장해두는 큐 |
-| `fallback UI` | 오프라인 시 보여줄 대체 화면/기능 |
-| `재시도` | 실패한 요청을 나중에 다시 보내는 동작 |
-| `푸시` | 새 소식/데이터를 서버가 즉시 보내는 방식 |
+| `동기화 큐`      | 오프라인에서 만든 변경 요청을 저장해두는 큐               |
+| `fallback UI`    | 오프라인 시 보여줄 대체 화면/기능                         |
+| `재시도`         | 실패한 요청을 나중에 다시 보내는 동작                     |
+| `푸시`           | 새 소식/데이터를 서버가 즉시 보내는 방식                  |
 
-
-
-| 분류 | 핵심 기술 | 상태 | Stable |
-| :--- | :--- | :--- | :--- |
-| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CDN](./12_CDN_캐시_전략.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS | **Update** | 최신 기준 |
+| 분류            | 핵심 기술                                                                 | 상태          | Stable    |
+| :-------------- | :------------------------------------------------------------------------ | :------------ | :-------- |
+| **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [12. CDN](./12_CDN_캐시_전략.md)  | **도구 원칙** | 벤더 중립 |
+| **핵심 테마**   | Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS | **Update**    | 최신 기준 |
 
 ---
 
@@ -59,6 +54,7 @@ flowchart TD
 > 본 가이드는 특정 PWA 플러그인이나 래퍼가 아니라 **Service Worker 라이프사이클, 캐시 책임 분리, 오프라인 UX, 동기화, 저장소 quota, 배포 안전성**을 기준으로 PWA를 설계하는 방법을 다룹니다. Workbox, Serwist, 프레임워크 플러그인은 구현 후보입니다.
 >
 > **현재 5월 핵심 변화 요약**
+>
 > - **Service Worker cache governance**: framework/server cache, CDN cache, browser HTTP cache, Service Worker cache의 책임을 분리해야 장애를 줄일 수 있습니다.
 > - **Web Push/설치 UX**: 모바일 브라우저별 설치/권한/알림 지원 차이가 크므로 기능 감지와 fallback UX가 필수입니다.
 > - **OPFS/Storage Buckets**: 대용량 오프라인 데이터는 IndexedDB만으로 처리하지 않고 파일성 데이터와 구조화 데이터를 분리합니다.
@@ -67,48 +63,45 @@ flowchart TD
 
 ---
 
-
 ## 추천 항목 (실무 우선순위)
 
 - **시작 추천**: 오프라인 UX 플로우(읽기/쓰기/동기화 실패)를 먼저 문서화하세요.
 - **안정 추천**: Service Worker 업데이트 전략과 큐 동기화 우선순위를 고정하세요.
 - **운영 추천**: SW 캐시 정합성 문제는 주기적 캐시 정리/리프레시 루틴으로 대응하세요.
 
-
 ## 추천 항목 고도화 체크
 
-- `즉시 적용` — 추천 항목 1개를 이번 주 내에 실제 작업 1건에 반영한다.
-- `1주 내 정리` — 적용 결과를 PR 본문이나 회고 노트에 간단히 기록한다.
-- `1개월 내 점검` — 재작업률/리뷰 충돌/배포 이슈 중 적어도 한 항목이 개선되었는지 확인한다.
-
+- `첫 적용` — service worker, cache strategy, offline fallback 중 하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+- `증거 정리` — SW lifecycle log, offline smoke, cache manifest, update prompt test를 같은 작업 기록에 남긴다.
+- `재점검` — offline failure, stale data incident, SW update lag가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
 
 ## 추천 항목 실행 기록 템플릿
 
-- `담당자` : 항목 적용 주체(문서 오너/팀원)를 명시
-- `적용일` : 실제 반영된 날짜 및 작업 ID를 남김
-- `측정 지표` : 리뷰 충돌/재작업/버그 재발 중 1개 이상 수치로 기록
-- `보류 사유` : 적용을 못한 경우 이유를 1줄 기록하고 다음 액션을 지정
+- `작업` : service worker, cache strategy, offline fallback 적용 범위를 어느 화면, 패키지, 문서에 둘지 적는다.
+- `증거` : SW lifecycle log, offline smoke, cache manifest, update prompt test 중 실제로 남긴 항목만 링크한다.
+- `판정` : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.
+- `다음 점검` : offline failure, stale data incident, SW update lag를 다시 볼 날짜와 담당자를 지정한다.
 
 ## 문서 책임 범위
 
-| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
-| :--- | :--- |
-| Service Worker 수명주기, 앱 오프라인 UX, 캐시 책임 분리 | [12. CDN 캐시](./12_CDN_캐시_전략.md), [08. 성능](./08_성능_최적화_가이드.md) |
-| 배포 중 Service Worker 업데이트와 rollback 안전성 | [14. 배포](./14_배포_프로세스_체크리스트.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
-| 브라우저별 Push/install/background sync fallback | [13. 브라우저 호환성](./13_브라우저_호환성_가이드.md) |
-| AI가 만든 Service Worker/캐시 전략 초안 검증 | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md) |
+| 이 문서가 결정하는 것                                   | 단일 출처로 따르는 문서                                                                      |
+| :------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
+| Service Worker 수명주기, 앱 오프라인 UX, 캐시 책임 분리 | [12. CDN 캐시](./12_CDN_캐시_전략.md), [08. 성능](./08_성능_최적화_가이드.md)                |
+| 배포 중 Service Worker 업데이트와 rollback 안전성       | [14. 배포](./14_배포_프로세스_체크리스트.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
+| 브라우저별 Push/install/background sync fallback        | [13. 브라우저 호환성](./13_브라우저_호환성_가이드.md)                                        |
+| AI가 만든 Service Worker/캐시 전략 초안 검증            | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)                                    |
 
 ---
 
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
-| 기준 | 최소 적용 |
-| :--- | :--- |
-| **캐시 책임 분리** | HTTP/CDN cache, framework cache, Service Worker cache의 소유권과 무효화 기준을 문서화합니다. |
-| **오프라인 UX** | 읽기/쓰기 가능 기능, 저장 대기열, 충돌 해결, 복구 메시지를 정의합니다. |
-| **업데이트 안전성** | Service Worker skipWaiting/clientsClaim 사용 여부와 rollback 경로를 검증합니다. |
-| **저장소 관리** | Cache Storage, IndexedDB, OPFS, quota/eviction 정책을 고려합니다. |
-| **지원 편차 대응** | Push, install prompt, Background Sync, file API는 feature detection과 fallback을 둡니다. |
+| 기준                | 최소 적용                                                                                    |
+| :------------------ | :------------------------------------------------------------------------------------------- |
+| **캐시 책임 분리**  | HTTP/CDN cache, framework cache, Service Worker cache의 소유권과 무효화 기준을 문서화합니다. |
+| **오프라인 UX**     | 읽기/쓰기 가능 기능, 저장 대기열, 충돌 해결, 복구 메시지를 정의합니다.                       |
+| **업데이트 안전성** | Service Worker skipWaiting/clientsClaim 사용 여부와 rollback 경로를 검증합니다.              |
+| **저장소 관리**     | Cache Storage, IndexedDB, OPFS, quota/eviction 정책을 고려합니다.                            |
+| **지원 편차 대응**  | Push, install prompt, Background Sync, file API는 feature detection과 fallback을 둡니다.     |
 
 ### 0.0 PWA 오프라인 처리 흐름
 
@@ -155,24 +148,23 @@ flowchart LR
 
 ### 0.1 교차 검증 매트릭스
 
-| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| Service Worker는 라우트별 캐시 전략과 eviction 정책을 함께 둔다 | MDN/web.dev Service Worker/PWA 문서 | offline E2E, cache quota test | cache hit ratio, stale response incident | 앱이 완전 온라인 전용이고 offline UX 가치가 낮을 때 |
-| 쓰기 작업은 offline queue와 idempotency key를 사용한다 | Background Sync/IndexedDB 문서, API idempotency 정책 | offline mutation replay test | duplicate write, sync failure rate | 서버가 idempotent write를 지원하지 않을 때 |
-| Push/installation은 feature detection과 사용자 맥락 기반 요청으로 처리한다 | Web Push/Web App Manifest 문서 | permission flow E2E | opt-in rate, notification complaint | 알림이 제품 가치보다 방해가 클 때 |
-| PWA tooling은 framework cache와 충돌 검증 후 도입한다 | 도구 공식 release/compat 문서 | navigation preload, cache invalidation test | update failure, stale shell incident | 수동 Service Worker가 더 작고 명확할 때 |
+| 권고                                                                       | 1차 출처                                             | 실행 증거                                   | 운영 증거                                | 철회 조건                                           |
+| :------------------------------------------------------------------------- | :--------------------------------------------------- | :------------------------------------------ | :--------------------------------------- | :-------------------------------------------------- |
+| Service Worker는 라우트별 캐시 전략과 eviction 정책을 함께 둔다            | MDN/web.dev Service Worker/PWA 문서                  | offline E2E, cache quota test               | cache hit ratio, stale response incident | 앱이 완전 온라인 전용이고 offline UX 가치가 낮을 때 |
+| 쓰기 작업은 offline queue와 idempotency key를 사용한다                     | Background Sync/IndexedDB 문서, API idempotency 정책 | offline mutation replay test                | duplicate write, sync failure rate       | 서버가 idempotent write를 지원하지 않을 때          |
+| Push/installation은 feature detection과 사용자 맥락 기반 요청으로 처리한다 | Web Push/Web App Manifest 문서                       | permission flow E2E                         | opt-in rate, notification complaint      | 알림이 제품 가치보다 방해가 클 때                   |
+| PWA tooling은 framework cache와 충돌 검증 후 도입한다                      | 도구 공식 release/compat 문서                        | navigation preload, cache invalidation test | update failure, stale shell incident     | 수동 Service Worker가 더 작고 명확할 때             |
 
 ### 0.2 운영 게이트
 
-| Gate | Evidence | Owner | Rollback |
-| :--- | :--- | :--- | :--- |
-| Service Worker release gate | install/update/offline E2E, cache manifest diff | Release owner | SW unregister guide, cache purge, previous asset manifest |
-| Cache policy gate | route TTL matrix, quota test, stale response test | Platform owner | runtime cache disable flag |
-| Offline write gate | idempotency test, replay trace, conflict UI evidence | Feature owner | offline write flag off, queue drain runbook |
-| Push/Install gate | permission UX test, opt-out path, browser support matrix | Product owner | prompt disabled, subscription cleanup |
+| Gate                        | Evidence                                                 | Owner          | Rollback                                                  |
+| :-------------------------- | :------------------------------------------------------- | :------------- | :-------------------------------------------------------- |
+| Service Worker release gate | install/update/offline E2E, cache manifest diff          | Release owner  | SW unregister guide, cache purge, previous asset manifest |
+| Cache policy gate           | route TTL matrix, quota test, stale response test        | Platform owner | runtime cache disable flag                                |
+| Offline write gate          | idempotency test, replay trace, conflict UI evidence     | Feature owner  | offline write flag off, queue drain runbook               |
+| Push/Install gate           | permission UX test, opt-out path, browser support matrix | Product owner  | prompt disabled, subscription cleanup                     |
 
 ---
-
 
 ## 1. AI 기반 PWA 개발 자동화
 
@@ -182,15 +174,15 @@ flowchart LR
 
 AI는 Service Worker 초안, 캐싱 전략 후보, 오프라인 UX 시나리오, 테스트 케이스를 빠르게 만들 수 있다. 최종 적용은 브라우저 호환성, 캐시 무효화 위험, 배포 롤백 가능성을 검증한 뒤 사람이 승인한다.
 
-| 시나리오 | 입력 | AI 산출물 | 필수 검증 | 승인 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| Service Worker 초안 | route map, build assets, framework cache 정책 | precache/runtime route 후보 | offline E2E, update flow, rollback test | stale HTML/API 응답 위험이 통제됨 |
-| 캐싱 전략 설계 | 리소스 유형, TTL, 개인화 여부 | route별 전략, cache name, eviction rule | cache hit ratio, quota test | CDN/HTTP/SW cache 책임이 분리됨 |
-| 오프라인 UX | 읽기/쓰기 flow, conflict model | offline banner, queue, retry, conflict UI | network emulation E2E | 사용자 작업 유실 없음 |
-| Push 알림 | 권한 UX, payload, topic, unsubscribe | subscription flow, SW event handler 초안 | permission UX, click/open test | 사용자 제스처와 opt-out 보장 |
-| Background Sync | queue schema, retry policy, idempotency key | sync queue, backoff, dead-letter 후보 | offline/online transition test | 중복 제출과 순서 뒤섞임 방지 |
-| Manifest | app identity, icons, screenshots, shortcuts | manifest 초안과 asset checklist | installability audit, icon mask test | 설치 실패 시 명확한 fallback |
-| PWA 회귀 테스트 | 핵심 route, SW state, cache state | Playwright 시나리오 후보 | CI trace, browser matrix | 배포 전 update/install/offline 흐름 검증 |
+| 시나리오            | 입력                                          | AI 산출물                                 | 필수 검증                               | 승인 조건                                |
+| :------------------ | :-------------------------------------------- | :---------------------------------------- | :-------------------------------------- | :--------------------------------------- |
+| Service Worker 초안 | route map, build assets, framework cache 정책 | precache/runtime route 후보               | offline E2E, update flow, rollback test | stale HTML/API 응답 위험이 통제됨        |
+| 캐싱 전략 설계      | 리소스 유형, TTL, 개인화 여부                 | route별 전략, cache name, eviction rule   | cache hit ratio, quota test             | CDN/HTTP/SW cache 책임이 분리됨          |
+| 오프라인 UX         | 읽기/쓰기 flow, conflict model                | offline banner, queue, retry, conflict UI | network emulation E2E                   | 사용자 작업 유실 없음                    |
+| Push 알림           | 권한 UX, payload, topic, unsubscribe          | subscription flow, SW event handler 초안  | permission UX, click/open test          | 사용자 제스처와 opt-out 보장             |
+| Background Sync     | queue schema, retry policy, idempotency key   | sync queue, backoff, dead-letter 후보     | offline/online transition test          | 중복 제출과 순서 뒤섞임 방지             |
+| Manifest            | app identity, icons, screenshots, shortcuts   | manifest 초안과 asset checklist           | installability audit, icon mask test    | 설치 실패 시 명확한 fallback             |
+| PWA 회귀 테스트     | 핵심 route, SW state, cache state             | Playwright 시나리오 후보                  | CI trace, browser matrix                | 배포 전 update/install/offline 흐름 검증 |
 
 AI 보조 도구로 Service Worker를 만들 때는 다음 제약을 prompt에 포함합니다.
 
@@ -245,28 +237,26 @@ Preview 환경에서는 캐시를 비활성화하여 항상 최신 코드를 반
 ```typescript
 // src/sw.ts - 환경 인식 Service Worker
 
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute, NavigationRoute } from 'workbox-routing';
-import {
-  CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly,
-} from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
-import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-import { setCatchHandler } from 'workbox-routing';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { registerRoute, NavigationRoute } from 'workbox-routing'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+import { setCatchHandler } from 'workbox-routing'
 
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope
 
 // 빌드 시점에 주입되는 환경 변수
-const APP_ENV = '__APP_ENV__' as 'production' | 'staging' | 'canary' | 'preview';
-const APP_VERSION = '__APP_VERSION__';
-const CACHE_PREFIX = `app-${APP_ENV}-v${APP_VERSION}`;
+const APP_ENV = '__APP_ENV__' as 'production' | 'staging' | 'canary' | 'preview'
+const APP_VERSION = '__APP_VERSION__'
+const CACHE_PREFIX = `app-${APP_ENV}-v${APP_VERSION}`
 
 interface EnvCacheConfig {
-  enablePrecache: boolean;
-  enableRuntimeCache: boolean;
-  apiStrategy: 'NetworkFirst' | 'NetworkOnly';
-  staticStrategy: 'CacheFirst' | 'NetworkOnly';
-  maxApiCacheAge: number;
+  enablePrecache: boolean
+  enableRuntimeCache: boolean
+  apiStrategy: 'NetworkFirst' | 'NetworkOnly'
+  staticStrategy: 'CacheFirst' | 'NetworkOnly'
+  maxApiCacheAge: number
 }
 
 const ENV_CONFIGS: Record<string, EnvCacheConfig> = {
@@ -298,84 +288,86 @@ const ENV_CONFIGS: Record<string, EnvCacheConfig> = {
     staticStrategy: 'NetworkOnly',
     maxApiCacheAge: 0,
   },
-};
+}
 
-const config = ENV_CONFIGS[APP_ENV] ?? ENV_CONFIGS.preview;
+const config = ENV_CONFIGS[APP_ENV] ?? ENV_CONFIGS.preview
 
 // --- Precache ---
-cleanupOutdatedCaches();
+cleanupOutdatedCaches()
 
 if (config.enablePrecache) {
-  precacheAndRoute(self.__WB_MANIFEST);
+  precacheAndRoute(self.__WB_MANIFEST)
 }
 
 // --- Runtime Cache ---
 if (config.enableRuntimeCache) {
   // API 캐싱
-  const apiStrategyInstance = config.apiStrategy === 'NetworkFirst'
-    ? new NetworkFirst({
-        cacheName: `${CACHE_PREFIX}-api`,
-        networkTimeoutSeconds: 3,
-        plugins: [
-          new ExpirationPlugin({ maxAgeSeconds: config.maxApiCacheAge, maxEntries: 200 }),
-          new CacheableResponsePlugin({ statuses: [0, 200] }),
-        ],
-      })
-    : new NetworkOnly();
+  const apiStrategyInstance =
+    config.apiStrategy === 'NetworkFirst'
+      ? new NetworkFirst({
+          cacheName: `${CACHE_PREFIX}-api`,
+          networkTimeoutSeconds: 3,
+          plugins: [
+            new ExpirationPlugin({ maxAgeSeconds: config.maxApiCacheAge, maxEntries: 200 }),
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+          ],
+        })
+      : new NetworkOnly()
 
-  registerRoute(({ url }) => url.pathname.startsWith('/api/'), apiStrategyInstance);
+  registerRoute(({ url }) => url.pathname.startsWith('/api/'), apiStrategyInstance)
 
   // 정적 리소스 캐싱
-  const staticStrategyInstance = config.staticStrategy === 'CacheFirst'
-    ? new CacheFirst({
-        cacheName: `${CACHE_PREFIX}-static`,
-        plugins: [
-          new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 }),
-          new CacheableResponsePlugin({ statuses: [0, 200] }),
-        ],
-      })
-    : new NetworkOnly();
+  const staticStrategyInstance =
+    config.staticStrategy === 'CacheFirst'
+      ? new CacheFirst({
+          cacheName: `${CACHE_PREFIX}-static`,
+          plugins: [
+            new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 }),
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+          ],
+        })
+      : new NetworkOnly()
 
   registerRoute(
     ({ request }) => ['image', 'font', 'style', 'script'].includes(request.destination),
     staticStrategyInstance,
-  );
+  )
 }
 
 // --- 오프라인 폴백 ---
 setCatchHandler(async ({ event }) => {
   if ((event as FetchEvent).request.destination === 'document') {
-    return caches.match('/offline.html') ?? Response.error();
+    return caches.match('/offline.html') ?? Response.error()
   }
-  return Response.error();
-});
+  return Response.error()
+})
 
 // --- 활성화 시 이전 환경 캐시 정리 ---
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => !key.startsWith(CACHE_PREFIX))
-          .map((key) => caches.delete(key)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => !key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)),
+        ),
       ),
-    ),
-  );
-});
+  )
+})
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    self.skipWaiting()
   }
-});
+})
 ```
 
 #### Vite 빌드 시 환경 변수 주입
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -393,10 +385,10 @@ export default defineConfig(({ mode }) => ({
     }),
   ],
   define: {
-    '__APP_ENV__': JSON.stringify(mode),
-    '__APP_VERSION__': JSON.stringify(process.env.npm_package_version),
+    __APP_ENV__: JSON.stringify(mode),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
   },
-}));
+}))
 ```
 
 ### 2.2 환경별 매니페스트 동적 생성
@@ -405,18 +397,18 @@ export default defineConfig(({ mode }) => ({
 
 ```typescript
 // scripts/generate-manifest.ts
-import { writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync } from 'fs'
+import { resolve } from 'path'
 
-type AppEnv = 'production' | 'staging' | 'canary' | 'preview';
+type AppEnv = 'production' | 'staging' | 'canary' | 'preview'
 
 interface ManifestConfig {
-  nameSuffix: string;
-  themeColor: string;
-  backgroundColor: string;
-  startUrl: string;
-  display: 'standalone' | 'minimal-ui' | 'browser';
-  installable: boolean;
+  nameSuffix: string
+  themeColor: string
+  backgroundColor: string
+  startUrl: string
+  display: 'standalone' | 'minimal-ui' | 'browser'
+  installable: boolean
 }
 
 const ENV_MANIFEST: Record<AppEnv, ManifestConfig> = {
@@ -452,36 +444,35 @@ const ENV_MANIFEST: Record<AppEnv, ManifestConfig> = {
     display: 'minimal-ui',
     installable: false,
   },
-};
+}
 
 function generateManifest(appName: string, env: AppEnv): void {
-  const config = ENV_MANIFEST[env];
+  const config = ENV_MANIFEST[env]
   const icons = [48, 72, 96, 128, 144, 192, 512].map((size) => ({
     src: `/icons/icon-${size}x${size}${env !== 'production' ? `-${env}` : ''}.png`,
     sizes: `${size}x${size}`,
     type: 'image/png',
     purpose: 'any',
-  }));
+  }))
 
   icons.push({
     src: `/icons/icon-maskable-512x512${env !== 'production' ? `-${env}` : ''}.png`,
     sizes: '512x512',
     type: 'image/png',
     purpose: 'maskable',
-  });
+  })
 
   const manifest = {
     name: `${appName}${config.nameSuffix}`,
     short_name: `${appName.substring(0, 8)}${config.nameSuffix}`,
-    description: env === 'production'
-      ? '서비스 설명'
-      : `${env.toUpperCase()} 테스트 환경`,
+    description: env === 'production' ? '서비스 설명' : `${env.toUpperCase()} 테스트 환경`,
     start_url: config.startUrl,
     scope: '/',
     display: config.display,
-    display_override: env === 'production'
-      ? ['window-controls-overlay', 'standalone', 'browser']
-      : [config.display, 'browser'],
+    display_override:
+      env === 'production'
+        ? ['window-controls-overlay', 'standalone', 'browser']
+        : [config.display, 'browser'],
     orientation: 'portrait',
     theme_color: config.themeColor,
     background_color: config.backgroundColor,
@@ -489,16 +480,51 @@ function generateManifest(appName: string, env: AppEnv): void {
     dir: 'ltr',
     categories: ['productivity', 'utilities'],
     icons,
-    screenshots: env === 'production' ? [
-      { src: '/screenshots/wide-1.png', sizes: '1920x1080', type: 'image/png', form_factor: 'wide' },
-      { src: '/screenshots/wide-2.png', sizes: '1920x1080', type: 'image/png', form_factor: 'wide' },
-      { src: '/screenshots/narrow-1.png', sizes: '750x1334', type: 'image/png', form_factor: 'narrow' },
-      { src: '/screenshots/narrow-2.png', sizes: '750x1334', type: 'image/png', form_factor: 'narrow' },
-    ] : [],
+    screenshots:
+      env === 'production'
+        ? [
+            {
+              src: '/screenshots/wide-1.png',
+              sizes: '1920x1080',
+              type: 'image/png',
+              form_factor: 'wide',
+            },
+            {
+              src: '/screenshots/wide-2.png',
+              sizes: '1920x1080',
+              type: 'image/png',
+              form_factor: 'wide',
+            },
+            {
+              src: '/screenshots/narrow-1.png',
+              sizes: '750x1334',
+              type: 'image/png',
+              form_factor: 'narrow',
+            },
+            {
+              src: '/screenshots/narrow-2.png',
+              sizes: '750x1334',
+              type: 'image/png',
+              form_factor: 'narrow',
+            },
+          ]
+        : [],
     shortcuts: [
-      { name: '빠른 작성', url: '/new?source=shortcut', icons: [{ src: '/icons/shortcut-new.png', sizes: '96x96' }] },
-      { name: '검색', url: '/search?source=shortcut', icons: [{ src: '/icons/shortcut-search.png', sizes: '96x96' }] },
-      { name: '알림 확인', url: '/notifications?source=shortcut', icons: [{ src: '/icons/shortcut-bell.png', sizes: '96x96' }] },
+      {
+        name: '빠른 작성',
+        url: '/new?source=shortcut',
+        icons: [{ src: '/icons/shortcut-new.png', sizes: '96x96' }],
+      },
+      {
+        name: '검색',
+        url: '/search?source=shortcut',
+        icons: [{ src: '/icons/shortcut-search.png', sizes: '96x96' }],
+      },
+      {
+        name: '알림 확인',
+        url: '/notifications?source=shortcut',
+        icons: [{ src: '/icons/shortcut-bell.png', sizes: '96x96' }],
+      },
     ],
     share_target: {
       action: '/share-receive',
@@ -511,19 +537,18 @@ function generateManifest(appName: string, env: AppEnv): void {
         files: [{ name: 'media', accept: ['image/*', 'video/*'] }],
       },
     },
-    related_applications: env === 'production'
-      ? JSON.parse(process.env.RELATED_NATIVE_APPS_JSON ?? '[]')
-      : [],
+    related_applications:
+      env === 'production' ? JSON.parse(process.env.RELATED_NATIVE_APPS_JSON ?? '[]') : [],
     prefer_related_applications: false,
-  };
+  }
 
-  const outDir = resolve(process.cwd(), 'public');
-  writeFileSync(resolve(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  const outDir = resolve(process.cwd(), 'public')
+  writeFileSync(resolve(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
 }
 
 // 실행
-const env = (process.env.APP_ENV ?? 'production') as AppEnv;
-generateManifest('MyApp', env);
+const env = (process.env.APP_ENV ?? 'production') as AppEnv
+generateManifest('MyApp', env)
 ```
 
 ### 2.3 Preview 환경 PWA 설치 차단
@@ -532,78 +557,78 @@ Preview 환경에서는 `beforeinstallprompt` 이벤트를 억제하여 사용�
 
 ```typescript
 // src/hooks/usePWAInstall.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
 
 interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-  prompt(): Promise<void>;
+  readonly platforms: string[]
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+  prompt(): Promise<void>
 }
 
 interface PWAInstallState {
-  canInstall: boolean;
-  isInstalled: boolean;
-  install: () => Promise<'accepted' | 'dismissed' | 'blocked'>;
-  dismiss: () => void;
+  canInstall: boolean
+  isInstalled: boolean
+  install: () => Promise<'accepted' | 'dismissed' | 'blocked'>
+  dismiss: () => void
 }
 
 export function usePWAInstall(): PWAInstallState {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isInstalled, setIsInstalled] = useState(false)
 
-  const currentEnv = import.meta.env.MODE;
-  const isInstallBlocked = currentEnv === 'preview' || currentEnv === 'canary';
+  const currentEnv = import.meta.env.MODE
+  const isInstallBlocked = currentEnv === 'preview' || currentEnv === 'canary'
 
   useEffect(() => {
     // 이미 설치된 상태 감지
-    const mql = window.matchMedia('(display-mode: standalone)');
-    setIsInstalled(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setIsInstalled(e.matches);
-    mql.addEventListener('change', handler);
+    const mql = window.matchMedia('(display-mode: standalone)')
+    setIsInstalled(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setIsInstalled(e.matches)
+    mql.addEventListener('change', handler)
 
     const onBeforeInstall = (e: Event) => {
       // Preview/Canary 환경에서는 설치 프롬프트 차단
       if (isInstallBlocked) {
-        e.preventDefault();
-        console.info(`[PWA] 설치 차단됨: ${currentEnv} 환경`);
-        return;
+        e.preventDefault()
+        console.info(`[PWA] 설치 차단됨: ${currentEnv} 환경`)
+        return
       }
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
+    }
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
     window.addEventListener('appinstalled', () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    });
+      setIsInstalled(true)
+      setDeferredPrompt(null)
+    })
 
     return () => {
-      mql.removeEventListener('change', handler);
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-    };
-  }, [isInstallBlocked, currentEnv]);
+      mql.removeEventListener('change', handler)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+    }
+  }, [isInstallBlocked, currentEnv])
 
   const install = useCallback(async (): Promise<'accepted' | 'dismissed' | 'blocked'> => {
-    if (isInstallBlocked) return 'blocked';
-    if (!deferredPrompt) return 'dismissed';
+    if (isInstallBlocked) return 'blocked'
+    if (!deferredPrompt) return 'dismissed'
 
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    return outcome;
-  }, [deferredPrompt, isInstallBlocked]);
+    await deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    setDeferredPrompt(null)
+    return outcome
+  }, [deferredPrompt, isInstallBlocked])
 
   const dismiss = useCallback(() => {
-    setDeferredPrompt(null);
-  }, []);
+    setDeferredPrompt(null)
+  }, [])
 
   return {
     canInstall: !isInstallBlocked && deferredPrompt !== null && !isInstalled,
     isInstalled,
     install,
     dismiss,
-  };
+  }
 }
 ```
 
@@ -640,13 +665,13 @@ export const PWAInstallBanner: React.FC = () => {
 
 ```typescript
 // src/services/push-notification.ts
-import { openDB } from 'idb';
+import { openDB } from 'idb'
 
 interface PushConfig {
-  vapidPublicKey: string;
-  subscriptionEndpoint: string;
-  topicPrefix: string;
-  enabled: boolean;
+  vapidPublicKey: string
+  subscriptionEndpoint: string
+  topicPrefix: string
+  enabled: boolean
 }
 
 const PUSH_CONFIGS: Record<string, PushConfig> = {
@@ -672,43 +697,43 @@ const PUSH_CONFIGS: Record<string, PushConfig> = {
     vapidPublicKey: '',
     subscriptionEndpoint: '',
     topicPrefix: 'preview',
-    enabled: false,   // Preview에서는 Push 비활성화
+    enabled: false, // Preview에서는 Push 비활성화
   },
-};
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from(rawData, (char) => char.charCodeAt(0));
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from(rawData, (char) => char.charCodeAt(0))
 }
 
 export class PushNotificationService {
-  private config: PushConfig;
-  private env: string;
+  private config: PushConfig
+  private env: string
 
   constructor(env: string = import.meta.env.MODE) {
-    this.env = env;
-    this.config = PUSH_CONFIGS[env] ?? PUSH_CONFIGS.preview;
+    this.env = env
+    this.config = PUSH_CONFIGS[env] ?? PUSH_CONFIGS.preview
   }
 
   async subscribe(topics: string[]): Promise<PushSubscription | null> {
     if (!this.config.enabled) {
-      console.info(`[Push] ${this.env} 환경에서 Push 비활성화`);
-      return null;
+      console.info(`[Push] ${this.env} 환경에서 Push 비활성화`)
+      return null
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    const existingSub = await registration.pushManager.getSubscription();
-    if (existingSub) return existingSub;
+    const registration = await navigator.serviceWorker.ready
+    const existingSub = await registration.pushManager.getSubscription()
+    if (existingSub) return existingSub
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(this.config.vapidPublicKey),
-    });
+    })
 
     // 서버에 구독 정보 + 환경 태그 전송
-    const prefixedTopics = topics.map((t) => `${this.config.topicPrefix}:${t}`);
+    const prefixedTopics = topics.map((t) => `${this.config.topicPrefix}:${t}`)
 
     await fetch(this.config.subscriptionEndpoint, {
       method: 'POST',
@@ -719,27 +744,27 @@ export class PushNotificationService {
         env: this.env,
         userAgent: navigator.userAgent,
       }),
-    });
+    })
 
-    return subscription;
+    return subscription
   }
 
   async unsubscribe(): Promise<boolean> {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    if (!subscription) return true;
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
+    if (!subscription) return true
 
     await fetch(this.config.subscriptionEndpoint, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint: subscription.endpoint, env: this.env }),
-    });
+    })
 
-    return subscription.unsubscribe();
+    return subscription.unsubscribe()
   }
 
   getTopicName(topic: string): string {
-    return `${this.config.topicPrefix}:${topic}`;
+    return `${this.config.topicPrefix}:${topic}`
   }
 }
 ```
@@ -752,13 +777,13 @@ Feature Flag를 사용하여 오프라인 기능을 환경별, 사용자별로 �
 // src/services/offline-feature-flags.ts
 
 interface OfflineFeatureFlags {
-  enableOfflineMode: boolean;         // 오프라인 모드 전체 활성화
-  enableBackgroundSync: boolean;      // Background Sync 활성화
-  enablePushNotification: boolean;    // Push Notification 활성화
-  enablePeriodicSync: boolean;        // Periodic Background Sync
-  enableOfflineAnalytics: boolean;    // 오프라인 분석 이벤트 큐잉
-  offlineCacheQuotaMB: number;        // 캐시 최대 용량 (MB)
-  syncRetryLimit: number;             // 동기화 재시도 횟수
+  enableOfflineMode: boolean // 오프라인 모드 전체 활성화
+  enableBackgroundSync: boolean // Background Sync 활성화
+  enablePushNotification: boolean // Push Notification 활성화
+  enablePeriodicSync: boolean // Periodic Background Sync
+  enableOfflineAnalytics: boolean // 오프라인 분석 이벤트 큐잉
+  offlineCacheQuotaMB: number // 캐시 최대 용량 (MB)
+  syncRetryLimit: number // 동기화 재시도 횟수
 }
 
 const DEFAULT_FLAGS: Record<string, OfflineFeatureFlags> = {
@@ -766,7 +791,7 @@ const DEFAULT_FLAGS: Record<string, OfflineFeatureFlags> = {
     enableOfflineMode: true,
     enableBackgroundSync: true,
     enablePushNotification: true,
-    enablePeriodicSync: false,        // Periodic Sync는 점진적 롤아웃
+    enablePeriodicSync: false, // Periodic Sync는 점진적 롤아웃
     enableOfflineAnalytics: true,
     offlineCacheQuotaMB: 200,
     syncRetryLimit: 3,
@@ -775,7 +800,7 @@ const DEFAULT_FLAGS: Record<string, OfflineFeatureFlags> = {
     enableOfflineMode: true,
     enableBackgroundSync: true,
     enablePushNotification: true,
-    enablePeriodicSync: true,         // Staging에서 먼저 테스트
+    enablePeriodicSync: true, // Staging에서 먼저 테스트
     enableOfflineAnalytics: true,
     offlineCacheQuotaMB: 100,
     syncRetryLimit: 5,
@@ -798,22 +823,22 @@ const DEFAULT_FLAGS: Record<string, OfflineFeatureFlags> = {
     offlineCacheQuotaMB: 0,
     syncRetryLimit: 0,
   },
-};
+}
 
 export class OfflineFeatureFlagService {
-  private flags: OfflineFeatureFlags;
-  private remoteOverrides: Partial<OfflineFeatureFlags> = {};
+  private flags: OfflineFeatureFlags
+  private remoteOverrides: Partial<OfflineFeatureFlags> = {}
 
   constructor(env: string = import.meta.env.MODE) {
-    this.flags = DEFAULT_FLAGS[env] ?? DEFAULT_FLAGS.preview;
+    this.flags = DEFAULT_FLAGS[env] ?? DEFAULT_FLAGS.preview
   }
 
   // 원격 Feature Flag 서비스에서 오버라이드 가져오기
   async fetchRemoteOverrides(userId: string): Promise<void> {
     try {
-      const response = await fetch(`/api/feature-flags?user=${userId}&scope=offline`);
+      const response = await fetch(`/api/feature-flags?user=${userId}&scope=offline`)
       if (response.ok) {
-        this.remoteOverrides = await response.json();
+        this.remoteOverrides = await response.json()
       }
     } catch {
       // 오프라인이면 로컬 기본값 사용
@@ -821,33 +846,33 @@ export class OfflineFeatureFlagService {
   }
 
   get(key: keyof OfflineFeatureFlags): boolean | number {
-    return this.remoteOverrides[key] ?? this.flags[key];
+    return this.remoteOverrides[key] ?? this.flags[key]
   }
 
   isEnabled(key: keyof OfflineFeatureFlags): boolean {
-    const value = this.get(key);
-    return typeof value === 'boolean' ? value : value > 0;
+    const value = this.get(key)
+    return typeof value === 'boolean' ? value : value > 0
   }
 
   // Service Worker에 현재 플래그 상태 전달
   async syncToServiceWorker(): Promise<void> {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.ready
     registration.active?.postMessage({
       type: 'FEATURE_FLAGS_UPDATE',
       flags: { ...this.flags, ...this.remoteOverrides },
-    });
+    })
   }
 }
 
 // React 훅
-import { useState, useEffect, useContext, createContext } from 'react';
+import { useState, useEffect, useContext, createContext } from 'react'
 
-const FeatureFlagContext = createContext<OfflineFeatureFlagService | null>(null);
+const FeatureFlagContext = createContext<OfflineFeatureFlagService | null>(null)
 
 export function useOfflineFeatureFlag(key: keyof OfflineFeatureFlags): boolean {
-  const service = useContext(FeatureFlagContext);
-  if (!service) throw new Error('FeatureFlagProvider가 필요합니다');
-  return service.isEnabled(key);
+  const service = useContext(FeatureFlagContext)
+  if (!service) throw new Error('FeatureFlagProvider가 필요합니다')
+  return service.isEnabled(key)
 }
 ```
 
@@ -859,20 +884,20 @@ export function useOfflineFeatureFlag(key: keyof OfflineFeatureFlags): boolean {
 // src/services/sw-version-manager.ts
 
 interface SWVersionInfo {
-  version: string;
-  env: string;
-  buildHash: string;
-  registeredAt: number;
-  scope: string;
+  version: string
+  env: string
+  buildHash: string
+  registeredAt: number
+  scope: string
 }
 
 export class ServiceWorkerVersionManager {
-  private readonly STORAGE_KEY = 'sw-version-info';
+  private readonly STORAGE_KEY = 'sw-version-info'
 
   // 현재 등록된 SW 버전 정보 조회
   getCurrentVersion(): SWVersionInfo | null {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    const stored = localStorage.getItem(this.STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
   }
 
   // 새 SW 등록 전 버전 충돌 검사
@@ -881,28 +906,28 @@ export class ServiceWorkerVersionManager {
     newEnv: string,
     newBuildHash: string,
   ): Promise<'clean' | 'upgrade' | 'env-switch' | 'conflict'> {
-    const current = this.getCurrentVersion();
+    const current = this.getCurrentVersion()
 
-    if (!current) return 'clean';
-    if (current.env !== newEnv) return 'env-switch';    // 환경 전환
-    if (current.buildHash === newBuildHash) return 'clean'; // 동일 빌드
-    if (current.version < newVersion) return 'upgrade';  // 정상 업그레이드
+    if (!current) return 'clean'
+    if (current.env !== newEnv) return 'env-switch' // 환경 전환
+    if (current.buildHash === newBuildHash) return 'clean' // 동일 빌드
+    if (current.version < newVersion) return 'upgrade' // 정상 업그레이드
 
-    return 'conflict'; // 동일 환경에서 버전 역행 등
+    return 'conflict' // 동일 환경에서 버전 역행 등
   }
 
   // 충돌 해결: 기존 캐시 전체 삭제 후 재등록
   async resolveConflict(action: 'clean' | 'upgrade' | 'env-switch' | 'conflict'): Promise<void> {
-    if (action === 'clean') return;
+    if (action === 'clean') return
 
     // 기존 Service Worker 해제
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map((reg) => reg.unregister()));
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map((reg) => reg.unregister()))
 
     // 캐시 전체 삭제 (환경 전환 또는 충돌 시)
     if (action === 'env-switch' || action === 'conflict') {
-      const cacheKeys = await caches.keys();
-      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      const cacheKeys = await caches.keys()
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)))
     }
   }
 
@@ -914,8 +939,8 @@ export class ServiceWorkerVersionManager {
       buildHash,
       registeredAt: Date.now(),
       scope: '/',
-    };
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(info));
+    }
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(info))
   }
 }
 
@@ -926,34 +951,36 @@ export async function registerServiceWorkerSafely(
   env: string,
   buildHash: string,
 ): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) return null;
+  if (!('serviceWorker' in navigator)) return null
 
-  const manager = new ServiceWorkerVersionManager();
-  const action = await manager.checkConflict(version, env, buildHash);
+  const manager = new ServiceWorkerVersionManager()
+  const action = await manager.checkConflict(version, env, buildHash)
 
-  console.info(`[SW] 버전 상태: ${action} (v${version}, ${env}, ${buildHash.slice(0, 8)})`);
+  console.info(`[SW] 버전 상태: ${action} (v${version}, ${env}, ${buildHash.slice(0, 8)})`)
 
-  await manager.resolveConflict(action);
+  await manager.resolveConflict(action)
 
-  const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' });
+  const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' })
 
   // 업데이트 감지
   registration.addEventListener('updatefound', () => {
-    const installing = registration.installing;
-    if (!installing) return;
+    const installing = registration.installing
+    if (!installing) return
 
     installing.addEventListener('statechange', () => {
       if (installing.state === 'installed' && navigator.serviceWorker.controller) {
         // 새 SW가 대기 중 - 사용자에게 업데이트 알림
-        dispatchEvent(new CustomEvent('sw-update-available', {
-          detail: { version, env },
-        }));
+        dispatchEvent(
+          new CustomEvent('sw-update-available', {
+            detail: { version, env },
+          }),
+        )
       }
-    });
-  });
+    })
+  })
 
-  manager.saveVersion(version, env, buildHash);
-  return registration;
+  manager.saveVersion(version, env, buildHash)
+  return registration
 }
 ```
 
@@ -1018,113 +1045,111 @@ install, activate, fetch 전체 이벤트를 구현한다.
 
 ```typescript
 // src/sw-lifecycle.ts
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope
 
-const CACHE_VERSION = 'v2';
-const STATIC_CACHE = `static-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
-const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/assets/app.css',
-  '/assets/app.js',
-];
+const CACHE_VERSION = 'v2'
+const STATIC_CACHE = `static-${CACHE_VERSION}`
+const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`
+const PRECACHE_URLS = ['/', '/index.html', '/offline.html', '/assets/app.css', '/assets/app.js']
 
 // ---- install ----
 self.addEventListener('install', (event: ExtendableEvent) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_URLS)),
-  );
+  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_URLS)))
   // 대기 없이 즉시 활성화
-  self.skipWaiting();
-});
+  self.skipWaiting()
+})
 
 // ---- activate ----
 self.addEventListener('activate', (event: ExtendableEvent) => {
   event.waitUntil(
     (async () => {
       // 이전 버전 캐시 삭제
-      const keys = await caches.keys();
+      const keys = await caches.keys()
       await Promise.all(
         keys
           .filter((key) => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
           .map((key) => caches.delete(key)),
-      );
+      )
       // 현재 열린 모든 탭에 즉시 적용
-      await self.clients.claim();
+      await self.clients.claim()
       // 네비게이션 프리로드 활성화
       if (self.registration.navigationPreload) {
-        await self.registration.navigationPreload.enable();
+        await self.registration.navigationPreload.enable()
       }
     })(),
-  );
-});
+  )
+})
 
 // ---- fetch ----
 self.addEventListener('fetch', (event: FetchEvent) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const { request } = event
+  const url = new URL(request.url)
 
   // API 요청: Network First
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, DYNAMIC_CACHE));
-    return;
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE))
+    return
   }
 
   // 네비게이션 요청: 프리로드 응답 우선, 실패 시 캐시, 최종 폴백
   if (request.mode === 'navigate') {
-    event.respondWith(handleNavigation(event));
-    return;
+    event.respondWith(handleNavigation(event))
+    return
   }
 
   // 정적 리소스: Cache First
-  event.respondWith(cacheFirst(request, STATIC_CACHE));
-});
+  event.respondWith(cacheFirst(request, STATIC_CACHE))
+})
 
 async function networkFirst(request: Request, cacheName: string): Promise<Response> {
   try {
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetch(request)
     if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
+      const cache = await caches.open(cacheName)
+      cache.put(request, networkResponse.clone())
     }
-    return networkResponse;
+    return networkResponse
   } catch {
-    const cached = await caches.match(request);
-    return cached ?? new Response(JSON.stringify({ error: 'offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const cached = await caches.match(request)
+    return (
+      cached ??
+      new Response(JSON.stringify({ error: 'offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
   }
 }
 
 async function cacheFirst(request: Request, cacheName: string): Promise<Response> {
-  const cached = await caches.match(request);
-  if (cached) return cached;
+  const cached = await caches.match(request)
+  if (cached) return cached
 
   try {
-    const networkResponse = await fetch(request);
-    const cache = await caches.open(cacheName);
-    cache.put(request, networkResponse.clone());
-    return networkResponse;
+    const networkResponse = await fetch(request)
+    const cache = await caches.open(cacheName)
+    cache.put(request, networkResponse.clone())
+    return networkResponse
   } catch {
-    return new Response('Offline', { status: 503 });
+    return new Response('Offline', { status: 503 })
   }
 }
 
 async function handleNavigation(event: FetchEvent): Promise<Response> {
   try {
     // 네비게이션 프리로드 응답 우선
-    const preloadResponse = await event.preloadResponse;
-    if (preloadResponse) return preloadResponse;
+    const preloadResponse = await event.preloadResponse
+    if (preloadResponse) return preloadResponse
 
-    return await fetch(event.request);
+    return await fetch(event.request)
   } catch {
-    const cached = await caches.match('/offline.html');
-    return cached ?? new Response('<h1>오프라인</h1>', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
+    const cached = await caches.match('/offline.html')
+    return (
+      cached ??
+      new Response('<h1>오프라인</h1>', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    )
   }
 }
 ```
@@ -1134,6 +1159,7 @@ async function handleNavigation(event: FetchEvent): Promise<Response> {
 ## 4. Workbox 7.x + Vite PWA 설정
 
 > **Workbox 운영 기준 (최신 공식 문서 기준)**
+>
 > - 공식 릴리스 확인 시 7.4.x 라인이 최신으로 확인됩니다. patch 버전은 lockfile로 고정하고, major 업그레이드는 공식 release note와 별도 검증 PR을 거칩니다.
 > - `generateSW`는 단순 앱 셸 캐싱에 적합하고, `injectManifest`는 Push/Background Sync/커스텀 라우팅이 필요한 제품에 적합합니다.
 > - Vite에서는 `vite-plugin-pwa`가 Workbox 설정을 감싸므로, 플러그인 버전과 Workbox peer dependency를 함께 고정합니다.
@@ -1143,9 +1169,9 @@ Push, Background Sync, 커스텀 라우팅처럼 Service Worker를 직접 제어
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -1154,21 +1180,14 @@ export default defineConfig(({ mode }) => ({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'prompt',       // 사용자에게 업데이트 확인 요청
-      includeAssets: [
-        'favicon.ico',
-        'apple-touch-icon.png',
-        'robots.txt',
-        'offline.html',
-      ],
+      registerType: 'prompt', // 사용자에게 업데이트 확인 요청
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt', 'offline.html'],
       injectManifest: {
-        globPatterns: [
-          '**/*.{js,css,html,ico,png,svg,woff2}',
-        ],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,  // 3MB
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         rollupFormat: 'es',
       },
-      manifest: false,  // 외부에서 동적 생성 (2.2절 참조)
+      manifest: false, // 외부에서 동적 생성 (2.2절 참조)
       devOptions: {
         enabled: mode !== 'preview',
         type: 'module',
@@ -1176,10 +1195,11 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
-}));
+}))
 ```
 
 > **Workbox 6/7 운영 핵심 포인트**
+>
 > - 패키지: `workbox-precaching`, `workbox-routing` 등 패키지 이름은 동일합니다. 메이저 업그레이드는 공식 릴리스 노트를 확인한 뒤 별도 PR로 진행합니다.
 > - `precacheAndRoute(self.__WB_MANIFEST)` 시그니처는 유지.
 > - `registerRoute()`의 매처는 함수 또는 RegExp로 명확히 분리하고, 인증/결제/개인화 API는 기본적으로 `NetworkOnly` 또는 짧은 TTL의 `NetworkFirst`를 사용합니다.
@@ -1189,46 +1209,49 @@ export default defineConfig(({ mode }) => ({
 
 ```typescript
 // src/sw-register.ts
-import { registerSW } from 'virtual:pwa-register';
+import { registerSW } from 'virtual:pwa-register'
 
-let updateAvailable = false;
+let updateAvailable = false
 
 const updateSW = registerSW({
   onRegisteredSW(swUrl: string, registration: ServiceWorkerRegistration | undefined) {
-    if (!registration) return;
+    if (!registration) return
 
     // 주기적 업데이트 확인 (1시간마다)
-    setInterval(async () => {
-      if (registration.installing || !navigator.onLine) return;
-      const response = await fetch(swUrl, {
-        cache: 'no-store',
-        headers: { 'cache-control': 'no-cache' },
-      });
-      if (response.ok) {
-        await registration.update();
-      }
-    }, 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        if (registration.installing || !navigator.onLine) return
+        const response = await fetch(swUrl, {
+          cache: 'no-store',
+          headers: { 'cache-control': 'no-cache' },
+        })
+        if (response.ok) {
+          await registration.update()
+        }
+      },
+      60 * 60 * 1000,
+    )
   },
 
   onNeedRefresh() {
-    updateAvailable = true;
+    updateAvailable = true
     // UI에 업데이트 알림 표시
-    dispatchEvent(new CustomEvent('pwa-update-available'));
+    dispatchEvent(new CustomEvent('pwa-update-available'))
   },
 
   onOfflineReady() {
-    console.info('[PWA] 오프라인 준비 완료');
+    console.info('[PWA] 오프라인 준비 완료')
   },
 
   onRegisterError(error: Error) {
-    console.error('[PWA] SW 등록 실패:', error);
+    console.error('[PWA] SW 등록 실패:', error)
   },
-});
+})
 
 // 사용자가 업데이트 수락 시 호출
 export function acceptUpdate(): void {
   if (updateAvailable) {
-    updateSW(true);
+    updateSW(true)
   }
 }
 ```
@@ -1286,47 +1309,41 @@ flowchart LR
 
 ### 비교표
 
-| 전략 | 네트워크 | 캐시 | 속도 | 신선도 | 적합 대상 |
-|------|---------|------|------|--------|-----------|
-| Cache First | 폴백 | 우선 | 빠름 | 낮음 | 폰트, 이미지, 정적 JS/CSS |
-| Network First | 우선 | 폴백 | 보통 | 높음 | API, 사용자 데이터 |
-| Stale While Revalidate | 백그라운드 갱신 | 즉시 반환 | 빠름 | 중간 | CDN, 자주 바뀌는 정적 리소스 |
-| Network Only | 필수 | 미사용 | 느림 | 최신 | 인증, 결제, 실시간 데이터 |
+| 전략                   | 네트워크        | 캐시      | 속도 | 신선도 | 적합 대상                    |
+| ---------------------- | --------------- | --------- | ---- | ------ | ---------------------------- |
+| Cache First            | 폴백            | 우선      | 빠름 | 낮음   | 폰트, 이미지, 정적 JS/CSS    |
+| Network First          | 우선            | 폴백      | 보통 | 높음   | API, 사용자 데이터           |
+| Stale While Revalidate | 백그라운드 갱신 | 즉시 반환 | 빠름 | 중간   | CDN, 자주 바뀌는 정적 리소스 |
+| Network Only           | 필수            | 미사용    | 느림 | 최신   | 인증, 결제, 실시간 데이터    |
 
 ### 전략별 구현
 
 ```typescript
 // src/sw-strategies.ts
-import { registerRoute } from 'workbox-routing';
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
-import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-import { BackgroundSyncPlugin } from 'workbox-background-sync';
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+import { BackgroundSyncPlugin } from 'workbox-background-sync'
 
-const responsePlugin = new CacheableResponsePlugin({ statuses: [0, 200] });
+const responsePlugin = new CacheableResponsePlugin({ statuses: [0, 200] })
 
 // 1. Cache First - 폰트, 이미지
 registerRoute(
   ({ request }) => request.destination === 'font',
   new CacheFirst({
     cacheName: 'fonts-cache',
-    plugins: [
-      responsePlugin,
-      new ExpirationPlugin({ maxAgeSeconds: 86400 * 365, maxEntries: 30 }),
-    ],
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 365, maxEntries: 30 })],
   }),
-);
+)
 
 registerRoute(
   ({ request }) => request.destination === 'image',
   new CacheFirst({
     cacheName: 'images-cache',
-    plugins: [
-      responsePlugin,
-      new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 }),
-    ],
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 })],
   }),
-);
+)
 
 // 2. Network First - API
 registerRoute(
@@ -1334,24 +1351,18 @@ registerRoute(
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 3,
-    plugins: [
-      responsePlugin,
-      new ExpirationPlugin({ maxAgeSeconds: 300, maxEntries: 200 }),
-    ],
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 300, maxEntries: 200 })],
   }),
-);
+)
 
 // 3. Stale While Revalidate - CDN 리소스
 registerRoute(
   ({ url }) => url.origin !== self.location.origin,
   new StaleWhileRevalidate({
     cacheName: 'cdn-cache',
-    plugins: [
-      responsePlugin,
-      new ExpirationPlugin({ maxAgeSeconds: 86400 * 7, maxEntries: 50 }),
-    ],
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 7, maxEntries: 50 })],
   }),
-);
+)
 
 // 4. Network Only - 인증 관련
 registerRoute(
@@ -1359,11 +1370,11 @@ registerRoute(
   new NetworkOnly({
     plugins: [
       new BackgroundSyncPlugin('auth-retry-queue', {
-        maxRetentionTime: 60,  // 1시간
+        maxRetentionTime: 60, // 1시간
       }),
     ],
   }),
-);
+)
 ```
 
 ---
@@ -1413,14 +1424,14 @@ sequenceDiagram
 
 ```typescript
 // src/hooks/useNetworkStatus.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
 
 interface NetworkStatus {
-  isOnline: boolean;
-  lastOnlineAt: number | null;
-  connectionType: string | null;
-  effectiveType: string | null;   // 'slow-2g' | '2g' | '3g' | '4g'
-  downlink: number | null;        // Mbps
+  isOnline: boolean
+  lastOnlineAt: number | null
+  connectionType: string | null
+  effectiveType: string | null // 'slow-2g' | '2g' | '3g' | '4g'
+  downlink: number | null // Mbps
 }
 
 export function useNetworkStatus(): NetworkStatus {
@@ -1430,10 +1441,10 @@ export function useNetworkStatus(): NetworkStatus {
     connectionType: null,
     effectiveType: null,
     downlink: null,
-  }));
+  }))
 
   const updateConnectionInfo = useCallback(() => {
-    const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection;
+    const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection
     setStatus((prev) => ({
       ...prev,
       isOnline: navigator.onLine,
@@ -1441,33 +1452,33 @@ export function useNetworkStatus(): NetworkStatus {
       connectionType: conn?.type ?? null,
       effectiveType: conn?.effectiveType ?? null,
       downlink: conn?.downlink ?? null,
-    }));
-  }, []);
+    }))
+  }, [])
 
   useEffect(() => {
-    const onOnline = () => updateConnectionInfo();
-    const onOffline = () => updateConnectionInfo();
+    const onOnline = () => updateConnectionInfo()
+    const onOffline = () => updateConnectionInfo()
 
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
 
-    const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection;
-    conn?.addEventListener('change', updateConnectionInfo);
+    const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection
+    conn?.addEventListener('change', updateConnectionInfo)
 
     return () => {
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
-      conn?.removeEventListener('change', updateConnectionInfo);
-    };
-  }, [updateConnectionInfo]);
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+      conn?.removeEventListener('change', updateConnectionInfo)
+    }
+  }, [updateConnectionInfo])
 
-  return status;
+  return status
 }
 
 interface NetworkInformation extends EventTarget {
-  type: string;
-  effectiveType: string;
-  downlink: number;
+  type: string
+  effectiveType: string
+  downlink: number
 }
 ```
 
@@ -1494,43 +1505,43 @@ stateDiagram-v2
 
 ```typescript
 // src/services/offline-queue.ts
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB, DBSchema, IDBPDatabase } from 'idb'
 
 interface OfflineAction {
-  id: string;
-  url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  headers: Record<string, string>;
-  body: string | null;
-  timestamp: number;
-  retryCount: number;
-  maxRetries: number;
-  status: 'pending' | 'syncing' | 'failed' | 'completed';
-  errorMessage?: string;
+  id: string
+  url: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  headers: Record<string, string>
+  body: string | null
+  timestamp: number
+  retryCount: number
+  maxRetries: number
+  status: 'pending' | 'syncing' | 'failed' | 'completed'
+  errorMessage?: string
 }
 
 interface OfflineQueueDB extends DBSchema {
   actions: {
-    key: string;
-    value: OfflineAction;
+    key: string
+    value: OfflineAction
     indexes: {
-      'by-status': string;
-      'by-timestamp': number;
-    };
-  };
+      'by-status': string
+      'by-timestamp': number
+    }
+  }
 }
 
 export class OfflineQueue {
-  private dbPromise: Promise<IDBPDatabase<OfflineQueueDB>>;
+  private dbPromise: Promise<IDBPDatabase<OfflineQueueDB>>
 
   constructor(dbName = 'offline-queue') {
     this.dbPromise = openDB<OfflineQueueDB>(dbName, 1, {
       upgrade(db) {
-        const store = db.createObjectStore('actions', { keyPath: 'id' });
-        store.createIndex('by-status', 'status');
-        store.createIndex('by-timestamp', 'timestamp');
+        const store = db.createObjectStore('actions', { keyPath: 'id' })
+        store.createIndex('by-status', 'status')
+        store.createIndex('by-timestamp', 'timestamp')
       },
-    });
+    })
   }
 
   async enqueue(
@@ -1539,8 +1550,8 @@ export class OfflineQueue {
     body?: unknown,
     headers: Record<string, string> = {},
   ): Promise<string> {
-    const db = await this.dbPromise;
-    const id = crypto.randomUUID();
+    const db = await this.dbPromise
+    const id = crypto.randomUUID()
     const action: OfflineAction = {
       id,
       url,
@@ -1551,54 +1562,54 @@ export class OfflineQueue {
       retryCount: 0,
       maxRetries: 3,
       status: 'pending',
-    };
-    await db.put('actions', action);
-    return id;
+    }
+    await db.put('actions', action)
+    return id
   }
 
   async getPending(): Promise<OfflineAction[]> {
-    const db = await this.dbPromise;
-    return db.getAllFromIndex('actions', 'by-status', 'pending');
+    const db = await this.dbPromise
+    return db.getAllFromIndex('actions', 'by-status', 'pending')
   }
 
   async getFailed(): Promise<OfflineAction[]> {
-    const db = await this.dbPromise;
-    return db.getAllFromIndex('actions', 'by-status', 'failed');
+    const db = await this.dbPromise
+    return db.getAllFromIndex('actions', 'by-status', 'failed')
   }
 
   async markSyncing(id: string): Promise<void> {
-    const db = await this.dbPromise;
-    const action = await db.get('actions', id);
+    const db = await this.dbPromise
+    const action = await db.get('actions', id)
     if (action) {
-      action.status = 'syncing';
-      await db.put('actions', action);
+      action.status = 'syncing'
+      await db.put('actions', action)
     }
   }
 
   async markCompleted(id: string): Promise<void> {
-    const db = await this.dbPromise;
-    await db.delete('actions', id);
+    const db = await this.dbPromise
+    await db.delete('actions', id)
   }
 
   async markFailed(id: string, error: string): Promise<void> {
-    const db = await this.dbPromise;
-    const action = await db.get('actions', id);
+    const db = await this.dbPromise
+    const action = await db.get('actions', id)
     if (action) {
-      action.retryCount += 1;
-      action.errorMessage = error;
-      action.status = action.retryCount >= action.maxRetries ? 'failed' : 'pending';
-      await db.put('actions', action);
+      action.retryCount += 1
+      action.errorMessage = error
+      action.status = action.retryCount >= action.maxRetries ? 'failed' : 'pending'
+      await db.put('actions', action)
     }
   }
 
   async getQueueSize(): Promise<number> {
-    const db = await this.dbPromise;
-    return db.countFromIndex('actions', 'by-status', 'pending');
+    const db = await this.dbPromise
+    return db.countFromIndex('actions', 'by-status', 'pending')
   }
 
   async clear(): Promise<void> {
-    const db = await this.dbPromise;
-    await db.clear('actions');
+    const db = await this.dbPromise
+    await db.clear('actions')
   }
 }
 ```
@@ -1607,76 +1618,76 @@ export class OfflineQueue {
 
 ```typescript
 // src/services/sync-engine.ts
-import { OfflineQueue } from './offline-queue';
+import { OfflineQueue } from './offline-queue'
 
 interface SyncProgress {
-  total: number;
-  completed: number;
-  failed: number;
-  current: string | null;
+  total: number
+  completed: number
+  failed: number
+  current: string | null
 }
 
-type SyncProgressCallback = (progress: SyncProgress) => void;
+type SyncProgressCallback = (progress: SyncProgress) => void
 
 export class SyncEngine {
-  private queue: OfflineQueue;
-  private isSyncing = false;
+  private queue: OfflineQueue
+  private isSyncing = false
 
   constructor(queue: OfflineQueue) {
-    this.queue = queue;
+    this.queue = queue
   }
 
   async syncAll(onProgress?: SyncProgressCallback): Promise<SyncProgress> {
-    if (this.isSyncing) throw new Error('동기화 진행 중');
-    this.isSyncing = true;
+    if (this.isSyncing) throw new Error('동기화 진행 중')
+    this.isSyncing = true
 
-    const pending = await this.queue.getPending();
+    const pending = await this.queue.getPending()
     const progress: SyncProgress = {
       total: pending.length,
       completed: 0,
       failed: 0,
       current: null,
-    };
+    }
 
     for (const action of pending) {
-      progress.current = action.id;
-      onProgress?.(progress);
+      progress.current = action.id
+      onProgress?.(progress)
 
-      await this.queue.markSyncing(action.id);
+      await this.queue.markSyncing(action.id)
 
       try {
         const response = await fetch(action.url, {
           method: action.method,
           headers: action.headers,
           body: action.body,
-        });
+        })
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-        await this.queue.markCompleted(action.id);
-        progress.completed += 1;
+        await this.queue.markCompleted(action.id)
+        progress.completed += 1
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        await this.queue.markFailed(action.id, message);
-        progress.failed += 1;
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        await this.queue.markFailed(action.id, message)
+        progress.failed += 1
       }
 
-      onProgress?.(progress);
+      onProgress?.(progress)
 
       // 지수 백오프 간격
       if (progress.failed > 0) {
-        await this.delay(Math.min(1000 * 2 ** progress.failed, 30000));
+        await this.delay(Math.min(1000 * 2 ** progress.failed, 30000))
       }
     }
 
-    progress.current = null;
-    this.isSyncing = false;
-    onProgress?.(progress);
-    return progress;
+    progress.current = null
+    this.isSyncing = false
+    onProgress?.(progress)
+    return progress
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 ```
@@ -1687,24 +1698,24 @@ export class SyncEngine {
 // src/services/conflict-resolver.ts
 
 interface VersionedRecord {
-  id: string;
-  data: Record<string, unknown>;
-  version: number;
-  updatedAt: number;
-  updatedBy: string;
+  id: string
+  data: Record<string, unknown>
+  version: number
+  updatedAt: number
+  updatedBy: string
 }
 
 interface ConflictInfo {
-  field: string;
-  baseValue: unknown;
-  localValue: unknown;
-  serverValue: unknown;
+  field: string
+  baseValue: unknown
+  localValue: unknown
+  serverValue: unknown
 }
 
 interface MergeResult {
-  resolved: Record<string, unknown>;
-  conflicts: ConflictInfo[];      // 자동 병합 실패한 필드
-  strategy: 'auto-merged' | 'manual-required';
+  resolved: Record<string, unknown>
+  conflicts: ConflictInfo[] // 자동 병합 실패한 필드
+  strategy: 'auto-merged' | 'manual-required'
 }
 
 export class ConflictResolver {
@@ -1721,35 +1732,35 @@ export class ConflictResolver {
       ...Object.keys(base.data),
       ...Object.keys(local.data),
       ...Object.keys(server.data),
-    ]);
+    ])
 
-    const resolved: Record<string, unknown> = {};
-    const conflicts: ConflictInfo[] = [];
+    const resolved: Record<string, unknown> = {}
+    const conflicts: ConflictInfo[] = []
 
     for (const field of allFields) {
-      const baseVal = base.data[field];
-      const localVal = local.data[field];
-      const serverVal = server.data[field];
+      const baseVal = base.data[field]
+      const localVal = local.data[field]
+      const serverVal = server.data[field]
 
-      const localChanged = !this.deepEqual(baseVal, localVal);
-      const serverChanged = !this.deepEqual(baseVal, serverVal);
+      const localChanged = !this.deepEqual(baseVal, localVal)
+      const serverChanged = !this.deepEqual(baseVal, serverVal)
 
       if (!localChanged && !serverChanged) {
         // 양쪽 모두 변경 없음
-        resolved[field] = baseVal;
+        resolved[field] = baseVal
       } else if (localChanged && !serverChanged) {
         // 로컬만 변경
-        resolved[field] = localVal;
+        resolved[field] = localVal
       } else if (!localChanged && serverChanged) {
         // 서버만 변경
-        resolved[field] = serverVal;
+        resolved[field] = serverVal
       } else if (this.deepEqual(localVal, serverVal)) {
         // 양쪽 동일하게 변경
-        resolved[field] = localVal;
+        resolved[field] = localVal
       } else {
         // 충돌: 양쪽 다르게 변경
-        conflicts.push({ field, baseValue: baseVal, localValue: localVal, serverValue: serverVal });
-        resolved[field] = serverVal; // 기본값은 서버 우선
+        conflicts.push({ field, baseValue: baseVal, localValue: localVal, serverValue: serverVal })
+        resolved[field] = serverVal // 기본값은 서버 우선
       }
     }
 
@@ -1757,11 +1768,11 @@ export class ConflictResolver {
       resolved,
       conflicts,
       strategy: conflicts.length === 0 ? 'auto-merged' : 'manual-required',
-    };
+    }
   }
 
   private deepEqual(a: unknown, b: unknown): boolean {
-    return JSON.stringify(a) === JSON.stringify(b);
+    return JSON.stringify(a) === JSON.stringify(b)
   }
 }
 ```
@@ -1852,6 +1863,7 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 ## 7. Web Push Notifications
 
 > **현재 모바일 브라우저 Web Push 핵심 제약**
+>
 > - 일부 모바일 브라우저는 **홈 화면에 설치된 PWA (`display: standalone`)** 에서만 Push API가 동작한다. 일반 브라우저 탭에서는 권한 요청 자체가 거부될 수 있다.
 > - 권한 요청은 **사용자 제스처(클릭/탭) 직후에만** 호출 가능. `useEffect`나 페이지 로드 시 자동 호출 금지.
 > - manifest의 `display`가 `standalone` 또는 `fullscreen`이어야 한다. `minimal-ui`/`browser`로 폴백되면 Push 비활성화.
@@ -1859,24 +1871,25 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 > - VAPID 키는 서버/클라이언트 동일하게 관리(P-256 ECDSA). 키 교체 시 모든 구독을 무효화한다.
 >
 > **모바일 PWA Push 활성화 사전 체크**
+>
 > ```ts
 > function canRequestPushOnMobilePwa(): { eligible: boolean; reason?: string } {
->   const ua = navigator.userAgent;
->   const requiresStandalone = /Mobile|Tablet/.test(ua);
->   if (!requiresStandalone) return { eligible: true };
+>   const ua = navigator.userAgent
+>   const requiresStandalone = /Mobile|Tablet/.test(ua)
+>   if (!requiresStandalone) return { eligible: true }
 >
 >   // 홈 화면 설치 확인 (standalone)
 >   const isStandalone =
 >     window.matchMedia('(display-mode: standalone)').matches ||
 >     // 일부 모바일 브라우저의 비표준 standalone 속성
 >     // eslint-disable-next-line @typescript-eslint/no-explicit-any
->     ((window.navigator as any).standalone === true);
->   if (!isStandalone) return { eligible: false, reason: 'home-screen-required' };
+>     (window.navigator as any).standalone === true
+>   if (!isStandalone) return { eligible: false, reason: 'home-screen-required' }
 >
 >   if (!('Notification' in window) || !('PushManager' in window)) {
->     return { eligible: false, reason: 'unsupported' };
+>     return { eligible: false, reason: 'unsupported' }
 >   }
->   return { eligible: true };
+>   return { eligible: true }
 > }
 > ```
 
@@ -1884,11 +1897,11 @@ export const ConflictResolutionDialog: React.FC<Props> = ({
 
 ```typescript
 // scripts/generate-vapid-keys.ts
-import webpush from 'web-push';
+import webpush from 'web-push'
 
-const vapidKeys = webpush.generateVAPIDKeys();
-console.log('VAPID Public Key:', vapidKeys.publicKey);
-console.log('VAPID Private Key:', vapidKeys.privateKey);
+const vapidKeys = webpush.generateVAPIDKeys()
+console.log('VAPID Public Key:', vapidKeys.publicKey)
+console.log('VAPID Private Key:', vapidKeys.privateKey)
 // .env에 저장:
 // VITE_VAPID_PUBLIC_KEY=<publicKey>
 // VAPID_PRIVATE_KEY=<privateKey>
@@ -1898,22 +1911,22 @@ console.log('VAPID Private Key:', vapidKeys.privateKey);
 
 ```typescript
 // src/sw-push.ts (sw.ts에서 import)
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope
 
 interface PushPayload {
-  title: string;
-  body: string;
-  icon?: string;
-  badge?: string;
-  tag?: string;
-  url?: string;
-  actions?: Array<{ action: string; title: string; icon?: string }>;
+  title: string
+  body: string
+  icon?: string
+  badge?: string
+  tag?: string
+  url?: string
+  actions?: Array<{ action: string; title: string; icon?: string }>
 }
 
 self.addEventListener('push', (event: PushEvent) => {
-  if (!event.data) return;
+  if (!event.data) return
 
-  const payload: PushPayload = event.data.json();
+  const payload: PushPayload = event.data.json()
 
   event.waitUntil(
     self.registration.showNotification(payload.title, {
@@ -1929,114 +1942,116 @@ self.addEventListener('push', (event: PushEvent) => {
       requireInteraction: false,
       silent: false,
     }),
-  );
-});
+  )
+})
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
-  event.notification.close();
+  event.notification.close()
 
-  if (event.action === 'dismiss') return;
+  if (event.action === 'dismiss') return
 
-  const targetUrl = (event.notification.data as { url: string })?.url ?? '/';
+  const targetUrl = (event.notification.data as { url: string })?.url ?? '/'
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       // 이미 열린 탭이 있으면 포커스
       for (const client of clients) {
         if (new URL(client.url).pathname === targetUrl && 'focus' in client) {
-          return client.focus();
+          return client.focus()
         }
       }
       // 없으면 새 창 열기
-      return self.clients.openWindow(targetUrl);
+      return self.clients.openWindow(targetUrl)
     }),
-  );
-});
+  )
+})
 
 // 알림 닫힘 추적 (분석용)
 self.addEventListener('notificationclose', (event: NotificationEvent) => {
-  const tag = event.notification.tag;
+  const tag = event.notification.tag
   // 분석 이벤트 전송 (오프라인이면 큐잉)
   fetch('/api/analytics/notification-dismissed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tag, timestamp: Date.now() }),
-  }).catch(() => { /* 오프라인이면 무시 */ });
-});
+  }).catch(() => {
+    /* 오프라인이면 무시 */
+  })
+})
 ```
 
 ### 7.3 클라이언트 구독 관리 훅
 
 ```typescript
 // src/hooks/usePushNotification.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
 
 interface PushState {
-  isSupported: boolean;
-  permission: NotificationPermission;
-  isSubscribed: boolean;
-  subscribe: () => Promise<void>;
-  unsubscribe: () => Promise<void>;
+  isSupported: boolean
+  permission: NotificationPermission
+  isSubscribed: boolean
+  subscribe: () => Promise<void>
+  unsubscribe: () => Promise<void>
 }
 
 export function usePushNotification(vapidPublicKey: string): PushState {
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied',
-  );
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  )
+  const [isSubscribed, setIsSubscribed] = useState(false)
 
-  const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+  const isSupported = 'serviceWorker' in navigator && 'PushManager' in window
 
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isSupported) return
     navigator.serviceWorker.ready.then(async (reg) => {
-      const sub = await reg.pushManager.getSubscription();
-      setIsSubscribed(sub !== null);
-    });
-  }, [isSupported]);
+      const sub = await reg.pushManager.getSubscription()
+      setIsSubscribed(sub !== null)
+    })
+  }, [isSupported])
 
   const subscribe = useCallback(async () => {
-    if (!isSupported) return;
+    if (!isSupported) return
 
-    const result = await Notification.requestPermission();
-    setPermission(result);
-    if (result !== 'granted') return;
+    const result = await Notification.requestPermission()
+    setPermission(result)
+    if (result !== 'granted') return
 
-    const reg = await navigator.serviceWorker.ready;
-    const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4);
-    const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    const key = Uint8Array.from(rawData, (c) => c.charCodeAt(0));
+    const reg = await navigator.serviceWorker.ready
+    const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4)
+    const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(base64)
+    const key = Uint8Array.from(rawData, (c) => c.charCodeAt(0))
 
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: key,
-    });
+    })
 
     await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(subscription),
-    });
+    })
 
-    setIsSubscribed(true);
-  }, [isSupported, vapidPublicKey]);
+    setIsSubscribed(true)
+  }, [isSupported, vapidPublicKey])
 
   const unsubscribe = useCallback(async () => {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
     if (sub) {
-      await sub.unsubscribe();
+      await sub.unsubscribe()
       await fetch('/api/push/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub.endpoint }),
-      });
+      })
     }
-    setIsSubscribed(false);
-  }, []);
+    setIsSubscribed(false)
+  }, [])
 
-  return { isSupported, permission, isSubscribed, subscribe, unsubscribe };
+  return { isSupported, permission, isSubscribed, subscribe, unsubscribe }
 }
 ```
 
@@ -2044,25 +2059,25 @@ export function usePushNotification(vapidPublicKey: string): PushState {
 
 ```typescript
 // server/push-sender.ts
-import webpush from 'web-push';
+import webpush from 'web-push'
 
 webpush.setVapidDetails(
   'mailto:admin@example.com',
   process.env.VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!,
-);
+)
 
 interface PushTarget {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
+  endpoint: string
+  keys: { p256dh: string; auth: string }
 }
 
 interface PushMessage {
-  title: string;
-  body: string;
-  icon?: string;
-  url?: string;
-  tag?: string;
+  title: string
+  body: string
+  icon?: string
+  url?: string
+  tag?: string
 }
 
 export async function sendPushNotification(
@@ -2077,12 +2092,12 @@ export async function sendPushNotification(
         { TTL: 86400, urgency: 'normal' },
       ),
     ),
-  );
+  )
 
   return {
     success: results.filter((r) => r.status === 'fulfilled').length,
     failed: results.filter((r) => r.status === 'rejected').length,
-  };
+  }
 }
 ```
 
@@ -2099,9 +2114,9 @@ export async function sendPushNotification(
 // Lighthouse PWA 감사 항목 자동 점검 스크립트
 
 interface AuditItem {
-  id: string;
-  description: string;
-  check: () => Promise<boolean>;
+  id: string
+  description: string
+  check: () => Promise<boolean>
 }
 
 const PWA_CHECKLIST: AuditItem[] = [
@@ -2109,16 +2124,16 @@ const PWA_CHECKLIST: AuditItem[] = [
     id: 'manifest-exists',
     description: 'manifest.json 존재',
     check: async () => {
-      const res = await fetch('/manifest.json');
-      return res.ok;
+      const res = await fetch('/manifest.json')
+      return res.ok
     },
   },
   {
     id: 'sw-registered',
     description: 'Service Worker 등록됨',
     check: async () => {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      return regs.length > 0;
+      const regs = await navigator.serviceWorker.getRegistrations()
+      return regs.length > 0
     },
   },
   {
@@ -2130,76 +2145,76 @@ const PWA_CHECKLIST: AuditItem[] = [
     id: 'offline-fallback',
     description: '오프라인 폴백 페이지 존재',
     check: async () => {
-      const cache = await caches.open('static-v2');
-      const match = await cache.match('/offline.html');
-      return match !== undefined;
+      const cache = await caches.open('static-v2')
+      const match = await cache.match('/offline.html')
+      return match !== undefined
     },
   },
   {
     id: 'icons-192',
     description: '192x192 아이콘 존재',
     check: async () => {
-      const res = await fetch('/icons/icon-192x192.png');
-      return res.ok;
+      const res = await fetch('/icons/icon-192x192.png')
+      return res.ok
     },
   },
   {
     id: 'icons-512',
     description: '512x512 아이콘 존재',
     check: async () => {
-      const res = await fetch('/icons/icon-512x512.png');
-      return res.ok;
+      const res = await fetch('/icons/icon-512x512.png')
+      return res.ok
     },
   },
   {
     id: 'maskable-icon',
     description: 'Maskable 아이콘 존재',
     check: async () => {
-      const res = await fetch('/manifest.json');
-      const manifest = await res.json();
-      return manifest.icons?.some((i: { purpose?: string }) => i.purpose?.includes('maskable'));
+      const res = await fetch('/manifest.json')
+      const manifest = await res.json()
+      return manifest.icons?.some((i: { purpose?: string }) => i.purpose?.includes('maskable'))
     },
   },
   {
     id: 'theme-color',
     description: 'theme-color 메타태그 존재',
     check: async () => {
-      const meta = document.querySelector('meta[name="theme-color"]');
-      return meta !== null;
+      const meta = document.querySelector('meta[name="theme-color"]')
+      return meta !== null
     },
   },
   {
     id: 'viewport',
     description: 'viewport 메타태그 존재',
     check: async () => {
-      const meta = document.querySelector('meta[name="viewport"]');
-      return meta !== null && meta.getAttribute('content')?.includes('width=device-width') === true;
+      const meta = document.querySelector('meta[name="viewport"]')
+      return meta !== null && meta.getAttribute('content')?.includes('width=device-width') === true
     },
   },
   {
     id: 'start-url',
     description: 'start_url이 캐시에 존재',
     check: async () => {
-      const res = await fetch('/manifest.json');
-      const manifest = await res.json();
-      const startUrl = manifest.start_url ?? '/';
-      const cached = await caches.match(startUrl);
-      return cached !== undefined;
+      const res = await fetch('/manifest.json')
+      const manifest = await res.json()
+      const startUrl = manifest.start_url ?? '/'
+      const cached = await caches.match(startUrl)
+      return cached !== undefined
     },
   },
-];
+]
 
 export async function runPWAAudit(): Promise<void> {
-  console.group('PWA Audit Checklist');
+  console.group('PWA Audit Checklist')
   for (const item of PWA_CHECKLIST) {
     try {
-      const passed = await item.check();
-      console.log(`${passed ? 'PASS' : 'FAIL'} ${item.description}`);
+      const passed = await item.check()
+      console.log(`${passed ? 'PASS' : 'FAIL'} ${item.description}`)
     } catch {
-      console.log(`FAIL ${item.description} (에러 발생)`);
+      console.log(`FAIL ${item.description} (에러 발생)`)
     }
   }
-  console.groupEnd();
+  console.groupEnd()
 }
 ```
 
@@ -2209,14 +2224,14 @@ export async function runPWAAudit(): Promise<void> {
 
 현재 PWA의 오프라인 저장 옵션은 IndexedDB만이 아니다. 대용량/구조적 데이터를 더 빠르고 안전하게 저장할 수 있는 API들이 Baseline에 합류했다.
 
-| API | 지원 상태 | 용도 | 영속성 |
-|---|---|---|---|
-| **IndexedDB** | 모든 브라우저 | 구조적 JSON/Blob | 쿼터 내 영속 |
-| **Cache Storage** | 모든 브라우저 | Request/Response 캐싱 | 쿼터 내 영속 |
-| **Origin Private File System (OPFS)** | 주요 엔진 전반 지원 | 대용량 파일 IO (수GB), 동기 read/write 핸들 | 영속 (`navigator.storage.persist`) |
-| **File System Access API (user-visible)** | 엔진별 지원 편차 큼 | 사용자가 선택한 폴더에 R/W | 권한 부여 시 영속 |
-| **Storage Buckets API** | 일부 엔진 안정, 일부 진행 중 | 도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료 | 버킷별 정책 |
-| **Web Locks API** | 모든 브라우저 | 탭/SW 간 동시성 제어 | - |
+| API                                       | 지원 상태                    | 용도                                                    | 영속성                             |
+| ----------------------------------------- | ---------------------------- | ------------------------------------------------------- | ---------------------------------- |
+| **IndexedDB**                             | 모든 브라우저                | 구조적 JSON/Blob                                        | 쿼터 내 영속                       |
+| **Cache Storage**                         | 모든 브라우저                | Request/Response 캐싱                                   | 쿼터 내 영속                       |
+| **Origin Private File System (OPFS)**     | 주요 엔진 전반 지원          | 대용량 파일 IO (수GB), 동기 read/write 핸들             | 영속 (`navigator.storage.persist`) |
+| **File System Access API (user-visible)** | 엔진별 지원 편차 큼          | 사용자가 선택한 폴더에 R/W                              | 권한 부여 시 영속                  |
+| **Storage Buckets API**                   | 일부 엔진 안정, 일부 진행 중 | 도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료 | 버킷별 정책                        |
+| **Web Locks API**                         | 모든 브라우저                | 탭/SW 간 동시성 제어                                    | -                                  |
 
 ### 8.5.1 OPFS로 대용량 오프라인 파일 저장
 
@@ -2225,37 +2240,37 @@ export async function runPWAAudit(): Promise<void> {
 // OPFS는 사용자에게 보이지 않는 origin 전용 파일 시스템 -- 가장 빠른 IO 성능
 
 export async function writeBlobToOpfs(path: string, blob: Blob): Promise<void> {
-  const root = await navigator.storage.getDirectory();
+  const root = await navigator.storage.getDirectory()
   // 경로 분할 -- 'video/최신/clip.mp4' 같은 중첩 경로 지원
-  const segments = path.split('/').filter(Boolean);
-  const fileName = segments.pop()!;
+  const segments = path.split('/').filter(Boolean)
+  const fileName = segments.pop()!
 
-  let dir = root;
+  let dir = root
   for (const segment of segments) {
-    dir = await dir.getDirectoryHandle(segment, { create: true });
+    dir = await dir.getDirectoryHandle(segment, { create: true })
   }
 
-  const fileHandle = await dir.getFileHandle(fileName, { create: true });
+  const fileHandle = await dir.getFileHandle(fileName, { create: true })
   // 워커에서는 createSyncAccessHandle()로 동기 IO 가능 (성능 우수)
-  const writable = await fileHandle.createWritable();
-  await writable.write(blob);
-  await writable.close();
+  const writable = await fileHandle.createWritable()
+  await writable.write(blob)
+  await writable.close()
 }
 
 export async function readBlobFromOpfs(path: string): Promise<Blob | null> {
   try {
-    const root = await navigator.storage.getDirectory();
-    const segments = path.split('/').filter(Boolean);
-    const fileName = segments.pop()!;
-    let dir = root;
+    const root = await navigator.storage.getDirectory()
+    const segments = path.split('/').filter(Boolean)
+    const fileName = segments.pop()!
+    let dir = root
     for (const segment of segments) {
-      dir = await dir.getDirectoryHandle(segment);
+      dir = await dir.getDirectoryHandle(segment)
     }
-    const fileHandle = await dir.getFileHandle(fileName);
-    const file = await fileHandle.getFile();
-    return file;
+    const fileHandle = await dir.getFileHandle(fileName)
+    const file = await fileHandle.getFile()
+    return file
   } catch {
-    return null;
+    return null
   }
 }
 ```
@@ -2268,30 +2283,30 @@ export async function readBlobFromOpfs(path: string): Promise<Blob | null> {
 // 현재 기준 엔진별 지원 편차가 있으므로 progressive enhancement로 처리
 
 interface StorageBucketOptions {
-  durability?: 'strict' | 'relaxed';
-  persisted?: boolean;
-  quota?: number;
-  expires?: number; // epoch ms
+  durability?: 'strict' | 'relaxed'
+  persisted?: boolean
+  quota?: number
+  expires?: number // epoch ms
 }
 
 interface BrowserStorageManager extends StorageManager {
-  getBucket?: (name: string) => Promise<unknown>;
+  getBucket?: (name: string) => Promise<unknown>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  openOrCreate?: (name: string, options?: StorageBucketOptions) => Promise<any>;
+  openOrCreate?: (name: string, options?: StorageBucketOptions) => Promise<any>
 }
 
 export async function getProjectBucket(projectId: string) {
-  const manager = navigator.storage as BrowserStorageManager;
+  const manager = navigator.storage as BrowserStorageManager
   if (!manager.openOrCreate) {
     // 미지원 브라우저 -- 글로벌 IndexedDB로 폴백
-    return null;
+    return null
   }
   // 30일 만료, 쿼터 200MB
   return manager.openOrCreate(`project-${projectId}`, {
     durability: 'strict',
     persisted: true,
     expires: Date.now() + 30 * 86_400_000,
-  });
+  })
 }
 ```
 
@@ -2301,9 +2316,9 @@ export async function getProjectBucket(projectId: string) {
 // 사용자에게 보이지 않게 영속성 요청 (브라우저는 사용자 참여도/북마크 등으로 자동 부여하기도 함)
 async function ensurePersistentStorage(): Promise<boolean> {
   if (navigator.storage && navigator.storage.persist) {
-    return navigator.storage.persist();
+    return navigator.storage.persist()
   }
-  return false;
+  return false
 }
 ```
 
@@ -2317,69 +2332,69 @@ async function ensurePersistentStorage(): Promise<boolean> {
 // Service Worker 내 Background Sync 핸들러
 // src/sw-sync.ts
 
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope
 
-import { openDB } from 'idb';
+import { openDB } from 'idb'
 
-const SYNC_TAG = 'offline-actions-sync';
-const DB_NAME = 'offline-queue';
+const SYNC_TAG = 'offline-actions-sync'
+const DB_NAME = 'offline-queue'
 
 self.addEventListener('sync', (event: SyncEvent) => {
   if (event.tag === SYNC_TAG) {
-    event.waitUntil(processOfflineQueue());
+    event.waitUntil(processOfflineQueue())
   }
-});
+})
 
 async function processOfflineQueue(): Promise<void> {
-  const db = await openDB(DB_NAME, 1);
-  const tx = db.transaction('actions', 'readwrite');
-  const store = tx.objectStore('actions');
-  const index = store.index('by-status');
-  const pending = await index.getAll('pending');
+  const db = await openDB(DB_NAME, 1)
+  const tx = db.transaction('actions', 'readwrite')
+  const store = tx.objectStore('actions')
+  const index = store.index('by-status')
+  const pending = await index.getAll('pending')
 
-  let completed = 0;
-  let failed = 0;
+  let completed = 0
+  let failed = 0
 
   for (const action of pending) {
     try {
-      action.status = 'syncing';
-      await store.put(action);
+      action.status = 'syncing'
+      await store.put(action)
 
       const response = await fetch(action.url, {
         method: action.method,
         headers: action.headers,
         body: action.body,
-      });
+      })
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-      await store.delete(action.id);
-      completed += 1;
+      await store.delete(action.id)
+      completed += 1
     } catch (error) {
-      action.retryCount += 1;
-      action.status = action.retryCount >= action.maxRetries ? 'failed' : 'pending';
-      action.errorMessage = error instanceof Error ? error.message : 'Unknown';
-      await store.put(action);
-      failed += 1;
+      action.retryCount += 1
+      action.status = action.retryCount >= action.maxRetries ? 'failed' : 'pending'
+      action.errorMessage = error instanceof Error ? error.message : 'Unknown'
+      await store.put(action)
+      failed += 1
     }
   }
 
-  await tx.done;
+  await tx.done
 
   // 클라이언트에 동기화 결과 알림
-  const clients = await self.clients.matchAll();
+  const clients = await self.clients.matchAll()
   for (const client of clients) {
     client.postMessage({
       type: 'SYNC_COMPLETE',
       payload: { total: pending.length, completed, failed },
-    });
+    })
   }
 }
 
 // 클라이언트에서 Background Sync 등록
 export async function requestBackgroundSync(): Promise<void> {
-  const registration = await navigator.serviceWorker.ready;
-  await registration.sync.register(SYNC_TAG);
+  const registration = await navigator.serviceWorker.ready
+  await registration.sync.register(SYNC_TAG)
 }
 ```
 
@@ -2388,81 +2403,78 @@ export async function requestBackgroundSync(): Promise<void> {
 ```typescript
 // src/services/periodic-sync.ts
 
-const PERIODIC_SYNC_TAG = 'content-prefetch';
-const MIN_INTERVAL = 12 * 60 * 60 * 1000; // 12시간
+const PERIODIC_SYNC_TAG = 'content-prefetch'
+const MIN_INTERVAL = 12 * 60 * 60 * 1000 // 12시간
 
 export async function registerPeriodicSync(): Promise<boolean> {
   if (!('periodicSync' in ServiceWorkerRegistration.prototype)) {
-    console.info('[PeriodicSync] 지원하지 않는 브라우저');
-    return false;
+    console.info('[PeriodicSync] 지원하지 않는 브라우저')
+    return false
   }
 
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await navigator.serviceWorker.ready
   const status = await navigator.permissions.query({
     name: 'periodic-background-sync' as PermissionName,
-  });
+  })
 
   if (status.state !== 'granted') {
-    console.info('[PeriodicSync] 권한 없음');
-    return false;
+    console.info('[PeriodicSync] 권한 없음')
+    return false
   }
 
   await registration.periodicSync.register(PERIODIC_SYNC_TAG, {
     minInterval: MIN_INTERVAL,
-  });
+  })
 
-  return true;
+  return true
 }
 
 // Service Worker 내 Periodic Sync 핸들러
 // sw-periodic-sync.ts
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope
 
 self.addEventListener('periodicsync', (event: PeriodicSyncEvent) => {
   if (event.tag === PERIODIC_SYNC_TAG) {
-    event.waitUntil(prefetchContent());
+    event.waitUntil(prefetchContent())
   }
-});
+})
 
 async function prefetchContent(): Promise<void> {
-  const urls = [
-    '/api/feed/latest',
-    '/api/notifications/unread-count',
-  ];
+  const urls = ['/api/feed/latest', '/api/notifications/unread-count']
 
-  const cache = await caches.open('prefetch-cache');
+  const cache = await caches.open('prefetch-cache')
 
   await Promise.allSettled(
     urls.map(async (url) => {
-      const response = await fetch(url);
+      const response = await fetch(url)
       if (response.ok) {
-        await cache.put(url, response);
+        await cache.put(url, response)
       }
     }),
-  );
+  )
 }
 
 // PeriodicSyncEvent 타입 선언
 interface PeriodicSyncEvent extends ExtendableEvent {
-  tag: string;
+  tag: string
 }
 
 interface SyncEvent extends ExtendableEvent {
-  tag: string;
-  lastChance: boolean;
+  tag: string
+  lastChance: boolean
 }
 
 declare global {
   interface ServiceWorkerRegistration {
     periodicSync: {
-      register(tag: string, options?: { minInterval?: number }): Promise<void>;
-      unregister(tag: string): Promise<void>;
-      getTags(): Promise<string[]>;
-    };
+      register(tag: string, options?: { minInterval?: number }): Promise<void>
+      unregister(tag: string): Promise<void>
+      getTags(): Promise<string[]>
+    }
     sync: {
-      register(tag: string): Promise<void>;
-      getTags(): Promise<string[]>;
-    };
+      register(tag: string): Promise<void>
+      getTags(): Promise<string[]>
+    }
   }
 }
 ```
@@ -2471,58 +2483,61 @@ declare global {
 
 ```typescript
 // src/hooks/useSyncStatus.ts
-import { useState, useEffect, useCallback } from 'react';
-import { OfflineQueue } from '@/services/offline-queue';
-import { SyncEngine } from '@/services/sync-engine';
+import { useState, useEffect, useCallback } from 'react'
+import { OfflineQueue } from '@/services/offline-queue'
+import { SyncEngine } from '@/services/sync-engine'
 
 interface SyncStatus {
-  pendingCount: number;
-  isSyncing: boolean;
-  lastSyncResult: { completed: number; failed: number } | null;
-  syncNow: () => Promise<void>;
+  pendingCount: number
+  isSyncing: boolean
+  lastSyncResult: { completed: number; failed: number } | null
+  syncNow: () => Promise<void>
 }
 
 export function useSyncStatus(): SyncStatus {
-  const [pendingCount, setPendingCount] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState<{ completed: number; failed: number } | null>(null);
+  const [pendingCount, setPendingCount] = useState(0)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncResult, setLastSyncResult] = useState<{
+    completed: number
+    failed: number
+  } | null>(null)
 
-  const queue = new OfflineQueue();
-  const engine = new SyncEngine(queue);
+  const queue = new OfflineQueue()
+  const engine = new SyncEngine(queue)
 
   // Service Worker로부터 동기화 완료 메시지 수신
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'SYNC_COMPLETE') {
-        const { completed, failed } = event.data.payload;
-        setLastSyncResult({ completed, failed });
-        setIsSyncing(false);
-        queue.getQueueSize().then(setPendingCount);
+        const { completed, failed } = event.data.payload
+        setLastSyncResult({ completed, failed })
+        setIsSyncing(false)
+        queue.getQueueSize().then(setPendingCount)
       }
-    };
-    navigator.serviceWorker?.addEventListener('message', handler);
-    return () => navigator.serviceWorker?.removeEventListener('message', handler);
-  }, [queue]);
+    }
+    navigator.serviceWorker?.addEventListener('message', handler)
+    return () => navigator.serviceWorker?.removeEventListener('message', handler)
+  }, [queue])
 
   // 초기 큐 크기 로드
   useEffect(() => {
-    queue.getQueueSize().then(setPendingCount);
-  }, [queue]);
+    queue.getQueueSize().then(setPendingCount)
+  }, [queue])
 
   const syncNow = useCallback(async () => {
-    if (isSyncing || !navigator.onLine) return;
-    setIsSyncing(true);
+    if (isSyncing || !navigator.onLine) return
+    setIsSyncing(true)
 
     const result = await engine.syncAll((progress) => {
-      setPendingCount(progress.total - progress.completed - progress.failed);
-    });
+      setPendingCount(progress.total - progress.completed - progress.failed)
+    })
 
-    setLastSyncResult({ completed: result.completed, failed: result.failed });
-    setIsSyncing(false);
-    setPendingCount(await queue.getQueueSize());
-  }, [isSyncing, engine, queue]);
+    setLastSyncResult({ completed: result.completed, failed: result.failed })
+    setIsSyncing(false)
+    setPendingCount(await queue.getQueueSize())
+  }, [isSyncing, engine, queue])
 
-  return { pendingCount, isSyncing, lastSyncResult, syncNow };
+  return { pendingCount, isSyncing, lastSyncResult, syncNow }
 }
 ```
 
@@ -2542,36 +2557,36 @@ pnpm add -D serwist
 
 ```typescript
 // next.config.ts
-import withSerwist from '@serwist/next';
+import withSerwist from '@serwist/next'
 
 const nextConfig = {
   // ... 기존 Next.js 설정
-};
+}
 
 export default withSerwist({
-  swSrc: 'src/sw.ts',        // Service Worker 소스 경로
-  swDest: 'public/sw.js',    // 빌드 결과물 경로
-  cacheOnNavigation: true,   // 네비게이션 요청 캐싱 활성화
-  reloadOnOnline: true,      // 온라인 복귀 시 자동 새로고침
+  swSrc: 'src/sw.ts', // Service Worker 소스 경로
+  swDest: 'public/sw.js', // 빌드 결과물 경로
+  cacheOnNavigation: true, // 네비게이션 요청 캐싱 활성화
+  reloadOnOnline: true, // 온라인 복귀 시 자동 새로고침
   disable: process.env.NODE_ENV === 'development', // 개발 환경 비활성화
-})(nextConfig);
+})(nextConfig)
 ```
 
 ### 10.2 Serwist Service Worker 작성
 
 ```typescript
 // src/sw.ts - Serwist 기반 Service Worker
-import { defaultCache } from '@serwist/next/worker';
-import { Serwist } from 'serwist';
+import { defaultCache } from '@serwist/next/worker'
+import { Serwist } from 'serwist'
 
-declare const self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope
 
 const serwist = new Serwist({
   // Serwist가 빌드 시점에 프리캐시 매니페스트를 주입
   precacheEntries: self.__SW_MANIFEST,
   precacheOptions: {
-    cleanupOutdatedCaches: true,  // 오래된 캐시 자동 정리
-    concurrency: 10,              // 프리캐시 병렬 다운로드 수
+    cleanupOutdatedCaches: true, // 오래된 캐시 자동 정리
+    concurrency: 10, // 프리캐시 병렬 다운로드 수
   },
   skipWaiting: true,
   clientsClaim: true,
@@ -2582,27 +2597,27 @@ const serwist = new Serwist({
   fallbacks: {
     entries: [
       {
-        url: '/offline',            // App Router 오프라인 페이지
+        url: '/offline', // App Router 오프라인 페이지
         matcher: ({ request }) => request.destination === 'document',
       },
     ],
   },
-});
+})
 
-serwist.addEventListeners();
+serwist.addEventListeners()
 ```
 
 ### 10.3 Serwist vs Workbox 직접 사용 비교
 
-| 항목 | Serwist (Next.js) | Workbox + vite-plugin-pwa |
-|------|-------------------|--------------------------|
-| **프레임워크** | Next.js 전용 | Vite / 프레임워크 무관 |
-| **App Router 호환** | 네이티브 지원 | 수동 설정 필요 |
+| 항목                    | Serwist (Next.js)              | Workbox + vite-plugin-pwa      |
+| ----------------------- | ------------------------------ | ------------------------------ |
+| **프레임워크**          | Next.js 전용                   | Vite / 프레임워크 무관         |
+| **App Router 호환**     | 네이티브 지원                  | 수동 설정 필요                 |
 | **프리캐시 매니페스트** | `self.__SW_MANIFEST` 자동 주입 | `self.__WB_MANIFEST` 자동 주입 |
-| **런타임 캐시 기본값** | `defaultCache` 제공 | 직접 설정 필수 |
-| **오프라인 폴백** | `fallbacks` 옵션 내장 | `setCatchHandler` 수동 설정 |
-| **업데이트 감지** | `@serwist/next` 자동 | `virtual:pwa-register` 사용 |
-| **번들 크기** | Workbox 하위 호환 (동일) | 동일 |
+| **런타임 캐시 기본값**  | `defaultCache` 제공            | 직접 설정 필수                 |
+| **오프라인 폴백**       | `fallbacks` 옵션 내장          | `setCatchHandler` 수동 설정    |
+| **업데이트 감지**       | `@serwist/next` 자동           | `virtual:pwa-register` 사용    |
+| **번들 크기**           | Workbox 하위 호환 (동일)       | 동일                           |
 
 ---
 
@@ -2616,135 +2631,131 @@ serwist.addEventListeners();
 
 export async function debugServiceWorker(): Promise<void> {
   if (!('serviceWorker' in navigator)) {
-    console.warn('[SW Debug] Service Worker 미지원 브라우저');
-    return;
+    console.warn('[SW Debug] Service Worker 미지원 브라우저')
+    return
   }
 
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  console.group('[SW Debug] Service Worker 상태');
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  console.group('[SW Debug] Service Worker 상태')
 
   for (const reg of registrations) {
-    console.log('스코프:', reg.scope);
-    console.log('활성 SW:', reg.active?.state ?? '없음');
-    console.log('대기 SW:', reg.waiting?.state ?? '없음');
-    console.log('설치 중 SW:', reg.installing?.state ?? '없음');
+    console.log('스코프:', reg.scope)
+    console.log('활성 SW:', reg.active?.state ?? '없음')
+    console.log('대기 SW:', reg.waiting?.state ?? '없음')
+    console.log('설치 중 SW:', reg.installing?.state ?? '없음')
   }
 
   // 캐시 스토리지 현황
-  const cacheNames = await caches.keys();
-  console.log('캐시 목록:', cacheNames);
+  const cacheNames = await caches.keys()
+  console.log('캐시 목록:', cacheNames)
 
   for (const name of cacheNames) {
-    const cache = await caches.open(name);
-    const keys = await cache.keys();
-    console.log(`  ${name}: ${keys.length}개 항목`);
+    const cache = await caches.open(name)
+    const keys = await cache.keys()
+    console.log(`  ${name}: ${keys.length}개 항목`)
   }
 
   // 스토리지 사용량 확인
   if ('storage' in navigator && 'estimate' in navigator.storage) {
-    const estimate = await navigator.storage.estimate();
-    const usedMB = ((estimate.usage ?? 0) / (1024 * 1024)).toFixed(2);
-    const quotaMB = ((estimate.quota ?? 0) / (1024 * 1024)).toFixed(2);
-    console.log(`스토리지: ${usedMB}MB / ${quotaMB}MB 사용`);
+    const estimate = await navigator.storage.estimate()
+    const usedMB = ((estimate.usage ?? 0) / (1024 * 1024)).toFixed(2)
+    const quotaMB = ((estimate.quota ?? 0) / (1024 * 1024)).toFixed(2)
+    console.log(`스토리지: ${usedMB}MB / ${quotaMB}MB 사용`)
   }
 
-  console.groupEnd();
+  console.groupEnd()
 }
 
 // 캐시 강제 초기화 (트러블슈팅용)
 export async function purgeAllCaches(): Promise<void> {
-  const cacheNames = await caches.keys();
-  await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  const cacheNames = await caches.keys()
+  await Promise.all(cacheNames.map((name) => caches.delete(name)))
 
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((reg) => reg.unregister()));
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  await Promise.all(registrations.map((reg) => reg.unregister()))
 
-  console.info('[SW Debug] 모든 캐시 및 SW 등록 해제 완료. 새로고침하세요.');
+  console.info('[SW Debug] 모든 캐시 및 SW 등록 해제 완료. 새로고침하세요.')
 }
 ```
 
 ### 11.2 자주 발생하는 문제와 해결
 
-| 증상 | 원인 | 해결 |
-|------|------|------|
-| SW 업데이트가 반영되지 않음 | `skipWaiting` 미호출, 탭이 열린 상태 | `skipWaiting()` + `clients.claim()` 확인, 또는 사용자에게 새로고침 유도 |
-| 캐시가 계속 커짐 | `ExpirationPlugin` 미설정 | `maxEntries`, `maxAgeSeconds` 반드시 설정 |
-| CORS 리소스 캐시 실패 | `CacheableResponsePlugin`에 `statuses: [0]` 누락 | opaque 응답(status 0) 허용 추가 |
-| 오프라인 폴백이 작동하지 않음 | `/offline.html`이 프리캐시에 미포함 | `includeAssets`에 `offline.html` 추가 |
-| 일부 모바일 브라우저에서 PWA 동작 이상 | 모바일 OS/브라우저의 Service Worker 수명 제한 | 중요 데이터는 IndexedDB에 저장, SW 재활성화 대비 |
-| `navigator.serviceWorker`가 `undefined` | HTTP 환경 또는 iframe 내부 | HTTPS 확인, `localhost` 예외 활용, `isSecureContext` 체크 |
+| 증상                                    | 원인                                             | 해결                                                                    |
+| --------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| SW 업데이트가 반영되지 않음             | `skipWaiting` 미호출, 탭이 열린 상태             | `skipWaiting()` + `clients.claim()` 확인, 또는 사용자에게 새로고침 유도 |
+| 캐시가 계속 커짐                        | `ExpirationPlugin` 미설정                        | `maxEntries`, `maxAgeSeconds` 반드시 설정                               |
+| CORS 리소스 캐시 실패                   | `CacheableResponsePlugin`에 `statuses: [0]` 누락 | opaque 응답(status 0) 허용 추가                                         |
+| 오프라인 폴백이 작동하지 않음           | `/offline.html`이 프리캐시에 미포함              | `includeAssets`에 `offline.html` 추가                                   |
+| 일부 모바일 브라우저에서 PWA 동작 이상  | 모바일 OS/브라우저의 Service Worker 수명 제한    | 중요 데이터는 IndexedDB에 저장, SW 재활성화 대비                        |
+| `navigator.serviceWorker`가 `undefined` | HTTP 환경 또는 iframe 내부                       | HTTPS 확인, `localhost` 예외 활용, `isSecureContext` 체크               |
 
 ### 11.3 Playwright를 활용한 PWA E2E 테스트
 
 ```typescript
 // tests/pwa.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
 
 test.describe('PWA 오프라인 기능', () => {
   test('오프라인 폴백 페이지가 정상적으로 표시된다', async ({ page, context }) => {
     // 먼저 온라인 상태에서 페이지 방문하여 SW 등록 & 캐시
-    await page.goto('/');
-    await page.waitForFunction(() =>
-      navigator.serviceWorker.ready.then(() => true),
-    );
+    await page.goto('/')
+    await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true))
 
     // 오프라인 전환
-    await context.setOffline(true);
+    await context.setOffline(true)
 
     // 캐시되지 않은 페이지로 이동 시 오프라인 폴백 노출
-    await page.goto('/non-cached-page');
-    await expect(page.locator('text=오프라인')).toBeVisible();
+    await page.goto('/non-cached-page')
+    await expect(page.locator('text=오프라인')).toBeVisible()
 
     // 온라인 복귀
-    await context.setOffline(false);
-  });
+    await context.setOffline(false)
+  })
 
   test('Service Worker가 정상 등록된다', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/')
 
     const swRegistered = await page.evaluate(async () => {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      return registrations.length > 0;
-    });
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      return registrations.length > 0
+    })
 
-    expect(swRegistered).toBe(true);
-  });
+    expect(swRegistered).toBe(true)
+  })
 
   test('캐시된 정적 리소스가 오프라인에서 로드된다', async ({ page, context }) => {
     // 온라인에서 페이지 로드 (캐시 워밍)
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
 
     // 오프라인 전환 후 같은 페이지 새로고침
-    await context.setOffline(true);
-    await page.reload();
+    await context.setOffline(true)
+    await page.reload()
 
     // 앱 셸이 정상 렌더링되는지 확인
-    await expect(page.locator('#root')).toBeVisible();
-  });
+    await expect(page.locator('#root')).toBeVisible()
+  })
 
   test('오프라인에서 작성한 데이터가 온라인 복귀 시 동기화된다', async ({ page, context }) => {
-    await page.goto('/');
-    await page.waitForFunction(() =>
-      navigator.serviceWorker.ready.then(() => true),
-    );
+    await page.goto('/')
+    await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true))
 
     // 오프라인 전환
-    await context.setOffline(true);
+    await context.setOffline(true)
 
     // 오프라인 상태에서 데이터 작성 (IndexedDB 큐에 저장됨)
-    await page.fill('[data-testid="input-field"]', '오프라인 테스트 데이터');
-    await page.click('[data-testid="submit-button"]');
+    await page.fill('[data-testid="input-field"]', '오프라인 테스트 데이터')
+    await page.click('[data-testid="submit-button"]')
 
     // 온라인 복귀
-    await context.setOffline(false);
+    await context.setOffline(false)
 
     // 동기화 완료 대기
     await page.waitForSelector('[data-testid="sync-complete"]', {
       timeout: 10000,
-    });
-  });
-});
+    })
+  })
+})
 ```
 
 ---
@@ -2883,27 +2894,25 @@ test.describe('PWA 오프라인 기능', () => {
 
 ## 추천 항목 실행 우선순위 매핑
 
-- `P1(7일 내)` — 추천 항목 1개를 우선 적용하고 1회 사용자 관측 신호(에러율/실패율/지연)와 연결한다.
-- `P2(30일 내)` — 추천 항목 1개를 팀 내 표준/템플릿에 반영해 재사용성을 확보한다.
-- `P3(90일 내)` — 추천 항목 1개를 다른 관련 문서에 역링크로 연동해 중복 작업을 줄인다.
-- `완료 기준` — 각 항목별 산출물(예: PR 링크/체크리스트/회고 노트)을 1개 이상 남긴다.
+- `P1(7일 내)` — service worker, cache strategy, offline fallback 중 하나를 작은 변경 1건에 적용하고 증거(SW lifecycle log)를 남긴다.
+- `P2(30일 내)` — PWA 오프라인 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에 고정한다.
+- `P3(90일 내)` — offline failure, stale data incident, SW update lag 추이를 보고 기준을 유지할지 조정할지 결정한다.
+- `완료 기준` — PWA 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
 
 ## 추천 항목 실행 체크리스트
 
-- [ ] `1단계(7일)` : 추천 항목 1개를 실제 작업으로 전환
-- [ ] `2단계(30일)` : 전환 결과를 팀 산출물(ADR/PR/체크리스트)에 반영
-- [ ] `3단계(60일)` : 정적 지표 1개 이상으로 효과 검증
-- [ ] `문제 대응` : 미달성 시 보류 사유와 다음 실행 액션을 문서화
-
-
+- [ ] `1단계(7일)` : service worker, cache strategy, offline fallback 적용 대상을 1개로 좁힌다.
+- [ ] `2단계(30일)` : 증거(SW lifecycle log, offline smoke, cache manifest, update prompt test)를 PR, ADR, 회고 중 한 곳에 연결한다.
+- [ ] `3단계(60일)` : offline failure, stale data incident, SW update lag가 기준 안에 들어왔는지 확인한다.
+- [ ] `문제 대응` : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에 남긴다.
 
 ## 추천 항목 실행 운영 규칙
 
-- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.
-- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.
-- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.
-- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.
-- `리스크 점수` : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.
-- `리더 승인자` : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.
-- `승인 역할` : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.
-- `재평가 주기` : 최소 2주 단위로 상태를 리뷰하고 조정한다.
+- `실행 게이트` : 캐시 대상이 정적 자원인지 사용자 데이터인지 먼저 구분한다.
+- `승인 체계` : PWA 오너가 영향 범위와 rollback 담당자를 적용 전에 확인한다.
+- `재개 조건` : offline smoke와 update prompt가 통과하면 scope를 넓힌다.
+- `정지 조건` : 사용자 데이터가 stale로 오인되거나 SW rollback이 없으면 중단한다.
+- `리스크 점수` : 캐시 범위, 데이터 신선도, update 실패율로 산정한다.
+- `리더 승인자` : PWA/플랫폼 리드가 최종 승인 책임을 맡는다.
+- `승인 역할` : PWA 오프라인 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+- `재평가 주기` : 릴리스마다 SW 버전과 cache cleanup 결과를 확인한다.

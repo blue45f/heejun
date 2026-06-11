@@ -1,8 +1,5 @@
 # 24. SEO 및 메타데이터 가이드
 
-> **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
-> 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
 - 검색은 문장 구조보다 메타 정보 구조가 먼저입니다.
@@ -17,13 +14,13 @@ SEO는 “검색에 잘 보이는 정보”를 메타데이터로 구조화해 �
 
 ### 핵심 용어 빠르게 정리
 
-| 용어 | 쉬운 뜻 |
-| --- | --- |
-| `메타데이터` | 페이지 제목/설명/태그 같은 검색용 정보 |
-| `sitemap` | 사이트 구조를 검색엔진에 알려주는 지도 파일 |
-| `canonical` | 중복 URL의 대표 주소 지정 |
-| `structured data` | 검색엔진이 이해하기 쉬운 구조화 마크업 |
-| `크롤링` | 검색엔진이 사이트를 읽어가는 과정 |
+| 용어              | 쉬운 뜻                                     |
+| ----------------- | ------------------------------------------- |
+| `메타데이터`      | 페이지 제목/설명/태그 같은 검색용 정보      |
+| `sitemap`         | 사이트 구조를 검색엔진에 알려주는 지도 파일 |
+| `canonical`       | 중복 URL의 대표 주소 지정                   |
+| `structured data` | 검색엔진이 이해하기 쉬운 구조화 마크업      |
+| `크롤링`          | 검색엔진이 사이트를 읽어가는 과정           |
 
 ### SEO 파이프라인 한눈에 보기
 
@@ -41,12 +38,10 @@ flowchart LR
   Index --> Search["검색 결과 노출"]
 ```
 
-
-
-| 분류 | 핵심 기술 | 상태 | Stable |
-| :--- | :--- | :--- | :--- |
+| 분류            | 핵심 기술                                                                                                           | 상태          | Stable    |
+| :-------------- | :------------------------------------------------------------------------------------------------------------------ | :------------ | :-------- |
 | **연관 가이드** | [23. 국제화](./23_국제화_가이드.md), [08. 성능](./08_성능_최적화_가이드.md), [19. 접근성](./19_웹_접근성_가이드.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | 구조화 데이터, 동적 OG 이미지, 검색 AI 기능 대응, Core Web Vitals, 크롤링 제어 | **Update** | 최신 기준 |
+| **핵심 테마**   | 구조화 데이터, 동적 OG 이미지, 검색 AI 기능 대응, Core Web Vitals, 크롤링 제어                                      | **Update**    | 최신 기준 |
 
 ---
 
@@ -54,6 +49,7 @@ flowchart LR
 > 본 가이드는 특정 검색엔진이나 배포 플랫폼에 종속되지 않는 SEO 표준을 다룹니다. 프레임워크별 Metadata API, sitemap/robots 생성 방식, 동적 이미지 생성 방식은 프로젝트 스택에 맞춰 바꾸되, 검증 기준은 동일하게 유지합니다.
 >
 > **현재 5월 핵심 변화 요약**
+>
 > - 생성형 검색 기능은 별도 해킹이 아니라 기존 검색 품질, crawlability, 구조화 데이터, 페이지 경험 위에서 동작합니다.
 > - `llms.txt`, AI 전용 schema, AI 전용 콘텐츠 청킹은 아직 모든 검색/AI 시스템이 합의한 웹 표준이 아닙니다. 도입하더라도 검색 표준을 대체하지 않는 보조 실험으로만 둡니다.
 > - JSON-LD는 Schema.org 최신 vocabulary와 검색엔진별 rich result eligibility를 모두 검증합니다.
@@ -62,48 +58,45 @@ flowchart LR
 
 ---
 
-
 ## 추천 항목 (실무 우선순위)
 
 - **시작 추천**: title/description/canonical을 중심으로 중복 페이지를 먼저 정리하세요.
 - **안정 추천**: 구조화 데이터 스키마 테스트를 배포 전 단계에서 강제하세요.
 - **운영 추천**: sitemap/robots/robots index 정책을 월 1회 점검해 노출 오류를 줄입니다.
 
-
 ## 추천 항목 고도화 체크
 
-- `즉시 적용` — 추천 항목 1개를 이번 주 내에 실제 작업 1건에 반영한다.
-- `1주 내 정리` — 적용 결과를 PR 본문이나 회고 노트에 간단히 기록한다.
-- `1개월 내 점검` — 재작업률/리뷰 충돌/배포 이슈 중 적어도 한 항목이 개선되었는지 확인한다.
-
+- `첫 적용` — metadata, canonical, structured data, sitemap 중 하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+- `증거 정리` — rendered HTML capture, rich result test, sitemap diff, Search Console signal를 같은 작업 기록에 남긴다.
+- `재점검` — index coverage, duplicate canonical, metadata 누락 수가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
 
 ## 추천 항목 실행 기록 템플릿
 
-- `담당자` : 항목 적용 주체(문서 오너/팀원)를 명시
-- `적용일` : 실제 반영된 날짜 및 작업 ID를 남김
-- `측정 지표` : 리뷰 충돌/재작업/버그 재발 중 1개 이상 수치로 기록
-- `보류 사유` : 적용을 못한 경우 이유를 1줄 기록하고 다음 액션을 지정
+- `작업` : metadata, canonical, structured data, sitemap 적용 범위를 어느 화면, 패키지, 문서에 둘지 적는다.
+- `증거` : rendered HTML capture, rich result test, sitemap diff, Search Console signal 중 실제로 남긴 항목만 링크한다.
+- `판정` : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.
+- `다음 점검` : index coverage, duplicate canonical, metadata 누락 수를 다시 볼 날짜와 담당자를 지정한다.
 
 ## 문서 책임 범위
 
-| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
-| :--- | :--- |
+| 이 문서가 결정하는 것                                              | 단일 출처로 따르는 문서                                                                    |
+| :----------------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
 | 메타데이터 계약, 구조화 데이터, sitemap/robots, canonical/hreflang | [23. 국제화](./23_국제화_가이드.md), [13. 브라우저 호환성](./13_브라우저_호환성_가이드.md) |
-| 검색 품질과 Core Web Vitals 연결 | [08. 성능](./08_성능_최적화_가이드.md) |
-| preview/production 색인 분리와 배포 전 검증 | [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포](./14_배포_프로세스_체크리스트.md) |
-| AI가 생성한 metadata/JSON-LD 초안 검증 | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md) |
+| 검색 품질과 Core Web Vitals 연결                                   | [08. 성능](./08_성능_최적화_가이드.md)                                                     |
+| preview/production 색인 분리와 배포 전 검증                        | [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포](./14_배포_프로세스_체크리스트.md)    |
+| AI가 생성한 metadata/JSON-LD 초안 검증                             | [18. AI 개발 워크플로우](./18_AI_개발_워크플로우_종합.md)                                  |
 
 ---
 
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
-| 기준 | 최소 적용 |
-| :--- | :--- |
-| **Indexability** | production URL만 색인 가능하고 preview/development는 `noindex`와 robots 정책으로 차단합니다. |
+| 기준                  | 최소 적용                                                                                          |
+| :-------------------- | :------------------------------------------------------------------------------------------------- |
+| **Indexability**      | production URL만 색인 가능하고 preview/development는 `noindex`와 robots 정책으로 차단합니다.       |
 | **Metadata contract** | title, description, canonical, OG/Twitter card, locale metadata를 페이지 타입별로 자동 생성합니다. |
-| **Structured data** | JSON-LD는 Schema.org와 검색엔진 rich result 테스트를 모두 통과해야 합니다. |
-| **Crawlability** | 주요 콘텐츠와 링크는 SSR/SSG 또는 검색엔진이 처리 가능한 HTML 구조로 제공합니다. |
-| **Field performance** | Core Web Vitals는 lab score가 아니라 field data와 release regression으로 관리합니다. |
+| **Structured data**   | JSON-LD는 Schema.org와 검색엔진 rich result 테스트를 모두 통과해야 합니다.                         |
+| **Crawlability**      | 주요 콘텐츠와 링크는 SSR/SSG 또는 검색엔진이 처리 가능한 HTML 구조로 제공합니다.                   |
+| **Field performance** | Core Web Vitals는 lab score가 아니라 field data와 release regression으로 관리합니다.               |
 
 ### 0.0 SEO 메타데이터 생산 흐름
 
@@ -123,24 +116,23 @@ flowchart TD
 
 ### 0.1 교차 검증 매트릭스
 
-| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| AI 검색 대응은 기존 SEO 원칙 위에서 처리한다 | 검색엔진 공식 generative AI/search guidance | crawl/render test, structured data validation | search traffic, indexed page, snippet eligibility | 특정 AI 플랫폼이 별도 표준을 공식 요구할 때 |
-| structured data는 Schema.org와 rich result validator를 함께 통과한다 | Schema.org latest, 검색엔진 구조화 데이터 문서 | JSON-LD schema test, page snapshot | rich result error, enhancement report | rich result가 필요 없는 내부/비공개 페이지일 때 |
-| preview 환경은 기본 noindex다 | robots/meta robots 문서 | preview E2E, header/meta assertion | accidental indexed URL count | 공개 staging이 제품 요구사항일 때 |
-| Core Web Vitals는 field data로 release gate를 보정한다 | Web Vitals 공식 문서 | Lighthouse/WebPageTest + RUM 비교 | LCP/INP/CLS p75 | 트래픽이 부족해 field data 신뢰도가 낮을 때 |
+| 권고                                                                 | 1차 출처                                       | 실행 증거                                     | 운영 증거                                         | 철회 조건                                       |
+| :------------------------------------------------------------------- | :--------------------------------------------- | :-------------------------------------------- | :------------------------------------------------ | :---------------------------------------------- |
+| AI 검색 대응은 기존 SEO 원칙 위에서 처리한다                         | 검색엔진 공식 generative AI/search guidance    | crawl/render test, structured data validation | search traffic, indexed page, snippet eligibility | 특정 AI 플랫폼이 별도 표준을 공식 요구할 때     |
+| structured data는 Schema.org와 rich result validator를 함께 통과한다 | Schema.org latest, 검색엔진 구조화 데이터 문서 | JSON-LD schema test, page snapshot            | rich result error, enhancement report             | rich result가 필요 없는 내부/비공개 페이지일 때 |
+| preview 환경은 기본 noindex다                                        | robots/meta robots 문서                        | preview E2E, header/meta assertion            | accidental indexed URL count                      | 공개 staging이 제품 요구사항일 때               |
+| Core Web Vitals는 field data로 release gate를 보정한다               | Web Vitals 공식 문서                           | Lighthouse/WebPageTest + RUM 비교             | LCP/INP/CLS p75                                   | 트래픽이 부족해 field data 신뢰도가 낮을 때     |
 
 ### 0.2 운영 게이트
 
-| Gate | Evidence | Owner | Rollback |
-| :--- | :--- | :--- | :--- |
-| Metadata contract gate | rendered HTML snapshot, duplicate title report | Page owner | metadata generator 이전 버전으로 rollback |
-| Structured data gate | JSON-LD validation, visible content match | SEO + FE owner | rich result schema 제거 후 plain metadata 유지 |
-| Environment isolation gate | noindex/header test, sitemap URL count | Release owner | offending route noindex hotfix, sitemap regenerate |
-| Search health monitor | indexed URL, enhancement error, CWV p75 | Growth/SEO owner | release hold 또는 canonical/robots hotfix |
+| Gate                       | Evidence                                       | Owner            | Rollback                                           |
+| :------------------------- | :--------------------------------------------- | :--------------- | :------------------------------------------------- |
+| Metadata contract gate     | rendered HTML snapshot, duplicate title report | Page owner       | metadata generator 이전 버전으로 rollback          |
+| Structured data gate       | JSON-LD validation, visible content match      | SEO + FE owner   | rich result schema 제거 후 plain metadata 유지     |
+| Environment isolation gate | noindex/header test, sitemap URL count         | Release owner    | offending route noindex hotfix, sitemap regenerate |
+| Search health monitor      | indexed URL, enhancement error, CWV p75        | Growth/SEO owner | release hold 또는 canonical/robots hotfix          |
 
 ---
-
 
 ## 1. AI 기반 SEO 워크플로우
 
@@ -148,15 +140,15 @@ flowchart TD
 
 > AI는 메타 태그 초안, 구조화 데이터 초안, SEO 회귀 테스트 후보를 빠르게 만들 수 있다. 목표는 검증 없는 자동 발행이 아니라, 공식 검색 가이드와 실제 렌더링 결과를 기준으로 누락과 형식 편차를 줄이는 것이다.
 
-| 시나리오 | 입력 | AI 산출물 | 필수 검증 | 승인 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| 페이지 SEO 감사 | route manifest, rendered HTML, sitemap | 누락 metadata, heading, canonical 후보 | SSR/SSG HTML snapshot, crawler smoke | production 색인 가능 페이지만 노출 |
-| 메타데이터 생성 | 페이지 타입, locale, canonical 규칙 | title/description/OG/Twitter 초안 | 길이, 중복, locale fallback test | 중복 title/description 없음 |
-| JSON-LD 생성 | 콘텐츠 타입, schema 후보, required fields | 구조화 데이터 초안 | Schema.org validation, rich result eligibility | 필수 필드와 visible content가 일치 |
-| SEO 회귀 테스트 | 핵심 route, known issue 목록 | metadata/heading/canonical 테스트 | CI에서 render 결과 기반 검증 | preview noindex와 production index 분리 |
-| sitemap/robots | route source, 변경 빈도, 환경 목록 | sitemap 분할, robots 정책 초안 | URL count, status code, noindex smoke | 비공개/preview URL 미포함 |
-| OG 이미지 | brand token, page data, locale | 이미지 템플릿 초안 | 이미지 렌더링, alt text, cache header | 실패 시 fallback 이미지 제공 |
-| 콘텐츠 품질 분석 | 공개 콘텐츠, target intent, 내부 링크 | 개선 후보와 중복 콘텐츠 위험 | 사람이 사실성/법적 표현 검토 | keyword stuffing 없이 사용자 의도 충족 |
+| 시나리오         | 입력                                      | AI 산출물                              | 필수 검증                                      | 승인 조건                               |
+| :--------------- | :---------------------------------------- | :------------------------------------- | :--------------------------------------------- | :-------------------------------------- |
+| 페이지 SEO 감사  | route manifest, rendered HTML, sitemap    | 누락 metadata, heading, canonical 후보 | SSR/SSG HTML snapshot, crawler smoke           | production 색인 가능 페이지만 노출      |
+| 메타데이터 생성  | 페이지 타입, locale, canonical 규칙       | title/description/OG/Twitter 초안      | 길이, 중복, locale fallback test               | 중복 title/description 없음             |
+| JSON-LD 생성     | 콘텐츠 타입, schema 후보, required fields | 구조화 데이터 초안                     | Schema.org validation, rich result eligibility | 필수 필드와 visible content가 일치      |
+| SEO 회귀 테스트  | 핵심 route, known issue 목록              | metadata/heading/canonical 테스트      | CI에서 render 결과 기반 검증                   | preview noindex와 production index 분리 |
+| sitemap/robots   | route source, 변경 빈도, 환경 목록        | sitemap 분할, robots 정책 초안         | URL count, status code, noindex smoke          | 비공개/preview URL 미포함               |
+| OG 이미지        | brand token, page data, locale            | 이미지 템플릿 초안                     | 이미지 렌더링, alt text, cache header          | 실패 시 fallback 이미지 제공            |
+| 콘텐츠 품질 분석 | 공개 콘텐츠, target intent, 내부 링크     | 개선 후보와 중복 콘텐츠 위험           | 사람이 사실성/법적 표현 검토                   | keyword stuffing 없이 사용자 의도 충족  |
 
 AI가 생성한 SEO 산출물은 다음 기준을 통과해야 병합합니다.
 
@@ -195,32 +187,32 @@ flowchart TD
 // lib/seo/environment.ts
 // SEO 관련 환경 감지 — Production만 인덱싱 허용
 
-type DeploymentEnv = 'production' | 'preview' | 'development';
+type DeploymentEnv = 'production' | 'preview' | 'development'
 
 interface SeoEnvironment {
-  env: DeploymentEnv;
-  baseUrl: string;
-  isIndexable: boolean;
-  robotsDirective: string;
+  env: DeploymentEnv
+  baseUrl: string
+  isIndexable: boolean
+  robotsDirective: string
 }
 
 export function getSeoEnvironment(): SeoEnvironment {
-  const deployEnv = (process.env.DEPLOY_ENV ?? 'development') as DeploymentEnv;
+  const deployEnv = (process.env.DEPLOY_ENV ?? 'development') as DeploymentEnv
 
-  const isProduction = deployEnv === 'production';
+  const isProduction = deployEnv === 'production'
 
   const baseUrl = isProduction
     ? process.env.NEXT_PUBLIC_SITE_URL!
     : deployEnv === 'preview'
       ? process.env.PREVIEW_URL!
-      : 'http://localhost:3000';
+      : 'http://localhost:3000'
 
   return {
     env: deployEnv,
     baseUrl,
     isIndexable: isProduction,
     robotsDirective: isProduction ? 'index, follow' : 'noindex, nofollow',
-  };
+  }
 }
 ```
 
@@ -230,27 +222,27 @@ export function getSeoEnvironment(): SeoEnvironment {
 // lib/seo/metadata.ts
 // 환경별 메타데이터 빌더 — Preview 자동 noindex 처리
 
-import { Metadata } from 'next';
-import { getSeoEnvironment } from './environment';
+import { Metadata } from 'next'
+import { getSeoEnvironment } from './environment'
 
 interface PageSeoInput {
-  title: string;
-  description: string;
-  path: string;
-  ogImage?: string;
-  type?: 'website' | 'article';
-  publishedTime?: string;
-  modifiedTime?: string;
-  authors?: string[];
-  keywords?: string[];
+  title: string
+  description: string
+  path: string
+  ogImage?: string
+  type?: 'website' | 'article'
+  publishedTime?: string
+  modifiedTime?: string
+  authors?: string[]
+  keywords?: string[]
 }
 
 export function buildMetadata(input: PageSeoInput): Metadata {
-  const { baseUrl, isIndexable, robotsDirective, env } = getSeoEnvironment();
-  const url = `${baseUrl}${input.path}`;
+  const { baseUrl, isIndexable, robotsDirective, env } = getSeoEnvironment()
+  const url = `${baseUrl}${input.path}`
 
-  const ogImageUrl = input.ogImage
-    ?? `${baseUrl}/api/og?title=${encodeURIComponent(input.title)}&env=${env}`;
+  const ogImageUrl =
+    input.ogImage ?? `${baseUrl}/api/og?title=${encodeURIComponent(input.title)}&env=${env}`
 
   return {
     title: input.title,
@@ -265,9 +257,7 @@ export function buildMetadata(input: PageSeoInput): Metadata {
 
     // canonical은 항상 Production URL
     alternates: {
-      canonical: isIndexable
-        ? url
-        : `${process.env.NEXT_PUBLIC_SITE_URL}${input.path}`,
+      canonical: isIndexable ? url : `${process.env.NEXT_PUBLIC_SITE_URL}${input.path}`,
     },
 
     openGraph: {
@@ -299,9 +289,9 @@ export function buildMetadata(input: PageSeoInput): Metadata {
     },
 
     other: {
-      'robots': robotsDirective,
+      robots: robotsDirective,
     },
-  };
+  }
 }
 ```
 
@@ -311,11 +301,11 @@ export function buildMetadata(input: PageSeoInput): Metadata {
 // app/robots.ts
 // 환경별 robots.txt — Preview/Development는 전체 크롤링 차단
 
-import type { MetadataRoute } from 'next';
-import { getSeoEnvironment } from '@/lib/seo/environment';
+import type { MetadataRoute } from 'next'
+import { getSeoEnvironment } from '@/lib/seo/environment'
 
 export default function robots(): MetadataRoute.Robots {
-  const { isIndexable, baseUrl } = getSeoEnvironment();
+  const { isIndexable, baseUrl } = getSeoEnvironment()
 
   if (!isIndexable) {
     // Preview/Development: 전체 크롤링 차단
@@ -324,7 +314,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         disallow: '/',
       },
-    };
+    }
   }
 
   // Production: 선택적 허용.
@@ -332,7 +322,7 @@ export default function robots(): MetadataRoute.Robots {
   const trainingCrawlerUserAgents = (process.env.AI_TRAINING_CRAWLERS ?? '')
     .split(',')
     .map((value) => value.trim())
-    .filter(Boolean);
+    .filter(Boolean)
 
   return {
     rules: [
@@ -347,7 +337,7 @@ export default function robots(): MetadataRoute.Robots {
       })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
-  };
+  }
 }
 ```
 
@@ -384,7 +374,7 @@ flowchart TD
 // lib/seo/canonical.ts
 // canonical URL은 항상 Production 도메인을 가리킨다
 
-import { getSeoEnvironment } from './environment';
+import { getSeoEnvironment } from './environment'
 
 /**
  * canonical URL은 항상 Production 도메인을 가리킨다.
@@ -392,16 +382,16 @@ import { getSeoEnvironment } from './environment';
  * canonical을 통해 Production으로 통합된다.
  */
 export function getCanonicalUrl(path: string): string {
-  const productionUrl = process.env.NEXT_PUBLIC_SITE_URL!;
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const productionUrl = process.env.NEXT_PUBLIC_SITE_URL!
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
   // 쿼리 파라미터 제거 (tracking 등)
-  const cleanPath = normalizedPath.split('?')[0];
+  const cleanPath = normalizedPath.split('?')[0]
 
   // 후행 슬래시 정규화
-  const canonicalPath = cleanPath === '/' ? '' : cleanPath.replace(/\/$/, '');
+  const canonicalPath = cleanPath === '/' ? '' : cleanPath.replace(/\/$/, '')
 
-  return `${productionUrl}${canonicalPath}`;
+  return `${productionUrl}${canonicalPath}`
 }
 
 /** 페이지네이션 canonical 처리 */
@@ -409,13 +399,13 @@ export function getPaginatedCanonical(
   path: string,
   page: number,
 ): { canonical: string; prev?: string; next?: string } {
-  const base = getCanonicalUrl(path);
+  const base = getCanonicalUrl(path)
 
   return {
     canonical: page === 1 ? base : `${base}?page=${page}`,
     prev: page > 1 ? (page === 2 ? base : `${base}?page=${page - 1}`) : undefined,
     next: `${base}?page=${page + 1}`,
-  };
+  }
 }
 ```
 
@@ -572,13 +562,13 @@ flowchart TD
 // app/layout.tsx
 // 전역 메타데이터 설정 — 모든 페이지의 기본값
 
-import type { Metadata, Viewport } from 'next';
-import { getSeoEnvironment } from '@/lib/seo/environment';
+import type { Metadata, Viewport } from 'next'
+import { getSeoEnvironment } from '@/lib/seo/environment'
 
-const { baseUrl, isIndexable } = getSeoEnvironment();
+const { baseUrl, isIndexable } = getSeoEnvironment()
 
 function buildSearchEngineVerificationMetadata() {
-  return JSON.parse(process.env.SEARCH_ENGINE_VERIFICATION_JSON ?? '{}');
+  return JSON.parse(process.env.SEARCH_ENGINE_VERIFICATION_JSON ?? '{}')
 }
 
 export const metadata: Metadata = {
@@ -602,7 +592,7 @@ export const metadata: Metadata = {
     creator: '@twitter_handle',
   },
   verification: buildSearchEngineVerificationMetadata(),
-};
+}
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -611,7 +601,7 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
   ],
-};
+}
 ```
 
 ### 3.2 동적 페이지 generateMetadata
@@ -818,45 +808,45 @@ export function JsonLd({ data }: JsonLdProps) {
 // lib/seo/schema.ts
 // Schema.org 기반 구조화 데이터 빌더 모음
 
-import { getSeoEnvironment } from './environment';
+import { getSeoEnvironment } from './environment'
 
 interface OrganizationInput {
-  name: string;
-  url: string;
-  logo: string;
-  sameAs?: string[];
+  name: string
+  url: string
+  logo: string
+  sameAs?: string[]
 }
 
 interface ArticleInput {
-  title: string;
-  description: string;
-  url: string;
-  imageUrl: string;
-  publishedTime: string;
-  modifiedTime: string;
-  authorName: string;
-  authorUrl?: string;
+  title: string
+  description: string
+  url: string
+  imageUrl: string
+  publishedTime: string
+  modifiedTime: string
+  authorName: string
+  authorUrl?: string
 }
 
 interface BreadcrumbItem {
-  name: string;
-  url: string;
+  name: string
+  url: string
 }
 
 interface ProductInput {
-  name: string;
-  description: string;
-  imageUrl: string;
-  price: number;
-  currency: string;
-  availability: 'InStock' | 'OutOfStock' | 'PreOrder';
-  ratingValue?: number;
-  reviewCount?: number;
+  name: string
+  description: string
+  imageUrl: string
+  price: number
+  currency: string
+  availability: 'InStock' | 'OutOfStock' | 'PreOrder'
+  ratingValue?: number
+  reviewCount?: number
 }
 
 interface FaqItem {
-  question: string;
-  answer: string;
+  question: string
+  answer: string
 }
 
 /** Organization 스키마 — 회사/서비스 정보 */
@@ -868,12 +858,12 @@ export function buildOrganizationSchema(input: OrganizationInput) {
     url: input.url,
     logo: input.logo,
     sameAs: input.sameAs ?? [],
-  };
+  }
 }
 
 /** WebSite 스키마 — Sitelinks Search Box 활성화 */
 export function buildWebSiteSchema() {
-  const { baseUrl } = getSeoEnvironment();
+  const { baseUrl } = getSeoEnvironment()
 
   return {
     '@context': 'https://schema.org',
@@ -888,7 +878,7 @@ export function buildWebSiteSchema() {
       },
       'query-input': 'required name=search_term_string',
     },
-  };
+  }
 }
 
 /** Article 스키마 — 블로그 글, 뉴스 기사 */
@@ -915,7 +905,7 @@ export function buildArticleSchema(input: ArticleInput) {
         url: `${getSeoEnvironment().baseUrl}/logo.png`,
       },
     },
-  };
+  }
 }
 
 /** BreadcrumbList 스키마 — 네비게이션 경로 */
@@ -929,7 +919,7 @@ export function buildBreadcrumbSchema(items: BreadcrumbItem[]) {
       name: item.name,
       item: item.url,
     })),
-  };
+  }
 }
 
 /** Product 스키마 — 상품/서비스 페이지 */
@@ -953,7 +943,7 @@ export function buildProductSchema(input: ProductInput) {
         reviewCount: input.reviewCount,
       },
     }),
-  };
+  }
 }
 
 /** FAQPage 스키마 — FAQ 페이지 */
@@ -969,15 +959,15 @@ export function buildFaqSchema(items: FaqItem[]) {
         text: item.answer,
       },
     })),
-  };
+  }
 }
 
 /** HowTo 스키마 — 가이드/튜토리얼 페이지 */
 export function buildHowToSchema(input: {
-  name: string;
-  description: string;
-  steps: { name: string; text: string; imageUrl?: string }[];
-  totalTime?: string; // ISO 8601 duration (예: "PT30M")
+  name: string
+  description: string
+  steps: { name: string; text: string; imageUrl?: string }[]
+  totalTime?: string // ISO 8601 duration (예: "PT30M")
 }) {
   return {
     '@context': 'https://schema.org',
@@ -992,7 +982,7 @@ export function buildHowToSchema(input: {
       text: step.text,
       ...(step.imageUrl && { image: step.imageUrl }),
     })),
-  };
+  }
 }
 ```
 
@@ -1051,9 +1041,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 // 개발 환경 전용 JSON-LD 유효성 검증기
 
 interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
+  valid: boolean
+  errors: string[]
+  warnings: string[]
 }
 
 const REQUIRED_FIELDS: Record<string, string[]> = {
@@ -1064,38 +1054,38 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   Organization: ['name', 'url'],
   WebSite: ['url', 'name'],
   HowTo: ['name', 'step'],
-};
+}
 
 /** JSON-LD 스키마의 필수 필드 존재 여부 검증 */
 export function validateJsonLd(data: Record<string, unknown>): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const errors: string[] = []
+  const warnings: string[] = []
 
   // @context 검증
   if (data['@context'] !== 'https://schema.org') {
-    errors.push('@context가 "https://schema.org"이어야 합니다.');
+    errors.push('@context가 "https://schema.org"이어야 합니다.')
   }
 
   // @type 검증
-  const type = data['@type'] as string;
+  const type = data['@type'] as string
   if (!type) {
-    errors.push('@type이 누락되었습니다.');
-    return { valid: false, errors, warnings };
+    errors.push('@type이 누락되었습니다.')
+    return { valid: false, errors, warnings }
   }
 
   // 필수 필드 검증
-  const requiredFields = REQUIRED_FIELDS[type];
+  const requiredFields = REQUIRED_FIELDS[type]
   if (requiredFields) {
     for (const field of requiredFields) {
       if (!(field in data) || data[field] === null || data[field] === undefined) {
-        errors.push(`${type}에 필수 필드 "${field}"가 누락되었습니다.`);
+        errors.push(`${type}에 필수 필드 "${field}"가 누락되었습니다.`)
       }
     }
   } else {
-    warnings.push(`알 수 없는 스키마 타입: ${type} (검증 규칙 없음)`);
+    warnings.push(`알 수 없는 스키마 타입: ${type} (검증 규칙 없음)`)
   }
 
-  return { valid: errors.length === 0, errors, warnings };
+  return { valid: errors.length === 0, errors, warnings }
 }
 ```
 
@@ -1114,12 +1104,12 @@ export function validateJsonLd(data: Record<string, unknown>): ValidationResult 
 // OG 이미지 URL 빌더 — 페이지 유형별 파라미터 자동 설정
 
 interface OgTemplateProps {
-  title: string;
-  description?: string;
-  type: 'default' | 'blog' | 'product';
-  category?: string;
-  date?: string;
-  price?: string;
+  title: string
+  description?: string
+  type: 'default' | 'blog' | 'product'
+  category?: string
+  date?: string
+  price?: string
 }
 
 /** OG 이미지 URL 빌더 */
@@ -1132,9 +1122,9 @@ export function buildOgImageUrl(props: OgTemplateProps): string {
     ...(props.date && { date: props.date }),
     ...(props.price && { price: props.price }),
     env: process.env.DEPLOY_ENV ?? 'development',
-  });
+  })
 
-  return `/api/og?${params}`;
+  return `/api/og?${params}`
 }
 ```
 
@@ -1143,20 +1133,20 @@ export function buildOgImageUrl(props: OgTemplateProps): string {
 ```typescript
 // 사용 예시: generateMetadata에서 OG 이미지 연동
 
-import { buildOgImageUrl } from '@/lib/seo/og-templates';
-import { buildMetadata } from '@/lib/seo/metadata';
+import { buildOgImageUrl } from '@/lib/seo/og-templates'
+import { buildMetadata } from '@/lib/seo/metadata'
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getPost(slug);
-  if (!post) return {};
+  const { slug } = await params
+  const post = await getPost(slug)
+  if (!post) return {}
 
   const ogImage = buildOgImageUrl({
     title: post.title,
     type: 'blog',
     category: post.category,
     date: post.publishedAt,
-  });
+  })
 
   return buildMetadata({
     title: post.title,
@@ -1166,7 +1156,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     type: 'article',
     publishedTime: post.publishedAt,
     modifiedTime: post.updatedAt,
-  });
+  })
 }
 ```
 
@@ -1178,60 +1168,60 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // scripts/validate-og-images.ts
 // OG 이미지 일괄 검증 스크립트 — CI에서 실행 가능
 
-import { JSDOM } from 'jsdom';
+import { JSDOM } from 'jsdom'
 
 interface OgValidationResult {
-  url: string;
-  status: 'pass' | 'fail';
-  issues: string[];
+  url: string
+  status: 'pass' | 'fail'
+  issues: string[]
 }
 
-const OG_REQUIRED_TAGS = ['og:title', 'og:description', 'og:image', 'og:url'];
+const OG_REQUIRED_TAGS = ['og:title', 'og:description', 'og:image', 'og:url']
 
 /** 주어진 URL의 OG 태그 완성도를 검증 */
 async function validateOgTags(url: string): Promise<OgValidationResult> {
-  const issues: string[] = [];
+  const issues: string[] = []
 
   try {
-    const response = await fetch(url);
-    const html = await response.text();
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
+    const response = await fetch(url)
+    const html = await response.text()
+    const dom = new JSDOM(html)
+    const doc = dom.window.document
 
     // 필수 OG 태그 검증
     for (const tag of OG_REQUIRED_TAGS) {
-      const meta = doc.querySelector(`meta[property="${tag}"]`);
+      const meta = doc.querySelector(`meta[property="${tag}"]`)
       if (!meta) {
-        issues.push(`${tag} 태그 누락`);
+        issues.push(`${tag} 태그 누락`)
       } else if (!meta.getAttribute('content')?.trim()) {
-        issues.push(`${tag} 태그 내용 비어있음`);
+        issues.push(`${tag} 태그 내용 비어있음`)
       }
     }
 
     // OG 이미지 크기 검증 (1200x630 권장)
-    const ogImage = doc.querySelector('meta[property="og:image"]');
+    const ogImage = doc.querySelector('meta[property="og:image"]')
     if (ogImage) {
-      const imageWidth = doc.querySelector('meta[property="og:image:width"]');
-      const imageHeight = doc.querySelector('meta[property="og:image:height"]');
+      const imageWidth = doc.querySelector('meta[property="og:image:width"]')
+      const imageHeight = doc.querySelector('meta[property="og:image:height"]')
       if (!imageWidth || !imageHeight) {
-        issues.push('og:image:width 또는 og:image:height 누락 (1200x630 권장)');
+        issues.push('og:image:width 또는 og:image:height 누락 (1200x630 권장)')
       }
     }
 
     // Twitter Card 검증
-    const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+    const twitterCard = doc.querySelector('meta[name="twitter:card"]')
     if (!twitterCard) {
-      issues.push('twitter:card 태그 누락');
+      issues.push('twitter:card 태그 누락')
     }
   } catch (error) {
-    issues.push(`페이지 접근 실패: ${error}`);
+    issues.push(`페이지 접근 실패: ${error}`)
   }
 
   return {
     url,
     status: issues.length === 0 ? 'pass' : 'fail',
     issues,
-  };
+  }
 }
 
 // 디버깅 도구 URL 참고:
@@ -1276,14 +1266,14 @@ flowchart TD
 // app/sitemap.ts
 // 정적 + 동적 사이트맵 생성 — Preview 환경 자동 제외
 
-import type { MetadataRoute } from 'next';
-import { getSeoEnvironment } from '@/lib/seo/environment';
+import type { MetadataRoute } from 'next'
+import { getSeoEnvironment } from '@/lib/seo/environment'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { baseUrl, isIndexable } = getSeoEnvironment();
+  const { baseUrl, isIndexable } = getSeoEnvironment()
 
   // Preview 환경에서는 빈 사이트맵
-  if (!isIndexable) return [];
+  if (!isIndexable) return []
 
   // 정적 페이지
   const staticPages: MetadataRoute.Sitemap = [
@@ -1299,23 +1289,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
-  ];
+  ]
 
   // 동적 페이지 (DB/CMS에서 조회)
-  const postsResponse = await fetch(
-    `${process.env.API_URL}/posts?fields=slug,updatedAt`,
-    { next: { revalidate: 3600 } },
-  );
-  const posts: { slug: string; updatedAt: string }[] = await postsResponse.json();
+  const postsResponse = await fetch(`${process.env.API_URL}/posts?fields=slug,updatedAt`, {
+    next: { revalidate: 3600 },
+  })
+  const posts: { slug: string; updatedAt: string }[] = await postsResponse.json()
 
   const dynamicPages: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: new Date(post.updatedAt),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
-  }));
+  }))
 
-  return [...staticPages, ...dynamicPages];
+  return [...staticPages, ...dynamicPages]
 }
 ```
 
@@ -1327,52 +1316,53 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 // app/sitemap/[id]/route.ts
 // 사이트맵 인덱스 분할 — 50,000 URL 초과 시 자동 분할
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getSeoEnvironment } from '@/lib/seo/environment';
+import { NextRequest, NextResponse } from 'next/server'
+import { getSeoEnvironment } from '@/lib/seo/environment'
 
-const URLS_PER_SITEMAP = 50000;
+const URLS_PER_SITEMAP = 50000
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  const sitemapIndex = parseInt(id, 10);
-  const { baseUrl, isIndexable } = getSeoEnvironment();
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const sitemapIndex = parseInt(id, 10)
+  const { baseUrl, isIndexable } = getSeoEnvironment()
 
   if (!isIndexable) {
-    return new NextResponse('', { status: 404 });
+    return new NextResponse('', { status: 404 })
   }
 
   // 전체 URL 수 조회
-  const countResponse = await fetch(`${process.env.API_URL}/posts/count`);
-  const { total } = await countResponse.json();
+  const countResponse = await fetch(`${process.env.API_URL}/posts/count`)
+  const { total } = await countResponse.json()
 
   // 페이지네이션으로 해당 범위의 URL 조회
-  const offset = sitemapIndex * URLS_PER_SITEMAP;
+  const offset = sitemapIndex * URLS_PER_SITEMAP
   const postsResponse = await fetch(
     `${process.env.API_URL}/posts?offset=${offset}&limit=${URLS_PER_SITEMAP}&fields=slug,updatedAt`,
-  );
-  const posts: { slug: string; updatedAt: string }[] = await postsResponse.json();
+  )
+  const posts: { slug: string; updatedAt: string }[] = await postsResponse.json()
 
   // XML 사이트맵 생성
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${posts.map((post) => `
+  ${posts
+    .map(
+      (post) => `
   <url>
     <loc>${baseUrl}/blog/${post.slug}</loc>
     <lastmod>${new Date(post.updatedAt).toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
-  </url>`).join('')}
-</urlset>`;
+  </url>`,
+    )
+    .join('')}
+</urlset>`
 
   return new NextResponse(xml, {
     headers: {
       'Content-Type': 'application/xml',
       'Cache-Control': 'public, max-age=3600, s-maxage=86400',
     },
-  });
+  })
 }
 ```
 
@@ -1405,12 +1395,12 @@ flowchart TD
   CSR --> NoIndex["noindex 권장"]
 ```
 
-| 전략 | 크롤링 대응 | 초기 로딩 | 데이터 최신성 | 적합한 페이지 |
-|---|---|---|---|---|
-| **SSG** | 최적 (HTML 즉시 제공) | 가장 빠름 | 빌드 시점 고정 | 블로그, 문서, about |
-| **ISR** | 최적 (캐시된 HTML) | 빠름 | revalidate 주기 | 제품 목록, 카테고리 |
-| **SSR** | 양호 (실시간 HTML) | 보통 | 항상 최신 | 검색 결과, 개인화 |
-| **CSR** | 불리 (JS 실행 필요) | 느림 | 항상 최신 | 대시보드 (SEO 불필요) |
+| 전략    | 크롤링 대응           | 초기 로딩 | 데이터 최신성   | 적합한 페이지         |
+| ------- | --------------------- | --------- | --------------- | --------------------- |
+| **SSG** | 최적 (HTML 즉시 제공) | 가장 빠름 | 빌드 시점 고정  | 블로그, 문서, about   |
+| **ISR** | 최적 (캐시된 HTML)    | 빠름      | revalidate 주기 | 제품 목록, 카테고리   |
+| **SSR** | 양호 (실시간 HTML)    | 보통      | 항상 최신       | 검색 결과, 개인화     |
+| **CSR** | 불리 (JS 실행 필요)   | 느림      | 항상 최신       | 대시보드 (SEO 불필요) |
 
 ### 7.1 전략별 구현 패턴
 
@@ -1418,8 +1408,8 @@ flowchart TD
 // SSG - 빌드 시 생성
 // app/docs/[slug]/page.tsx
 export async function generateStaticParams() {
-  const docs = await getAllDocs();
-  return docs.map((doc) => ({ slug: doc.slug }));
+  const docs = await getAllDocs()
+  return docs.map((doc) => ({ slug: doc.slug }))
 }
 
 // ISR - 주기적 재생성
@@ -1427,17 +1417,17 @@ export async function generateStaticParams() {
 async function getProduct(id: string) {
   return fetch(`${process.env.API_URL}/products/${id}`, {
     next: { revalidate: 3600 }, // 1시간마다 재검증
-  }).then((res) => res.json());
+  }).then((res) => res.json())
 }
 
 // SSR - 매 요청마다 생성
 // app/search/page.tsx
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 async function getSearchResults(query: string) {
   return fetch(`${process.env.API_URL}/search?q=${query}`, {
     cache: 'no-store',
-  }).then((res) => res.json());
+  }).then((res) => res.json())
 }
 ```
 
@@ -1447,25 +1437,25 @@ async function getSearchResults(query: string) {
 // app/api/revalidate/route.ts
 // CMS 웹훅에서 호출 — 콘텐츠 변경 시 즉시 재생성
 
-import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 export async function POST(request: NextRequest) {
-  const secret = request.headers.get('x-revalidation-secret');
+  const secret = request.headers.get('x-revalidation-secret')
 
   if (secret !== process.env.REVALIDATION_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { path, tag } = await request.json();
+  const { path, tag } = await request.json()
 
   if (tag) {
-    revalidateTag(tag);
+    revalidateTag(tag)
   } else if (path) {
-    revalidatePath(path);
+    revalidatePath(path)
   }
 
-  return NextResponse.json({ revalidated: true, now: Date.now() });
+  return NextResponse.json({ revalidated: true, now: Date.now() })
 }
 ```
 
@@ -1541,13 +1531,13 @@ flowchart TD
 // lib/seo/web-vitals.ts
 // Core Web Vitals 자동 수집 — Beacon API로 비동기 전송
 
-import { onCLS, onINP, onLCP, onFCP, onTTFB, type Metric } from 'web-vitals';
+import { onCLS, onINP, onLCP, onFCP, onTTFB, type Metric } from 'web-vitals'
 
 interface VitalsReport {
-  name: string;
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  path: string;
+  name: string
+  value: number
+  rating: 'good' | 'needs-improvement' | 'poor'
+  path: string
 }
 
 function sendToAnalytics(metric: Metric): void {
@@ -1556,32 +1546,32 @@ function sendToAnalytics(metric: Metric): void {
     value: metric.value,
     rating: metric.rating,
     path: window.location.pathname,
-  };
+  }
 
   // Beacon API로 비동기 전송
   if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/vitals', JSON.stringify(report));
+    navigator.sendBeacon('/api/vitals', JSON.stringify(report))
   }
 }
 
 export function initWebVitals(): void {
-  onCLS(sendToAnalytics);
-  onINP(sendToAnalytics);
-  onLCP(sendToAnalytics);
-  onFCP(sendToAnalytics);
-  onTTFB(sendToAnalytics);
+  onCLS(sendToAnalytics)
+  onINP(sendToAnalytics)
+  onLCP(sendToAnalytics)
+  onFCP(sendToAnalytics)
+  onTTFB(sendToAnalytics)
 }
 ```
 
 ### 8.2 SEO 영향 임계값
 
-| 지표 | Good | Needs Improvement | Poor | SEO 영향 |
-|---|---|---|---|---|
-| LCP | < 2.5s | 2.5s - 4.0s | > 4.0s | 직접 순위 요소 |
-| INP | < 200ms | 200ms - 500ms | > 500ms | 직접 순위 요소 |
-| CLS | < 0.1 | 0.1 - 0.25 | > 0.25 | 직접 순위 요소 |
-| FCP | < 1.8s | 1.8s - 3.0s | > 3.0s | 간접 영향 |
-| TTFB | < 800ms | 800ms - 1.8s | > 1.8s | 간접 영향 |
+| 지표 | Good    | Needs Improvement | Poor    | SEO 영향       |
+| ---- | ------- | ----------------- | ------- | -------------- |
+| LCP  | < 2.5s  | 2.5s - 4.0s       | > 4.0s  | 직접 순위 요소 |
+| INP  | < 200ms | 200ms - 500ms     | > 500ms | 직접 순위 요소 |
+| CLS  | < 0.1   | 0.1 - 0.25        | > 0.25  | 직접 순위 요소 |
+| FCP  | < 1.8s  | 1.8s - 3.0s       | > 3.0s  | 간접 영향      |
+| TTFB | < 800ms | 800ms - 1.8s      | > 1.8s  | 간접 영향      |
 
 ### 8.3 CWV 개선을 위한 SEO 친화적 이미지 최적화
 
@@ -1659,26 +1649,26 @@ flowchart LR
 // lib/seo/i18n-seo.ts
 // hreflang 메타데이터 빌더 — 다국어 SEO 지원
 
-import { Metadata } from 'next';
-import { getSeoEnvironment } from './environment';
+import { Metadata } from 'next'
+import { getSeoEnvironment } from './environment'
 
 // 지원 언어 목록
-const SUPPORTED_LOCALES = ['ko', 'en', 'ja'] as const;
-type SupportedLocale = typeof SUPPORTED_LOCALES[number];
+const SUPPORTED_LOCALES = ['ko', 'en', 'ja'] as const
+type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
 interface I18nSeoInput {
-  path: string;
-  currentLocale: SupportedLocale;
+  path: string
+  currentLocale: SupportedLocale
 }
 
 /** 다국어 페이지의 alternates (hreflang) 메타데이터 생성 */
 export function buildI18nAlternates(input: I18nSeoInput): Metadata['alternates'] {
-  const { baseUrl } = getSeoEnvironment();
+  const { baseUrl } = getSeoEnvironment()
 
   // 언어별 대체 URL 매핑
-  const languages: Record<string, string> = {};
+  const languages: Record<string, string> = {}
   for (const locale of SUPPORTED_LOCALES) {
-    languages[locale] = `${baseUrl}/${locale}${input.path}`;
+    languages[locale] = `${baseUrl}/${locale}${input.path}`
   }
 
   return {
@@ -1687,7 +1677,7 @@ export function buildI18nAlternates(input: I18nSeoInput): Metadata['alternates']
       ...languages,
       'x-default': `${baseUrl}/ko${input.path}`, // 기본 언어
     },
-  };
+  }
 }
 ```
 
@@ -1697,19 +1687,19 @@ export function buildI18nAlternates(input: I18nSeoInput): Metadata['alternates']
 // app/sitemap.ts (다국어 확장)
 // 다국어 사이트맵 — 각 언어별 URL을 alternates로 연결
 
-import type { MetadataRoute } from 'next';
-import { getSeoEnvironment } from '@/lib/seo/environment';
+import type { MetadataRoute } from 'next'
+import { getSeoEnvironment } from '@/lib/seo/environment'
 
-const LOCALES = ['ko', 'en', 'ja'];
+const LOCALES = ['ko', 'en', 'ja']
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { baseUrl, isIndexable } = getSeoEnvironment();
-  if (!isIndexable) return [];
+  const { baseUrl, isIndexable } = getSeoEnvironment()
+  if (!isIndexable) return []
 
-  const pages = ['', '/about', '/pricing'];
+  const pages = ['', '/about', '/pricing']
 
   // 각 언어별 정적 페이지 생성
-  const entries: MetadataRoute.Sitemap = [];
+  const entries: MetadataRoute.Sitemap = []
 
   for (const page of pages) {
     for (const locale of LOCALES) {
@@ -1719,15 +1709,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly',
         priority: locale === 'ko' ? 1.0 : 0.8,
         alternates: {
-          languages: Object.fromEntries(
-            LOCALES.map((l) => [l, `${baseUrl}/${l}${page}`]),
-          ),
+          languages: Object.fromEntries(LOCALES.map((l) => [l, `${baseUrl}/${l}${page}`])),
         },
-      });
+      })
     }
   }
 
-  return entries;
+  return entries
 }
 ```
 
@@ -1775,111 +1763,102 @@ CI 파이프라인에 SEO 회귀 테스트를 포함하여 배포 전 자동 검
 // e2e/seo.spec.ts
 // SEO 회귀 테스트 — Playwright 기반 자동 검증
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
 
-const PAGES_TO_TEST = ['/', '/about', '/blog', '/pricing'];
+const PAGES_TO_TEST = ['/', '/about', '/blog', '/pricing']
 
 for (const path of PAGES_TO_TEST) {
   test.describe(`SEO 검증: ${path}`, () => {
     test('필수 메타 태그가 존재해야 한다', async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path)
 
       // title 존재 및 길이 검증
-      const title = await page.title();
-      expect(title).toBeTruthy();
-      expect(title.length).toBeGreaterThanOrEqual(10);
-      expect(title.length).toBeLessThanOrEqual(70);
+      const title = await page.title()
+      expect(title).toBeTruthy()
+      expect(title.length).toBeGreaterThanOrEqual(10)
+      expect(title.length).toBeLessThanOrEqual(70)
 
       // description 메타 태그 검증
-      const description = await page.getAttribute(
-        'meta[name="description"]',
-        'content',
-      );
-      expect(description).toBeTruthy();
-      expect(description!.length).toBeGreaterThanOrEqual(50);
-      expect(description!.length).toBeLessThanOrEqual(170);
-    });
+      const description = await page.getAttribute('meta[name="description"]', 'content')
+      expect(description).toBeTruthy()
+      expect(description!.length).toBeGreaterThanOrEqual(50)
+      expect(description!.length).toBeLessThanOrEqual(170)
+    })
 
     test('OG 태그가 완전해야 한다', async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path)
 
-      const ogTags = ['og:title', 'og:description', 'og:image', 'og:url'];
+      const ogTags = ['og:title', 'og:description', 'og:image', 'og:url']
       for (const tag of ogTags) {
-        const content = await page.getAttribute(
-          `meta[property="${tag}"]`,
-          'content',
-        );
-        expect(content, `${tag} 태그 누락`).toBeTruthy();
+        const content = await page.getAttribute(`meta[property="${tag}"]`, 'content')
+        expect(content, `${tag} 태그 누락`).toBeTruthy()
       }
-    });
+    })
 
     test('h1 태그가 정확히 1개여야 한다', async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path)
 
-      const h1Count = await page.locator('h1').count();
-      expect(h1Count).toBe(1);
-    });
+      const h1Count = await page.locator('h1').count()
+      expect(h1Count).toBe(1)
+    })
 
     test('canonical URL이 설정되어야 한다', async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path)
 
-      const canonical = await page.getAttribute(
-        'link[rel="canonical"]',
-        'href',
-      );
-      expect(canonical).toBeTruthy();
+      const canonical = await page.getAttribute('link[rel="canonical"]', 'href')
+      expect(canonical).toBeTruthy()
       // canonical은 항상 Production URL이어야 함
-      expect(canonical).not.toContain('preview');
-      expect(canonical).not.toContain('localhost');
-    });
+      expect(canonical).not.toContain('preview')
+      expect(canonical).not.toContain('localhost')
+    })
 
     test('이미지에 alt 텍스트가 있어야 한다', async ({ page }) => {
-      await page.goto(path);
+      await page.goto(path)
 
       // 장식용 이미지(role="presentation")를 제외한 모든 이미지 검증
-      const images = page.locator('img:not([role="presentation"])');
-      const count = await images.count();
+      const images = page.locator('img:not([role="presentation"])')
+      const count = await images.count()
 
       for (let i = 0; i < count; i++) {
-        const alt = await images.nth(i).getAttribute('alt');
-        const src = await images.nth(i).getAttribute('src');
-        expect(alt, `alt 누락: ${src}`).toBeTruthy();
+        const alt = await images.nth(i).getAttribute('alt')
+        const src = await images.nth(i).getAttribute('src')
+        expect(alt, `alt 누락: ${src}`).toBeTruthy()
       }
-    });
-  });
+    })
+  })
 }
 
 test('robots.txt가 올바르게 생성되어야 한다', async ({ request }) => {
-  const response = await request.get('/robots.txt');
-  expect(response.status()).toBe(200);
+  const response = await request.get('/robots.txt')
+  expect(response.status()).toBe(200)
 
-  const text = await response.text();
-  expect(text).toContain('User-agent');
-});
+  const text = await response.text()
+  expect(text).toContain('User-agent')
+})
 
 test('sitemap.xml이 유효한 XML이어야 한다', async ({ request }) => {
-  const response = await request.get('/sitemap.xml');
-  expect(response.status()).toBe(200);
+  const response = await request.get('/sitemap.xml')
+  expect(response.status()).toBe(200)
 
-  const contentType = response.headers()['content-type'];
-  expect(contentType).toContain('xml');
-});
+  const contentType = response.headers()['content-type']
+  expect(contentType).toContain('xml')
+})
 
 test('JSON-LD가 유효한 JSON이어야 한다', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/')
 
-  const jsonLdScripts = page.locator('script[type="application/ld+json"]');
-  const count = await jsonLdScripts.count();
+  const jsonLdScripts = page.locator('script[type="application/ld+json"]')
+  const count = await jsonLdScripts.count()
 
   for (let i = 0; i < count; i++) {
-    const content = await jsonLdScripts.nth(i).textContent();
-    expect(() => JSON.parse(content!)).not.toThrow();
+    const content = await jsonLdScripts.nth(i).textContent()
+    expect(() => JSON.parse(content!)).not.toThrow()
 
-    const data = JSON.parse(content!);
-    expect(data['@context']).toBe('https://schema.org');
-    expect(data['@type']).toBeTruthy();
+    const data = JSON.parse(content!)
+    expect(data['@context']).toBe('https://schema.org')
+    expect(data['@type']).toBeTruthy()
   }
-});
+})
 ```
 
 ### 10.2 Lighthouse CI SEO 점수 게이트
@@ -1969,22 +1948,22 @@ sequenceDiagram
 
 ### 11.1 생성형 검색 대응 기준
 
-| 기준 | 권장 구현 | 검증 방법 |
-|---|---|---|
-| **유용한 원본성** | 단순 요약보다 직접 경험, 실험, 데이터, 비교 근거를 제공합니다. | 콘텐츠 리뷰, 중복/저품질 페이지 audit |
-| **명확한 구조** | H1/H2, 요약, 단계, 표, FAQ를 사용자 의도에 맞게 구성합니다. | 렌더된 HTML snapshot, heading audit |
-| **기술적 접근성** | indexable URL, canonical, sitemap, 내부 링크를 안정적으로 유지합니다. | crawl test, sitemap diff |
-| **멀티미디어 품질** | 이미지/영상에는 의미 있는 alt, caption, metadata를 둡니다. | image/video SEO audit |
-| **정책 준수** | 검색 spam policy와 저작권/출처 표기 기준을 지킵니다. | content policy review |
+| 기준                | 권장 구현                                                             | 검증 방법                             |
+| ------------------- | --------------------------------------------------------------------- | ------------------------------------- |
+| **유용한 원본성**   | 단순 요약보다 직접 경험, 실험, 데이터, 비교 근거를 제공합니다.        | 콘텐츠 리뷰, 중복/저품질 페이지 audit |
+| **명확한 구조**     | H1/H2, 요약, 단계, 표, FAQ를 사용자 의도에 맞게 구성합니다.           | 렌더된 HTML snapshot, heading audit   |
+| **기술적 접근성**   | indexable URL, canonical, sitemap, 내부 링크를 안정적으로 유지합니다. | crawl test, sitemap diff              |
+| **멀티미디어 품질** | 이미지/영상에는 의미 있는 alt, caption, metadata를 둡니다.            | image/video SEO audit                 |
+| **정책 준수**       | 검색 spam policy와 저작권/출처 표기 기준을 지킵니다.                  | content policy review                 |
 
 ### 11.2 AI/검색 크롤러 정책 매트릭스
 
-| 범주 | 목적 | 기본 정책 |
-|---|---|---|
-| 검색 색인 크롤러 | 일반 검색 노출 | 허용 |
-| 검색 기능 보조 크롤러 | 요약, 미리보기, rich result 생성 | 허용하되 snippet/preview 정책 관리 |
-| 모델 학습 크롤러 | 모델 학습 데이터 수집 | 법무/콘텐츠 정책에 따라 허용 또는 제한 |
-| 비식별 범용 수집 크롤러 | 공개 데이터셋 수집 | 서버 비용과 콘텐츠 정책에 따라 제한 |
+| 범주                    | 목적                             | 기본 정책                              |
+| ----------------------- | -------------------------------- | -------------------------------------- |
+| 검색 색인 크롤러        | 일반 검색 노출                   | 허용                                   |
+| 검색 기능 보조 크롤러   | 요약, 미리보기, rich result 생성 | 허용하되 snippet/preview 정책 관리     |
+| 모델 학습 크롤러        | 모델 학습 데이터 수집            | 법무/콘텐츠 정책에 따라 허용 또는 제한 |
+| 비식별 범용 수집 크롤러 | 공개 데이터셋 수집               | 서버 비용과 콘텐츠 정책에 따라 제한    |
 
 `robots.txt`, meta robots, `X-Robots-Tag`, snippet 관련 directive는 검색 사업자별 지원 범위가 다릅니다. 중요한 차단 정책은 문서만 믿지 말고 access log와 실제 색인 상태로 확인합니다.
 
@@ -1997,8 +1976,8 @@ sequenceDiagram
 // 검색 사업자별 공식 검증 방식(DNS 역조회, IP range JSON 등)을 adapter로 분리합니다.
 
 interface CrawlerVerifier {
-  name: string;
-  verify(remoteIp: string, userAgent: string): Promise<boolean>;
+  name: string
+  verify(remoteIp: string, userAgent: string): Promise<boolean>
 }
 
 export async function isAllowedCrawler(
@@ -2008,9 +1987,9 @@ export async function isAllowedCrawler(
 ): Promise<boolean> {
   const results = await Promise.allSettled(
     verifiers.map((verifier) => verifier.verify(remoteIp, userAgent)),
-  );
+  )
 
-  return results.some((result) => result.status === 'fulfilled' && result.value);
+  return results.some((result) => result.status === 'fulfilled' && result.value)
 }
 ```
 
@@ -2018,37 +1997,37 @@ export async function isAllowedCrawler(
 
 일부 검색엔진은 URL 갱신 알림 프로토콜을 지원합니다. 이 기능은 sitemap을 대체하지 않으며, 지원 사업자와 정책이 다르므로 **조건부 최적화**로 둡니다.
 
-| 적용 조건 | 기준 |
-|---|---|
-| 적합 | 뉴스, 재고, 가격, 문서처럼 갱신 빈도가 높고 빠른 재크롤이 중요한 페이지 |
-| 부적합 | 정적 랜딩, 내부 도구, 미완성 preview URL |
-| 검증 | 제출 성공률, 재크롤 시간, 색인 반영 시간을 로그로 확인 |
+| 적용 조건 | 기준                                                                    |
+| --------- | ----------------------------------------------------------------------- |
+| 적합      | 뉴스, 재고, 가격, 문서처럼 갱신 빈도가 높고 빠른 재크롤이 중요한 페이지 |
+| 부적합    | 정적 랜딩, 내부 도구, 미완성 preview URL                                |
+| 검증      | 제출 성공률, 재크롤 시간, 색인 반영 시간을 로그로 확인                  |
 
 ### 11.5 Open Graph 운영 기준
 
 Open Graph 자체는 오래된 메타데이터 사양이지만, 소셜 미리보기와 검색/AI 기능의 페이지 이해에 여전히 도움이 됩니다. 표준이 아닌 “비공식 확장명”은 production 기준으로 삼지 않습니다.
 
-| 권장 사항 | 이유 |
-|---|---|
-| `og:title`은 페이지 H1과 의미적으로 일치 | 미리보기와 실제 콘텐츠 불일치 방지 |
-| `og:description`은 meta description과 충돌하지 않음 | 검색/공유 문구 일관성 |
-| `og:image`와 `og:image:alt` 제공 | 접근성 및 공유 품질 |
-| `article:published_time`, `article:modified_time` 정확히 기재 | 콘텐츠 최신성 표현 |
-| canonical URL과 `og:url` 일치 | 중복 URL 신호 축소 |
+| 권장 사항                                                     | 이유                               |
+| ------------------------------------------------------------- | ---------------------------------- |
+| `og:title`은 페이지 H1과 의미적으로 일치                      | 미리보기와 실제 콘텐츠 불일치 방지 |
+| `og:description`은 meta description과 충돌하지 않음           | 검색/공유 문구 일관성              |
+| `og:image`와 `og:image:alt` 제공                              | 접근성 및 공유 품질                |
+| `article:published_time`, `article:modified_time` 정확히 기재 | 콘텐츠 최신성 표현                 |
+| canonical URL과 `og:url` 일치                                 | 중복 URL 신호 축소                 |
 
 ### 11.6 Schema.org 주목 타입
 
 Schema.org vocabulary는 계속 확장됩니다. 타입 선택은 “검색 노출을 더 받기 위해서”가 아니라 페이지의 실제 의미를 정확히 표현하기 위해 사용합니다.
 
-| 타입 | 용도 |
-|---|---|
-| `Article` / `BlogPosting` | 글, 기술 문서, 분석 콘텐츠 |
-| `BreadcrumbList` | 사이트 계층과 탐색 경로 |
-| `WebSite` / `WebPage` | 사이트 및 페이지 기본 설명 |
-| `Person` / `Organization` | 저자, 발행 주체, 책임 소재 |
-| `LearningResource` | 강의, 튜토리얼, 학습 자료 |
-| `Trip` / `Itinerary` | 여행 콘텐츠 |
-| `Dataset` + `SoftwareApplication` | 오픈 데이터·API 페이지 |
+| 타입                              | 용도                       |
+| --------------------------------- | -------------------------- |
+| `Article` / `BlogPosting`         | 글, 기술 문서, 분석 콘텐츠 |
+| `BreadcrumbList`                  | 사이트 계층과 탐색 경로    |
+| `WebSite` / `WebPage`             | 사이트 및 페이지 기본 설명 |
+| `Person` / `Organization`         | 저자, 발행 주체, 책임 소재 |
+| `LearningResource`                | 강의, 튜토리얼, 학습 자료  |
+| `Trip` / `Itinerary`              | 여행 콘텐츠                |
+| `Dataset` + `SoftwareApplication` | 오픈 데이터·API 페이지     |
 
 ---
 
@@ -2174,27 +2153,25 @@ Schema.org vocabulary는 계속 확장됩니다. 타입 선택은 “검색 노�
 
 ## 추천 항목 실행 우선순위 매핑
 
-- `P1(7일 내)` — 추천 항목 1개를 우선 적용하고 1회 사용자 관측 신호(에러율/실패율/지연)와 연결한다.
-- `P2(30일 내)` — 추천 항목 1개를 팀 내 표준/템플릿에 반영해 재사용성을 확보한다.
-- `P3(90일 내)` — 추천 항목 1개를 다른 관련 문서에 역링크로 연동해 중복 작업을 줄인다.
-- `완료 기준` — 각 항목별 산출물(예: PR 링크/체크리스트/회고 노트)을 1개 이상 남긴다.
+- `P1(7일 내)` — metadata, canonical, structured data, sitemap 중 하나를 작은 변경 1건에 적용하고 증거(rendered HTML capture)를 남긴다.
+- `P2(30일 내)` — SEO 메타데이터 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에 고정한다.
+- `P3(90일 내)` — index coverage, duplicate canonical, metadata 누락 수 추이를 보고 기준을 유지할지 조정할지 결정한다.
+- `완료 기준` — SEO 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
 
 ## 추천 항목 실행 체크리스트
 
-- [ ] `1단계(7일)` : 추천 항목 1개를 실제 작업으로 전환
-- [ ] `2단계(30일)` : 전환 결과를 팀 산출물(ADR/PR/체크리스트)에 반영
-- [ ] `3단계(60일)` : 정적 지표 1개 이상으로 효과 검증
-- [ ] `문제 대응` : 미달성 시 보류 사유와 다음 실행 액션을 문서화
-
-
+- [ ] `1단계(7일)` : metadata, canonical, structured data, sitemap 적용 대상을 1개로 좁힌다.
+- [ ] `2단계(30일)` : 증거(rendered HTML capture, rich result test, sitemap diff, Search Console signal)를 PR, ADR, 회고 중 한 곳에 연결한다.
+- [ ] `3단계(60일)` : index coverage, duplicate canonical, metadata 누락 수가 기준 안에 들어왔는지 확인한다.
+- [ ] `문제 대응` : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에 남긴다.
 
 ## 추천 항목 실행 운영 규칙
 
-- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.
-- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.
-- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.
-- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.
-- `리스크 점수` : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.
-- `리더 승인자` : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.
-- `승인 역할` : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.
-- `재평가 주기` : 최소 2주 단위로 상태를 리뷰하고 조정한다.
+- `실행 게이트` : 검색에 노출될 URL마다 canonical과 metadata 출처가 하나인지 확인한다.
+- `승인 체계` : SEO 오너가 영향 범위와 rollback 담당자를 적용 전에 확인한다.
+- `재개 조건` : rendered HTML과 sitemap이 맞으면 배포 후 index 상태를 본다.
+- `정지 조건` : 클라이언트에서만 metadata가 채워지거나 canonical이 충돌하면 배포를 보류한다.
+- `리스크 점수` : URL 수, indexed traffic, schema 변경 범위로 산정한다.
+- `리더 승인자` : SEO/콘텐츠 리드가 최종 승인 책임을 맡는다.
+- `승인 역할` : SEO 메타데이터 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+- `재평가 주기` : 릴리스와 sitemap 변경 후 Search Console을 확인한다.

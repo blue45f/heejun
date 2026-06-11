@@ -1,8 +1,5 @@
 # 12. CDN 캐시 전략
 
-> **쉽게 읽기 안내**: 이 문서는 전문 용어가 많을 수 있어요.
-> 이해가 어려우면 [공통 용어사전](../참고자료/개발가이드_용어사전.md)에서 먼저 용어 뜻을 확인하고 본문을 이어서 읽으면 이해가 훨씬 빨라집니다.
-> 특히 실무에서 자주 쓰이는 `배포`, `CI/CD`, `롤백`, `스키마`처럼 동작이 중요한 용어부터 먼저 익혀보세요.
 ## 0. 먼저 알고 가기 (30초 요약)
 
 - 정적 자산은 한 번 캐싱되면 재사용되므로, 버전 정책이 성능을 좌우합니다.
@@ -17,15 +14,15 @@
 
 ### 핵심 용어 빠르게 정리
 
-| 용어 | 쉬운 뜻 |
-| --- | --- |
-| `CDN` | 전세계에 복제해 빠르게 전달하는 정적 저장 네트워크 |
-| `캐시 정책` | 얼마나 오래 저장할지 정한 규칙 |
-| `TTL` | 캐시 유지 시간 |
-| `무효화` | 캐시된 내용을 갱신/삭제하는 동작 |
-| `불변성` | URL 버전이 바뀌면 새 파일로 간주해 캐시 충돌을 줄이는 방식 |
-| `entry document` | SPA에서 가장 먼저 받는 HTML 진입점 |
-| `purge` | 캐시 항목을 명시적으로 삭제하는 명령 |
+| 용어             | 쉬운 뜻                                                    |
+| ---------------- | ---------------------------------------------------------- |
+| `CDN`            | 전세계에 복제해 빠르게 전달하는 정적 저장 네트워크         |
+| `캐시 정책`      | 얼마나 오래 저장할지 정한 규칙                             |
+| `TTL`            | 캐시 유지 시간                                             |
+| `무효화`         | 캐시된 내용을 갱신/삭제하는 동작                           |
+| `불변성`         | URL 버전이 바뀌면 새 파일로 간주해 캐시 충돌을 줄이는 방식 |
+| `entry document` | SPA에서 가장 먼저 받는 HTML 진입점                         |
+| `purge`          | 캐시 항목을 명시적으로 삭제하는 명령                       |
 
 ### TTL 계층 한눈에 보기
 
@@ -37,12 +34,10 @@ flowchart LR
   M --> L["길음(1년 + immutable)\nhash가 붙은 JS/CSS/이미지/폰트"]
 ```
 
-
-
-| 분류 | 성능 & 배포 | 상태 | Stable |
-| :--- | :--- | :--- | :--- |
+| 분류            | 성능 & 배포                                                                                                                                                              | 상태          | Stable    |
+| :-------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------ | :-------- |
 | **연관 가이드** | [08. 성능](./08_성능_최적화_가이드.md), [10. 인프라](./10_인프라_IaC_가이드.md), [11. CI/CD](./11_CICD_파이프라인_표준.md), [14. 배포](./14_배포_프로세스_체크리스트.md) | **도구 원칙** | 벤더 중립 |
-| **핵심 테마** | HTTP caching, immutable assets, cache key, invalidation, compression, security headers, edge routing | **Update** | 최신 기준 |
+| **핵심 테마**   | HTTP caching, immutable assets, cache key, invalidation, compression, security headers, edge routing                                                                     | **Update**    | 최신 기준 |
 
 ---
 
@@ -50,50 +45,47 @@ flowchart LR
 
 ---
 
-
 ## 추천 항목 (실무 우선순위)
 
 - **시작 추천**: 정적 자산은 immutable 정책과 적정 TTL을 먼저 정하고 캐시 헤더를 통일하세요.
 - **안정 추천**: HTML은 짧은 TTL + 적절한 리비전 전략으로 즉시 반영성 확보를 설정합니다.
 - **운영 추천**: 무효화 실패 케이스를 배포 체크리스트에 넣고 배포 후 캐시 히트율을 점검하세요.
 
-
 ## 추천 항목 고도화 체크
 
-- `즉시 적용` — 추천 항목 1개를 이번 주 내에 실제 작업 1건에 반영한다.
-- `1주 내 정리` — 적용 결과를 PR 본문이나 회고 노트에 간단히 기록한다.
-- `1개월 내 점검` — 재작업률/리뷰 충돌/배포 이슈 중 적어도 한 항목이 개선되었는지 확인한다.
-
+- `첫 적용` — cache-control, invalidation, fallback route 중 하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+- `증거 정리` — response header, invalidation log, cache hit ratio를 같은 작업 기록에 남긴다.
+- `재점검` — hit ratio, stale asset incident, invalidation 비용가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
 
 ## 추천 항목 실행 기록 템플릿
 
-- `담당자` : 항목 적용 주체(문서 오너/팀원)를 명시
-- `적용일` : 실제 반영된 날짜 및 작업 ID를 남김
-- `측정 지표` : 리뷰 충돌/재작업/버그 재발 중 1개 이상 수치로 기록
-- `보류 사유` : 적용을 못한 경우 이유를 1줄 기록하고 다음 액션을 지정
+- `작업` : cache-control, invalidation, fallback route 적용 범위를 어느 화면, 패키지, 문서에 둘지 적는다.
+- `증거` : response header, invalidation log, cache hit ratio 중 실제로 남긴 항목만 링크한다.
+- `판정` : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.
+- `다음 점검` : hit ratio, stale asset incident, invalidation 비용를 다시 볼 날짜와 담당자를 지정한다.
 
 ## 문서 책임 범위
 
-| 이 문서가 결정하는 것 | 단일 출처로 따르는 문서 |
-| :--- | :--- |
+| 이 문서가 결정하는 것                                                  | 단일 출처로 따르는 문서                                                                 |
+| :--------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
 | HTTP cache header, immutable asset, entry freshness, invalidation 계약 | [14. 배포](./14_배포_프로세스_체크리스트.md), [11. CI/CD](./11_CICD_파이프라인_표준.md) |
-| cache key, compression, security headers, edge routing 기준 | [06. 보안](./06_웹_보안_심화_가이드.md), [10. 인프라](./10_인프라_IaC_가이드.md) |
-| 캐시가 Core Web Vitals와 RUM에 미치는 영향 | [08. 성능](./08_성능_최적화_가이드.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md) |
-| Service Worker/PWA cache와 CDN cache의 책임 분리 | [26. PWA](./26_PWA_오프라인_전략_가이드.md) |
+| cache key, compression, security headers, edge routing 기준            | [06. 보안](./06_웹_보안_심화_가이드.md), [10. 인프라](./10_인프라_IaC_가이드.md)        |
+| 캐시가 Core Web Vitals와 RUM에 미치는 영향                             | [08. 성능](./08_성능_최적화_가이드.md), [09. 관측성](./09_장애_대응_및_관측성_표준.md)  |
+| Service Worker/PWA cache와 CDN cache의 책임 분리                       | [26. PWA](./26_PWA_오프라인_전략_가이드.md)                                             |
 
 ---
 
 ## 0. 모든 프론트엔드 그룹 공통 Baseline
 
-| 영역 | 공통 기준 | 검증 방법 |
-| :--- | :--- | :--- |
-| **Immutable assets** | 파일명에 content hash가 있는 JS/CSS/image/font는 장기 캐시 + immutable | response header 검사 |
-| **Entry document** | `index.html`, app shell, manifest 중 배포 전환에 민감한 파일은 no-cache 또는 짧은 TTL | smoke test |
-| **Cache key 최소화** | 캐시에 필요한 header, cookie, query만 포함 | cache hit ratio |
-| **무효화 최소화** | 전체 purge 대신 entry document와 변경 경로만 무효화 | deploy log |
-| **압축** | Brotli/gzip 전송 또는 사전 압축을 적용 | `content-encoding` 검사 |
-| **보안 헤더** | HSTS, CSP, X-Content-Type-Options, Referrer-Policy 등 공통 헤더 적용 | header audit |
-| **관측성** | hit/miss, origin latency, 4xx/5xx, regional anomaly 추적 | CDN dashboard/RUM |
+| 영역                 | 공통 기준                                                                             | 검증 방법               |
+| :------------------- | :------------------------------------------------------------------------------------ | :---------------------- |
+| **Immutable assets** | 파일명에 content hash가 있는 JS/CSS/image/font는 장기 캐시 + immutable                | response header 검사    |
+| **Entry document**   | `index.html`, app shell, manifest 중 배포 전환에 민감한 파일은 no-cache 또는 짧은 TTL | smoke test              |
+| **Cache key 최소화** | 캐시에 필요한 header, cookie, query만 포함                                            | cache hit ratio         |
+| **무효화 최소화**    | 전체 purge 대신 entry document와 변경 경로만 무효화                                   | deploy log              |
+| **압축**             | Brotli/gzip 전송 또는 사전 압축을 적용                                                | `content-encoding` 검사 |
+| **보안 헤더**        | HSTS, CSP, X-Content-Type-Options, Referrer-Policy 등 공통 헤더 적용                  | header audit            |
+| **관측성**           | hit/miss, origin latency, 4xx/5xx, regional anomaly 추적                              | CDN dashboard/RUM       |
 
 ### 0.0 캐시 요청/무효화 흐름
 
@@ -161,35 +153,34 @@ sequenceDiagram
 
 ### 0.1 교차 검증 매트릭스
 
-| 권고 | 1차 출처 | 실행 증거 | 운영 증거 | 철회 조건 |
-| :--- | :--- | :--- | :--- | :--- |
-| HTTP cache contract | HTTP caching 표준과 브라우저 동작 | header smoke, asset hash check | cache hit ratio, stale asset incident | HTML/asset mismatch 발생 시 TTL 재설계 |
-| 최소 cache key | CDN/HTTP 캐시 원리 | key diff review, hit ratio test | origin request rate | 개인화 오류 발생 시 key 확장 |
-| 보안 헤더 | OWASP/W3C 보안 권고 | header audit, CSP report-only | CSP violation, mixed content | 위반 폭증 시 report-only로 회귀 |
+| 권고                | 1차 출처                          | 실행 증거                       | 운영 증거                             | 철회 조건                              |
+| :------------------ | :-------------------------------- | :------------------------------ | :------------------------------------ | :------------------------------------- |
+| HTTP cache contract | HTTP caching 표준과 브라우저 동작 | header smoke, asset hash check  | cache hit ratio, stale asset incident | HTML/asset mismatch 발생 시 TTL 재설계 |
+| 최소 cache key      | CDN/HTTP 캐시 원리                | key diff review, hit ratio test | origin request rate                   | 개인화 오류 발생 시 key 확장           |
+| 보안 헤더           | OWASP/W3C 보안 권고               | header audit, CSP report-only   | CSP violation, mixed content          | 위반 폭증 시 report-only로 회귀        |
 
 ### 0.2 운영 게이트
 
-| Gate | Evidence | Owner | Rollback |
-| :--- | :--- | :--- | :--- |
-| Cache contract | response header smoke, hash asset 검사 | Platform owner | TTL 축소 또는 entry 문서 rollback |
-| Cache key 변경 | key diff, hit ratio, origin request 변화 | CDN owner | key 확장/축소 rollback |
-| Invalidation | purge log, route list, release id | Release owner | targeted purge 또는 이전 entry 복구 |
-| Security headers | header audit, CSP report-only 결과 | Security owner | report-only 전환 또는 policy rollback |
+| Gate             | Evidence                                 | Owner          | Rollback                              |
+| :--------------- | :--------------------------------------- | :------------- | :------------------------------------ |
+| Cache contract   | response header smoke, hash asset 검사   | Platform owner | TTL 축소 또는 entry 문서 rollback     |
+| Cache key 변경   | key diff, hit ratio, origin request 변화 | CDN owner      | key 확장/축소 rollback                |
+| Invalidation     | purge log, route list, release id        | Release owner  | targeted purge 또는 이전 entry 복구   |
+| Security headers | header audit, CSP report-only 결과       | Security owner | report-only 전환 또는 policy rollback |
 
 ---
 
-
 ## 1. Cache-Control 표준
 
-| 파일 유형 | 권장 정책 | 이유 |
-| :--- | :--- | :--- |
-| `assets/*.[hash].js` | `public, max-age=31536000, immutable` | 파일명이 바뀌면 새 버전이므로 장기 캐시 가능 |
-| `assets/*.[hash].css` | `public, max-age=31536000, immutable` | JS와 동일 |
-| image/font with hash | `public, max-age=31536000, immutable` | 사용자 재방문 성능 개선 |
-| `index.html` | `no-cache` 또는 `max-age=0, must-revalidate` | 새 배포 진입점 즉시 반영 |
-| `manifest.json` | 짧은 TTL 또는 `no-cache` | 앱 이름/아이콘/시작 URL 변경 가능 |
-| `service-worker.js` | `no-cache` | 업데이트 감지를 늦추면 오프라인 캐시가 꼬임 |
-| API response | 데이터 특성별 `private`, `no-store`, `s-maxage`, `stale-while-revalidate` | 개인화와 freshness 요구가 다름 |
+| 파일 유형             | 권장 정책                                                                 | 이유                                         |
+| :-------------------- | :------------------------------------------------------------------------ | :------------------------------------------- |
+| `assets/*.[hash].js`  | `public, max-age=31536000, immutable`                                     | 파일명이 바뀌면 새 버전이므로 장기 캐시 가능 |
+| `assets/*.[hash].css` | `public, max-age=31536000, immutable`                                     | JS와 동일                                    |
+| image/font with hash  | `public, max-age=31536000, immutable`                                     | 사용자 재방문 성능 개선                      |
+| `index.html`          | `no-cache` 또는 `max-age=0, must-revalidate`                              | 새 배포 진입점 즉시 반영                     |
+| `manifest.json`       | 짧은 TTL 또는 `no-cache`                                                  | 앱 이름/아이콘/시작 URL 변경 가능            |
+| `service-worker.js`   | `no-cache`                                                                | 업데이트 감지를 늦추면 오프라인 캐시가 꼬임  |
+| API response          | 데이터 특성별 `private`, `no-store`, `s-maxage`, `stale-while-revalidate` | 개인화와 freshness 요구가 다름               |
 
 `no-store`는 브라우저와 CDN 모두 저장하지 말아야 하는 민감 응답에 사용합니다. 단순히 새 버전 확인이 필요한 엔트리 문서에는 `no-cache`가 더 적합한 경우가 많습니다.
 
@@ -201,13 +192,13 @@ sequenceDiagram
 
 캐시 키는 작을수록 hit ratio가 좋아집니다. 필요한 값만 포함합니다.
 
-| 요소 | 기본 기준 | 포함해야 하는 경우 |
-| :--- | :--- | :--- |
-| Query string | 제외 | 이미지 변환, 검색 결과, pagination처럼 응답이 실제로 달라질 때 |
-| Cookie | 제외 | 로그인 상태별 HTML, A/B bucket처럼 응답이 달라질 때 |
-| Header | 제외 | `Accept-Language`, device class, image format 협상 등 |
-| Path | 포함 | 기본 캐시 식별자 |
-| Host | 멀티 도메인일 때 포함 | tenant/domain별 콘텐츠가 다를 때 |
+| 요소         | 기본 기준             | 포함해야 하는 경우                                             |
+| :----------- | :-------------------- | :------------------------------------------------------------- |
+| Query string | 제외                  | 이미지 변환, 검색 결과, pagination처럼 응답이 실제로 달라질 때 |
+| Cookie       | 제외                  | 로그인 상태별 HTML, A/B bucket처럼 응답이 달라질 때            |
+| Header       | 제외                  | `Accept-Language`, device class, image format 협상 등          |
+| Path         | 포함                  | 기본 캐시 식별자                                               |
+| Host         | 멀티 도메인일 때 포함 | tenant/domain별 콘텐츠가 다를 때                               |
 
 무의식적으로 모든 query, cookie, header를 cache key에 넣으면 CDN cache hit ratio가 크게 떨어집니다.
 
@@ -236,14 +227,14 @@ flowchart TD
 
 프론트엔드 배포에서 가장 흔한 장애는 "HTML은 새 버전, JS는 이전 버전" 또는 그 반대입니다.
 
-| 계약 | 기준 |
-| :--- | :--- |
-| Artifact | 한 번 만든 build artifact는 수정하지 않고 승격 |
-| Asset hash | 모든 JS/CSS chunk는 content hash 포함 |
-| Entry freshness | entry HTML은 항상 최신 확인 |
+| 계약                   | 기준                                                     |
+| :--------------------- | :------------------------------------------------------- |
+| Artifact               | 한 번 만든 build artifact는 수정하지 않고 승격           |
+| Asset hash             | 모든 JS/CSS chunk는 content hash 포함                    |
+| Entry freshness        | entry HTML은 항상 최신 확인                              |
 | Backward compatibility | 새 HTML이 참조하는 asset이 CDN에 업로드된 뒤 HTML을 전환 |
-| Rollback | 이전 HTML과 이전 asset이 보존되어야 함 |
-| Service Worker | SW 캐시 정책과 CDN TTL을 별도 문서로 맞춤 |
+| Rollback               | 이전 HTML과 이전 asset이 보존되어야 함                   |
+| Service Worker         | SW 캐시 정책과 CDN TTL을 별도 문서로 맞춤                |
 
 배포 순서는 일반적으로 `assets 업로드 -> assets 검증 -> entry 문서 전환 -> entry 무효화 -> smoke test`입니다.
 
@@ -262,13 +253,13 @@ flowchart LR
 
 > 왜 중요한가: 전체 purge는 사용자에게 갑작스러운 latency 폭증을 안겨줍니다. 변경 범위만 정확히 끊는 능력이 캐시 운영 수준을 가릅니다.
 
-| 상황 | 권장 무효화 |
-| :--- | :--- |
-| 일반 SPA 배포 | entry HTML, manifest, service worker |
-| 해시 자산 변경 | 무효화 불필요 |
-| 잘못된 정적 파일 배포 | 해당 경로만 purge |
-| 보안/개인정보 노출 | 즉시 purge + 원본 삭제 + postmortem |
-| API 캐시 오염 | affected key만 purge, 원인 수정 전 전체 purge 반복 금지 |
+| 상황                  | 권장 무효화                                             |
+| :-------------------- | :------------------------------------------------------ |
+| 일반 SPA 배포         | entry HTML, manifest, service worker                    |
+| 해시 자산 변경        | 무효화 불필요                                           |
+| 잘못된 정적 파일 배포 | 해당 경로만 purge                                       |
+| 보안/개인정보 노출    | 즉시 purge + 원본 삭제 + postmortem                     |
+| API 캐시 오염         | affected key만 purge, 원인 수정 전 전체 purge 반복 금지 |
 
 `/*` 전체 무효화는 비용, 지연, cache warm-up 손실을 만들기 때문에 긴급 상황이 아니라면 피합니다.
 
@@ -295,14 +286,14 @@ flowchart TD
 
 CDN 또는 origin 중 한 곳에서 일관되게 보안 헤더를 적용합니다.
 
-| 헤더 | 기준 |
-| :--- | :--- |
-| `Strict-Transport-Security` | HTTPS 강제, preload는 도메인 소유권과 서브도메인 영향 검토 후 적용 |
-| `Content-Security-Policy` | `default-src 'self'`에서 시작해 필요한 출처만 allowlist |
-| `X-Content-Type-Options` | `nosniff` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` 이상 |
-| `Permissions-Policy` | 사용하지 않는 브라우저 기능 비활성화 |
-| `Cross-Origin-Opener-Policy` | 격리가 필요한 앱에서 적용 |
+| 헤더                         | 기준                                                               |
+| :--------------------------- | :----------------------------------------------------------------- |
+| `Strict-Transport-Security`  | HTTPS 강제, preload는 도메인 소유권과 서브도메인 영향 검토 후 적용 |
+| `Content-Security-Policy`    | `default-src 'self'`에서 시작해 필요한 출처만 allowlist            |
+| `X-Content-Type-Options`     | `nosniff`                                                          |
+| `Referrer-Policy`            | `strict-origin-when-cross-origin` 이상                             |
+| `Permissions-Policy`         | 사용하지 않는 브라우저 기능 비활성화                               |
+| `Cross-Origin-Opener-Policy` | 격리가 필요한 앱에서 적용                                          |
 
 보안 헤더는 모든 환경에서 동일한 정책을 쓰기보다, report-only에서 위반 로그를 확인한 뒤 enforce로 전환합니다.
 
@@ -310,12 +301,12 @@ CDN 또는 origin 중 한 곳에서 일관되게 보안 헤더를 적용합니�
 
 ## 6. Compression과 이미지 전송
 
-| 대상 | 기준 |
-| :--- | :--- |
-| Text assets | Brotli 우선, gzip fallback |
+| 대상         | 기준                                          |
+| :----------- | :-------------------------------------------- |
+| Text assets  | Brotli 우선, gzip fallback                    |
 | Large JS/CSS | 사전 압축 또는 CDN 압축 중 하나를 명확히 선택 |
-| Images | AVIF/WebP 지원, 원본 보관, width/quality 제한 |
-| Fonts | subset, preload 최소화, `font-display` 적용 |
+| Images       | AVIF/WebP 지원, 원본 보관, width/quality 제한 |
+| Fonts        | subset, preload 최소화, `font-display` 적용   |
 
 압축은 성능 최적화지만 CPU 비용과 빌드 시간을 늘릴 수 있습니다. 큰 트래픽 서비스는 사전 압축과 CDN 자동 압축의 비용/효과를 측정합니다.
 
@@ -325,13 +316,13 @@ CDN 또는 origin 중 한 곳에서 일관되게 보안 헤더를 적용합니�
 
 Edge function/worker는 강력하지만 남용하면 디버깅이 어려워집니다.
 
-| 적합 | 부적합 |
-| :--- | :--- |
-| SPA fallback rewrite | 복잡한 비즈니스 로직 |
-| 단순 redirect | 대규모 DB 조회 |
-| 언어/지역 기반 routing | 개인정보 처리 |
-| A/B bucket header 부여 | 긴 실행 시간 작업 |
-| 보안 헤더 보정 | 상태ful workflow |
+| 적합                   | 부적합               |
+| :--------------------- | :------------------- |
+| SPA fallback rewrite   | 복잡한 비즈니스 로직 |
+| 단순 redirect          | 대규모 DB 조회       |
+| 언어/지역 기반 routing | 개인정보 처리        |
+| A/B bucket header 부여 | 긴 실행 시간 작업    |
+| 보안 헤더 보정         | 상태ful workflow     |
 
 Edge logic은 테스트, 로그, 롤백 경로가 있는 경우에만 production에 적용합니다.
 
@@ -339,14 +330,14 @@ Edge logic은 테스트, 로그, 롤백 경로가 있는 경우에만 production
 
 ## 8. 관측 지표
 
-| 지표 | 의미 | 개선 방향 |
-| :--- | :--- | :--- |
-| Cache hit ratio | CDN이 origin 요청을 얼마나 줄이는지 | cache key 축소, TTL 조정 |
-| Origin latency | 캐시 미스 시 사용자 영향 | origin 성능, shield/cache layer |
-| 4xx/5xx by path | 잘못된 라우팅/배포 탐지 | rewrite rule, asset 업로드 검증 |
-| Bytes transferred | 비용과 성능 | 압축, 이미지 최적화 |
-| Purge count | 배포 안정성 | immutable asset, entry-only invalidation |
-| Regional anomaly | 특정 지역 장애 | routing, provider status, fallback |
+| 지표              | 의미                                | 개선 방향                                |
+| :---------------- | :---------------------------------- | :--------------------------------------- |
+| Cache hit ratio   | CDN이 origin 요청을 얼마나 줄이는지 | cache key 축소, TTL 조정                 |
+| Origin latency    | 캐시 미스 시 사용자 영향            | origin 성능, shield/cache layer          |
+| 4xx/5xx by path   | 잘못된 라우팅/배포 탐지             | rewrite rule, asset 업로드 검증          |
+| Bytes transferred | 비용과 성능                         | 압축, 이미지 최적화                      |
+| Purge count       | 배포 안정성                         | immutable asset, entry-only invalidation |
+| Regional anomaly  | 특정 지역 장애                      | routing, provider status, fallback       |
 
 성능 가이드는 Core Web Vitals를 사용자 관점에서 보고, CDN 가이드는 전송 계층의 원인을 분리해 봅니다.
 
@@ -409,27 +400,25 @@ Edge logic은 테스트, 로그, 롤백 경로가 있는 경우에만 production
 
 ## 추천 항목 실행 우선순위 매핑
 
-- `P1(7일 내)` — 추천 항목 1개를 우선 적용하고 1회 사용자 관측 신호(에러율/실패율/지연)와 연결한다.
-- `P2(30일 내)` — 추천 항목 1개를 팀 내 표준/템플릿에 반영해 재사용성을 확보한다.
-- `P3(90일 내)` — 추천 항목 1개를 다른 관련 문서에 역링크로 연동해 중복 작업을 줄인다.
-- `완료 기준` — 각 항목별 산출물(예: PR 링크/체크리스트/회고 노트)을 1개 이상 남긴다.
+- `P1(7일 내)` — cache-control, invalidation, fallback route 중 하나를 작은 변경 1건에 적용하고 증거(response header)를 남긴다.
+- `P2(30일 내)` — CDN 캐시 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에 고정한다.
+- `P3(90일 내)` — hit ratio, stale asset incident, invalidation 비용 추이를 보고 기준을 유지할지 조정할지 결정한다.
+- `완료 기준` — 캐시 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
 
 ## 추천 항목 실행 체크리스트
 
-- [ ] `1단계(7일)` : 추천 항목 1개를 실제 작업으로 전환
-- [ ] `2단계(30일)` : 전환 결과를 팀 산출물(ADR/PR/체크리스트)에 반영
-- [ ] `3단계(60일)` : 정적 지표 1개 이상으로 효과 검증
-- [ ] `문제 대응` : 미달성 시 보류 사유와 다음 실행 액션을 문서화
-
-
+- [ ] `1단계(7일)` : cache-control, invalidation, fallback route 적용 대상을 1개로 좁힌다.
+- [ ] `2단계(30일)` : 증거(response header, invalidation log, cache hit ratio)를 PR, ADR, 회고 중 한 곳에 연결한다.
+- [ ] `3단계(60일)` : hit ratio, stale asset incident, invalidation 비용가 기준 안에 들어왔는지 확인한다.
+- [ ] `문제 대응` : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에 남긴다.
 
 ## 추천 항목 실행 운영 규칙
 
-- `실행 게이트` : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.
-- `승인 체계` : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를 확인한다.
-- `재개 조건` : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.
-- `정지 조건` : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를 갱신한다.
-- `리스크 점수` : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.
-- `리더 승인자` : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.
-- `승인 역할` : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.
-- `재평가 주기` : 최소 2주 단위로 상태를 리뷰하고 조정한다.
+- `실행 게이트` : HTML, asset, runtime config의 TTL을 서로 다르게 둔다.
+- `승인 체계` : 캐시 오너가 영향 범위와 rollback 담당자를 적용 전에 확인한다.
+- `재개 조건` : 새 TTL이 staging header와 smoke test에서 확인되면 production에 반영한다.
+- `정지 조건` : entry HTML이 immutable로 배포되거나 runtime config가 stale이면 rollback한다.
+- `리스크 점수` : TTL 길이, invalidation 범위, 사용자 영향 URL 수로 산정한다.
+- `리더 승인자` : 배포/인프라 리드가 최종 승인 책임을 맡는다.
+- `승인 역할` : CDN 캐시 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+- `재평가 주기` : 릴리스 후 cache hit와 stale report를 확인한다.
