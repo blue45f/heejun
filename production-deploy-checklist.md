@@ -4,7 +4,7 @@
 
 ## 1) 현재 상태 요약
 
-- 대상: `PromptMarket`, `offhours`, `orbit-ui`, `pettography`, `react-boilerplates`, `remote-devtools`, `resume`, `rotifolk`, `spa-seo-gateway`, `webtoon-index`, `heejun`, `multi-environment-setting`
+- 대상: `PromptMarket`, `offhours`, `orbit-ui`, `pettography`, `proto-live`, `react-boilerplates`, `remote-devtools`, `resume`, `rotifolk`, `spa-seo-gateway`, `webtoon-index`, `heejun`, `multi-environment-setting`
 - 확인 기준: GitHub Actions 최신 배포 워크플로우 실행 시, 배포 단계(`Deploy*`)가 실제 실행되었는지 여부와 step 결론을 기준으로 집계
 
 | 저장소                    | 배포 플랫폼/워크플로우                         | 최근 실행 상태                                                    | 미완료 원인                                                         | 조치 상태 |
@@ -13,11 +13,13 @@
 | offhours                  | Vercel (`Deploy web to Vercel`)                | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
 | orbit-ui                  | Vercel (`Deploy Orbit UI storybook to Vercel`) | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
 | pettography               | Vercel (`Deploy to Vercel`)                    | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
+| proto-live                | Vercel production checklist                    | Vercel 대시보드 체크리스트 직접 확인 필요                         | 체크리스트 대상 누락                                                | 확인 필요 |
 | react-boilerplates        | Vercel (`Deploy docs to Vercel`)               | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
 | remote-devtools           | Vercel (`Deploy demo to Vercel`)               | `Validate deployment secrets` 실패                                | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` 중 일부 미설정 | 부분 진행 |
 | resume                    | Vercel (`Deploy client to Vercel`)             | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
 | resume                    | GCP (`Deploy to GCP Cloud Run`)                | `Skip deployment when GCP credentials are not configured` 후 스킵 | GCP credentials 미설정                                              | 미완료    |
 | rotifolk                  | Vercel (`Deploy web to Vercel`)                | `Skip deployment when VERCEL_TOKEN is not configured` 후 스킵     | `VERCEL_TOKEN` 미설정                                               | 미완료    |
+| webtoon-index             | Vercel                                         | 대상 목록에는 있었으나 상태 표에는 누락                           | workflow/프로젝트 slug 확인 필요                                    | 확인 필요 |
 | spa-seo-gateway           | Netlify (`Deploy Admin Demo to Netlify`)       | `Skip deployment when Netlify secrets are not configured` 후 스킵 | `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID` 미설정                      | 미완료    |
 | heejun                    | Netlify (`Deploy to Netlify`)                  | `Skip deployment when Netlify secrets are not configured` 후 스킵 | `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID` 미설정                      | 미완료    |
 | multi-environment-setting | AWS S3/CloudFront (`deploy.yml`)               | `if: vars.DEPLOY_CONFIG != ''` 조건으로 스킵된 흔적 다수          | `DEPLOY_CONFIG`, `SERVICES`, AWS OIDC/변수 미충분                   | 미완료    |
@@ -40,14 +42,21 @@
 
 > 이 값은 이미 각 레포지토리 레벨 시크릿에 반영해두었습니다.
 
-## 3) 남은 체크 항목
+## 3) Vercel 대시보드 확인 링크
+
+| 저장소/서비스 | Vercel 프로젝트    | 확인 링크                                                            | 비고                               |
+| ------------- | ------------------ | -------------------------------------------------------------------- | ---------------------------------- |
+| PromptMarket  | `promptmarket-web` | https://vercel.com/blue45fs-projects/promptmarket-web                | 기존 표 항목에 프로젝트 링크 보강  |
+| proto-live    | `proto-live`       | https://vercel.com/blue45fs-projects/proto-live#production-checklist | 신규 체크리스트 확인 대상으로 추가 |
+
+## 4) 남은 체크 항목
 
 ### Vercel 공통
 
-1. `VERCEL_TOKEN`(필수) 4개 저장소: `PromptMarket`, `offhours`, `orbit-ui`, `pettography`, `react-boilerplates`, `remote-devtools`, `resume`, `rotifolk`, `webtoon-index`
+1. `VERCEL_TOKEN`(필수) 대상 저장소: `PromptMarket`, `offhours`, `orbit-ui`, `pettography`, `proto-live`, `react-boilerplates`, `remote-devtools`, `resume`, `rotifolk`, `webtoon-index`
 2. `remote-devtools`는 추가로 현재 workflow가 요구하는 `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`를 사용하며 이미 적용 완료
 3. 토큰 발급: https://vercel.com/account/tokens
-4. (선택) Vercel 대시보드에서 프로젝트 slug 일치 여부 검증: `resume`, `remote-devtools`, `orbit-ui`
+4. (선택) Vercel 대시보드에서 프로젝트 slug 일치 여부 검증: `promptmarket-web`, `proto-live`, `resume`, `remote-devtools`, `orbit-ui`
 
 ### Netlify 공통
 
@@ -62,7 +71,7 @@
 1. `GOOGLE_APPLICATION_CREDENTIALS`/OIDC 또는 Workload credential 구성
 2. workflow 기준: `deploy-gcp.yml`
 
-## 4) 적용 후 검증 루틴(요약)
+## 5) 적용 후 검증 루틴(요약)
 
 1. 각 저장소에서 배포 관련 시크릿/변수 값 입력
 2. `workflow_dispatch`로 배포 workflow 직접 실행
