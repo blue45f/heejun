@@ -1,17 +1,10 @@
 # Sentry 모니터링 활용 가이드
 
-## 0. 문서 복원 배경
+## 0. 먼저 알고 가기 (30초 요약)
 
-현재 저장소와 전체 Git 히스토리에서 `PDF_14_Sentry_모니터링.pdf` 파일은 발견되지 않았습니다. 대신 Sentry 전용 Markdown 가이드는 과거에 존재했습니다.
-
-| 히스토리 단계          | 파일                                               | 상태                                                   |
-| :--------------------- | :------------------------------------------------- | :----------------------------------------------------- |
-| 초기 설정 커밋         | `public/개발가이드/04_Sentry_관리_표준.md`         | 최초 추가                                              |
-| 개발가이드 고도화 커밋 | `public/개발가이드/32_장애_대응_및_Sentry_표준.md` | 장애 대응 문서 계열로 흡수                             |
-| 번호 재정렬 커밋       | `public/개발가이드/09_장애_대응_및_Sentry_표준.md` | 번호 재정렬                                            |
-| 표준화 커밋            | `public/개발가이드/09_장애_대응_및_관측성_표준.md` | 벤더 중립 관측성 문서로 교체되며 Sentry 상세 내용 삭제 |
-
-이 문서는 삭제된 전용 가이드의 공백을 보완하되, 현재 Sentry 공식 문서 기준으로 SDK 버전과 기능명을 다시 정리한 실행 문서입니다. 공통 원칙은 [09. 장애 대응 및 관측성 표준](./09_장애_대응_및_관측성_표준.md)을 따르고, Sentry 제품별 설정은 이 문서에서만 다룹니다.
+- Sentry 적용은 SDK 설치보다 release, source map, environment, owner 연결이 핵심입니다.
+- 공통 장애 severity, incident runbook, postmortem 기준은 [09. 장애 대응 및 관측성 표준](./09_장애_대응_및_관측성_표준.md)을 따르고, 이 문서는 Sentry 제품별 설정만 다룹니다.
+- production 알림은 owner, channel, rollback runbook, 개인정보 필터 검증이 함께 있을 때 운영 기준으로 삼습니다.
 
 > 일상 비유: Sentry는 건물의 화재감지기와 CCTV, 출입 기록을 한 화면에 묶는 관제실과 같습니다. 경보가 울렸다는 사실보다 어느 층에서, 어떤 사람 흐름에서, 어떤 설비 변경 뒤에 문제가 났는지 빨리 좁히는 것이 핵심입니다.
 
@@ -63,20 +56,6 @@
 | Production alert  | P0/P1/P2 rule, channel, runbook link       | On-call owner  | alert disable이 아니라 threshold/filter 조정    |
 | Release health    | 이전 release 대비 error/latency 비교       | Release owner  | canary 중지, flag off, rollback                 |
 | Privacy review    | beforeSend, Replay masking, scrubbing rule | Security owner | sampling 축소, Replay 비활성화, event 필터 추가 |
-
-## 0.3 기존 PDF 대조 결과
-
-다운로드 폴더의 `PDF_14_Sentry_모니터링.pdf`는 운영 문화와 대시보드 사례가 강점이었고, 일부 SDK 예시는 현재 공식 문서 기준과 달랐습니다. 이 문서에는 아래 기준으로 반영했습니다.
-
-| PDF 주제                   | 반영 위치           | 처리 기준                                                          |
-| :------------------------- | :------------------ | :----------------------------------------------------------------- |
-| 주간 Sentry 리포트         | 15. 운영 리포트     | 절대 건수보다 전주 대비 변화율과 owner 상태를 보는 방식으로 반영   |
-| 이슈 생명주기              | 15.2 이슈 생명주기  | Detected, Investigating, Fixing, Resolved 단계로 정리              |
-| 비용 최적화와 샘플링       | 6.1 샘플링과 비용   | `tracesSampleRate`, `tracesSampler`, replay sampling 기준으로 갱신 |
-| Source Map 설정            | 3.4, 3.5 source map | Vite와 Webpack 공식 plugin 흐름으로 재작성                         |
-| Session Replay             | 7. Replay           | 현재 `replayIntegration()` 기준과 masking 원칙만 유지              |
-| Web Vitals와 성능 대시보드 | 6, 15.3 dashboard   | FID 중심 예시는 제외하고 INP/LCP/CLS, trace p75/p95 중심으로 반영  |
-| 조직명, 도메인, 금액 예시  | 제외                | 특정 조직 값과 고정 비용은 공통 개발가이드에 넣지 않음             |
 
 ## 1. 적용 범위
 

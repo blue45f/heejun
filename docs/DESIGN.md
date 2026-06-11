@@ -1,115 +1,124 @@
 # DESIGN.md
 
-The design system for this portfolio. It is a single static page (`index.html`), so
-the system lives in the `:root` token block at the top of that file. This document is
-the source of truth for _why_ those tokens exist; the CSS is the implementation.
+Design system for the portfolio resume. The site is still a single static page
+(`index.html`), so the implementation lives in the `:root` token block and the
+CSS inside that file. This document records the design intent so future edits do
+not drift back into generic resume templates.
 
-Register: **brand**. The page is the product. A recruiter's first impression is the
-thing being made, so the page itself has to demonstrate the design-system craft it
-claims as expertise.
+Register: **executive product resume**. The page must work as a resume first, but
+it should also demonstrate that the candidate can ship polished product surfaces,
+not only document content.
 
-## 1. Palette — "Petrol Ink"
+## 1. Palette - "Executive Signal"
 
-One committed hue. Not a two-stop gradient, not a multi-accent rainbow.
+The previous system used one petrol hue. The new system keeps petrol as the
+structural ink and adds four signal accents so the page feels richer without
+becoming a rainbow.
 
-- **Hue:** OKLCH `H ≈ 215` (blue-green / petrol). A desaturated engineered ink.
-- **Rationale / POV:** the brand-voice words are _precise, structural, engineered_
-  (this person designs architecture, builds infra, ships design systems). Petrol ink
-  reads as drafting ink and tooling, committed but not loud. It deliberately rejects
-  two training-data reflexes: the banned template purple (`#667eea → #764ba2`) and the
-  obvious "dev / design-tool" cool indigo-blue. The hue is the _only_ hue on the page;
-  every neutral is tinted toward it (chroma `0.004–0.02`), so nothing is a dead gray
-  and nothing is `#000` / `#fff`.
-- **Strategy:** Restrained-committed. The header is a single drenched petrol field
-  (color as voice); the body stays a document — tinted paper, ink text, one accent for
-  links and numeral kickers. A resume must read as a document, so we do not drench the
-  whole surface, but the accent is owned, not hedged.
+- **Petrol ink:** structure, body links, primary controls.
+- **Coral:** business impact and change.
+- **Gold:** delivery, ownership, first-read highlights.
+- **Mint:** quality, stability, testing.
+- **Cobalt:** architecture and systems thinking.
+
+All colors are expressed as OKLCH tokens in `index.html`. Avoid raw hex values
+for page color, text, borders, and controls.
 
 ### Tokens
 
-| Token          | OKLCH             | Role                                   |
-| -------------- | ----------------- | -------------------------------------- |
-| `--ink`        | `0.32 0.046 215`  | Dominant: header field, buttons, links |
-| `--ink-strong` | `0.26 0.05 215`   | Hover / pressed                        |
-| `--ink-soft`   | `0.52 0.038 215`  | Numeral kickers, tick marks, company   |
-| `--paper`      | `0.985 0.004 215` | Page background                        |
-| `--surface`    | `0.997 0.002 215` | Section field, light-on-dark text      |
-| `--raise`      | `0.965 0.006 215` | Recessed panels, skill tags            |
-| `--line`       | `0.92 0.008 215`  | Hairlines                              |
-| `--line-soft`  | `0.95 0.006 215`  | Quieter hairlines (project rows)       |
-| `--text`       | `0.27 0.018 215`  | Body                                   |
-| `--text-2`     | `0.46 0.016 215`  | Secondary / meta                       |
-| `--text-3`     | `0.6 0.013 215`   | Tertiary / dates                       |
-
-Chroma drops toward the lightness extremes (paper/surface sit at `0.002–0.006`) so the
-near-white tones never look garish. The header gradient is a _near-flat_ tonal shift
-(`oklch(0.34 0.05 215)` → `oklch(0.3 0.044 220)`), not the old 135° two-stop AI gradient.
-
-### Print / PDF
-
-`@media print` and the html2pdf path (`html2canvas` captures the rendered DOM) both use
-the same `--ink` field, so the PDF cannot diverge from the screen palette. The old
-hardcoded `#667eea` in the print block is gone.
+| Token             | OKLCH                    | Role                               |
+| ----------------- | ------------------------ | ---------------------------------- |
+| `--ink`           | `0.3 0.058 214`          | Links, primary controls, structure |
+| `--ink-strong`    | `0.24 0.064 214`         | Hover / pressed states             |
+| `--ink-soft`      | `0.5 0.048 214`          | Secondary ink                      |
+| `--field`         | `0.2 0.034 218`          | Hero field                         |
+| `--field-2`       | `0.27 0.054 210`         | Hero field tonal shift             |
+| `--accent-coral`  | `0.67 0.17 31`           | Business impact                    |
+| `--accent-gold`   | `0.78 0.13 86`           | Delivery and first-read highlights |
+| `--accent-mint`   | `0.68 0.13 166`          | Quality and reliability            |
+| `--accent-cobalt` | `0.56 0.14 249`          | Architecture and systems           |
+| `--paper`         | `0.982 0.006 210`        | Page background                    |
+| `--surface`       | `0.997 0.003 210`        | Section and card surface           |
+| `--surface-glass` | `0.997 0.003 210 / 0.78` | Soft section field                 |
+| `--raise`         | `0.956 0.012 210`        | Tags and low-emphasis surfaces     |
+| `--line`          | `0.88 0.016 210`         | Hairlines                          |
+| `--line-soft`     | `0.93 0.012 210`         | Quieter borders                    |
+| `--text`          | `0.25 0.022 214`         | Body text                          |
+| `--text-2`        | `0.43 0.02 214`          | Secondary text                     |
+| `--text-3`        | `0.58 0.018 214`         | Dates and tertiary metadata        |
 
 ## 2. Typography
 
-- **Family:** `Pretendard Variable` (KR + Latin), `-apple-system` fallback. Pretendard
-  is the de-facto system typeface for Korean product teams and is already the documented
-  body font in this person's own design-system guide
-  (`public/개발가이드/20_디자인_시스템_가이드.md`). Using it here is an authored, named
-  choice consistent with the documented system, not a reflex Inter / DM Sans pick.
-- **Hierarchy is scale + weight, never color.** Fluid `clamp()`, ratio ≈ 1.28:
+- **Family:** `Pretendard Variable`, with system fallbacks.
+- **Scale:** fixed rem steps. Breakpoints may swap token values, but font size is
+  not tied to viewport width.
+- **Letter spacing:** `0` throughout the UI. The site does not use negative
+  tracking for polish.
+- **Name:** `--t-name`, weight 800.
+- **Section headings:** `--t-h2`, weight 750, with a numbered pill and short
+  accent rule.
+- **Subheads and company names:** `--t-h3`, weight 650.
+- **Measure:** prose stays around `66-72ch`; project cards and ledes keep readable
+  line lengths.
+- **Dates:** tabular numerals for stable ledger rows.
 
-  | Step    | Size token    | Weight | Use                       |
-  | ------- | ------------- | ------ | ------------------------- |
-  | Name    | `--t-name`    | 800    | `h1`, tracking `-0.03em`  |
-  | Section | `--t-h2`      | 750    | `h2`                      |
-  | Subhead | `--t-h3`      | 650    | `h3`, company names       |
-  | Body    | `--t-body`    | 400    | prose                     |
-  | Eyebrow | `--t-eyebrow` | 600    | header kicker, tag labels |
+## 3. Layout
 
-- **Section heads** carry a tabular numeral kicker (`01`–`11` via `data-index` +
-  `h2::before`) instead of the old `border-bottom: 3px solid` rule, so sections feel
-  authored and indexed.
-- **Measure:** prose blocks and the `.lede` are capped (`max-width: 68–72ch`).
-- Dates use `font-variant-numeric: tabular-nums` for aligned ledger rows.
+- First viewport is a dense hero: identity, positioning statement, proof metrics,
+  and contact/proof links.
+- Content sections use a two-column editorial layout on desktop:
+  section index on the left, content on the right.
+- Mobile collapses to a single column with the same reading order.
+- Repeated work and project items may use cards, but card radius stays at `8px`
+  or less.
+- Do not put cards inside cards. Page sections remain full-width content bands
+  inside the main container.
 
-## 3. Layout & rhythm
+## 4. Components
 
-- Single column, `--maxw: 880px`, asymmetric left-aligned text (not a centered stack).
-- Vertical rhythm varies with `clamp()`: generous air before each section
-  (`border-top` hairline + large top padding), tighter inside lists.
-- **No cards.** Projects and skills are open ledger rows separated by hairlines, not
-  boxed cards. The old white card-with-shadow sections are now hairline-divided bands.
+- **Hero metrics:** four compact impact cards for years, projects, bundle
+  reduction, and VOC reduction.
+- **Contact chips:** compact link/info chips with stable wrapping for long URLs.
+- **Project cards:** repeated items with light borders, subtle accent wash, and
+  hover border/shadow states.
+- **Project snapshots:** local JPEG captures of each public demo home screen.
+  They sit near the top of personal project cards, use a fixed `16 / 10`
+  frame on screen, and are shortened in PDF capture so the resume stays
+  scannable.
+- **Skill tags:** small bordered chips tinted by the current section accent.
+- **Save buttons:** fixed action controls for PDF and print. They keep visible
+  focus rings and hide in print.
 
-## 4. Motion
+## 5. Motion
 
-- Easing: ease-out-expo `cubic-bezier(0.16, 1, 0.3, 1)` for the few transitions (link
-  underline, button background). No layout-property animation, no bounce.
-- `prefers-reduced-motion` disables transitions.
+- Motion is additive and uses transform/opacity only.
+- Hero content rises in once; section content reveals on scroll.
+- `prefers-reduced-motion: reduce` disables animation and forces all reveal-gated
+  content visible.
+- Print/PDF capture also force-reveals content so generated PDFs are never blank.
 
-## 5. Bans removed (this redesign)
+## 6. Print / PDF
 
-These were the template tells fixed in the OKLCH redesign. Do not reintroduce them.
+Print mode pins the light token set, hides fixed save buttons, removes the large
+hero watermark, and keeps the resume readable on paper. The hero field remains
+print-color-adjusted so the exported PDF resembles the screen without exhausting
+ink through decorative effects.
 
-1. **AI purple gradient.** `#667eea → #764ba2` two-stop header gradient → single
-   committed `--ink` field with a near-flat tonal shift.
-2. **Side-stripe borders.** `border-left: 4px solid` on `.skill-category` and
-   `.project-card` (grew to `6px` on hover) → removed entirely. Differentiation is now
-   typographic weight + whitespace + hairlines. (Absolute ban: side-stripe accents.)
-3. **Header pulse loop.** `header::before` 4s infinite `pulse` radial-glow animation →
-   removed.
-4. **Blanket hover lifts.** `translateY(-2px)` on `.section`, `.skill-tag`,
-   `.save-button` → removed. Hover now changes color/border only.
-5. **Hero-metric wall.** "정량적 성과 요약" big-number/small-label list → reframed as
-   "성과, 숫자로", three authored prose statements with the numbers woven inline.
-   (Absolute ban: the hero-metric template.)
-6. **Emoji as design.** `✨` before achievements and injected `📎` before links →
-   typographic tick mark and a quiet underline. Save buttons lost their emoji labels.
-7. **Traffic-light buttons.** green / blue / orange save buttons → one quiet family:
-   filled `--ink` ("PDF 저장") + outlined ("인쇄").
+PDF export uses local project snapshot files under `public/project-snapshots/`
+instead of hotlinking live demo pages. The save flow waits for all `<img>`
+elements to finish loading before calling `html2canvas`, then writes the captured
+canvas into `jsPDF` page slices. This avoids blank exports and keeps project
+previews available offline.
 
-## 6. Untinted neutrals — banned
+## 7. Guardrails
 
-Never `#000` / `#fff` / `#333` / `#666`. Every neutral is one of the `--text-*`,
-`--line-*`, `--paper` / `--surface` / `--raise` tokens, all tinted toward `H 215`.
+Do not reintroduce:
+
+- Generic purple gradient hero treatments.
+- Decorative orbs, bokeh blobs, or background blobs.
+- Side-stripe accents on every item.
+- Emoji as visual design.
+- Cards nested inside cards.
+- Viewport-width font scaling.
+- Negative letter spacing.
+- Untinted hard neutrals such as raw black, white, or mid-gray hex values.

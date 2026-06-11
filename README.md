@@ -34,7 +34,7 @@ flowchart LR
 
   subgraph LOW["기본 — 4~9개"]
     direction TB
-    L1["00 종합, 01 TS, 02 React<br/>09 장애, 10 IaC, 11 CI/CD<br/>12 CDN, 13 호환성, 15 RFC<br/>16 리뷰, 17 온보딩, 18 AI<br/>19 접근성, 23 i18n"]
+    L1["00 종합, 01 TS, 02 React<br/>09 장애, 10 IaC, 11 CI/CD<br/>12 CDN, 13 호환성, 15 의사결정<br/>16 리뷰, 17 온보딩, 18 AI<br/>19 접근성, 23 i18n"]
     L2["28 Sentry — 4개"]
   end
 
@@ -59,7 +59,7 @@ mindmap
         MSW 인터셉트
         장애 대응 시퀀스
       stateDiagram-v2
-        PR/RFC 라이프사이클
+        PR/의사결정 라이프사이클
         Service Worker 상태
         쿼리 캐시 상태
       gantt
@@ -157,7 +157,7 @@ flowchart LR
 
   subgraph Gov["Governance & AI"]
     direction TB
-    G15[15 RFC]
+    G15[15 의사결정/WG]
     G16[16 리뷰]
     G17[17 온보딩]
     G18[18 AI]
@@ -250,12 +250,12 @@ flowchart LR
 
 ### Governance And AI
 
-| No  | Document                                                                       | Focus                                          |
-| --- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
-| 15  | [RFC 의사결정 프로세스](public/개발가이드/15_RFC_의사결정_프로세스.md)         | RFC, ADR, PoC, risk, rollback criteria         |
-| 16  | [AI 협업 코드리뷰 가이드](public/개발가이드/16_AI_협업_코드리뷰_가이드.md)     | small PR, review evidence, AI finding triage   |
-| 17  | [신규 입사자 온보딩 가이드](public/개발가이드/17_신규_입사자_온보딩_가이드.md) | dev setup, first PR, permission, mentoring     |
-| 18  | [AI 개발 워크플로우 종합](public/개발가이드/18_AI_개발_워크플로우_종합.md)     | context policy, AI task boundary, verification |
+| No  | Document                                                                       | Focus                                                 |
+| --- | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| 15  | [기술 의사결정과 워킹그룹 운영](public/개발가이드/15_RFC_의사결정_프로세스.md) | working group, RFC, ADR, PoC, risk, rollback criteria |
+| 16  | [AI 협업 코드리뷰 가이드](public/개발가이드/16_AI_협업_코드리뷰_가이드.md)     | small PR, review evidence, AI finding triage          |
+| 17  | [신규 입사자 온보딩 가이드](public/개발가이드/17_신규_입사자_온보딩_가이드.md) | dev setup, first PR, permission, mentoring            |
+| 18  | [AI 개발 워크플로우 종합](public/개발가이드/18_AI_개발_워크플로우_종합.md)     | context policy, AI task boundary, verification        |
 
 ### Product Architecture And Experience
 
