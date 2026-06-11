@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="icon" type="image/svg+xml" href="public/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
     <script>
       // FOUC 방지 — paint 전에 테마를 복원한다 (의존성 없음).
       // 우선순위: 저장된 선택 > OS prefers-color-scheme. 'light'/'dark'만
@@ -31,14 +29,10 @@
     <meta property="og:url" content="https://heejun.store" />
     <meta property="og:site_name" content="김희준 포트폴리오" />
     <meta property="og:locale" content="ko_KR" />
-    <meta property="og:image" content="https://heejun.store/public/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="김희준 — 시니어 웹프론트엔드 개발자 포트폴리오" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <!-- og:image 생략: 비민감 대표 이미지 자산이 없고, 개인 사진은 PII이므로 추가하지 않는다. -->
+    <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="김희준 - 시니어 웹프론트엔드 개발자" />
     <meta name="twitter:description" content="18년 경력의 시니어 웹프론트엔드 개발자 포트폴리오" />
-    <meta name="twitter:image" content="https://heejun.store/public/og-image.png" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#1f3a44" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#16242a" media="(prefers-color-scheme: dark)" />
@@ -662,6 +656,10 @@
       .section > .skill-grid {
         max-width: none;
       }
+      .section-lead {
+        color: var(--text-2);
+        margin-bottom: 24px;
+      }
       .section > div strong {
         font-weight: 650;
         color: var(--text);
@@ -822,6 +820,65 @@
         border-color: color-mix(in oklab, var(--section-accent) 42%, var(--line));
         box-shadow: 0 20px 48px oklch(0.24 0.03 214 / 0.12);
         transform: translateY(-2px);
+      }
+      .project-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+      .personal-projects .project-card {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        padding: 18px;
+      }
+      .personal-projects .project-card h3 {
+        font-size: 1.08rem;
+        line-height: 1.28;
+        overflow-wrap: anywhere;
+      }
+      .personal-projects .project-card .job-period {
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+      .personal-projects .project-snapshot {
+        margin: 12px 0 14px;
+      }
+      .personal-projects
+        .project-card
+        > div:not(.job-period):not(.tech-stack):not(.project-actions) {
+        color: var(--text-2);
+        font-size: 0.95rem;
+        line-height: 1.56;
+      }
+      .personal-projects .tech-stack {
+        margin-top: auto;
+        padding-top: 14px;
+      }
+      .project-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .project-actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 10px;
+        border: 1px solid color-mix(in oklab, var(--section-accent) 30%, var(--line));
+        border-radius: 6px;
+        background: color-mix(in oklab, var(--section-accent) 8%, var(--surface));
+        font-size: 0.88rem;
+        line-height: 1.2;
+        text-decoration: none;
+      }
+      .project-actions a:hover {
+        border-color: color-mix(in oklab, var(--section-accent) 52%, var(--line));
+        background: color-mix(in oklab, var(--section-accent) 14%, var(--surface));
       }
       :root[data-theme='dark'] .project-card:hover h3 {
         color: var(--ink-strong);
@@ -1049,6 +1106,10 @@
           padding: 34px 0;
         }
 
+        .project-grid {
+          grid-template-columns: 1fr;
+        }
+
         h2 {
           position: static;
         }
@@ -1175,6 +1236,10 @@
         background: #fbfcfc !important;
         border-color: #d7e0e0 !important;
       }
+      :root.pdf-capture .project-grid {
+        display: block !important;
+        max-width: 100% !important;
+      }
       :root.pdf-capture .project-snapshot {
         width: 420px !important;
         max-width: 100% !important;
@@ -1284,6 +1349,9 @@
           page-break-inside: avoid;
           border-top: 1px solid var(--line);
           padding: 20px 0;
+        }
+        .project-grid {
+          display: block;
         }
         /* reveal layer must never hide content in print/PDF: force the staggered
          * section head, body, and numeral kicker visible for the capture. */
@@ -1887,470 +1955,495 @@
         </div>
       </section>
 
-      <section class="section">
-        <h2 data-index="05">개인 프로젝트</h2>
-        <div style="color: var(--text-2); margin-bottom: 24px">
+      <section class="section personal-projects" aria-labelledby="personal-projects-title">
+        <h2 id="personal-projects-title" data-index="05">개인 프로젝트</h2>
+        <div class="section-lead">
           퇴근 후 / 주말에 직접 기획·설계·구현한 개인 프로젝트입니다. 공개 GitHub 저장소와 배포 URL
           기준으로 확인 가능한 제품형 서비스와 개발 도구를 홈 스냅샷과 함께 정리했습니다.
         </div>
 
-        <div class="project-card">
-          <h3>PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/PromptMarket</div>
-          <figure class="project-snapshot" aria-label="PromptMarket 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/promptmarket.jpg"
-              alt="PromptMarket 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • Claude, GPT, Gemini 같은 모델을 활용하는 빌더를 위한 프롬프트, 스킬, MCP 서버,
-            에이전트 카탈로그입니다.<br />
-            • 둘러보기, 검색, 상세, 구매/리믹스 흐름을 제품 단위로 묶고, 각 항목의 용도와 가격,
-            소유자를 빠르게 비교할 수 있게 설계했습니다.<br />
-            • 단순 자료 목록이 아니라 검증된 작업 자산을 발견하고 재사용하는 마켓플레이스 경험을
-            목표로 만들었습니다.
+        <div class="project-grid" aria-label="개인 프로젝트 목록">
+          <div class="project-card">
+            <h3>PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/PromptMarket</div>
+            <figure class="project-snapshot" aria-label="PromptMarket 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/promptmarket.jpg"
+                alt="PromptMarket 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • Claude, GPT, Gemini 같은 모델을 활용하는 빌더를 위한 프롬프트, 스킬, MCP 서버,
+              에이전트 카탈로그입니다.<br />
+              • 둘러보기, 검색, 상세, 구매/리믹스 흐름을 제품 단위로 묶고, 각 항목의 용도와 가격,
+              소유자를 빠르게 비교할 수 있게 설계했습니다.<br />
+              • 단순 자료 목록이 아니라 검증된 작업 자산을 발견하고 재사용하는 마켓플레이스 경험을
+              목표로 만들었습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span>TypeScript, React 19, Vite, NestJS 11, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://promptmarket-web.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/PromptMarket"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>TypeScript, React 19, Vite, NestJS 11, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://promptmarket-web.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/PromptMarket"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>ProtoLive · 바이브코딩 웹앱 공유 플랫폼</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/proto-live</div>
-          <figure class="project-snapshot" aria-label="ProtoLive 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/proto-live.jpg"
-              alt="ProtoLive 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • AI로 만든 데모, 프로토타입, 초기 웹앱을 살아있는 URL 기준으로 공유하고 피드백받는
-            플랫폼입니다.<br />
-            • 등록된 사이트가 실제로 열리는지 확인하고, 공유 → 피드백 → 관심 신호 → 투자 연결로
-            이어지는 흐름을 한 화면에서 추적하게 구성했습니다.<br />
-            • 일반 소개 페이지보다 작동 상태와 검증 신호를 먼저 보여주는 운영형 제품 경험을 목표로
-            만들었습니다.
+          <div class="project-card">
+            <h3>ProtoLive · 바이브코딩 웹앱 공유 플랫폼</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/proto-live</div>
+            <figure class="project-snapshot" aria-label="ProtoLive 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/proto-live.jpg"
+                alt="ProtoLive 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • AI로 만든 데모, 프로토타입, 초기 웹앱을 살아있는 URL 기준으로 공유하고 피드백받는
+              플랫폼입니다.<br />
+              • 등록된 사이트가 실제로 열리는지 확인하고, 공유 → 피드백 → 관심 신호 → 투자 연결로
+              이어지는 흐름을 한 화면에서 추적하게 구성했습니다.<br />
+              • 일반 소개 페이지보다 작동 상태와 검증 신호를 먼저 보여주는 운영형 제품 경험을 목표로
+              만들었습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://proto-live.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/proto-live"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://proto-live.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/proto-live"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Multi-env Lab · 멀티 개발환경 레퍼런스</h3>
-          <div class="job-period">
-            Personal Project | Public repo: blue45f/multi-environment-setting
+          <div class="project-card">
+            <h3>Multi-env Lab · 멀티 개발환경 레퍼런스</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/multi-environment-setting
+            </div>
+            <figure class="project-snapshot" aria-label="Multi-env Lab 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/multi-beta-guide.jpg"
+                alt="Multi-env Lab 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 같은 정적 앱을 preview, staging, production에 배포하고 환경별 차이는 런타임
+              <code>env.json</code>으로 주입하는 멀티환경 레퍼런스입니다.<br />
+              • PR마다 격리된 preview 경로, staging 검증, production 승격 흐름을 한 화면에서 볼 수
+              있게 구성했습니다.<br />
+              • S3/CloudFront, GitHub Actions OIDC, runtime config 분리를 제품형 데모로 설명하는
+              개발 인프라 프로젝트입니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span>TypeScript, Next.js, GitHub Actions, S3/CloudFront, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://multi-beta-guide.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/multi-environment-setting"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <figure class="project-snapshot" aria-label="Multi-env Lab 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/multi-beta-guide.jpg"
-              alt="Multi-env Lab 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 같은 정적 앱을 preview, staging, production에 배포하고 환경별 차이는 런타임
-            <code>env.json</code>으로 주입하는 멀티환경 레퍼런스입니다.<br />
-            • PR마다 격리된 preview 경로, staging 검증, production 승격 흐름을 한 화면에서 볼 수
-            있게 구성했습니다.<br />
-            • S3/CloudFront, GitHub Actions OIDC, runtime config 분리를 제품형 데모로 설명하는 개발
-            인프라 프로젝트입니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>TypeScript, Next.js, GitHub Actions, S3/CloudFront, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://multi-beta-guide.vercel.app/" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/multi-environment-setting"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>ToonSpectrum · 웹툰·웹소설 통합 인덱스</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/toonspectrum</div>
-          <figure class="project-snapshot" aria-label="ToonSpectrum 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/toonspectrum.jpg"
-              alt="ToonSpectrum 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 웹툰·웹소설 통합 검색, 랭킹, 리뷰, 커뮤니티 기능을 한 서비스에 묶은 콘텐츠 인덱스
-            프로젝트입니다.<br />
-            • 공개 카탈로그를 기준으로 작품 탐색, 플랫폼 비교, 연재/랭킹 흐름을 한 화면에서 비교할
-            수 있게 정보 구조를 설계했습니다.<br />
-            • 검색/필터/상세/공유 흐름을 제품 단위로 설계하며, 콘텐츠 데이터의 출처와 신뢰도 표기를
-            UI에서 분리하지 않는 방향으로 구현했습니다.<br />
-            • 단순 포트폴리오가 아니라 수집·검색·랭킹·커뮤니티까지 포함한 풀스택 제품 형태로 확장
-            가능한 구조를 목표로 만들었습니다.
+          <div class="project-card">
+            <h3>ToonSpectrum · 웹툰·웹소설 통합 인덱스</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/toonspectrum</div>
+            <figure class="project-snapshot" aria-label="ToonSpectrum 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/toonspectrum.jpg"
+                alt="ToonSpectrum 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 웹툰·웹소설 통합 검색, 랭킹, 리뷰, 커뮤니티 기능을 한 서비스에 묶은 콘텐츠 인덱스
+              프로젝트입니다.<br />
+              • 공개 카탈로그를 기준으로 작품 탐색, 플랫폼 비교, 연재/랭킹 흐름을 한 화면에서 비교할
+              수 있게 정보 구조를 설계했습니다.<br />
+              • 검색/필터/상세/공유 흐름을 제품 단위로 설계하며, 콘텐츠 데이터의 출처와 신뢰도
+              표기를 UI에서 분리하지 않는 방향으로 구현했습니다.<br />
+              • 단순 포트폴리오가 아니라 수집·검색·랭킹·커뮤니티까지 포함한 풀스택 제품 형태로 확장
+              가능한 구조를 목표로 만들었습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span>TypeScript, React 19, Vite, NestJS, Drizzle ORM, PostgreSQL(Neon), Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://webtoon-index.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/toonspectrum"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>TypeScript, React 19, Vite, NestJS, Drizzle ORM, PostgreSQL(Neon), Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://webtoon-index.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/toonspectrum"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>이력서공방</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/resume</div>
-          <figure class="project-snapshot" aria-label="이력서공방 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/resume-gongbang.jpg"
-              alt="이력서공방 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • AI 기반 이력서 관리 플랫폼으로, 이력서 작성·편집·분석·내보내기 흐름을 하나의 작업
-            공간으로 설계했습니다.<br />
-            • 문항·템플릿 관리, 스크린샷 저장, ATS 점수 분석, 다국어 번역, PDF/JSON 내보내기 같은
-            채용 문서 워크플로우를 다룹니다.<br />
-            • 단일 문서 편집기가 아니라 이력서 버전 관리, 후보자/포지션별 맞춤 작성, 품질 점검을
-            함께 처리하는 생산성 도구 관점으로 구현했습니다.
+          <div class="project-card">
+            <h3>이력서공방</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/resume</div>
+            <figure class="project-snapshot" aria-label="이력서공방 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/resume-gongbang.jpg"
+                alt="이력서공방 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • AI 기반 이력서 관리 플랫폼으로, 이력서 작성·편집·분석·내보내기 흐름을 하나의 작업
+              공간으로 설계했습니다.<br />
+              • 문항·템플릿 관리, 스크린샷 저장, ATS 점수 분석, 다국어 번역, PDF/JSON 내보내기 같은
+              채용 문서 워크플로우를 다룹니다.<br />
+              • 단일 문서 편집기가 아니라 이력서 버전 관리, 후보자/포지션별 맞춤 작성, 품질 점검을
+              함께 처리하는 생산성 도구 관점으로 구현했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, 문서 생성/분석 워크플로우</span>
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://resume-gongbang.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, 문서 생성/분석 워크플로우</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://resume-gongbang.vercel.app/" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Family Care Platform</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/family-care-platform</div>
-          <figure class="project-snapshot" aria-label="Family Care Platform 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/family-care-platform.jpg"
-              alt="Family Care Platform 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 가족 돌봄과 케어 태스크를 제품 흐름으로 정리한 플랫폼형 프로젝트입니다.<br />
-            • 일정, 상태, 역할, 알림처럼 여러 사용자가 함께 보는 정보를 한 화면에서 추적할 수 있도록
-            정보 구조와 인터랙션을 설계했습니다.<br />
-            • 민감한 생활 데이터를 다루는 서비스라는 전제에서, 입력 흐름을 단순화하고 반복 사용 시
-            피로도를 낮추는 운영형 UI를 목표로 잡았습니다.
+          <div class="project-card">
+            <h3>Family Care Platform</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/family-care-platform
+            </div>
+            <figure class="project-snapshot" aria-label="Family Care Platform 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/family-care-platform.jpg"
+                alt="Family Care Platform 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 가족 돌봄과 케어 태스크를 제품 흐름으로 정리한 플랫폼형 프로젝트입니다.<br />
+              • 일정, 상태, 역할, 알림처럼 여러 사용자가 함께 보는 정보를 한 화면에서 추적할 수
+              있도록 정보 구조와 인터랙션을 설계했습니다.<br />
+              • 민감한 생활 데이터를 다루는 서비스라는 전제에서, 입력 흐름을 단순화하고 반복 사용 시
+              피로도를 낮추는 운영형 UI를 목표로 잡았습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://family-care-platform.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/family-care-platform"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a
-              href="https://family-care-platform.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/family-care-platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>RotiFolk · 로테이션 파티앱</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/rotifolk</div>
-          <figure class="project-snapshot" aria-label="RotiFolk 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/rotifolk.jpg"
-              alt="RotiFolk 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 모임과 파티의 참여자 로테이션을 관리하는 서비스로, 작은 이벤트 운영을 앱 흐름으로
-            단순화한 프로젝트입니다.<br />
-            • 참가자 목록, 순서, 상태 변화를 빠르게 확인할 수 있도록 모바일 우선 인터페이스와 즉시성
-            있는 조작 흐름을 설계했습니다.<br />
-            • 짧은 사용 시간 안에 맥락을 파악해야 하는 이벤트 도구 특성에 맞춰, 화면 밀도와 터치
-            타깃을 우선순위로 잡았습니다.
+          <div class="project-card">
+            <h3>RotiFolk · 로테이션 파티앱</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/rotifolk</div>
+            <figure class="project-snapshot" aria-label="RotiFolk 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/rotifolk.jpg"
+                alt="RotiFolk 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 모임과 파티의 참여자 로테이션을 관리하는 서비스로, 작은 이벤트 운영을 앱 흐름으로
+              단순화한 프로젝트입니다.<br />
+              • 참가자 목록, 순서, 상태 변화를 빠르게 확인할 수 있도록 모바일 우선 인터페이스와
+              즉시성 있는 조작 흐름을 설계했습니다.<br />
+              • 짧은 사용 시간 안에 맥락을 파악해야 하는 이벤트 도구 특성에 맞춰, 화면 밀도와 터치
+              타깃을 우선순위로 잡았습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://rotifolk.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/rotifolk"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://rotifolk.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a href="https://github.com/blue45f/rotifolk" target="_blank" rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Pettography</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/pettography</div>
-          <figure class="project-snapshot" aria-label="Pettography 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/pettography.jpg"
-              alt="Pettography 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 희귀 반려동물 종류, 병원, 먹이, 맞춤 샵을 한 곳에서 찾는 포털형 서비스입니다.<br />
-            • 검색 대상이 넓고 카테고리가 많은 도메인이라, 탐색·필터·상세 정보 구조를 먼저 설계하고
-            그 위에 서비스 화면을 구성했습니다.<br />
-            • 일반 커머스보다 정보 신뢰도가 중요한 도메인이라는 점을 고려해, 사용자가 자료를
-            비교하며 판단할 수 있는 구조를 목표로 했습니다.
+          <div class="project-card">
+            <h3>Pettography</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/pettography</div>
+            <figure class="project-snapshot" aria-label="Pettography 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/pettography.jpg"
+                alt="Pettography 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 희귀 반려동물 종류, 병원, 먹이, 맞춤 샵을 한 곳에서 찾는 포털형 서비스입니다.<br />
+              • 검색 대상이 넓고 카테고리가 많은 도메인이라, 탐색·필터·상세 정보 구조를 먼저
+              설계하고 그 위에 서비스 화면을 구성했습니다.<br />
+              • 일반 커머스보다 정보 신뢰도가 중요한 도메인이라는 점을 고려해, 사용자가 자료를
+              비교하며 판단할 수 있는 구조를 목표로 했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://pettography.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/pettography"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, Vercel</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://pettography.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/pettography"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>TermsDesk</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/termsdesk</div>
-          <figure class="project-snapshot" aria-label="TermsDesk 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/termsdesk.jpg"
-              alt="TermsDesk 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 약관·정책 버전 관리, 변조 방지 게시, 동의 영수증을 다루는 SaaS/self-hosted 지향
-            프로젝트입니다.<br />
-            • 정책 문서의 버전, 배포 상태, 사용자 동의 기록을 분리해 감사 가능한 흐름으로
-            설계했습니다.<br />
-            • 법무/운영/개발이 함께 보는 관리 도구라는 전제에서, 변경 이력과 증적을 UI의 1급 정보로
-            다루는 구조를 만들었습니다.
+          <div class="project-card">
+            <h3>TermsDesk</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/termsdesk</div>
+            <figure class="project-snapshot" aria-label="TermsDesk 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/termsdesk.jpg"
+                alt="TermsDesk 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 약관·정책 버전 관리, 변조 방지 게시, 동의 영수증을 다루는 SaaS/self-hosted 지향
+              프로젝트입니다.<br />
+              • 정책 문서의 버전, 배포 상태, 사용자 동의 기록을 분리해 감사 가능한 흐름으로
+              설계했습니다.<br />
+              • 법무/운영/개발이 함께 보는 관리 도구라는 전제에서, 변경 이력과 증적을 UI의 1급
+              정보로 다루는 구조를 만들었습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, SaaS workflow, audit trail</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://termsdesk.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/termsdesk"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, SaaS workflow, audit trail</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://termsdesk.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a href="https://github.com/blue45f/termsdesk" target="_blank" rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Quote Match</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/quote-match</div>
-          <figure class="project-snapshot" aria-label="Quote Match 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/quote-match.jpg"
-              alt="Quote Match 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 견적 비교와 매칭 흐름을 빠르게 검증하기 위한 제품 실험 프로젝트입니다.<br />
-            • 공급자/수요자 간 조건 비교, 후보 선택, 다음 액션으로 이어지는 흐름을 중심으로
-            인터페이스를 구성했습니다.<br />
-            • 복잡한 입력을 한 번에 요구하지 않고, 비교 가능한 단위로 쪼개는 폼/결과 UI를 실험한
-            프로젝트입니다.
+          <div class="project-card">
+            <h3>Quote Match</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/quote-match</div>
+            <figure class="project-snapshot" aria-label="Quote Match 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/quote-match.jpg"
+                alt="Quote Match 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 견적 비교와 매칭 흐름을 빠르게 검증하기 위한 제품 실험 프로젝트입니다.<br />
+              • 공급자/수요자 간 조건 비교, 후보 선택, 다음 액션으로 이어지는 흐름을 중심으로
+              인터페이스를 구성했습니다.<br />
+              • 복잡한 입력을 한 번에 요구하지 않고, 비교 가능한 단위로 쪼개는 폼/결과 UI를 실험한
+              프로젝트입니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, matching workflow</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://quote-match.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/quote-match"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, matching workflow</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://quote-match.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/quote-match"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Orbit UI</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/orbit-ui (MIT)</div>
-          <figure class="project-snapshot" aria-label="Orbit UI 문서 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/orbit-ui.jpg"
-              alt="Orbit UI 문서 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 공개 저장소 소개 기준: React 기반 3계층 헤드리스 UI 아키텍처(Primitives/Core/Theme)로
-            구성된 디자인 시스템입니다.<br />
-            • Storybook 공개 데모와 컴포넌트 패키지 기반 설계를 함께 제공하며, 접근성/상태 로직을
-            타입 안정적으로 공유합니다.<br />
-            • 개인 프로젝트지만 실무 디자인 시스템처럼 토큰, 문서, 예제, 패키지 구조를 분리해
-            컴포넌트 API 설계 감각을 보여주는 용도로 관리합니다.
+          <div class="project-card">
+            <h3>Orbit UI</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/orbit-ui (MIT)</div>
+            <figure class="project-snapshot" aria-label="Orbit UI 문서 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/orbit-ui.jpg"
+                alt="Orbit UI 문서 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 공개 저장소 소개 기준: React 기반 3계층 헤드리스 UI
+              아키텍처(Primitives/Core/Theme)로 구성된 디자인 시스템입니다.<br />
+              • Storybook 공개 데모와 컴포넌트 패키지 기반 설계를 함께 제공하며, 접근성/상태 로직을
+              타입 안정적으로 공유합니다.<br />
+              • 개인 프로젝트지만 실무 디자인 시스템처럼 토큰, 문서, 예제, 패키지 구조를 분리해
+              컴포넌트 API 설계 감각을 보여주는 용도로 관리합니다.
+            </div>
+            <div class="tech-stack"><strong>기술 스택</strong>: <span>React, TypeScript</span></div>
+            <div class="project-actions">
+              <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer"
+                >Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/orbit-ui"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
           </div>
-          <div class="tech-stack"><strong>기술 스택</strong>: <span>React, TypeScript</span></div>
-          <div style="margin-top: 12px">
-            <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer"
-              >Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a href="https://github.com/blue45f/orbit-ui" target="_blank" rel="noopener noreferrer"
-              >GitHub</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>Remote DevTools</h3>
-          <div class="job-period">
-            Personal Project | Public repo: blue45f/remote-devtools (MIT)
+          <div class="project-card">
+            <h3>Remote DevTools</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/remote-devtools (MIT)
+            </div>
+            <figure class="project-snapshot" aria-label="Remote DevTools 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/remote-devtools.jpg"
+                alt="Remote DevTools 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 공개 저장소 기준으로, Vercel 데모 URL을 보유한 오픈소스 원격 디버깅 플랫폼입니다.<br />
+              • NestJS + React 기반 CDP 인터페이스로, 네트워크/콘솔/DOM 모니터링과 세션 녹화·재생,
+              이슈 트래킹 파이프라인을 제공합니다.<br />
+              • 원격 환경에서 재현이 어려운 프론트엔드 문제를 세션 단위로 기록하고 공유하는 개발자
+              도구 관점에서 설계했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, React, NestJS, CDP</span>
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://remote-devtools.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/remote-devtools"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+              <a
+                href="https://github.com/blue45f/remote-devtools/blob/main/docs/DEPLOY_DEMO.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Deploy Guide</a
+              >
+            </div>
           </div>
-          <figure class="project-snapshot" aria-label="Remote DevTools 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/remote-devtools.jpg"
-              alt="Remote DevTools 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 공개 저장소 기준으로, Vercel 데모 URL을 보유한 오픈소스 원격 디버깅 플랫폼입니다.<br />
-            • NestJS + React 기반 CDP 인터페이스로, 네트워크/콘솔/DOM 모니터링과 세션 녹화·재생,
-            이슈 트래킹 파이프라인을 제공합니다.<br />
-            • 원격 환경에서 재현이 어려운 프론트엔드 문제를 세션 단위로 기록하고 공유하는 개발자
-            도구 관점에서 설계했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>: <span>TypeScript, React, NestJS, CDP</span>
-          </div>
-          <div style="margin-top: 12px">
-            <a href="https://remote-devtools.vercel.app/" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/remote-devtools"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/remote-devtools/blob/main/docs/DEPLOY_DEMO.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Deploy Guide</a
-            >
-          </div>
-        </div>
 
-        <div class="project-card">
-          <h3>SPA SEO Gateway</h3>
-          <div class="job-period">Personal Project | Public repo: blue45f/spa-seo-gateway</div>
-          <figure class="project-snapshot" aria-label="SPA SEO Gateway 홈 화면 스냅샷">
-            <img
-              src="public/project-snapshots/spa-seo-gateway.jpg"
-              alt="SPA SEO Gateway 홈 화면 스냅샷"
-              decoding="async"
-            />
-          </figure>
-          <div>
-            • 공개 저장소 소개 기준: SPA를 봇 트래픽용으로 동적 렌더링 처리하는 고성능 게이트웨이
-            프로젝트입니다.<br />
-            • Vercel 데모 링크, GitHub 소스, npm 패키지를 함께 공개합니다.<br />
-            • 검색엔진/크롤러 트래픽과 일반 사용자 트래픽을 분리하는 전략, 캐시, 렌더링 실패 대응을
-            프론트엔드 인프라 관점에서 검증했습니다.
-          </div>
-          <div class="tech-stack"><strong>기술 스택</strong>: <span>TypeScript, Node.js</span></div>
-          <div style="margin-top: 12px">
-            <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer"
-              >Live Demo</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://github.com/blue45f/spa-seo-gateway"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
-            &nbsp;|&nbsp;
-            <a
-              href="https://www.npmjs.com/package/@heejun/spa-seo-gateway-core"
-              target="_blank"
-              rel="noopener noreferrer"
-              >npm</a
-            >
+          <div class="project-card">
+            <h3>SPA SEO Gateway</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/spa-seo-gateway</div>
+            <figure class="project-snapshot" aria-label="SPA SEO Gateway 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/spa-seo-gateway.jpg"
+                alt="SPA SEO Gateway 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 공개 저장소 소개 기준: SPA를 봇 트래픽용으로 동적 렌더링 처리하는 고성능 게이트웨이
+              프로젝트입니다.<br />
+              • Vercel 데모 링크, GitHub 소스, npm 패키지를 함께 공개합니다.<br />
+              • 검색엔진/크롤러 트래픽과 일반 사용자 트래픽을 분리하는 전략, 캐시, 렌더링 실패
+              대응을 프론트엔드 인프라 관점에서 검증했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>: <span>TypeScript, Node.js</span>
+            </div>
+            <div class="project-actions">
+              <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/spa-seo-gateway"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+              <a
+                href="https://www.npmjs.com/package/@heejun/spa-seo-gateway-core"
+                target="_blank"
+                rel="noopener noreferrer"
+                >npm</a
+              >
+            </div>
           </div>
         </div>
       </section>
@@ -3112,6 +3205,10 @@
             border-radius: 8px !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
+          }
+          .pdf-capture .project-grid {
+            display: block !important;
+            max-width: 100% !important;
           }
           .pdf-capture .project-snapshot {
             width: 420px !important;
