@@ -8,10 +8,10 @@
 
 | 영역                        |                    수치                     |
 | :-------------------------- | :-----------------------------------------: |
-| 개발 가이드 문서            |                  **28개**                   |
-| 시각화 다이어그램 (Mermaid) |                  **297개**                  |
-| 문서당 평균 다이어그램      |                 **10.6개**                  |
-| 일상 비유 도입 문서         |                  **28/28**                  |
+| 개발 가이드 문서            |                  **29개**                   |
+| 시각화 다이어그램 (Mermaid) |                  **301개**                  |
+| 문서당 평균 다이어그램      |                 **10.4개**                  |
+| 일상 비유 도입 문서         |                  **29/29**                  |
 | 검증 자동화 (CI/Verify)     | `node scripts/validate-dev-guides.mjs` 통과 |
 
 ### 문서별 다이어그램 분포
@@ -32,9 +32,10 @@ flowchart LR
     M1["03 상태관리, 04 아키텍처<br/>21 MFE, 22 모노레포<br/>14 배포, 24 SEO<br/>25 모션, 26 PWA, 27 다중서버"]
   end
 
-  subgraph LOW["기본 — 7~9개"]
+  subgraph LOW["기본 — 4~9개"]
     direction TB
     L1["00 종합, 01 TS, 02 React<br/>09 장애, 10 IaC, 11 CI/CD<br/>12 CDN, 13 호환성, 15 RFC<br/>16 리뷰, 17 온보딩, 18 AI<br/>19 접근성, 23 i18n"]
+    L2["28 Sentry — 4개"]
   end
 
   style TOP fill:#e8f5e9,stroke:#2e7d32
@@ -80,15 +81,16 @@ mindmap
 
 ## 빠른 사용법
 
-| 상황                                 | 먼저 볼 문서                                                                                                                                                                                     | 바로 할 일                                                                           |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| 새 프로젝트를 시작한다               | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md)      | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정                  |
-| 기존 서비스 품질을 올린다            | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md)                          | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가                     |
-| 배포가 불안정하다                    | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md)   | build once, deploy many, rollback artifact, release health를 먼저 확인               |
-| 리액트 빌드가 흔들린다               | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [02. React 19 실무](public/개발가이드/02_React19_실무_가이드.md)                                                                    | 앱/라이브러리 빌드 스크립트, Storybook 10, PR 게이트 순서를 통합 점검                |
-| PR마다 검증 URL이 필요하다           | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
-| 여러 팀이 같은 코드를 만진다         | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md)    | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영               |
-| 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md)                   | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정            |
+| 상황                                 | 먼저 볼 문서                                                                                                                                                                                           | 바로 할 일                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 새 프로젝트를 시작한다               | [00. 종합 가이드](public/개발가이드/00_종합_가이드_목차.md) -> [01. TypeScript](public/개발가이드/01_TypeScript_심화_가이드.md) -> [02. React](public/개발가이드/02_React19_실무_가이드.md)            | 런타임, 타입 strictness, 라우팅, 상태 관리, 테스트 명령을 먼저 고정                  |
+| 기존 서비스 품질을 올린다            | [07. 테스트](public/개발가이드/07_테스팅_가이드.md) -> [08. 성능](public/개발가이드/08_성능_최적화_가이드.md) -> [19. 접근성](public/개발가이드/19_웹_접근성_가이드.md)                                | 핵심 사용자 흐름 3개를 정하고 실패 증거를 남기는 테스트부터 추가                     |
+| 배포가 불안정하다                    | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) -> [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md)         | build once, deploy many, rollback artifact, release health를 먼저 확인               |
+| Sentry를 운영에 붙인다               | [09. 장애 대응](public/개발가이드/09_장애_대응_및_관측성_표준.md) -> [28. Sentry](public/개발가이드/28_Sentry_모니터링_활용_가이드.md) -> [14. 배포](public/개발가이드/14_배포_프로세스_체크리스트.md) | SDK, source map, release health, trace/replay, alert owner를 배포 기준에 연결        |
+| 리액트 빌드가 흔들린다               | [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md) -> [02. React 19 실무](public/개발가이드/02_React19_실무_가이드.md)                                                                          | 앱/라이브러리 빌드 스크립트, Storybook 10, PR 게이트 순서를 통합 점검                |
+| PR마다 검증 URL이 필요하다           | [27. 다중 개발 서버](public/개발가이드/27_다중_개발_서버_구축_가이드.md) -> [10. 인프라](public/개발가이드/10_인프라_IaC_가이드.md) -> [11. CI/CD](public/개발가이드/11_CICD_파이프라인_표준.md)       | preview/staging/production 환경 매트릭스, OIDC role, cleanup, smoke test를 먼저 설계 |
+| 여러 팀이 같은 코드를 만진다         | [04. 아키텍처](public/개발가이드/04_아키텍처_설계_패턴.md) -> [16. 코드리뷰](public/개발가이드/16_AI_협업_코드리뷰_가이드.md) -> [22. 모노레포](public/개발가이드/22_모노레포_운영_가이드.md)          | import boundary, owner, package release 규칙을 문서와 CI에 동시에 반영               |
+| 글로벌/검색/오프라인 경험이 필요하다 | [23. 국제화](public/개발가이드/23_국제화_가이드.md) -> [24. SEO](public/개발가이드/24_SEO_메타데이터_가이드.md) -> [26. PWA](public/개발가이드/26_PWA_오프라인_전략_가이드.md)                         | locale routing, metadata, offline fallback을 기능 설계 단계에서 함께 결정            |
 
 ### 상황별 문서 선택 결정 트리
 
@@ -150,6 +152,7 @@ flowchart LR
     O14[14 배포]
     O22[22 모노레포]
     O27[27 다중서버]
+    O28[28 Sentry]
   end
 
   subgraph Gov["Governance & AI"]
@@ -234,15 +237,16 @@ flowchart LR
 
 ### Delivery And Operations
 
-| No  | Document                                                                         | Focus                                                                                                                                                           |
-| --- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 09  | [장애 대응 및 관측성 표준](public/개발가이드/09_장애_대응_및_관측성_표준.md)     | RUM, error tracking, alert, severity, postmortem                                                                                                                |
-| 10  | [인프라 및 IaC 가이드](public/개발가이드/10_인프라_IaC_가이드.md)                | IaC, preview environment, workload identity, drift, cost                                                                                                        |
-| 11  | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md)            | React 빌드/Storybook 빌드 가이드, deterministic install, timeout/concurrency/permissions, Dependabot safe auto-merge, CodeRabbit review gate, branch protection |
-| 12  | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md)                           | cache-control, immutable asset, invalidation, security header                                                                                                   |
-| 14  | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md)     | canary, feature flag, rollback, post-deploy monitor                                                                                                             |
-| 22  | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md)             | package boundary, task graph, cache, release ownership                                                                                                          |
-| 27  | [다중 개발 서버 구축 가이드](public/개발가이드/27_다중_개발_서버_구축_가이드.md) | multi-environment, PR preview, Amplify, S3 artifact, GitHub Actions                                                                                             |
+| No  | Document                                                                           | Focus                                                                                                                                                           |
+| --- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 09  | [장애 대응 및 관측성 표준](public/개발가이드/09_장애_대응_및_관측성_표준.md)       | RUM, error tracking, alert, severity, postmortem                                                                                                                |
+| 10  | [인프라 및 IaC 가이드](public/개발가이드/10_인프라_IaC_가이드.md)                  | IaC, preview environment, workload identity, drift, cost                                                                                                        |
+| 11  | [CI/CD 파이프라인 표준](public/개발가이드/11_CICD_파이프라인_표준.md)              | React 빌드/Storybook 빌드 가이드, deterministic install, timeout/concurrency/permissions, Dependabot safe auto-merge, CodeRabbit review gate, branch protection |
+| 12  | [CDN 캐시 전략](public/개발가이드/12_CDN_캐시_전략.md)                             | cache-control, immutable asset, invalidation, security header                                                                                                   |
+| 14  | [배포 프로세스 체크리스트](public/개발가이드/14_배포_프로세스_체크리스트.md)       | canary, feature flag, rollback, post-deploy monitor                                                                                                             |
+| 22  | [모노레포 운영 가이드](public/개발가이드/22_모노레포_운영_가이드.md)               | package boundary, task graph, cache, release ownership                                                                                                          |
+| 27  | [다중 개발 서버 구축 가이드](public/개발가이드/27_다중_개발_서버_구축_가이드.md)   | multi-environment, PR preview, Amplify, S3 artifact, GitHub Actions                                                                                             |
+| 28  | [Sentry 모니터링 활용 가이드](public/개발가이드/28_Sentry_모니터링_활용_가이드.md) | Sentry SDK, source map, release health, tracing, replay, alert routing                                                                                          |
 
 ### Governance And AI
 

@@ -294,6 +294,20 @@ const REQUIRED_GUIDE_SECTIONS = new Map([
       'cleanup workflow와 dry-run',
     ],
   ],
+  [
+    '28_Sentry_모니터링_활용_가이드.md',
+    [
+      'Sentry SDK',
+      'source map',
+      'release health',
+      'browserTracingIntegration',
+      'Session Replay',
+      'Trace Explorer',
+      'ownership rule',
+      'Uptime Monitoring',
+      'Cron Monitoring',
+    ],
+  ],
 ]);
 
 function readText(file) {
@@ -348,12 +362,12 @@ function guideBasenames(guideFiles) {
 function validateGuideSequence(guideFiles) {
   const errors = [];
   const names = guideBasenames(guideFiles);
-  const expectedPrefixes = Array.from({ length: 28 }, (_, index) =>
+  const expectedPrefixes = Array.from({ length: 29 }, (_, index) =>
     String(index).padStart(2, '0'),
   );
 
-  if (guideFiles.length !== 28) {
-    errors.push(`expected 28 guide docs, found ${guideFiles.length}`);
+  if (guideFiles.length !== 29) {
+    errors.push(`expected 29 guide docs, found ${guideFiles.length}`);
   }
 
   for (const name of names) {
