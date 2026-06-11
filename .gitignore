@@ -3,6 +3,11 @@
 node_modules/
 *.log
 
+# Local secrets
+.env
+.env.*
+!.env.example
+
 # Vite 빌드 산출물 (Netlify가 빌드)
 dist/
 
