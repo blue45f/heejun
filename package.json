@@ -16,6 +16,8 @@
     "verify": "pnpm run validate:architecture && pnpm run check:validators && pnpm run validate:guides && pnpm run validate:recommendations",
     "verify:push": "pnpm run verify",
     "ci": "pnpm run verify",
+    "sonar": "sonar-scanner",
+    "sonar:ci": "sonar-scanner -Dsonar.qualitygate.wait=true",
     "validate:architecture": "node scripts/validate-architecture.mjs"
   },
   "devDependencies": {
