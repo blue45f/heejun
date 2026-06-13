@@ -1749,28 +1749,19 @@
           <h3>장바구니 및 주문·결제 프로세스 통합 프로젝트</h3>
           <div class="job-period">우아한형제들 | 2025.10 - 2026.01 | Frontend Lead</div>
           <div>
-            • 기존 4단계 주문 흐름(장바구니 → 배송 정보 → 주문서 → 결제 완료)을 단일 주문서
-            컨텍스트로 통일해 3단계로 단축했습니다.<br />
-            • <strong>아키텍처 원리 (마이크로 프론트엔드)</strong>: Webpack Module Federation 기술을
-            도입하여 장바구니 위젯 컴포넌트를 주문 플랫폼 팀이 빌드 타임 의존성 없이 런타임에
-            Dynamic Remote로 주입받아 마운트하는 아키텍처를 구현했습니다. 주문 전환율 극대화를 위해
-            React Query 셀렉터를 활용하여 유저가 가진 쿠폰 및 최적 배송 정보를 백엔드와 실시간
-            조합하여 기본값으로 자동 연동하고, 결제 승인 요청을 병렬화하여 이탈 요인을 원천
-            제거했습니다.
+            • 4단계 주문 플로우를 3단계로 단축 (장바구니와 주문·결제 프로세스 통합)<br />
+            • 장바구니 기능을 컴포넌트 단위로 분리하여 주문·결제 플랫폼에 통합<br />
+            • 최적 쿠폰 및 커머스 서비스 옵션 자동 선택으로 사용자 액션 최소화<br />
+            • Module Federation 도입 검토 및 아키텍처 의사결정<br />
+            • 주문 완료 전환율 증가, 디바이스당 매출 증가, 평균 주문 시간 및 클릭 수 감소 기대
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >React 18, TypeScript, React Query (TanStack Query), Zustand, Module Federation
-              (MFE)</span
-            >
+            <span>React, TypeScript, React Query, Zustand, Module Federation (MFE)</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span
-              >Hybrid Native WebView Bridge (Secure Bridge Protocol), GitLab CI/CD pipelines, AWS
-              CloudFront CDN Caching</span
-            >
+            <span>Webview Bridge, GitLab CI/CD, AWS CloudFront CDN</span>
           </div>
         </div>
 
@@ -1778,25 +1769,18 @@
           <h3>vitest 기반 테스팅 인프라 구축</h3>
           <div class="job-period">우아한형제들 | 2025.08 | Technical Lead</div>
           <div>
-            • 웹프론트팀 최초로 Vitest와 Mock Service Worker(MSW) 기반의 테스팅 패러다임을 설계하여
-            코드 품질을 향상시켰습니다.<br />
-            • <strong>아키텍처 원리 (네이티브 ESM & Mocking)</strong>: 기존의 무거운 Jest와 달리 ESM
-            모듈 분석을 네이티브로 수행하는 Vitest를 도입하여 로컬 테스트 구동 속도를 80% 이상
-            개선했습니다. 네트워크 아웃바운드 요청을 가로채서 제어하기 위해 MSW로 목 서버를
-            결합하고, PR 검사 시 전체 코드 커버리지가 16% 미만이거나 하나라도 테스트가 실패하면
-            머지를 차단하는 Git Hook(Husky) 및 GitLab CI 품질 게이트(Quality Gate Rules)
-            파이프라인을 구축해 프로덕션 장애 복원력을 확보했습니다.
+            • 주문·결제 웹프론트팀 최초의 체계적인 vitest 기반 테스팅 환경 구축<br />
+            • 최소 20% 코드 커버리지 확보 목표, 약 16% 기준 커버리지 달성<br />
+            • 테스트 코드 작성 가이드 및 베스트 프랙티스 문서화<br />
+            • 팀 내 다른 도메인으로 테스팅 문화 확산
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >Vitest, MSW (Mock Service Worker), React Testing Library (RTL), Playwright, JUnit
-              Reporter, Husky</span
-            >
+            <span>Vitest, Jest, Cypress, React Testing Library, MSW (Mock Service Worker)</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>GitLab CI Test Automation Gate (Pre-push & PR pipeline quality gates)</span>
+            <span>GitLab CI Test Automation Gate (Pre-push & PR pipeline checks)</span>
           </div>
         </div>
 
@@ -1804,25 +1788,20 @@
           <h3>장애 포카요케 구축</h3>
           <div class="job-period">우아한형제들 | 2025.08 | Infrastructure</div>
           <div>
-            • 배포 중 실수로 인한 인프라 불일치 및 배포 장애를 원천 차단하기 위한
-            포카요케(Poka-yoke) 아키텍처를 도입했습니다.<br />
-            • <strong>아키텍처 원리 (자동화된 롤백 게이트)</strong>: 배포 중 발생하는 환경 간
-            파편화를 막기 위해, 스테이징 환경과 운영 환경의 AWS CloudFront CDN 배포 및 S3 Bucket
-            에셋 경로를 1:1로 일치시켰습니다. 배포 스크립트에 Sentry의 배포 릴리즈 트래킹을
-            연계하고, 배포 직후 1시간 동안 Sentry의 에러 프리퀀시(Error Frequency) 메트릭을 실시간
-            API로 폴링 감시하여 에러 발생율이 설정된 임계치를 초과할 시 AWS CLI를 통해 자동으로 배포
-            이전 릴리즈 해시(Commit Hash)로 CloudFront 원본 뷰를 롤백하는 무중단 롤백 파이프라인을
-            구축했습니다.
+            • 배포 모니터링 자동화 구현, 1시간 후 자동 배포 완료 처리 로직 추가<br />
+            • 스테이징/운영 인프라 구조 완전 통일 및 환경별 배포/롤백 절차 표준화<br />
+            • 메인 커머스 장바구니, 주문·결제 플랫폼, 주문 내역 플랫폼에 적용<br />
+            • 환경 불일치로 인한 장애 사전 방지 체계 구축
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >Bash Script, Sentry Integration, GitLab CI/CD, AWS CloudWatch Metrics, AWS CLI</span
-            >
+            <span>Bash Script, Sentry, GitLab CI/CD, AWS CloudWatch Alerts</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>Staging & Production Infrastructure Alignment, Canary Deployment automation</span>
+            <span
+              >Staging & Production Infrastructure Alignment, Automated CD pipeline rollout</span
+            >
           </div>
         </div>
 
@@ -1830,25 +1809,18 @@
           <h3>VFD 2.0 즉시할인 시스템 대개편</h3>
           <div class="job-period">우아한형제들 | 2025.05 - 2025.07 | Frontend Developer</div>
           <div>
-            • 즉시할인 시스템 대개편 작업 중 발생한 장애 상황에서 5시간 이내에 원인을 정밀 진단하고
-            복구를 완료했습니다.<br />
-            • <strong>아키텍처 원리 (Server-driven Pricing)</strong>: 클라이언트단에서 연산하던
-            복잡한 가변 할인 계산(쿠폰, 포인트, 제휴 등)을 백엔드 Pricing Core 엔진으로 완전히
-            이관하는 Server-driven Pricing Architecture를 수립하여 클라이언트-서버 결제 금액
-            불일치를 근본적으로 0%로 통제했습니다. 프론트엔드는 가격 변경 시 사용자 이목을 끄는 롤링
-            넘버 인터랙션을 CSS Custom Properties와 requestAnimationFrame 스케줄링 기반으로 메모리
-            병목 없이 구현했습니다.
+            • 할인 계산 로직 프론트 → 서버 이관으로 데이터 일관성 확보<br />
+            • 할인 영역 6종 → 4종 간소화로 사용자 이해도 향상<br />
+            • 롤링 넘버 인터랙션 개발로 UX 개선<br />
+            • 배포 당일 장애 5시간 이내 원인 파악 및 해결 (2,757명 고객 보상 처리)
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, CSS Custom Properties, requestAnimationFrame, Server-driven
-              Pricing Core</span
-            >
+            <span>React, TypeScript, CSS Rolling Number Animation, Server Pricing Schema</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>GitLab CI/CD, Incident Response Logging System, Slack Webhook Alerts</span>
+            <span>GitLab CI/CD, Incident Response Logging System</span>
           </div>
         </div>
 
@@ -1856,23 +1828,10 @@
           <h3>서비스 도메인 통합 프로젝트</h3>
           <div class="job-period">우아한형제들 | 2024.12 - 2025.02</div>
           <div>
-            • 플랫폼 내 메인 배달 서비스와 현장 물류 배달 서비스를 단일 'FOOD' 타입의 도메인으로
-            통합하는 서비스 혁신 프로젝트입니다.<br />
-            • <strong>아키텍처 원리 (인터페이스 추상화)</strong>: 레거시 코드가 각기 다르게 처리하던
-            주문 타입을 단일 인터페이스(Domain Model Interface)로 정밀 캡슐화하고, 컴포넌트 내부
-            분기문(if-else)을 제거하기 위해 팩토리 패턴(Factory Pattern) 기반의 컴포넌트 주입 로직을
-            설계했습니다. 장바구니, 주문서, 주문내역 등 주요 피처 모듈 간의 공통 도메인 타입을
-            Shared Type 라이브러리로 분리하여 빌드 일관성을 보장했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, Domain-driven Design (DDD) Interface, Shared Common Typings</span
-            >
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>Micro Frontends dynamic routing system, GitLab CI/CD</span>
+            • 메인 서비스와 현장 물류 서비스를 단일 FOOD 서비스 타입으로 통합<br />
+            • 장바구니, 주문·결제, 주문내역, 공동 주문 서비스 온보딩, 문의하기 화면에서 서비스 타입
+            FOOD 구현<br />
+            • 2025년 2월 17일 FD 론칭 성공
           </div>
         </div>
 
@@ -1880,25 +1839,10 @@
           <h3>주문내역 플랫폼 프로젝트</h3>
           <div class="job-period">우아한형제들 | 2024</div>
           <div>
-            • 서비스별로 산재된 레거시 주문내역 프론트 지면을 공통 플랫폼 사양으로 단일화하고 전환
-            가이드를 구축한 프로젝트입니다.<br />
-            • <strong>아키텍처 원리 (점진적 배포)</strong>: 비회원 주문 조회, 플랫폼별 딥링크 전달,
-            레거시 API 규격 등 다양한 유스케이스를 탄력적으로 처리하기 위해 전역 상태(Zustand)와
-            비동기 SWR 상태(React Query)를 디커플링한 아키텍처를 도입했습니다. 점진적 기능
-            배포(Gradual Rollout)를 위해 AWS CloudFront Lambda@Edge 및 LaunchDarkly 피처 플래그
-            API를 결합하여 특정 비율의 유저군에 대해서만 신규 아키텍처 지면으로 포워딩하는 프록시
-            레이어를 운영했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>React, TypeScript, Zustand, React Query, Lambda@Edge, Feature Flag Engine</span>
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span
-              >AWS CloudFront Lambda@Edge Proxy Router, AWS S3 Static Web Hosting, GitLab
-              CI/CD</span
-            >
+            • 초기 아키텍처 설계 및 구축 리드<br />
+            • 개발 가이드 문서화 및 커머스 FE 개발자 온보딩 지원<br />
+            • 비회원 주문내역 처리 및 레거시 버전 대응 설계<br />
+            • 점진적 배포 전략 수립 및 구현
           </div>
         </div>
 
@@ -1906,25 +1850,9 @@
           <h3>공통 대기열 서비스 구축</h3>
           <div class="job-period">우아한형제들 | 2024</div>
           <div>
-            • 주문 집중 및 대규모 프로모션 시 데이터베이스 부하 분산과 안정성 보장을 위해 프론트엔드
-            대기열(Waiting Queue) 진입 시스템을 구축했습니다.<br />
-            • <strong>아키텍처 원리 (단방향 동기화)</strong>: 서버의 Redis 기반 메시지 대기열 큐와
-            클라이언트를 SSE(Server-Sent Events) 단방향 이벤트 통신으로 바인딩하여, 유저가 브라우저
-            폴링을 통해 서버에 부하를 주지 않고도 1초 미만 주기로 자신의 실시간 대기 순번과 진입
-            가능 상태를 동기화받도록 설계했습니다. 브라우저 비활성화(Tab Background) 시의 접속 끊김
-            현상을 방지하기 위해 Page Visibility API를 활용한 자동 재연결(Reconnect Backoff)
-            핸들러를 장착했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span
-              >TypeScript, SSE (Server-Sent Events), Page Visibility API, Connection Reconnect
-              Backoff</span
-            >
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>AWS ECS Fargate Container Cluster, Redis Queue, AWS CloudWatch Logs</span>
+            • 주문·결제 공통 대기열 서비스 아키텍처 설계<br />
+            • FE 지면 개발 및 사용자 경험 최적화<br />
+            • 대용량 트래픽 처리를 위한 시스템 안정성 확보
           </div>
         </div>
 
@@ -1932,20 +1860,10 @@
           <h3>배송 경로 이상 신고 기능</h3>
           <div class="job-period">우아한형제들 | 2024</div>
           <div>
-            • 고객이 배송 경로 이상 현상을 주문 지면에서 즉시 신고할 수 있도록 문의하기 지면에
-            내장된 프리셋 신고 아키텍처를 구현했습니다.<br />
-            • <strong>아키텍처 원리 (API 부하 통제)</strong>: 고객의 신고 행위가 즉각 CS 플랫폼으로
-            전파되도록 비동기 배치 API 및 웹훅 연동 게이트웨이를 설계했습니다. 다발적 중복 신고로
-            인한 백엔드 API 부하를 차단하기 위해 세션 수준의 API 요청 쓰로틀링(Throttling) 및
-            클라이언트-사이드 유효성 방어 로직을 적용하여 VOC를 69% 감소시키는 성과를 냈습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>React, TypeScript, API Request Throttling, CS Integration Proxy, Webhook</span>
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>GitLab CI/CD Pipelines, CloudWatch Metric Alarms</span>
+            • 문의하기 내 프리셋 신고 기능 개발<br />
+            • VOC 69% 감소 달성 (월평균 339건 → 105건)<br />
+            • 고객센터 리소스 30% 절감 효과<br />
+            • 상담사 업무 효율성 대폭 개선
           </div>
         </div>
 
@@ -1953,21 +1871,9 @@
           <h3>커머스 주문 고객서비스 경험 개선</h3>
           <div class="job-period">우아한형제들 | 2024.03 - 2024.06</div>
           <div>
-            • 주문 취소 요청 흐름 개선, 채팅 운영 시간 검증 고도화, 실험 플랫폼 연동을 통한 최적의
-            CS 동선을 제공했습니다.<br />
-            • <strong>아키텍처 원리 (실시간 유효 시간 제어)</strong>: 취소 신청 가능 시간을 서버
-            시간(NTP 동기화)과 매칭하여 밀리초 단위로 클라이언트 카운트다운 타이머를 실행하고, 취소
-            버튼 클릭 시 결제 취소 API를 낙관적으로 호출하여 UI 반응성을 유지했습니다. 사용자 액션과
-            취소 전환율 지표 분석을 위해 사용자 행동 이벤트를 기록하는 커스텀 로깅 미들웨어를
-            개발하여 분석 인프라로 스트리밍했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>React, TypeScript, NTP Time Sync, Custom Logging SDK, A/B Testing Client</span>
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>GitLab CI/CD Quality Gate, Amplitude Data Streaming Pipeline</span>
+            • 문의하기 프리셋 기능, 주문 취소 요청 기능, 실험 플랫폼 연동<br />
+            • 채팅 운영시간 검증 제거, 웹 로깅 구현<br />
+            • <strong>96% TC 실행률에 90% 패스율</strong> 달성
           </div>
         </div>
 
@@ -1975,25 +1881,20 @@
           <h3>푸드 웹지면 개편 - 장바구니 플랫폼 마이그레이션</h3>
           <div class="job-period">우아한형제들 | 2023.08 - 2024.01 | Lead Developer</div>
           <div>
-            • 웹표준 기술을 저해하는 레거시 웹지면 구조를 탈피하고, 표준 프레임워크 기술로 장바구니
-            지면을 통합 이관시켰습니다.<br />
-            • <strong>아키텍처 원리 (접근성 및 성능 최적화)</strong>: React Query의 낙관적
-            업데이트(Optimistic Update)를 사용하여 네트워크 Latency와 무관하게 수량 조작 피드백이
-            즉각적으로 렌더링되게 구현했으며, 변경 사항이 백엔드 저장소와 백그라운드
-            동기화(Stale-While-Revalidate)되도록 큐를 구성했습니다. 포커스 트랩(Focus Trap), 동적
-            `aria-live` 메시지 처리를 프레임워크 전반에 내장하여 스크린 리더 중심의 웹 접근성
-            표준(WCAG 2.1)을 준수했습니다.
+            • 레거시 장바구니를 표준 개발 환경으로 마이그레이션<br />
+            • React Query 패턴으로 API 레이어 전환, 배송비 서비스 통합<br />
+            • AWS S3 & CloudFront 인프라, Simple Deploy (서버리스 배포 도구) 서버리스 배포, GitLab
+            CI/CD 전체 인프라 스택 신규 구축<br />
+            • 인수테스트 3회 완료, 웹 접근성 대응, 2024년 1월 점진적 배포 완료
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, React Query, Zustand, Web Accessibility (WCAG 2.1 / a11y)</span
-            >
+            <span>React, TypeScript, React Query, Zustand, Web Accessibility (WCAG/a11y)</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
             <span
-              >AWS S3 Static Web Hosting, AWS CloudFront CDN Caching, Simple Deploy CLI, GitLab
+              >AWS S3 Static Web Hosting, CloudFront CDN, Simple Deploy Serverless CLI, GitLab
               CI/CD</span
             >
           </div>
@@ -2003,24 +1904,19 @@
           <h3>표준 개발 환경 개선 TF</h3>
           <div class="job-period">우아한형제들 | 2023.05 - 2023.12 | TF장 & Technical Lead</div>
           <div>
-            • 전사 웹 프론트엔드 파편화를 해소하기 위해 공통 표준 기술 스택 및 단위/E2E 테스트 환경
-            표준을 정립했습니다.<br />
-            • <strong>아키텍처 원리 (DX 가속화)</strong>: 무겁고 오래된 Webpack 빌드를 ESM 네이티브
-            번들러인 Vite로 전환하여 HMR(Hot Module Replacement) 로컬 구동 속도를 10배 단축했습니다.
-            또한 상태 관리를 React Query(서버 비동기)와 Zustand(클라이언트 상태)로 단일화했습니다.
-            Cypress 기반 E2E 및 Vitest 기반 단위 테스팅 보일러플레이트를 스캐폴딩 CLI 도구로
-            제작하여 전사 온보딩 프로세스를 가속화했습니다.
+            • 표준 기술 스택 정의: React Query + Zustand + React 코어 스택 확정<br />
+            • 개발 환경 현대화: Node 버전 업그레이드, Vite 빌드 시스템 도입<br />
+            • 테스팅 인프라: Cypress E2E, Jest/Vitest 단위 테스팅 표준 정립<br />
+            • 아키텍처 레이어 설계 문서화, 보일러플레이트 리포지토리 생성<br />
+            • 팀 전체의 개발 표준 정립으로 코드 품질, 개발 속도, 온보딩 효율성 대폭 향상
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >React, React Query, Zustand, Vite Build System, Node.js v18+, Jest/Vitest, Cypress
-              E2E</span
-            >
+            <span>React, React Query, Zustand, Vite, Node Upgrade, Jest, Vitest, Cypress</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>Self-hosted NPM Boilerplate Registry, Monorepo Template Scaffolder</span>
+            <span>Boilerplate Scaffolding Registry, Monorepo Template Structure</span>
           </div>
         </div>
 
@@ -2028,20 +1924,9 @@
           <h3>커머스 서비스 옵션 안내 강화 프로젝트</h3>
           <div class="job-period">우아한형제들 | 2023.05 - 2023.07</div>
           <div>
-            • 특화 배송 서비스 활성화를 위해 사용자 친화적이고 직관적인 배송 뱃지 및 문맥 맞춤 옵션
-            안내를 개선했습니다.<br />
-            • <strong>아키텍처 원리 (클라이언트 룰 엔진)</strong>: 사용자 화면 진입 시 노출
-            조건(배송가능 지역 여부, 주문 금액 등)을 조합하는 클라이언트-사이드 룰 엔진(Rule
-            Engine)을 작성하고, 안내 영역 노출에 따른 클릭 효율 검증을 위해 A/B 테스트 매트릭스를
-            클라이언트 미들웨어 수준에서 난수로 분기하여 분석 로깅을 수집했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>React, TypeScript, Client-Side Rule Engine, A/B Test Framework Integration</span>
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>AWS CloudFront A/B Routing, GitLab CI/CD</span>
+            • 특화 배송 서비스 활성화를 위한 Phase 1-3 단계별 커머스 서비스 옵션 안내 강화<br />
+            • 긍정적 언어 채택, 커머스 서비스 옵션 설명 업데이트, 토스트 팝업 메시지 개선<br />
+            • 사용자 선택률 개선으로 비즈니스 임팩트 창출
           </div>
         </div>
 
@@ -2049,24 +1934,9 @@
           <h3>장바구니 모아보기</h3>
           <div class="job-period">우아한형제들 | 2023.05 - 2023.07</div>
           <div>
-            • 플랫폼 내 여러 종류의 독립된 음식점 장바구니 데이터를 사용자가 통합 탭에서 한눈에
-            관리하는 기능입니다.<br />
-            • <strong>아키텍처 원리 (다중 웹뷰 세션 싱크)</strong>: 다중 웹뷰(Multi-WebView) 세션
-            환경에서 각 장바구니의 데이터 일관성을 보장하기 위해, 네이티브 앱을 허브로 삼는 Webview
-            JS Bridge Pub/Sub 이벤트 버스를 설계했습니다. 브라우저 탭 이동이나 포커스 활성화 시
-            브릿지를 통해 상대편 웹뷰의 변경점을 전송받아 TanStack Query 캐시
-            인밸리데이션(Invalidation)을 트리거하는 아키텍처를 적용했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, WebView JS Bridge, Pub/Sub Event Bus, TanStack Query Cache
-              Invalidation</span
-            >
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>Woowahan Webview Bridge Registry, GitLab CI/CD</span>
+            • 여러 음식점의 장바구니를 한 곳에서 관리하는 기능 개발<br />
+            • 네이티브 헤더 및 탭 통합, JavaScript 인터페이스를 통한 동기화<br />
+            • 빈 장바구니 상태 디자인 변경
           </div>
         </div>
 
@@ -2074,25 +1944,20 @@
           <h3>애플페이 결제 통합</h3>
           <div class="job-period">우아한형제들 | 2022.08 - 2023.01 | Technical Lead</div>
           <div>
-            • 국내 커머스 업계 최초로 Apple Pay 결제를 모바일 웹 및 웹뷰 환경에 완벽
-            결합시켰습니다.<br />
-            • <strong>아키텍처 원리 (Secure Bridge 터널링)</strong>: Apple Pay JS API 호출을
-            처리하기 위해 Apple Developer Portal에서 발급받은 도메인 인증용 Merchant ID 인증서
-            세션을 결제 서버 프록시와 동기화했습니다. 결제 과정 중 보안 토큰의 탈취 및 변조 방지를
-            위해 양방향 SSL 터널링 및 일회성 Cryptographic Web Token 전달 프로토콜을 WebView JS
-            Bridge와 조합하여 암호학적 신뢰 계층을 구축했습니다.
+            • 국내 최초 애플페이 결제 수단 연동 기술 검토 및 설계<br />
+            • 분리된 페이지 간 안전한 토큰 전달 메커니즘 솔루션 설계<br />
+            • 애플 담당자 미팅 참석 및 기술 협의, 결제 플랫폼팀 조율<br />
+            • 2023년 1월 10일 성공적 배포, iOS 사용자 결제 편의성 대폭 향상
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >TypeScript, Apple Pay JS API, Cryptographic Web Token, Secure WebView Bridge</span
-            >
+            <span>TypeScript, Secure Token Web Bridge, Multi-WebView Communication</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
             <span
-              >Apple Developer Portal Merchant SSL Integration, Woowahan Payment Gateway API
-              Proxy</span
+              >Apple Developer Portal Web Merchant Integration, Woowahan Payment Platform API
+              Sync</span
             >
           </div>
         </div>
@@ -2101,22 +1966,9 @@
           <h3>디자인 시스템 TF</h3>
           <div class="job-period">우아한형제들 | 2022.08 - 2022.12</div>
           <div>
-            • 디자인 일관성 유지 및 협업 효율 극대화를 위한 재사용 UI 컴포넌트 라이브러리 구축 TF에
-            참여했습니다.<br />
-            • <strong>아키텍처 원리 (디자인 토큰 파이프라인)</strong>: 디자인 시스템의 유연성을 위해
-            Figma API와 연동된 CSS Design Tokens(색상, 여백, 타이포그래피 등)를 JSON 형태로 파싱하여
-            Sass/CSS Variables로 자동 변환하는 자동화 스크립트를 구현했습니다. 컴포넌트 격리 빌드 및
-            API 놀이터인 Storybook 문서 환경을 구축하여 빌드 파이프라인과 결합시켰습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, CSS Design Tokens, Figma API Integration, Storybook Showcase</span
-            >
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>GitHub Actions, npm Private Registry Package Registry</span>
+            • 재사용 가능한 UI 컴포넌트 라이브러리 개발<br />
+            • Modal/Dialog, Checkbox 타입 다이얼로그 컴포넌트 구현<br />
+            • Storybook을 이용한 컴포넌트 문서화 및 Figma 통합
           </div>
         </div>
 
@@ -2124,20 +1976,14 @@
           <h3>공동 주문 서비스 Phase 1</h3>
           <div class="job-period">우아한형제들 | 2022.06 - 2022.10 | Technical Architect</div>
           <div>
-            • 주최자가 주문 방을 생성하여 다수의 사용자가 각자 디바이스에서 실시간으로 하나의
-            장바구니에 메뉴를 담는 서비스입니다.<br />
-            • <strong>아키텍처 원리 (실시간 동기화)</strong>: 실시간 협업 장바구니 구현을 위해
-            백엔드 SSE Gateway와 클라이언트의 SSE Listener 채널을 연동하여 타 유저의 메뉴 담기 액션
-            이벤트를 즉각 반영하도록 설계했습니다. 네이티브 앱과의 통신 브릿지를 설계하여 주최자의
-            단말기 카메라 바코드나 공유 링크를 통해 신규 참여자가 방 세션으로 즉시 포워딩되는
-            라우터를 내장했습니다.
+            • 실시간 다중 사용자 장바구니 동기화 아키텍처 설계 (폴링 → SSE 전환 계획)<br />
+            • 주최자/참여자 닉네임 설정, 공유 장바구니, 멤버 구분 UI 구현<br />
+            • 네이티브 앱과의 WebView 연동 및 앱 버전 체크 브릿지 페이지 개발<br />
+            • 그룹 주문 시나리오 지원으로 신규 사용자 확보 및 주문 금액 증대 기여
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >TypeScript, SSE (Server-Sent Events), WebView Javascript Bridge, Client Event
-              Queue</span
-            >
+            <span>TypeScript, SSE (Server-Sent Events), WebView Javascript Bridge</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
@@ -2149,20 +1995,10 @@
           <h3>장바구니 개편 (서버 사이드 전환)</h3>
           <div class="job-period">우아한형제들 | 2021.09 - 2021.12 | Frontend Developer</div>
           <div>
-            • 기존 LocalStorage/Cookie 기반의 파편화된 장바구니 에셋 관리를 영속 데이터 기반인 서버
-            데이터베이스 장바구니 구조로 전환했습니다.<br />
-            • <strong>아키텍처 원리 (로그인 시 병합)</strong>: 사용자가 비로그인 상태에서 담은 임시
-            장바구니 아이템들을 로그인 시점에 서버 API 장바구니로 정밀 병합(Merge Algorithm)하는
-            충돌 해소 아키텍처를 도입했습니다. UI 레이어는 서버의 장바구니 응답 스키마와 정렬 상태를
-            React Query와 Zustand를 통해 싱크했습니다.
-          </div>
-          <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>React, TypeScript, React Query, Zustand, Cart Item Merge Algorithm</span>
-          </div>
-          <div class="infra-config">
-            <strong>인프라 구성</strong>:
-            <span>GitLab CI/CD, AWS S3/CloudFront CDN</span>
+            • 클라이언트 → 서버 기반 장바구니 아키텍처 전환<br />
+            • 멀티 디바이스 장바구니 동기화 구현<br />
+            • 신규 프론트엔드 아키텍처 적용 및 인터랙션/데이터 처리 플로우 설계<br />
+            • 성능 테스트 및 점진적 배포 완료
           </div>
         </div>
 
@@ -2170,25 +2006,23 @@
           <h3>웹프론트엔드 아키텍처 통합</h3>
           <div class="job-period">우아한형제들 | 2021.04 - 2021.09 | Technical Lead</div>
           <div>
-            • 레거시 자체 프레임워크 소스를 최신 React SPA 기술 스택으로 전환하고 전체 폴더링 및
-            레이어링 아키텍처를 통일했습니다.<br />
-            • <strong>아키텍처 원리 (레이어드 아키텍처)</strong>: 복잡하게 얽혀 있던 Redux 및 MobX
-            스토어들을 걷어내고 서버 비동기(React Query)와 클라이언트 상태(Zustand)로 역할을
-            이원화했습니다. 레이어를 API(Data), Service(Domain Logic), Component(Presentation)로
-            명확히 단일 책임 원칙(SRP)에 따라 디커플링했습니다. Webpack Bundle Analyzer를 활용한
-            미사용 번들 제거(Tree-shaking) 및 Route Lazy Loading을 통해 JS 번들 용량을 70% 압축하고
-            렌더링 성능을 개선했습니다.
+            • 레거시 자체 프레임워크에서 React 기반 SPA로 전환<br />
+            • 상태 관리 현대화: Redux/Mobx → React Query로 비동기 패턴 변경<br />
+            • API, Service, Store, Component 레이어 명확히 분리<br />
+            •
+            <strong
+              >JavaScript 번들 크기 70% 감소, 평균 성능 30% 이상 개선, 개발 생산성 30% 이상
+              향상</strong
+            ><br />
+            • 입사 첫해에 완수하여 향후 5년간 모든 프론트엔드 개발의 기반이 됨
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >React, TypeScript, React Query, Zustand, Webpack Bundle Analyzer, ESM
-              Tree-shaking</span
-            >
+            <span>React, TypeScript, React Query, Zustand, MobX, Redux, Webpack</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>AWS S3 & CloudFront Edge Deploy, GitLab Runners</span>
+            <span>Static Asset CDN Hosting, GitLab CI/CD Pipeline</span>
           </div>
         </div>
 
@@ -2196,21 +2030,17 @@
           <h3>STOVE 글로벌 게임 플랫폼 개발</h3>
           <div class="job-period">스마일게이트스토브 | 2016 - 2020</div>
           <div>
-            • 글로벌 게임 플랫폼 STOVE의 포털 서비스 및 클라이언트 게임 런처 내부 연동 GNB/Footer
-            공통 웹뷰 라이브러리를 개발했습니다.<br />
-            • <strong>아키텍처 원리 (Pre-rendering & RxJS)</strong>: 글로벌 SEO 검색 노출 한계를
-            보완하기 위해 Node.js Headless Browser 기반의 서버사이드 프리렌더링(Pre-rendering)
-            라우터를 프록시단에 구성하여 크롤러 봇에게 완성된 정적 HTML을 서빙했습니다. 또한 RxJS
-            스트림을 도입하여 복잡한 유저 글로벌 로그인 세션 동기화 및 다국어 팩 로드, 게임 런처와의
-            IPC 브릿지 비동기 이벤트를 선언적으로 관리했습니다.
+            • Vue.js 기반 SPA 라이브러리 개발<br />
+            • 멀티 디바이스 대응 및 SEO 최적화 (Headless Browser Pre-rendering)<br />
+            • 입점사 제공 라이브러리(GNB & Footer) 개발<br />
+            • TimeLine 개인화 소셜 플랫폼 및 창작 플랫폼(툰스푼, 더 뮤지션) 개발
           </div>
           <div class="tech-stack">
-            <strong>기술 스택</strong>:
-            <span>Vue.js, TypeScript, RxJS, Webpack, Node.js, Headless Browser Pre-renderer</span>
+            <strong>기술 스택</strong>: <span>Vue.js, TypeScript, RxJS, Webpack, Node.js</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
-            <span>Node.js Pre-rendering Proxy Web Server, AWS CloudFront Global CDN</span>
+            <span>Headless Browser Pre-rendering System (SEO), Global Multi-Device CDN</span>
           </div>
         </div>
 
@@ -2218,20 +2048,15 @@
           <h3>SmartUI 웹접근성 프레임워크 개발</h3>
           <div class="job-period">미래아이엔텍 | 2012.05 - 2014.02</div>
           <div>
-            • W3C 웹접근성 가이드라인을 준수하는 크로스 브라우징 JavaScript UI 컴포넌트 프레임워크를
-            개발했습니다.<br />
-            • <strong>아키텍처 원리 (Vanilla JS 코어)</strong>: 다양한 PC/모바일 스크린 리더와
-            브라우저 호환성을 만족하기 위해 순수 Vanilla JS(ES5) 기반으로 WAI-ARIA 명세를 내장한 UI
-            프레임워크를 개발했습니다. 특히 금융 플랫폼에 적합하게 방향키 및 Tab 키 탐색을 동적
-            계산하는 2D 키보드 그리드 포커스 링(Grid Keyboard Navigation) 알고리즘을 개발해 주요
-            금융사 웹접근성 인증 획득을 견인했습니다.
+            • 웹접근성 준수 JavaScript UI 프레임워크 개발<br />
+            • LG CNS 금융플랫폼 소속 프로젝트 지원 (교보생명, LIG 투자증권)<br />
+            • LIG 투자증권 웹접근성 인증마크 획득 기여<br />
+            • 교보생명 차세대 프로젝트 성공적 오픈<br />
+            • n스크린 지원(PC, 모바일, 태블릿) 반응형 UI 구현
           </div>
           <div class="tech-stack">
             <strong>기술 스택</strong>:
-            <span
-              >Vanilla JavaScript (ES5), CSS, HTML4/5 Semantic Markup Standards, 2D Grid Focus
-              Algorithm</span
-            >
+            <span>JavaScript (ES5), CSS, HTML4/5 Semantic Markup, Responsive Grid Engine</span>
           </div>
           <div class="infra-config">
             <strong>인프라 구성</strong>:
