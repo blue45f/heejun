@@ -2074,6 +2074,54 @@
 
         <div class="project-grid" aria-label="개인 프로젝트 목록">
           <div class="project-card">
+            <h3>web-config-preset · 공유 프론트엔드 Config 패키지 (npm 발행)</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/web-config-preset | npm: @heejun/*
+            </div>
+            <div>
+              • 여러 저장소가 공유하는 프론트엔드 표준 설정을 npm에 발행한 모노레포입니다. 한 곳에서
+              관리해 전 프로젝트의 ESLint·Prettier·TypeScript·Tailwind·Vite 설정 드리프트를
+              제거합니다.<br />
+              • <strong>발행 패키지</strong>: @heejun/eslint-config(ESLint flat config —
+              typescript-eslint + React 19 + React Compiler + 계층 경계 eslint-plugin-boundaries),
+              @heejun/prettier-config, @heejun/typescript-config(base/react/node),
+              @heejun/tailwind-config(Tailwind v4 CSS-first @theme), @heejun/vite-config(Vite 8 +
+              React Compiler).<br />
+              • <strong>배포 파이프라인</strong>: pnpm workspace 모노레포 + Changesets로 패키지별
+              버전 관리·발행, tsup(ESM+d.ts) 빌드, 루트 flat config가 프리셋을 self-dogfooding 하여
+              표준을 스스로 검증합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >pnpm workspace, Changesets, ESLint flat config, typescript-eslint, Tailwind v4,
+                Vite 8, tsup, npm publish</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>발행</strong>:
+              <span
+                >npm public registry — @heejun/eslint-config, @heejun/prettier-config,
+                @heejun/typescript-config, @heejun/tailwind-config, @heejun/vite-config</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://www.npmjs.com/package/@heejun/eslint-config"
+                target="_blank"
+                rel="noopener noreferrer"
+                >npm</a
+              >
+              <a
+                href="https://github.com/blue45f/web-config-preset"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
             <h3>PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스</h3>
             <div class="job-period">Personal Project | Public repo: blue45f/PromptMarket</div>
             <figure class="project-snapshot" aria-label="PromptMarket 홈 화면 스냅샷">
