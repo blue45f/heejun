@@ -217,15 +217,16 @@ flowchart LR
 
 ### Core Engineering
 
-| No  | Document                                                                           | Focus                                                           |
-| --- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 01  | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md)           | strict mode, boundary validation, schema, native toolchain 전환 |
-| 02  | [React 19 실무 가이드](public/개발가이드/02_React19_실무_가이드.md)                | Actions, Compiler, Server Components, Suspense/Error Boundary   |
-| 03  | [상태관리 패턴 가이드](public/개발가이드/03_상태관리_패턴_가이드.md)               | 서버 상태, UI 상태, URL state, optimistic update                |
-| 04  | [아키텍처 설계 패턴](public/개발가이드/04_아키텍처_설계_패턴.md)                   | feature boundary, Clean Architecture, server/client 경계        |
-| 05  | [API 통신 및 모킹 가이드](public/개발가이드/05_API_통신_및_모킹_가이드.md)         | OpenAPI, codegen, MSW, Result pattern, contract test            |
-| 06  | [웹 보안 심화 가이드](public/개발가이드/06_웹_보안_심화_가이드.md)                 | 인증, CSP, Trusted Types, dependency, supply chain              |
-| 29  | [표준 라이브러리 스택 가이드](public/개발가이드/29_표준_라이브러리_스택_가이드.md) | HTTP/상태/URL/검증/로깅/스타일 표준 라이브러리와 선택 이유      |
+| No  | Document                                                                                | Focus                                                           |
+| --- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 01  | [TypeScript 심화 가이드](public/개발가이드/01_TypeScript_심화_가이드.md)                | strict mode, boundary validation, schema, native toolchain 전환 |
+| 02  | [React 19 실무 가이드](public/개발가이드/02_React19_실무_가이드.md)                     | Actions, Compiler, Server Components, Suspense/Error Boundary   |
+| 03  | [상태관리 패턴 가이드](public/개발가이드/03_상태관리_패턴_가이드.md)                    | 서버 상태, UI 상태, URL state, optimistic update                |
+| 04  | [아키텍처 설계 패턴](public/개발가이드/04_아키텍처_설계_패턴.md)                        | feature boundary, Clean Architecture, server/client 경계        |
+| 05  | [API 통신 및 모킹 가이드](public/개발가이드/05_API_통신_및_모킹_가이드.md)              | OpenAPI, codegen, MSW, Result pattern, contract test            |
+| 06  | [웹 보안 심화 가이드](public/개발가이드/06_웹_보안_심화_가이드.md)                      | 인증, CSP, Trusted Types, dependency, supply chain              |
+| 29  | [표준 라이브러리 스택 가이드](public/개발가이드/29_표준_라이브러리_스택_가이드.md)      | HTTP/상태/URL/검증/로깅/스타일 표준 라이브러리와 선택 이유      |
+| 30  | [사례 회고: 저장소 일관성 정렬](public/개발가이드/30_사례_전저장소_일관성_정렬_회고.md) | 여러 저장소 표준 수렴 과정·공유 config 메커니즘·롤아웃 회고     |
 
 ### Quality Gates
 

@@ -364,12 +364,12 @@ function guideBasenames(guideFiles) {
 function validateGuideSequence(guideFiles) {
   const errors = [];
   const names = guideBasenames(guideFiles);
-  const expectedPrefixes = Array.from({ length: 30 }, (_, index) =>
+  const expectedPrefixes = Array.from({ length: 31 }, (_, index) =>
     String(index).padStart(2, '0'),
   );
 
-  if (guideFiles.length !== 30) {
-    errors.push(`expected 30 guide docs, found ${guideFiles.length}`);
+  if (guideFiles.length !== 31) {
+    errors.push(`expected 31 guide docs, found ${guideFiles.length}`);
   }
 
   for (const name of names) {
