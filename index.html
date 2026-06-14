@@ -2074,7 +2074,7 @@
 
         <div class="project-grid" aria-label="개인 프로젝트 목록">
           <div class="project-card">
-            <h3>web-config-preset · 공유 프론트엔드 Config 패키지 (npm 발행)</h3>
+            <h3>web-config-preset · 공유 Config 패키지 발행 &amp; 전 저장소 일관성 정렬</h3>
             <div class="job-period">
               Personal Project | Public repo: blue45f/web-config-preset | npm: @heejun/*
             </div>
@@ -2089,7 +2089,13 @@
               React Compiler).<br />
               • <strong>배포 파이프라인</strong>: pnpm workspace 모노레포 + Changesets로 패키지별
               버전 관리·발행, tsup(ESM+d.ts) 빌드, 루트 flat config가 프리셋을 self-dogfooding 하여
-              표준을 스스로 검증합니다.
+              표준을 스스로 검증합니다.<br />
+              • <strong>전 저장소 일관성 정렬</strong>: 발행한 프리셋을 사이드 프로젝트 전반에
+              적용하고, 검증(class-validator → zod·nestjs-zod), HTTP 클라이언트(axios·fetch → ky),
+              포맷·린트(공유 Prettier·ESLint), 폴더 아키텍처(domains/ 계층 +
+              eslint-plugin-boundaries 경계 강제)까지 단일 표준으로 통일했습니다. 저장소별 verify
+              게이트(타입체크·테스트·빌드 통과)로 안전성을 확인한 뒤 스택형 PR로 단계적으로 반영해,
+              설정·라이브러리·아키텍처 드리프트를 제거했습니다.
             </div>
             <div class="tech-stack">
               <strong>기술 스택</strong>:
