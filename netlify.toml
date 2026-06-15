@@ -4,7 +4,7 @@
 
 [build]
   publish = "dist"
-  command = "pnpm run verify"
+  command = "corepack enable && pnpm run verify"
 
 [build.environment]
   NODE_VERSION = "24"
