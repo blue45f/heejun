@@ -465,9 +465,26 @@ li {
 .mermaid svg[id^="gantt"],
 .mermaid svg.timeline,
 .mermaid svg[id^="timeline"] {
-    min-width: 800px !important;
+    min-width: 950px !important;
     max-width: none !important;
 }
+
+/* Gantt Chart readability improvements */
+.mermaid svg.gantt .grid text,
+.mermaid svg.gantt .tick text,
+.mermaid svg[id^="gantt"] .grid text,
+.mermaid svg[id^="gantt"] .tick text {
+    font-size: 11px !important;
+    fill: #94a3b8 !important;
+}
+
+.mermaid svg.gantt .sectionTitle,
+.mermaid svg[id^="gantt"] .sectionTitle {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    fill: #f8fafc !important;
+}
+
 
 
 /* Custom scrollbar */
@@ -770,8 +787,18 @@ def make_html_layout(title, body_content, doc_list, current_filename):
                 primaryColor: '#6366f1',
                 primaryTextColor: '#f8fafc',
                 lineColor: '#64748b'
+            }},
+            gantt: {{
+                axisFormat: '%m-%d',
+                tickInterval: '1 week',
+                useWidth: 1000,
+                barHeight: 30,
+                barGap: 8,
+                topPadding: 50,
+                sidePadding: 100
             }}
         }});
+
     </script>
 </body>
 </html>
