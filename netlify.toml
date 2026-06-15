@@ -41,7 +41,7 @@
   for = "/*"
   [headers.values]
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
-    X-Frame-Options = "DENY"
+    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
@@ -52,7 +52,7 @@
     # <style>·style= 속성 때문. 정적 HTML을 빌드 없이 그대로 배포하므로 nonce 주입 불가).
     # 외부 출처: html2pdf=cdnjs/unpkg, Pretendard 폰트 CSS·woff2=jsdelivr.
     # 새 외부 자원을 추가하면 반드시 이 directive도 함께 갱신할 것. docs/DEPLOYMENT.md 참고.
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; upgrade-insecure-requests"
 
 # HTML/마크다운: 캐시 짧게 (콘텐츠 변경 즉시 반영)
 [[headers]]
