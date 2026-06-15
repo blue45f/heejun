@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 29 표준 라이브러리 스택 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="29">29. 표준 라이브러리 스택 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>같은 일을 하는 라이브러리는 저장소마다 다르지 않게 하나로 모읍니다.</li>
+              <li>
+                HTTP는 ky, 서버 상태는 react-query, 클라이언트 상태는 zustand, URL 상태는 nuqs를
+                기본으로 둡니다.
+              </li>
+              <li>버전은 pnpm catalog로 묶고, 의존 방향은 린트로 검사합니다.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              표준을 정해두면 저장소를 옮겨 다닐 때 매번 새로 익힐 필요가 줄고, 같은 문제를 같은
+              방법으로 풉니다. 도구를 줄이면 학습할 표면이 줄고, 보안 패치나 버전 업그레이드를 한
+              번에 적용하기 쉬워집니다.
+            </p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>catalog</code></td>
+                    <td>워크스페이스 의존성 버전을 한 곳에 모아 고정하는 pnpm 기능</td>
+                  </tr>
+                  <tr>
+                    <td><code>공유 인스턴스</code></td>
+                    <td>인증·에러 처리를 미리 설정해 재사용하는 HTTP 객체</td>
+                  </tr>
+                  <tr>
+                    <td><code>트리셰이킹</code></td>
+                    <td>실제로 쓰는 코드만 번들에 남기는 최적화</td>
+                  </tr>
+                  <tr>
+                    <td><code>의존 방향</code></td>
+                    <td>app→domains→shared 순서로만 import를 허용하는 규칙</td>
+                  </tr>
+                  <tr>
+                    <td><code>철회 조건</code></td>
+                    <td>표준을 더 이상 유지하지 않고 바꾸기로 하는 명시적 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      HTTP·상태·URL·검증·로깅·스타일 표준, 선택 이유, 정렬 순서
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"도구를 통일하는 목적은 멋이 아니라, 저장소를 옮겨도 같은 방식으로 읽고 고치고
+                  지울 수 있게 하는 것이다."</strong
+                >
+                이 문서는 카테고리마다 하나의 표준 라이브러리를 정하고, 왜 그것을 골랐는지와 어떻게
+                옮겨갈지를 함께 적습니다. 새 라이브러리가 더 분명한 이점을 보이면 철회 조건에 따라
+                교체합니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">카테고리별 표준 라이브러리와 선택 이유</td>
+                    <td style="text-align: left">
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./22_모노레포_운영_가이드.md">22. 모노레포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">HTTP·검증·모킹 적용 방식</td>
+                    <td style="text-align: left">
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">상태·URL 상태 도구 선택</td>
+                    <td style="text-align: left">
+                      <a href="./03_상태관리_패턴_가이드.md">03. 상태관리</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">버전 정렬·릴리스 경계</td>
+                    <td style="text-align: left">
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>한 카테고리 한 표준</strong></td>
+                    <td style="text-align: left">
+                      같은 일을 하는 라이브러리는 저장소마다 다르지 않게 하나로 모읍니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>공유 스키마</strong></td>
+                    <td style="text-align: left">
+                      검증은 zod로 작성해 프론트와 백엔드가 함께 씁니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>버전 정렬</strong></td>
+                    <td style="text-align: left">공통 의존성은 catalog로 버전을 맞춥니다.</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>구조 경계</strong></td>
+                    <td style="text-align: left">import 방향은 린트로 검사합니다.</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>점진 적용</strong></td>
+                    <td style="text-align: left">
+                      큰 변경은 저장소별 작은 PR로 나눠 검증한 뒤 머지합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">브라우저 HTTP는 ky 공유 인스턴스로 둔다</td>
+                    <td style="text-align: left">라이브러리 공식 문서</td>
+                    <td style="text-align: left">요청·에러·인증 헤더 테스트</td>
+                    <td style="text-align: left">API 에러율, 재시도율</td>
+                    <td style="text-align: left">플랫폼 fetch만으로 동일 요구가 더 단순할 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">URL 상태는 nuqs로 둔다</td>
+                    <td style="text-align: left">라이브러리 공식 문서</td>
+                    <td style="text-align: left">딥링크·뒤로가기 E2E</td>
+                    <td style="text-align: left">잘못된 파라미터 유입률</td>
+                    <td style="text-align: left">라우터 내장 기능으로 충분할 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">NestJS 검증은 shared zod로 둔다</td>
+                    <td style="text-align: left">zod 문서, nestjs-zod 문서</td>
+                    <td style="text-align: left">DTO 검증 단위 테스트</td>
+                    <td style="text-align: left">잘못된 요청 4xx 비율</td>
+                    <td style="text-align: left">런타임 검증이 불필요한 내부 전용 경로일 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">의존 방향은 boundaries 린트로 강제한다</td>
+                    <td style="text-align: left">eslint-plugin-boundaries 문서</td>
+                    <td style="text-align: left">lint 위반 0건</td>
+                    <td style="text-align: left">구조 회귀 PR 수</td>
+                    <td style="text-align: left">단일 모듈 규모라 계층이 불필요할 때</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">라이브러리 채택</td>
+                    <td style="text-align: left">번들 diff, 라이선스 확인</td>
+                    <td style="text-align: left">플랫폼 오너</td>
+                    <td style="text-align: left">표준 외 라이브러리 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">검증 계층</td>
+                    <td style="text-align: left">shared 스키마 테스트</td>
+                    <td style="text-align: left">백엔드 오너</td>
+                    <td style="text-align: left">이전 검증 방식 복원</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">구조 경계</td>
+                    <td style="text-align: left">boundaries lint 리포트</td>
+                    <td style="text-align: left">FE 오너</td>
+                    <td style="text-align: left">위반 import 되돌리기</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">버전 정렬</td>
+                    <td style="text-align: left">catalog diff</td>
+                    <td style="text-align: left">플랫폼 오너</td>
+                    <td style="text-align: left">이전 버전 핀 복원</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1">1. 표준 스택 카탈로그</h2>
+            <h3 id="11">1.1 프론트엔드 표준</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">표준</th>
+                    <th style="text-align: left">한 줄 이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">HTTP 클라이언트</td>
+                    <td style="text-align: left">ky</td>
+                    <td style="text-align: left">
+                      ESM·경량·fetch 기반, 캐싱·재시도는 react-query 담당
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">서버 상태</td>
+                    <td style="text-align: left">@tanstack/react-query</td>
+                    <td style="text-align: left">캐싱·재요청·동기화를 한 계층에 모음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">클라이언트 상태</td>
+                    <td style="text-align: left">zustand</td>
+                    <td style="text-align: left">작은 API, 보일러플레이트 최소</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">URL/쿼리 파라미터</td>
+                    <td style="text-align: left">nuqs</td>
+                    <td style="text-align: left">URL을 단일 상태원으로, 타입과 함께 다룸</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">폼</td>
+                    <td style="text-align: left">react-hook-form + @hookform/resolvers</td>
+                    <td style="text-align: left">비제어 입력, 리렌더 최소</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">검증</td>
+                    <td style="text-align: left">zod</td>
+                    <td style="text-align: left">프론트·백 공유 스키마</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">스타일</td>
+                    <td style="text-align: left">Tailwind CSS + clsx + tailwind-merge</td>
+                    <td style="text-align: left">CSS-first·토큰화, 변형은 CVA</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">UI 프리미티브</td>
+                    <td style="text-align: left">Radix + lucide-react</td>
+                    <td style="text-align: left">접근성 내장, 아이콘 일관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">토스트 알림</td>
+                    <td style="text-align: left">sonner</td>
+                    <td style="text-align: left">알림 스택·키보드·접근성 기본 제공</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">애니메이션</td>
+                    <td style="text-align: left">motion</td>
+                    <td style="text-align: left">기존 라이브러리의 후속 패키지명</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">날짜</td>
+                    <td style="text-align: left">date-fns (+ date-fns-tz)</td>
+                    <td style="text-align: left">트리셰이킹·함수형</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">유틸</td>
+                    <td style="text-align: left">es-toolkit</td>
+                    <td style="text-align: left">작고 빠른 TS 우선 유틸</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">에러 경계</td>
+                    <td style="text-align: left">react-error-boundary</td>
+                    <td style="text-align: left">Suspense·Error 경계 표준화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">깊은 비교</td>
+                    <td style="text-align: left">dequal</td>
+                    <td style="text-align: left">경량 deep compare</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">ID 생성</td>
+                    <td style="text-align: left">crypto.randomUUID()</td>
+                    <td style="text-align: left">런타임 내장, 외부 의존 0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="12-nestjs">1.2 백엔드(NestJS) 표준</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">표준</th>
+                    <th style="text-align: left">한 줄 이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">DTO 검증</td>
+                    <td style="text-align: left">nestjs-zod</td>
+                    <td style="text-align: left">shared zod 재사용, 이중 정의 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">로깅</td>
+                    <td style="text-align: left">nestjs-pino</td>
+                    <td style="text-align: left">구조적 JSON·요청 컨텍스트</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">인증</td>
+                    <td style="text-align: left">@nestjs/jwt + google-auth-library</td>
+                    <td style="text-align: left">별도 추상화 계층 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">비밀번호 해시</td>
+                    <td style="text-align: left">argon2</td>
+                    <td style="text-align: left">메모리-하드 해시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">ORM 기본값</td>
+                    <td style="text-align: left">Prisma (기존 Drizzle 저장소 유지)</td>
+                    <td style="text-align: left">새 백엔드의 go-forward 기본값</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="13">1.3 툴체인 표준</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">표준</th>
+                    <th style="text-align: left">한 줄 이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">패키지 매니저</td>
+                    <td style="text-align: left">pnpm + catalog</td>
+                    <td style="text-align: left">워크스페이스 버전 단일화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">빌드</td>
+                    <td style="text-align: left">Vite + Rolldown</td>
+                    <td style="text-align: left">빠른 dev·번들</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">React 컴파일</td>
+                    <td style="text-align: left">React Compiler (babel-plugin-react-compiler)</td>
+                    <td style="text-align: left">자동 메모이제이션</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">린트</td>
+                    <td style="text-align: left">
+                      ESLint flat + eslint-plugin-react-compiler + eslint-plugin-boundaries
+                    </td>
+                    <td style="text-align: left">RC 규칙·계층 경계 강제</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">포맷</td>
+                    <td style="text-align: left">Prettier</td>
+                    <td style="text-align: left">단일 포맷</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">테스트</td>
+                    <td style="text-align: left">vitest + @testing-library + msw + playwright</td>
+                    <td style="text-align: left">Vite 변환 공유, e2e 분리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">시크릿 스캔</td>
+                    <td style="text-align: left">secretlint</td>
+                    <td style="text-align: left">pre-commit 유출 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">타입</td>
+                    <td style="text-align: left">TypeScript strict</td>
+                    <td style="text-align: left">null 안전</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h2 id="config-heejun">발행 공유 config 패키지 (@heejun/*)</h2>
+            <p>
+              위 툴체인 표준은 npm에 발행된 <code>@heejun/*</code> config 패키지로 구현되어, 각
+              저장소가 의존성으로 가져다 쓴다. 한 곳에서 관리하므로 설정 드리프트가 사라진다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">패키지</th>
+                    <th style="text-align: left">역할</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>@heejun/eslint-config</code></td>
+                    <td style="text-align: left">
+                      ESLint flat config (typescript-eslint + React 19 + React Compiler + 계층 경계)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>@heejun/prettier-config</code></td>
+                    <td style="text-align: left">Prettier 설정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>@heejun/typescript-config</code></td>
+                    <td style="text-align: left">tsconfig (base / react / node)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>@heejun/tailwind-config</code></td>
+                    <td style="text-align: left">Tailwind v4 CSS-first <code>@theme</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>@heejun/vite-config</code></td>
+                    <td style="text-align: left">Vite 8 + React Compiler</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <pre><code class="language-bash">pnpm add -D @heejun/eslint-config @heejun/prettier-config @heejun/typescript-config @heejun/vite-config @heejun/tailwind-config
+</code></pre>
+            <h3 id="_4">적용 방법</h3>
+            <p>각 저장소는 인라인 설정을 지우고 위 패키지를 의존성으로 참조한다.</p>
+            <p>
+              <strong>Prettier</strong> — <code>package.json</code> 에 설정 파일 대신 패키지명을
+              적고 인라인 <code>.prettierrc</code> 는 삭제한다. 기본값이 형제 저장소 공통
+              컨벤션(<code>semi: false</code>, <code>trailingComma: 'es5'</code>)이라 재포맷 없이
+              채택된다. Tailwind 클래스 정렬이 필요하면 <code>prettierConfigWithTailwind</code> 를
+              쓴다.
+            </p>
+            <pre><code class="language-jsonc">// package.json
+{ &quot;prettier&quot;: &quot;@heejun/prettier-config&quot; }
+</code></pre>
+            <p>
+              <strong>ESLint</strong> — <code>base()</code> 와 <code>react()</code> 를 펼쳐 합친다.
+              <code>base()</code> 는 import 위생·typescript-eslint 권장 규칙·Prettier 충돌 비활성을
+              제공하고, <code>react()</code> 는 React 19·React Compiler·접근성 규칙을 더한다.
+              저장소별 정책(전역 함수 제한, 테스트 완화 등)은 뒤에 덧붙인다.
+            </p>
+            <pre><code class="language-js">// eslint.config.mjs
+import { base, react, defineConfig } from '@heejun/eslint-config'
+
+export default defineConfig(
+  base({ files: ['**/*.{ts,tsx}'] }),
+  react({ files: ['apps/web/**/*.{ts,tsx}'] }),
+  // 저장소별 override는 뒤에 덧붙인다
+)
+</code></pre>
+            <p>
+              테스트/목 컨벤션을 강제하는 <code>heejunRules()</code> 는 opt-in 이므로 필요한
+              저장소만 <code>defineConfig(base(), react(), heejunRules())</code> 로 펼친다.
+            </p>
+            <p>
+              <strong>적용 시 알아둘 점</strong> — <code>eslint-plugin-jsx-a11y</code> 는
+              <code>minimatch</code> v3을 쓰므로, 저장소가 <code>minimatch</code> v10을 전역
+              고정했다면 스코프 override(<code>eslint-plugin-jsx-a11y&gt;minimatch</code>)로 v3을
+              함께 둔다. 의존성 감사 게이트가 있는 저장소는 <code>eslint-plugin-boundaries</code> 가
+              끌어오는 전이 의존성을 override로 고정한다.
+            </p>
+            <h2 id="2">2. 표준 선택 이유</h2>
+            <ul>
+              <li>
+                <strong>ky (HTTP)</strong>: ESM 네이티브이며 번들이 가볍고 플랫폼 fetch 위에서
+                동작합니다. 캐싱과 재시도는 react-query가 담당하므로, 클라이언트에는 얇은 fetch
+                래퍼만 있으면 충분합니다.
+              </li>
+              <li>
+                <strong>nuqs (URL/쿼리 파라미터)</strong>: 화면 상태를 URL에 두면 뒤로가기,
+                새로고침, 링크 공유가 자연스럽게 동작합니다. 쿼리 파라미터를 타입과 함께 다뤄 수동
+                파싱 코드를 없앱니다.
+              </li>
+              <li>
+                <strong>sonner (토스트 알림)</strong>: 알림 스택, 키보드 처리, 접근성 기본값을
+                제공해 별도 구현 부담을 줄입니다.
+              </li>
+              <li>
+                <strong>motion (애니메이션)</strong>: 기존 라이브러리의 후속 패키지명으로 API가
+                이어지며, 앞으로의 릴리스 라인을 따릅니다.
+              </li>
+              <li>
+                <strong>date-fns / es-toolkit</strong>: 함수 단위로 임포트해 번들에 필요한 것만
+                포함됩니다. 타입 우선 설계라 별도 타입 패키지가 필요 없습니다.
+              </li>
+              <li>
+                <strong>argon2 (해시)</strong>: 메모리 비용을 조절할 수 있는 해시로, 무차별 대입
+                공격에 더 강합니다.
+              </li>
+              <li>
+                <strong>nestjs-zod (검증)</strong>: 프론트와 백엔드가 같은 zod 스키마를 공유해 검증
+                규칙이 한 곳에서 관리됩니다. 데코레이터 검증과의 이중 정의를 없앱니다.
+              </li>
+              <li>
+                <strong>nestjs-pino (로깅)</strong>: 요청 컨텍스트가 붙은 구조적 JSON 로그로 관측성
+                도구와 바로 연동됩니다(<a href="./09_장애_대응_및_관측성_표준.md">09. 장애 대응</a
+                >).
+              </li>
+              <li>
+                <strong>ESLint flat + Prettier</strong>: React Compiler 규칙을 검사하는 플러그인이
+                ESLint 위에서만 제공되므로, 자동 메모이제이션의 안전망을 유지하려면 ESLint 계열을
+                유지합니다.
+              </li>
+              <li>
+                <strong>eslint-plugin-boundaries</strong>: app→domains→shared→infrastructure 의존
+                방향을 린트로 강제해 구조가 시간이 지나도 무너지지 않게 합니다(<a
+                  href="./04_아키텍처_설계_패턴.md"
+                  >04. 아키텍처</a
+                >).
+              </li>
+              <li>
+                <strong>pnpm + catalog</strong>: 워크스페이스 전반의 버전을 한 곳에서 고정해
+                드리프트를 막습니다.
+              </li>
+              <li>
+                <strong>Prisma 기본값, 기존 Drizzle 유지</strong>: 새 백엔드는 Prisma를 기본으로
+                하되, 이미 Drizzle로 운영 중인 저장소는 옮기지 않습니다. 데이터 계층 이전은 위험
+                대비 효용이 낮습니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="_5">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 버전 정렬과 패키지명 교체처럼 위험이 낮은 항목부터
+                맞춥니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: HTTP·검증·토스트 알림 라이브러리를 표준으로 교체합니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 의존 방향 린트와 catalog로 다시 어긋나지 않게
+                고정합니다.
+              </li>
+            </ul>
+            <h2 id="_6">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>즉시 적용</code> — 추천 항목 1개를 이번 주 내에 실제 작업 1건에 반영한다.
+              </li>
+              <li>
+                <code>1주 내 정리</code> — 적용 결과를 PR 본문이나 회고 노트에 간단히 기록한다.
+              </li>
+              <li>
+                <code>1개월 내 점검</code> — 재작업률/리뷰 충돌/배포 이슈 중 적어도 한 항목이
+                개선되었는지 확인한다.
+              </li>
+            </ul>
+            <h2 id="_7">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li><code>담당자</code> : 항목 적용 주체(문서 오너/팀원)를 명시</li>
+              <li><code>적용일</code> : 실제 반영된 날짜 및 작업 ID를 남김</li>
+              <li><code>측정 지표</code> : 리뷰 충돌/재작업/버그 재발 중 1개 이상 수치로 기록</li>
+              <li>
+                <code>보류 사유</code> : 적용을 못한 경우 이유를 1줄 기록하고 다음 액션을 지정
+              </li>
+            </ul>
+            <h2 id="_8">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — 추천 항목 1개를 우선 적용하고 1회 사용자 관측
+                신호(에러율/실패율/지연)와 연결한다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 추천 항목 1개를 팀 내 표준/템플릿에 반영해 재사용성을
+                확보한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — 추천 항목 1개를 다른 관련 문서에 역링크로 연동해 중복
+                작업을 줄인다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 각 항목별 산출물(예: PR 링크/체크리스트/회고 노트)을 1개
+                이상 남긴다.
+              </li>
+            </ul>
+            <h2 id="_9">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>[ ] <code>1단계(7일)</code> : 추천 항목 1개를 실제 작업으로 전환</li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 전환 결과를 팀 산출물(ADR/PR/체크리스트)에 반영
+              </li>
+              <li>[ ] <code>3단계(60일)</code> : 정적 지표 1개 이상으로 효과 검증</li>
+              <li>[ ] <code>문제 대응</code> : 미달성 시 보류 사유와 다음 실행 액션을 문서화</li>
+            </ul>
+            <h2 id="_10">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 위험, 비용, 기대 효과가 1회 이상 정량화되어야 적용한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 적용 전 사전 승인자(팀 리드/보안/운영)와 rollback 담당자를
+                확인한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 1~5 등급으로 현재 위험도를 기록하고 정량 기준을 남긴다.
+              </li>
+              <li>
+                <code>리더 승인자</code> : 최종 승인 책임자(예: 팀 리드/PO/보안리더)를 명시한다.
+              </li>
+              <li><code>승인 역할</code> : 승인자, 실행자, 모니터링 주체 역할을 분리해 적는다.</li>
+              <li>
+                <code>재개 조건</code> : 실패 신호가 기준치 이내로 돌아오면 다음 단계로 확장한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 회귀 지표 악화가 1개 이상이면 즉시 중단하고 보류 사유를
+                갱신한다.
+              </li>
+              <li><code>재평가 주기</code> : 최소 2주 단위로 상태를 리뷰하고 조정한다.</li>
+            </ul>
+            <hr />
+            <h2 id="_11">실무 적용 가이드</h2>
+            <h3 id="_12">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>새 저장소를 만들거나 라이브러리를 새로 추가할 때</li>
+              <li>같은 일을 하는 라이브러리가 저장소마다 달라 정리가 필요할 때</li>
+              <li>의존성 버전이 저장소 간에 어긋나 빌드나 동작이 갈릴 때</li>
+            </ul>
+            <h3 id="_13">적용 순서</h3>
+            <ol>
+              <li>대상 저장소의 현재 라이브러리를 카테고리별로 정리한다.</li>
+              <li>이 문서의 표준과 다른 항목을 골라낸다.</li>
+              <li>저위험 항목(버전 정렬, 패키지명 교체)부터 작은 PR로 바꾼다.</li>
+              <li>라이브러리 교체(HTTP, 토스트 알림, 검증)는 동작 테스트와 함께 PR을 만든다.</li>
+              <li>typecheck·lint·test·build를 모두 통과시킨 뒤 머지한다.</li>
+            </ol>
+            <h3 id="_14">함께 두는 파일</h3>
+            <ul>
+              <li>HTTP 공유 인스턴스: <code>src/infrastructure/http/</code></li>
+              <li>env 스키마: <code>src/shared/config/</code></li>
+              <li>린트 경계 설정: <code>eslint.config.mjs</code></li>
+            </ul>
+            <h3 id="_15">흔한 실수</h3>
+            <ul>
+              <li>react-query를 쓰면서 HTTP 클라이언트에 재시도·캐싱을 또 얹어 동작이 중복된다.</li>
+              <li>버전을 저장소마다 손으로 올려 다시 어긋난다(catalog로 묶어야 한다).</li>
+              <li>검증 스키마를 프론트와 백엔드에 따로 정의해 규칙이 갈린다.</li>
+              <li>큰 구조 변경을 한 PR에 몰아 리뷰와 롤백이 어려워진다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] 변경한 카테고리가 이 문서의 표준과 일치한다</li>
+              <li>[ ] typecheck·lint·test·build가 모두 통과한다</li>
+              <li>[ ] 교체한 라이브러리의 동작을 테스트나 스모크로 확인했다</li>
+              <li>[ ] 버전은 catalog 또는 공통 기준에 맞춰 정렬했다</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,4341 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 26 PWA 오프라인 전략 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="26-pwa">26. PWA &amp; 오프라인 전략 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 모바일·터널·엘리베이터에서 네트워크가 끊겨도 사용자는
+                작업을 계속하길 원하고, 다시 연결됐을 때 손실 없이 이어지길 기대합니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: PWA의 오프라인 전략은 ATM과 같습니다. ATM이 일시적으로
+                본점 시스템과 연결이 끊겨도 출금 가능하고, 연결이 복구되면 거래 내역이 본점으로
+                안전하게 동기화됩니다. 화면만 살아 있는 게 아니라 데이터 흐름이 유지되어야 합니다.
+              </p>
+            </blockquote>
+            <ul>
+              <li>
+                오프라인 대응은 화면만 보이게 하는 것이 아니라 데이터 동기화 전략이 핵심입니다.
+              </li>
+              <li>동기화 큐, 재시도, 충돌 병합 정책을 먼저 정하세요.</li>
+              <li>온라인 복귀 시 데이터 정합성 검증을 마지막에 반드시 넣습니다.</li>
+            </ul>
+            <h3 id="pwa">PWA 오프라인 핵심 의사결정 한눈에 보기</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start([기능 설계 시작]) --&gt; Q1{오프라인에서&lt;br/&gt;읽기가 필요한가}
+  Q1 --&gt;|예| R1[App Shell + 데이터 캐싱&lt;br/&gt;Cache First / SWR]
+  Q1 --&gt;|아니오| Q2{오프라인에서&lt;br/&gt;쓰기가 필요한가}
+  R1 --&gt; Q2
+  Q2 --&gt;|예| W1[IndexedDB 큐 + 동기화 엔진&lt;br/&gt;idempotency key 필수]
+  Q2 --&gt;|아니오| Q3{재접속 시 알림이&lt;br/&gt;필요한가}
+  W1 --&gt; Q3
+  Q3 --&gt;|예| P1[Web Push + Background Sync&lt;br/&gt;VAPID 키 발급]
+  Q3 --&gt;|아니오| Done([완료: 라이브러리 선택])
+  P1 --&gt; Done
+  Done --&gt; Final([Workbox / Serwist /&lt;br/&gt;직접 SW 작성 선택])</pre
+            >
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>오프라인 전략은 네트워크가 흔들릴 때도 핵심 기능이 죽지 않게 만드는 설계입니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 도서관 사서가 자주 빌려가는 책은 가까운 책장에
+                두고(캐시), 새 책 주문은 일단 메모에 적어두었다가(큐) 출판사 영업이 시작되면
+                한꺼번에 발송하는(동기화) 방식과 같습니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>Service Worker</code></td>
+                    <td>브라우저에서 네트워크와 캐시를 중간에서 처리하는 스크립트</td>
+                  </tr>
+                  <tr>
+                    <td><code>동기화 큐</code></td>
+                    <td>오프라인에서 만든 변경 요청을 저장해두는 큐</td>
+                  </tr>
+                  <tr>
+                    <td><code>fallback UI</code></td>
+                    <td>오프라인 시 보여줄 대체 화면/기능</td>
+                  </tr>
+                  <tr>
+                    <td><code>재시도</code></td>
+                    <td>실패한 요청을 나중에 다시 보내는 동작</td>
+                  </tr>
+                  <tr>
+                    <td><code>푸시</code></td>
+                    <td>새 소식/데이터를 서버가 즉시 보내는 방식</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./12_CDN_캐시_전략.md">12. CDN</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      Service Worker, 오프라인 전략, 캐싱 패턴, Background Sync, Web Push, OPFS
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"PWA의 핵심은 설치 배지가 아니라, 네트워크가 불안정해도 사용자의 작업을 잃지 않는
+                  신뢰성이다."</strong
+                >
+                본 가이드는 특정 PWA 플러그인이나 래퍼가 아니라
+                <strong
+                  >Service Worker 라이프사이클, 캐시 책임 분리, 오프라인 UX, 동기화, 저장소 quota,
+                  배포 안전성</strong
+                >을 기준으로 PWA를 설계하는 방법을 다룹니다. Workbox, Serwist, 프레임워크 플러그인은
+                구현 후보입니다.
+              </p>
+              <p><strong>현재 5월 핵심 변화 요약</strong></p>
+              <ul>
+                <li>
+                  <strong>Service Worker cache governance</strong>: framework/server cache, CDN
+                  cache, browser HTTP cache, Service Worker cache의 책임을 분리해야 장애를 줄일 수
+                  있습니다.
+                </li>
+                <li>
+                  <strong>Web Push/설치 UX</strong>: 모바일 브라우저별 설치/권한/알림 지원 차이가
+                  크므로 기능 감지와 fallback UX가 필수입니다.
+                </li>
+                <li>
+                  <strong>OPFS/Storage Buckets</strong>: 대용량 오프라인 데이터는 IndexedDB만으로
+                  처리하지 않고 파일성 데이터와 구조화 데이터를 분리합니다.
+                </li>
+                <li>
+                  <strong>Background sync</strong>: 브라우저 지원 편차가 있으므로 온라인 복귀 감지와
+                  앱 내부 queue flush를 기본 fallback으로 둡니다.
+                </li>
+                <li>
+                  <strong>Tooling conditional</strong>: Workbox/Serwist/프레임워크 플러그인은 공식
+                  latest, peer dependency, framework cache와의 충돌 여부를 확인한 뒤 채택합니다.
+                </li>
+              </ul>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 오프라인 UX 플로우(읽기/쓰기/동기화 실패)를 먼저
+                문서화하세요.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: Service Worker 업데이트 전략과 큐 동기화 우선순위를
+                고정하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: SW 캐시 정합성 문제는 주기적 캐시 정리/리프레시 루틴으로
+                대응하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — service worker, cache strategy, offline fallback 중 하나를
+                실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — SW lifecycle log, offline smoke, cache manifest, update
+                prompt test를 같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — offline failure, stale data incident, SW update lag가
+                나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : service worker, cache strategy, offline fallback 적용 범위를
+                어느 화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : SW lifecycle log, offline smoke, cache manifest, update prompt
+                test 중 실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : offline failure, stale data incident, SW update lag를 다시
+                볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      Service Worker 수명주기, 앱 오프라인 UX, 캐시 책임 분리
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      배포 중 Service Worker 업데이트와 rollback 안전성
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>,
+                      <a href="./09_장애_대응_및_관측성_표준.md">09. 관측성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      브라우저별 Push/install/background sync fallback
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./13_브라우저_호환성_가이드.md">13. 브라우저 호환성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 만든 Service Worker/캐시 전략 초안 검증</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>캐시 책임 분리</strong></td>
+                    <td style="text-align: left">
+                      HTTP/CDN cache, framework cache, Service Worker cache의 소유권과 무효화 기준을
+                      문서화합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>오프라인 UX</strong></td>
+                    <td style="text-align: left">
+                      읽기/쓰기 가능 기능, 저장 대기열, 충돌 해결, 복구 메시지를 정의합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>업데이트 안전성</strong></td>
+                    <td style="text-align: left">
+                      Service Worker skipWaiting/clientsClaim 사용 여부와 rollback 경로를
+                      검증합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>저장소 관리</strong></td>
+                    <td style="text-align: left">
+                      Cache Storage, IndexedDB, OPFS, quota/eviction 정책을 고려합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>지원 편차 대응</strong></td>
+                    <td style="text-align: left">
+                      Push, install prompt, Background Sync, file API는 feature detection과
+                      fallback을 둡니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00-pwa">0.0 PWA 오프라인 처리 흐름</h3>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 단계 순서가 어긋나면 캐시는 정의했는데 동기화 큐가
+                없거나, UX는 만들었는데 rollback이 없는 부분 적용으로 끝납니다. 아래 순서대로
+                진행해야 운영까지 닿습니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TD
+  A[오프라인 지원 기능 분석] --&gt; B[캐시 책임 분리]
+  B --&gt; C[Service Worker 라우트 전략 정의]
+  C --&gt; D[쓰기 작업은 큐 + idempotency 적용]
+  D --&gt; E[오프라인 UX 메시지/충돌 처리]
+  E --&gt; F[등록/업데이트/rollback 정책 적용]
+  F --&gt; G{배포 환경별 동작 확인}
+  G --&gt;|Fail| H[지원 브라우저 fallback 또는 기능 축소]
+  G --&gt;|Pass| I[E2E offline + sync 검증]
+  H --&gt; C
+  I --&gt; J[운영 모니터링 + 큐 드레인/캐시 purge]</pre
+            >
+            <h4 id="_7">캐시 책임 분리 한눈에 보기</h4>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 우편 시스템처럼 책임이 단계별로 다릅니다. 본사
+                창고(CDN), 지역 우체국(HTTP cache), 우체부 가방(Service Worker), 우편함(브라우저
+                메모리)이 같은 편지를 모두 보관하면 어디 편지가 최신인지 알 수 없습니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart LR
+  subgraph 서버측[서버 계층]
+    A[Origin Server&lt;br/&gt;최신 진실]
+    B[Framework Cache&lt;br/&gt;SSR/ISR/RSC]
+  end
+  subgraph 네트워크[네트워크 계층]
+    C[CDN Cache&lt;br/&gt;지역별 엣지]
+    D[HTTP Cache&lt;br/&gt;브라우저 디스크]
+  end
+  subgraph 클라이언트[클라이언트 계층]
+    E[Service Worker Cache&lt;br/&gt;Cache Storage API]
+    F[Memory Cache&lt;br/&gt;현재 탭만]
+  end
+  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F
+  E -.오프라인 폴백.-&gt; User([사용자])
+  F --&gt; User
+  style A fill:#fff3e0
+  style E fill:#e3f2fd</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      Service Worker는 라우트별 캐시 전략과 eviction 정책을 함께 둔다
+                    </td>
+                    <td style="text-align: left">MDN/web.dev Service Worker/PWA 문서</td>
+                    <td style="text-align: left">offline E2E, cache quota test</td>
+                    <td style="text-align: left">cache hit ratio, stale response incident</td>
+                    <td style="text-align: left">
+                      앱이 완전 온라인 전용이고 offline UX 가치가 낮을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      쓰기 작업은 offline queue와 idempotency key를 사용한다
+                    </td>
+                    <td style="text-align: left">
+                      Background Sync/IndexedDB 문서, API idempotency 정책
+                    </td>
+                    <td style="text-align: left">offline mutation replay test</td>
+                    <td style="text-align: left">duplicate write, sync failure rate</td>
+                    <td style="text-align: left">서버가 idempotent write를 지원하지 않을 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      Push/installation은 feature detection과 사용자 맥락 기반 요청으로 처리한다
+                    </td>
+                    <td style="text-align: left">Web Push/Web App Manifest 문서</td>
+                    <td style="text-align: left">permission flow E2E</td>
+                    <td style="text-align: left">opt-in rate, notification complaint</td>
+                    <td style="text-align: left">알림이 제품 가치보다 방해가 클 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      PWA tooling은 framework cache와 충돌 검증 후 도입한다
+                    </td>
+                    <td style="text-align: left">도구 공식 release/compat 문서</td>
+                    <td style="text-align: left">navigation preload, cache invalidation test</td>
+                    <td style="text-align: left">update failure, stale shell incident</td>
+                    <td style="text-align: left">수동 Service Worker가 더 작고 명확할 때</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Service Worker release gate</td>
+                    <td style="text-align: left">
+                      install/update/offline E2E, cache manifest diff
+                    </td>
+                    <td style="text-align: left">Release owner</td>
+                    <td style="text-align: left">
+                      SW unregister guide, cache purge, previous asset manifest
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Cache policy gate</td>
+                    <td style="text-align: left">
+                      route TTL matrix, quota test, stale response test
+                    </td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">runtime cache disable flag</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Offline write gate</td>
+                    <td style="text-align: left">
+                      idempotency test, replay trace, conflict UI evidence
+                    </td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">offline write flag off, queue drain runbook</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Push/Install gate</td>
+                    <td style="text-align: left">
+                      permission UX test, opt-out path, browser support matrix
+                    </td>
+                    <td style="text-align: left">Product owner</td>
+                    <td style="text-align: left">prompt disabled, subscription cleanup</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-ai-pwa">1. AI 기반 PWA 개발 자동화</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: Service Worker는 한 줄 실수로 모든 사용자에게 stale
+                HTML이 박혀 화면 자체가 깨질 수 있습니다. AI 산출물은 빠르지만, "운영 환경에서
+                무엇이 부서질 수 있나"를 사람이 한 번 더 검증해야 안전합니다.
+              </p>
+            </blockquote>
+            <p>
+              이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 단일 출처로
+              따릅니다. 여기서는 Service Worker, 캐시, 오프라인 UX 검증에 필요한 도메인별 질문만
+              다룹니다.
+            </p>
+            <p>
+              AI는 Service Worker 초안, 캐싱 전략 후보, 오프라인 UX 시나리오, 테스트 케이스를 빠르게
+              만들 수 있다. 최종 적용은 브라우저 호환성, 캐시 무효화 위험, 배포 롤백 가능성을 검증한
+              뒤 사람이 승인한다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                    <th style="text-align: left">승인 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Service Worker 초안</td>
+                    <td style="text-align: left">route map, build assets, framework cache 정책</td>
+                    <td style="text-align: left">precache/runtime route 후보</td>
+                    <td style="text-align: left">offline E2E, update flow, rollback test</td>
+                    <td style="text-align: left">stale HTML/API 응답 위험이 통제됨</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">캐싱 전략 설계</td>
+                    <td style="text-align: left">리소스 유형, TTL, 개인화 여부</td>
+                    <td style="text-align: left">route별 전략, cache name, eviction rule</td>
+                    <td style="text-align: left">cache hit ratio, quota test</td>
+                    <td style="text-align: left">CDN/HTTP/SW cache 책임이 분리됨</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">오프라인 UX</td>
+                    <td style="text-align: left">읽기/쓰기 flow, conflict model</td>
+                    <td style="text-align: left">offline banner, queue, retry, conflict UI</td>
+                    <td style="text-align: left">network emulation E2E</td>
+                    <td style="text-align: left">사용자 작업 유실 없음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Push 알림</td>
+                    <td style="text-align: left">권한 UX, payload, topic, unsubscribe</td>
+                    <td style="text-align: left">subscription flow, SW event handler 초안</td>
+                    <td style="text-align: left">permission UX, click/open test</td>
+                    <td style="text-align: left">사용자 제스처와 opt-out 보장</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Background Sync</td>
+                    <td style="text-align: left">queue schema, retry policy, idempotency key</td>
+                    <td style="text-align: left">sync queue, backoff, dead-letter 후보</td>
+                    <td style="text-align: left">offline/online transition test</td>
+                    <td style="text-align: left">중복 제출과 순서 뒤섞임 방지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Manifest</td>
+                    <td style="text-align: left">app identity, icons, screenshots, shortcuts</td>
+                    <td style="text-align: left">manifest 초안과 asset checklist</td>
+                    <td style="text-align: left">installability audit, icon mask test</td>
+                    <td style="text-align: left">설치 실패 시 명확한 fallback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PWA 회귀 테스트</td>
+                    <td style="text-align: left">핵심 route, SW state, cache state</td>
+                    <td style="text-align: left">Playwright 시나리오 후보</td>
+                    <td style="text-align: left">CI trace, browser matrix</td>
+                    <td style="text-align: left">배포 전 update/install/offline 흐름 검증</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>AI 보조 도구로 Service Worker를 만들 때는 다음 제약을 prompt에 포함합니다.</p>
+            <ul>
+              <li>TypeScript strict 기준과 Service Worker 전용 타입 사용</li>
+              <li>cache name/version, TTL, maxEntries, eviction 정책 명시</li>
+              <li>인증/결제/개인화 API는 기본적으로 장기 캐시 금지</li>
+              <li>
+                <code>skipWaiting</code>/<code>clientsClaim</code> 사용 여부와 rollback 경로 명시
+              </li>
+              <li>offline fallback, stale response 감지, cache purge runbook 포함</li>
+            </ul>
+            <h2 id="2-pwa">2. 환경별 PWA 운영 전략</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 한 SW가 모든 환경에서 동일하게 동작하면 preview의
+                캐시가 production을 덮어쓰거나, staging 알림이 실제 사용자에게 가는 사고가 납니다.
+                환경별 격벽을 미리 만들어 두면 사고가 1환경에서 멈춥니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 약국에서 처방약·일반약·테스트 샘플을 같은 약장에
+                섞어두지 않듯, PWA도 환경별로 캐시 공간과 알림 채널을 격리해야 합니다.
+              </p>
+            </blockquote>
+            <p>
+              Preview, staging, canary, production 환경에서 PWA가 일관되게 동작하면서도 환경별
+              특성에 맞게 분리 운영하기 위한 전략이다.
+            </p>
+            <h3 id="_8">환경별 캐시 정책 비교 한눈에 보기</h3>
+            <pre class="mermaid">
+flowchart TB
+  subgraph PROD[Production]
+    P1[Precache: ON]
+    P2[API: NetworkFirst&lt;br/&gt;5분 TTL]
+    P3[Static: CacheFirst&lt;br/&gt;30일 TTL]
+  end
+  subgraph STG[Staging]
+    S1[Precache: ON]
+    S2[API: NetworkFirst&lt;br/&gt;1분 TTL]
+    S3[Static: CacheFirst&lt;br/&gt;짧은 TTL]
+  end
+  subgraph CAN[Canary]
+    C1[Precache: OFF]
+    C2[API: NetworkFirst&lt;br/&gt;30초 TTL]
+    C3[Static: SWR&lt;br/&gt;실시간 갱신]
+  end
+  subgraph PRE[Preview]
+    R1[Precache: OFF]
+    R2[API: NetworkOnly]
+    R3[Static: NetworkOnly]
+  end
+  style PROD fill:#e8f5e9
+  style STG fill:#fff8e1
+  style CAN fill:#f3e5f5
+  style PRE fill:#ffebee</pre
+            >
+            <h3 id="21-service-worker">2.1 환경별 Service Worker 분리</h3>
+            <p>
+              Preview 환경에서는 캐시를 비활성화하여 항상 최신 코드를 반영하고, Production에서는
+              전체 캐시를 활성화한다.
+            </p>
+            <pre><code class="language-typescript">// src/sw.ts - 환경 인식 Service Worker
+
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { registerRoute, NavigationRoute } from 'workbox-routing'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+import { setCatchHandler } from 'workbox-routing'
+
+declare let self: ServiceWorkerGlobalScope
+
+// 빌드 시점에 주입되는 환경 변수
+const APP_ENV = '__APP_ENV__' as 'production' | 'staging' | 'canary' | 'preview'
+const APP_VERSION = '__APP_VERSION__'
+const CACHE_PREFIX = `app-${APP_ENV}-v${APP_VERSION}`
+
+interface EnvCacheConfig {
+  enablePrecache: boolean
+  enableRuntimeCache: boolean
+  apiStrategy: 'NetworkFirst' | 'NetworkOnly'
+  staticStrategy: 'CacheFirst' | 'NetworkOnly'
+  maxApiCacheAge: number
+}
+
+const ENV_CONFIGS: Record&lt;string, EnvCacheConfig&gt; = {
+  production: {
+    enablePrecache: true,
+    enableRuntimeCache: true,
+    apiStrategy: 'NetworkFirst',
+    staticStrategy: 'CacheFirst',
+    maxApiCacheAge: 300,
+  },
+  staging: {
+    enablePrecache: true,
+    enableRuntimeCache: true,
+    apiStrategy: 'NetworkFirst',
+    staticStrategy: 'CacheFirst',
+    maxApiCacheAge: 60,
+  },
+  canary: {
+    enablePrecache: false,
+    enableRuntimeCache: true,
+    apiStrategy: 'NetworkFirst',
+    staticStrategy: 'StaleWhileRevalidate' as 'CacheFirst',
+    maxApiCacheAge: 30,
+  },
+  preview: {
+    enablePrecache: false,
+    enableRuntimeCache: false,
+    apiStrategy: 'NetworkOnly',
+    staticStrategy: 'NetworkOnly',
+    maxApiCacheAge: 0,
+  },
+}
+
+const config = ENV_CONFIGS[APP_ENV] ?? ENV_CONFIGS.preview
+
+// --- Precache ---
+cleanupOutdatedCaches()
+
+if (config.enablePrecache) {
+  precacheAndRoute(self.__WB_MANIFEST)
+}
+
+// --- Runtime Cache ---
+if (config.enableRuntimeCache) {
+  // API 캐싱
+  const apiStrategyInstance =
+    config.apiStrategy === 'NetworkFirst'
+      ? new NetworkFirst({
+          cacheName: `${CACHE_PREFIX}-api`,
+          networkTimeoutSeconds: 3,
+          plugins: [
+            new ExpirationPlugin({ maxAgeSeconds: config.maxApiCacheAge, maxEntries: 200 }),
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+          ],
+        })
+      : new NetworkOnly()
+
+  registerRoute(({ url }) =&gt; url.pathname.startsWith('/api/'), apiStrategyInstance)
+
+  // 정적 리소스 캐싱
+  const staticStrategyInstance =
+    config.staticStrategy === 'CacheFirst'
+      ? new CacheFirst({
+          cacheName: `${CACHE_PREFIX}-static`,
+          plugins: [
+            new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 }),
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+          ],
+        })
+      : new NetworkOnly()
+
+  registerRoute(
+    ({ request }) =&gt; ['image', 'font', 'style', 'script'].includes(request.destination),
+    staticStrategyInstance,
+  )
+}
+
+// --- 오프라인 폴백 ---
+setCatchHandler(async ({ event }) =&gt; {
+  if ((event as FetchEvent).request.destination === 'document') {
+    return caches.match('/offline.html') ?? Response.error()
+  }
+  return Response.error()
+})
+
+// --- 활성화 시 이전 환경 캐시 정리 ---
+self.addEventListener('activate', (event) =&gt; {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =&gt;
+        Promise.all(
+          keys.filter((key) =&gt; !key.startsWith(CACHE_PREFIX)).map((key) =&gt; caches.delete(key)),
+        ),
+      ),
+  )
+})
+
+self.addEventListener('message', (event) =&gt; {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+</code></pre>
+            <h4 id="vite">Vite 빌드 시 환경 변수 주입</h4>
+            <pre><code class="language-typescript">// vite.config.ts
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig(({ mode }) =&gt; ({
+  plugins: [
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        // 빌드 시점에 환경 변수를 SW 소스에 주입
+        injectionPoint: undefined,
+        rollupFormat: 'es',
+      },
+      // preview 환경에서는 SW 등록 자체를 건너뛸 수 있음
+      disabled: mode === 'preview-no-sw',
+    }),
+  ],
+  define: {
+    __APP_ENV__: JSON.stringify(mode),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+  },
+}))
+</code></pre>
+            <h3 id="22">2.2 환경별 매니페스트 동적 생성</h3>
+            <p>앱 이름에 환경 태그를 포함하여 설치된 앱을 시각적으로 구분한다.</p>
+            <pre><code class="language-typescript">// scripts/generate-manifest.ts
+import { writeFileSync } from 'fs'
+import { resolve } from 'path'
+
+type AppEnv = 'production' | 'staging' | 'canary' | 'preview'
+
+interface ManifestConfig {
+  nameSuffix: string
+  themeColor: string
+  backgroundColor: string
+  startUrl: string
+  display: 'standalone' | 'minimal-ui' | 'browser'
+  installable: boolean
+}
+
+const ENV_MANIFEST: Record&lt;AppEnv, ManifestConfig&gt; = {
+  production: {
+    nameSuffix: '',
+    themeColor: '#1a73e8',
+    backgroundColor: '#ffffff',
+    startUrl: '/',
+    display: 'standalone',
+    installable: true,
+  },
+  staging: {
+    nameSuffix: ' [STG]',
+    themeColor: '#f57c00',
+    backgroundColor: '#fff3e0',
+    startUrl: '/?env=staging',
+    display: 'standalone',
+    installable: true,
+  },
+  canary: {
+    nameSuffix: ' [CANARY]',
+    themeColor: '#7b1fa2',
+    backgroundColor: '#f3e5f5',
+    startUrl: '/?env=canary',
+    display: 'standalone',
+    installable: true,
+  },
+  preview: {
+    nameSuffix: ' [PREVIEW]',
+    themeColor: '#d32f2f',
+    backgroundColor: '#ffebee',
+    startUrl: '/?env=preview',
+    display: 'minimal-ui',
+    installable: false,
+  },
+}
+
+function generateManifest(appName: string, env: AppEnv): void {
+  const config = ENV_MANIFEST[env]
+  const icons = [48, 72, 96, 128, 144, 192, 512].map((size) =&gt; ({
+    src: `/icons/icon-${size}x${size}${env !== 'production' ? `-${env}` : ''}.png`,
+    sizes: `${size}x${size}`,
+    type: 'image/png',
+    purpose: 'any',
+  }))
+
+  icons.push({
+    src: `/icons/icon-maskable-512x512${env !== 'production' ? `-${env}` : ''}.png`,
+    sizes: '512x512',
+    type: 'image/png',
+    purpose: 'maskable',
+  })
+
+  const manifest = {
+    name: `${appName}${config.nameSuffix}`,
+    short_name: `${appName.substring(0, 8)}${config.nameSuffix}`,
+    description: env === 'production' ? '서비스 설명' : `${env.toUpperCase()} 테스트 환경`,
+    start_url: config.startUrl,
+    scope: '/',
+    display: config.display,
+    display_override:
+      env === 'production'
+        ? ['window-controls-overlay', 'standalone', 'browser']
+        : [config.display, 'browser'],
+    orientation: 'portrait',
+    theme_color: config.themeColor,
+    background_color: config.backgroundColor,
+    lang: 'ko',
+    dir: 'ltr',
+    categories: ['productivity', 'utilities'],
+    icons,
+    screenshots:
+      env === 'production'
+        ? [
+            {
+              src: '/screenshots/wide-1.png',
+              sizes: '1920x1080',
+              type: 'image/png',
+              form_factor: 'wide',
+            },
+            {
+              src: '/screenshots/wide-2.png',
+              sizes: '1920x1080',
+              type: 'image/png',
+              form_factor: 'wide',
+            },
+            {
+              src: '/screenshots/narrow-1.png',
+              sizes: '750x1334',
+              type: 'image/png',
+              form_factor: 'narrow',
+            },
+            {
+              src: '/screenshots/narrow-2.png',
+              sizes: '750x1334',
+              type: 'image/png',
+              form_factor: 'narrow',
+            },
+          ]
+        : [],
+    shortcuts: [
+      {
+        name: '빠른 작성',
+        url: '/new?source=shortcut',
+        icons: [{ src: '/icons/shortcut-new.png', sizes: '96x96' }],
+      },
+      {
+        name: '검색',
+        url: '/search?source=shortcut',
+        icons: [{ src: '/icons/shortcut-search.png', sizes: '96x96' }],
+      },
+      {
+        name: '알림 확인',
+        url: '/notifications?source=shortcut',
+        icons: [{ src: '/icons/shortcut-bell.png', sizes: '96x96' }],
+      },
+    ],
+    share_target: {
+      action: '/share-receive',
+      method: 'POST',
+      enctype: 'multipart/form-data',
+      params: {
+        title: 'title',
+        text: 'text',
+        url: 'url',
+        files: [{ name: 'media', accept: ['image/*', 'video/*'] }],
+      },
+    },
+    related_applications:
+      env === 'production' ? JSON.parse(process.env.RELATED_NATIVE_APPS_JSON ?? '[]') : [],
+    prefer_related_applications: false,
+  }
+
+  const outDir = resolve(process.cwd(), 'public')
+  writeFileSync(resolve(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
+}
+
+// 실행
+const env = (process.env.APP_ENV ?? 'production') as AppEnv
+generateManifest('MyApp', env)
+</code></pre>
+            <h3 id="23-preview-pwa">2.3 Preview 환경 PWA 설치 차단</h3>
+            <p>
+              Preview 환경에서는 <code>beforeinstallprompt</code> 이벤트를 억제하여 사용자가
+              불완전한 빌드를 설치하는 것을 방지한다.
+            </p>
+            <pre><code class="language-typescript">// src/hooks/usePWAInstall.ts
+import { useState, useEffect, useCallback } from 'react'
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[]
+  readonly userChoice: Promise&lt;{ outcome: 'accepted' | 'dismissed'; platform: string }&gt;
+  prompt(): Promise&lt;void&gt;
+}
+
+interface PWAInstallState {
+  canInstall: boolean
+  isInstalled: boolean
+  install: () =&gt; Promise&lt;'accepted' | 'dismissed' | 'blocked'&gt;
+  dismiss: () =&gt; void
+}
+
+export function usePWAInstall(): PWAInstallState {
+  const [deferredPrompt, setDeferredPrompt] = useState&lt;BeforeInstallPromptEvent | null&gt;(null)
+  const [isInstalled, setIsInstalled] = useState(false)
+
+  const currentEnv = import.meta.env.MODE
+  const isInstallBlocked = currentEnv === 'preview' || currentEnv === 'canary'
+
+  useEffect(() =&gt; {
+    // 이미 설치된 상태 감지
+    const mql = window.matchMedia('(display-mode: standalone)')
+    setIsInstalled(mql.matches)
+    const handler = (e: MediaQueryListEvent) =&gt; setIsInstalled(e.matches)
+    mql.addEventListener('change', handler)
+
+    const onBeforeInstall = (e: Event) =&gt; {
+      // Preview/Canary 환경에서는 설치 프롬프트 차단
+      if (isInstallBlocked) {
+        e.preventDefault()
+        console.info(`[PWA] 설치 차단됨: ${currentEnv} 환경`)
+        return
+      }
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    window.addEventListener('appinstalled', () =&gt; {
+      setIsInstalled(true)
+      setDeferredPrompt(null)
+    })
+
+    return () =&gt; {
+      mql.removeEventListener('change', handler)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+    }
+  }, [isInstallBlocked, currentEnv])
+
+  const install = useCallback(async (): Promise&lt;'accepted' | 'dismissed' | 'blocked'&gt; =&gt; {
+    if (isInstallBlocked) return 'blocked'
+    if (!deferredPrompt) return 'dismissed'
+
+    await deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    setDeferredPrompt(null)
+    return outcome
+  }, [deferredPrompt, isInstallBlocked])
+
+  const dismiss = useCallback(() =&gt; {
+    setDeferredPrompt(null)
+  }, [])
+
+  return {
+    canInstall: !isInstallBlocked &amp;&amp; deferredPrompt !== null &amp;&amp; !isInstalled,
+    isInstalled,
+    install,
+    dismiss,
+  }
+}
+</code></pre>
+            <h4 id="_9">설치 차단 배너 컴포넌트</h4>
+            <pre><code class="language-typescript">// src/components/PWAInstallBanner.tsx
+import React from 'react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+
+export const PWAInstallBanner: React.FC = () =&gt; {
+  const { canInstall, isInstalled, install, dismiss } = usePWAInstall();
+
+  if (isInstalled || !canInstall) return null;
+
+  return (
+    &lt;div role=&quot;banner&quot; className=&quot;pwa-install-banner&quot;&gt;
+      &lt;div className=&quot;pwa-install-banner__content&quot;&gt;
+        &lt;strong&gt;앱으로 설치하면 더 빠릅니다&lt;/strong&gt;
+        &lt;p&gt;홈 화면에 추가하여 네이티브 앱처럼 사용하세요.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div className=&quot;pwa-install-banner__actions&quot;&gt;
+        &lt;button onClick={() =&gt; install()} className=&quot;btn btn--primary&quot;&gt;설치&lt;/button&gt;
+        &lt;button onClick={dismiss} className=&quot;btn btn--ghost&quot;&gt;나중에&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+            <h3 id="24-push-notification">2.4 환경별 Push Notification 채널 분리</h3>
+            <p>
+              환경별로 Push Notification 토픽을 분리하여 테스트 알림이 프로덕션 사용자에게 전달되지
+              않도록 한다.
+            </p>
+            <pre><code class="language-typescript">// src/services/push-notification.ts
+import { openDB } from 'idb'
+
+interface PushConfig {
+  vapidPublicKey: string
+  subscriptionEndpoint: string
+  topicPrefix: string
+  enabled: boolean
+}
+
+const PUSH_CONFIGS: Record&lt;string, PushConfig&gt; = {
+  production: {
+    vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY_PROD,
+    subscriptionEndpoint: 'https://api.example.com/push/subscribe',
+    topicPrefix: 'prod',
+    enabled: true,
+  },
+  staging: {
+    vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY_STG,
+    subscriptionEndpoint: 'https://api-stg.example.com/push/subscribe',
+    topicPrefix: 'stg',
+    enabled: true,
+  },
+  canary: {
+    vapidPublicKey: import.meta.env.VITE_VAPID_PUBLIC_KEY_CANARY,
+    subscriptionEndpoint: 'https://api-canary.example.com/push/subscribe',
+    topicPrefix: 'canary',
+    enabled: true,
+  },
+  preview: {
+    vapidPublicKey: '',
+    subscriptionEndpoint: '',
+    topicPrefix: 'preview',
+    enabled: false, // Preview에서는 Push 비활성화
+  },
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from(rawData, (char) =&gt; char.charCodeAt(0))
+}
+
+export class PushNotificationService {
+  private config: PushConfig
+  private env: string
+
+  constructor(env: string = import.meta.env.MODE) {
+    this.env = env
+    this.config = PUSH_CONFIGS[env] ?? PUSH_CONFIGS.preview
+  }
+
+  async subscribe(topics: string[]): Promise&lt;PushSubscription | null&gt; {
+    if (!this.config.enabled) {
+      console.info(`[Push] ${this.env} 환경에서 Push 비활성화`)
+      return null
+    }
+
+    const registration = await navigator.serviceWorker.ready
+    const existingSub = await registration.pushManager.getSubscription()
+    if (existingSub) return existingSub
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(this.config.vapidPublicKey),
+    })
+
+    // 서버에 구독 정보 + 환경 태그 전송
+    const prefixedTopics = topics.map((t) =&gt; `${this.config.topicPrefix}:${t}`)
+
+    await fetch(this.config.subscriptionEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription,
+        topics: prefixedTopics,
+        env: this.env,
+        userAgent: navigator.userAgent,
+      }),
+    })
+
+    return subscription
+  }
+
+  async unsubscribe(): Promise&lt;boolean&gt; {
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
+    if (!subscription) return true
+
+    await fetch(this.config.subscriptionEndpoint, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: subscription.endpoint, env: this.env }),
+    })
+
+    return subscription.unsubscribe()
+  }
+
+  getTopicName(topic: string): string {
+    return `${this.config.topicPrefix}:${topic}`
+  }
+}
+</code></pre>
+            <h3 id="25-feature-flag">2.5 Feature Flag 오프라인 기능 점진적 롤아웃</h3>
+            <p>Feature Flag를 사용하여 오프라인 기능을 환경별, 사용자별로 점진적으로 활성화한다.</p>
+            <pre><code class="language-typescript">// src/services/offline-feature-flags.ts
+
+interface OfflineFeatureFlags {
+  enableOfflineMode: boolean // 오프라인 모드 전체 활성화
+  enableBackgroundSync: boolean // Background Sync 활성화
+  enablePushNotification: boolean // Push Notification 활성화
+  enablePeriodicSync: boolean // Periodic Background Sync
+  enableOfflineAnalytics: boolean // 오프라인 분석 이벤트 큐잉
+  offlineCacheQuotaMB: number // 캐시 최대 용량 (MB)
+  syncRetryLimit: number // 동기화 재시도 횟수
+}
+
+const DEFAULT_FLAGS: Record&lt;string, OfflineFeatureFlags&gt; = {
+  production: {
+    enableOfflineMode: true,
+    enableBackgroundSync: true,
+    enablePushNotification: true,
+    enablePeriodicSync: false, // Periodic Sync는 점진적 롤아웃
+    enableOfflineAnalytics: true,
+    offlineCacheQuotaMB: 200,
+    syncRetryLimit: 3,
+  },
+  staging: {
+    enableOfflineMode: true,
+    enableBackgroundSync: true,
+    enablePushNotification: true,
+    enablePeriodicSync: true, // Staging에서 먼저 테스트
+    enableOfflineAnalytics: true,
+    offlineCacheQuotaMB: 100,
+    syncRetryLimit: 5,
+  },
+  canary: {
+    enableOfflineMode: true,
+    enableBackgroundSync: true,
+    enablePushNotification: false,
+    enablePeriodicSync: true,
+    enableOfflineAnalytics: false,
+    offlineCacheQuotaMB: 50,
+    syncRetryLimit: 3,
+  },
+  preview: {
+    enableOfflineMode: false,
+    enableBackgroundSync: false,
+    enablePushNotification: false,
+    enablePeriodicSync: false,
+    enableOfflineAnalytics: false,
+    offlineCacheQuotaMB: 0,
+    syncRetryLimit: 0,
+  },
+}
+
+export class OfflineFeatureFlagService {
+  private flags: OfflineFeatureFlags
+  private remoteOverrides: Partial&lt;OfflineFeatureFlags&gt; = {}
+
+  constructor(env: string = import.meta.env.MODE) {
+    this.flags = DEFAULT_FLAGS[env] ?? DEFAULT_FLAGS.preview
+  }
+
+  // 원격 Feature Flag 서비스에서 오버라이드 가져오기
+  async fetchRemoteOverrides(userId: string): Promise&lt;void&gt; {
+    try {
+      const response = await fetch(`/api/feature-flags?user=${userId}&amp;scope=offline`)
+      if (response.ok) {
+        this.remoteOverrides = await response.json()
+      }
+    } catch {
+      // 오프라인이면 로컬 기본값 사용
+    }
+  }
+
+  get(key: keyof OfflineFeatureFlags): boolean | number {
+    return this.remoteOverrides[key] ?? this.flags[key]
+  }
+
+  isEnabled(key: keyof OfflineFeatureFlags): boolean {
+    const value = this.get(key)
+    return typeof value === 'boolean' ? value : value &gt; 0
+  }
+
+  // Service Worker에 현재 플래그 상태 전달
+  async syncToServiceWorker(): Promise&lt;void&gt; {
+    const registration = await navigator.serviceWorker.ready
+    registration.active?.postMessage({
+      type: 'FEATURE_FLAGS_UPDATE',
+      flags: { ...this.flags, ...this.remoteOverrides },
+    })
+  }
+}
+
+// React 훅
+import { useState, useEffect, useContext, createContext } from 'react'
+
+const FeatureFlagContext = createContext&lt;OfflineFeatureFlagService | null&gt;(null)
+
+export function useOfflineFeatureFlag(key: keyof OfflineFeatureFlags): boolean {
+  const service = useContext(FeatureFlagContext)
+  if (!service) throw new Error('FeatureFlagProvider가 필요합니다')
+  return service.isEnabled(key)
+}
+</code></pre>
+            <h3 id="26-service-worker">2.6 Service Worker 버전 충돌 방지</h3>
+            <p>
+              환경별 릴리스에서 여러 버전의 Service Worker가 동시에 존재할 때 발생하는 충돌을
+              방지한다.
+            </p>
+            <pre><code class="language-typescript">// src/services/sw-version-manager.ts
+
+interface SWVersionInfo {
+  version: string
+  env: string
+  buildHash: string
+  registeredAt: number
+  scope: string
+}
+
+export class ServiceWorkerVersionManager {
+  private readonly STORAGE_KEY = 'sw-version-info'
+
+  // 현재 등록된 SW 버전 정보 조회
+  getCurrentVersion(): SWVersionInfo | null {
+    const stored = localStorage.getItem(this.STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
+  }
+
+  // 새 SW 등록 전 버전 충돌 검사
+  async checkConflict(
+    newVersion: string,
+    newEnv: string,
+    newBuildHash: string,
+  ): Promise&lt;'clean' | 'upgrade' | 'env-switch' | 'conflict'&gt; {
+    const current = this.getCurrentVersion()
+
+    if (!current) return 'clean'
+    if (current.env !== newEnv) return 'env-switch' // 환경 전환
+    if (current.buildHash === newBuildHash) return 'clean' // 동일 빌드
+    if (current.version &lt; newVersion) return 'upgrade' // 정상 업그레이드
+
+    return 'conflict' // 동일 환경에서 버전 역행 등
+  }
+
+  // 충돌 해결: 기존 캐시 전체 삭제 후 재등록
+  async resolveConflict(action: 'clean' | 'upgrade' | 'env-switch' | 'conflict'): Promise&lt;void&gt; {
+    if (action === 'clean') return
+
+    // 기존 Service Worker 해제
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map((reg) =&gt; reg.unregister()))
+
+    // 캐시 전체 삭제 (환경 전환 또는 충돌 시)
+    if (action === 'env-switch' || action === 'conflict') {
+      const cacheKeys = await caches.keys()
+      await Promise.all(cacheKeys.map((key) =&gt; caches.delete(key)))
+    }
+  }
+
+  // 새 SW 등록 완료 후 버전 정보 저장
+  saveVersion(version: string, env: string, buildHash: string): void {
+    const info: SWVersionInfo = {
+      version,
+      env,
+      buildHash,
+      registeredAt: Date.now(),
+      scope: '/',
+    }
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(info))
+  }
+}
+
+// 앱 초기화 시 SW 등록 플로우
+export async function registerServiceWorkerSafely(
+  swUrl: string,
+  version: string,
+  env: string,
+  buildHash: string,
+): Promise&lt;ServiceWorkerRegistration | null&gt; {
+  if (!('serviceWorker' in navigator)) return null
+
+  const manager = new ServiceWorkerVersionManager()
+  const action = await manager.checkConflict(version, env, buildHash)
+
+  console.info(`[SW] 버전 상태: ${action} (v${version}, ${env}, ${buildHash.slice(0, 8)})`)
+
+  await manager.resolveConflict(action)
+
+  const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' })
+
+  // 업데이트 감지
+  registration.addEventListener('updatefound', () =&gt; {
+    const installing = registration.installing
+    if (!installing) return
+
+    installing.addEventListener('statechange', () =&gt; {
+      if (installing.state === 'installed' &amp;&amp; navigator.serviceWorker.controller) {
+        // 새 SW가 대기 중 - 사용자에게 업데이트 알림
+        dispatchEvent(
+          new CustomEvent('sw-update-available', {
+            detail: { version, env },
+          }),
+        )
+      }
+    })
+  })
+
+  manager.saveVersion(version, env, buildHash)
+  return registration
+}
+</code></pre>
+            <hr />
+            <h2 id="3-service-worker">3. Service Worker 라이프사이클</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: SW의 install/activate/fetch 순서를 이해해야 "새 배포가
+                안 반영된다", "탭은 열려 있는데 옛날 UI다" 같은 문제를 진단할 수 있습니다.
+                라이프사이클은 SW 모든 문제의 출발점입니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 식당의 셰프 교대와 같습니다. 새 셰프(새 SW)가 도착해
+                도구를 익히고(install), 기존 셰프와 교대(activate)한 뒤에야 주문(fetch)을 받습니다.
+                손님(탭)이 식사 중이면 교대를 늦추거나(<code>waiting</code>) 즉시
+                교대(<code>skipWaiting</code>)할지 정해야 합니다.
+              </p>
+            </blockquote>
+            <h3 id="service-worker">Service Worker 상태 전이도</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Parsed: 등록 register()
+  Parsed --&gt; Installing: install 이벤트
+  Installing --&gt; Installed: waitUntil() 성공
+  Installing --&gt; Redundant: install 실패
+  Installed --&gt; Waiting: 기존 SW 제어 중
+  Installed --&gt; Activating: skipWaiting() 호출
+  Waiting --&gt; Activating: 모든 탭 닫힘&lt;br/&gt;또는 사용자 새로고침
+  Activating --&gt; Activated: activate 완료
+  Activated --&gt; Fetch_handle: clients.claim()
+  Fetch_handle --&gt; Activated: 다음 요청 대기
+  Activated --&gt; Redundant: 새 SW가 activate
+  Redundant --&gt; [*]
+  note right of Waiting: 가장 흔한 함정&lt;br/&gt;&quot;새 SW가 반영 안 됨&quot;
+  note right of Activated: navigation preload 활성화&lt;br/&gt;이전 캐시 정리 시점</pre
+            >
+            <h3 id="install-activate-fetch">install / activate / fetch 시퀀스 흐름</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Browser as 브라우저
+  participant SW_New as 새 Service Worker
+  participant SW_Old as 기존 Service Worker
+  participant Cache as Cache Storage
+  participant Network as Origin
+
+  Browser-&gt;&gt;SW_New: register('/sw.js')
+  SW_New-&gt;&gt;SW_New: install 이벤트
+  SW_New-&gt;&gt;Cache: addAll(PRECACHE_URLS)
+  Cache--&gt;&gt;SW_New: 프리캐시 완료
+  SW_New-&gt;&gt;SW_New: skipWaiting() 호출
+  Note over SW_New,SW_Old: 교체 시점 결정
+  SW_New-&gt;&gt;SW_Old: 즉시 교체
+  SW_Old--&gt;&gt;Browser: terminate
+  SW_New-&gt;&gt;SW_New: activate 이벤트
+  SW_New-&gt;&gt;Cache: 이전 버전 캐시 삭제
+  SW_New-&gt;&gt;Browser: clients.claim()
+  Note over SW_New,Browser: fetch 핸들러 활성화
+  Browser-&gt;&gt;SW_New: fetch /api/data
+  SW_New-&gt;&gt;Network: 네트워크 우선
+  Network--&gt;&gt;SW_New: 200 OK
+  SW_New-&gt;&gt;Cache: cache.put()
+  SW_New--&gt;&gt;Browser: Response</pre
+            >
+            <p>install, activate, fetch 전체 이벤트를 구현한다.</p>
+            <pre><code class="language-typescript">// src/sw-lifecycle.ts
+declare let self: ServiceWorkerGlobalScope
+
+const CACHE_VERSION = 'v2'
+const STATIC_CACHE = `static-${CACHE_VERSION}`
+const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`
+const PRECACHE_URLS = ['/', '/index.html', '/offline.html', '/assets/app.css', '/assets/app.js']
+
+// ---- install ----
+self.addEventListener('install', (event: ExtendableEvent) =&gt; {
+  event.waitUntil(caches.open(STATIC_CACHE).then((cache) =&gt; cache.addAll(PRECACHE_URLS)))
+  // 대기 없이 즉시 활성화
+  self.skipWaiting()
+})
+
+// ---- activate ----
+self.addEventListener('activate', (event: ExtendableEvent) =&gt; {
+  event.waitUntil(
+    (async () =&gt; {
+      // 이전 버전 캐시 삭제
+      const keys = await caches.keys()
+      await Promise.all(
+        keys
+          .filter((key) =&gt; key !== STATIC_CACHE &amp;&amp; key !== DYNAMIC_CACHE)
+          .map((key) =&gt; caches.delete(key)),
+      )
+      // 현재 열린 모든 탭에 즉시 적용
+      await self.clients.claim()
+      // 네비게이션 프리로드 활성화
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable()
+      }
+    })(),
+  )
+})
+
+// ---- fetch ----
+self.addEventListener('fetch', (event: FetchEvent) =&gt; {
+  const { request } = event
+  const url = new URL(request.url)
+
+  // API 요청: Network First
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE))
+    return
+  }
+
+  // 네비게이션 요청: 프리로드 응답 우선, 실패 시 캐시, 최종 폴백
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigation(event))
+    return
+  }
+
+  // 정적 리소스: Cache First
+  event.respondWith(cacheFirst(request, STATIC_CACHE))
+})
+
+async function networkFirst(request: Request, cacheName: string): Promise&lt;Response&gt; {
+  try {
+    const networkResponse = await fetch(request)
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName)
+      cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch {
+    const cached = await caches.match(request)
+    return (
+      cached ??
+      new Response(JSON.stringify({ error: 'offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+  }
+}
+
+async function cacheFirst(request: Request, cacheName: string): Promise&lt;Response&gt; {
+  const cached = await caches.match(request)
+  if (cached) return cached
+
+  try {
+    const networkResponse = await fetch(request)
+    const cache = await caches.open(cacheName)
+    cache.put(request, networkResponse.clone())
+    return networkResponse
+  } catch {
+    return new Response('Offline', { status: 503 })
+  }
+}
+
+async function handleNavigation(event: FetchEvent): Promise&lt;Response&gt; {
+  try {
+    // 네비게이션 프리로드 응답 우선
+    const preloadResponse = await event.preloadResponse
+    if (preloadResponse) return preloadResponse
+
+    return await fetch(event.request)
+  } catch {
+    const cached = await caches.match('/offline.html')
+    return (
+      cached ??
+      new Response('&lt;h1&gt;오프라인&lt;/h1&gt;', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    )
+  }
+}
+</code></pre>
+            <hr />
+            <h2 id="4-workbox-7x-vite-pwa">4. Workbox 7.x + Vite PWA 설정</h2>
+            <blockquote>
+              <p><strong>Workbox 운영 기준 (최신 공식 문서 기준)</strong></p>
+              <ul>
+                <li>
+                  공식 릴리스 확인 시 7.4.x 라인이 최신으로 확인됩니다. patch 버전은 lockfile로
+                  고정하고, major 업그레이드는 공식 release note와 별도 검증 PR을 거칩니다.
+                </li>
+                <li>
+                  <code>generateSW</code>는 단순 앱 셸 캐싱에 적합하고,
+                  <code>injectManifest</code>는 Push/Background Sync/커스텀 라우팅이 필요한 제품에
+                  적합합니다.
+                </li>
+                <li>
+                  Vite에서는 <code>vite-plugin-pwa</code>가 Workbox 설정을 감싸므로, 플러그인 버전과
+                  Workbox peer dependency를 함께 고정합니다.
+                </li>
+                <li>
+                  Next.js에서는 공식 PWA 가이드, 직접 Service Worker, Serwist, Workbox 후보를
+                  비교하고 App Router 캐시와 Service Worker 캐시의 책임을 분리합니다.
+                </li>
+              </ul>
+            </blockquote>
+            <p>
+              Push, Background Sync, 커스텀 라우팅처럼 Service Worker를 직접 제어해야 하는 제품은
+              <code>injectManifest</code> 모드를 후보로 둡니다. 단순 앱 셸 캐싱만 필요하면
+              <code>generateSW</code>가 더 낮은 운영 비용일 수 있습니다.
+            </p>
+            <pre><code class="language-typescript">// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig(({ mode }) =&gt; ({
+  plugins: [
+    react(),
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      registerType: 'prompt', // 사용자에게 업데이트 확인 요청
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt', 'offline.html'],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
+        rollupFormat: 'es',
+      },
+      manifest: false, // 외부에서 동적 생성 (2.2절 참조)
+      devOptions: {
+        enabled: mode !== 'preview',
+        type: 'module',
+        navigateFallback: 'index.html',
+      },
+    }),
+  ],
+}))
+</code></pre>
+            <blockquote>
+              <p><strong>Workbox 6/7 운영 핵심 포인트</strong></p>
+              <ul>
+                <li>
+                  패키지: <code>workbox-precaching</code>, <code>workbox-routing</code> 등 패키지
+                  이름은 동일합니다. 메이저 업그레이드는 공식 릴리스 노트를 확인한 뒤 별도 PR로
+                  진행합니다.
+                </li>
+                <li><code>precacheAndRoute(self.__WB_MANIFEST)</code> 시그니처는 유지.</li>
+                <li>
+                  <code>registerRoute()</code>의 매처는 함수 또는 RegExp로 명확히 분리하고,
+                  인증/결제/개인화 API는 기본적으로 <code>NetworkOnly</code> 또는 짧은 TTL의
+                  <code>NetworkFirst</code>를 사용합니다.
+                </li>
+                <li>
+                  특정 분석 서비스 전용 오프라인 플러그인에 신규 의존하지 않습니다. 분석 이벤트는
+                  온라인 상태에서 직접 전송하거나 서버 이벤트 수집으로 분리합니다.
+                </li>
+              </ul>
+            </blockquote>
+            <h4 id="sw">SW 등록 및 업데이트 관리</h4>
+            <pre><code class="language-typescript">// src/sw-register.ts
+import { registerSW } from 'virtual:pwa-register'
+
+let updateAvailable = false
+
+const updateSW = registerSW({
+  onRegisteredSW(swUrl: string, registration: ServiceWorkerRegistration | undefined) {
+    if (!registration) return
+
+    // 주기적 업데이트 확인 (1시간마다)
+    setInterval(
+      async () =&gt; {
+        if (registration.installing || !navigator.onLine) return
+        const response = await fetch(swUrl, {
+          cache: 'no-store',
+          headers: { 'cache-control': 'no-cache' },
+        })
+        if (response.ok) {
+          await registration.update()
+        }
+      },
+      60 * 60 * 1000,
+    )
+  },
+
+  onNeedRefresh() {
+    updateAvailable = true
+    // UI에 업데이트 알림 표시
+    dispatchEvent(new CustomEvent('pwa-update-available'))
+  },
+
+  onOfflineReady() {
+    console.info('[PWA] 오프라인 준비 완료')
+  },
+
+  onRegisterError(error: Error) {
+    console.error('[PWA] SW 등록 실패:', error)
+  },
+})
+
+// 사용자가 업데이트 수락 시 호출
+export function acceptUpdate(): void {
+  if (updateAvailable) {
+    updateSW(true)
+  }
+}
+</code></pre>
+            <hr />
+            <h2 id="5-4">5. 캐싱 전략 4종 비교</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 잘못된 전략을 선택하면 인증 토큰이 캐시에 박혀 보안
+                사고가 나거나, 폰트를 매번 네트워크로 가져와 LCP가 망가집니다. 리소스 유형별로
+                전략을 명확히 매핑해야 합니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 냉장고에 식재료를 넣는 방식과 같습니다. 자주 안 바뀌는
+                조미료(폰트=Cache First)는 안쪽 칸, 매일 다른 신선식품(API=Network First)은 가장 앞
+                칸에, 일주일 단위 식료품(CDN=SWR)은 백그라운드로 채워두고, 약(인증=Network Only)은
+                매번 약사에게 새로 받습니다.
+              </p>
+            </blockquote>
+            <h3 id="_10">캐싱 전략 의사결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start([리소스 유형 확인]) --&gt; Q1{민감 정보&lt;br/&gt;또는 결제 흐름?}
+  Q1 --&gt;|예| NO[Network Only&lt;br/&gt;캐시 금지]
+  Q1 --&gt;|아니오| Q2{거의 변하지&lt;br/&gt;않는가?}
+  Q2 --&gt;|예&lt;br/&gt;예: 폰트, 로고| CF[Cache First&lt;br/&gt;장기 TTL]
+  Q2 --&gt;|아니오| Q3{사용자별로&lt;br/&gt;달라지는가?}
+  Q3 --&gt;|예&lt;br/&gt;예: 내 알림, 잔액| NF[Network First&lt;br/&gt;3초 타임아웃 후 캐시]
+  Q3 --&gt;|아니오| Q4{빠른 응답이&lt;br/&gt;신선도보다 중요?}
+  Q4 --&gt;|예&lt;br/&gt;예: CDN 이미지| SWR[Stale While Revalidate&lt;br/&gt;즉시 응답 + 백그라운드 갱신]
+  Q4 --&gt;|아니오| NF
+  style NO fill:#ffcdd2
+  style CF fill:#c8e6c9
+  style NF fill:#bbdefb
+  style SWR fill:#fff9c4</pre
+            >
+            <h3 id="_11">전략별 동작 비교 (요청 시점별)</h3>
+            <pre class="mermaid">
+flowchart LR
+  subgraph CF_FLOW[Cache First]
+    direction TB
+    CF1[요청] --&gt; CF2{캐시 hit?}
+    CF2 --&gt;|yes| CF3[캐시 반환&lt;br/&gt;빠름]
+    CF2 --&gt;|no| CF4[네트워크 → 캐시 저장]
+  end
+  subgraph NF_FLOW[Network First]
+    direction TB
+    NF1[요청] --&gt; NF2[네트워크 시도]
+    NF2 --&gt;|성공| NF3[응답 + 캐시 저장]
+    NF2 --&gt;|실패/timeout| NF4[캐시 폴백]
+  end
+  subgraph SWR_FLOW[Stale While Revalidate]
+    direction TB
+    SWR1[요청] --&gt; SWR2[캐시 즉시 반환]
+    SWR2 -.백그라운드.-&gt; SWR3[네트워크 갱신]
+    SWR3 --&gt; SWR4[다음 요청은 갱신본]
+  end</pre
+            >
+            <h3 id="_12">비교표</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>전략</th>
+                    <th>네트워크</th>
+                    <th>캐시</th>
+                    <th>속도</th>
+                    <th>신선도</th>
+                    <th>적합 대상</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Cache First</td>
+                    <td>폴백</td>
+                    <td>우선</td>
+                    <td>빠름</td>
+                    <td>낮음</td>
+                    <td>폰트, 이미지, 정적 JS/CSS</td>
+                  </tr>
+                  <tr>
+                    <td>Network First</td>
+                    <td>우선</td>
+                    <td>폴백</td>
+                    <td>보통</td>
+                    <td>높음</td>
+                    <td>API, 사용자 데이터</td>
+                  </tr>
+                  <tr>
+                    <td>Stale While Revalidate</td>
+                    <td>백그라운드 갱신</td>
+                    <td>즉시 반환</td>
+                    <td>빠름</td>
+                    <td>중간</td>
+                    <td>CDN, 자주 바뀌는 정적 리소스</td>
+                  </tr>
+                  <tr>
+                    <td>Network Only</td>
+                    <td>필수</td>
+                    <td>미사용</td>
+                    <td>느림</td>
+                    <td>최신</td>
+                    <td>인증, 결제, 실시간 데이터</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_13">전략별 구현</h3>
+            <pre><code class="language-typescript">// src/sw-strategies.ts
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+import { BackgroundSyncPlugin } from 'workbox-background-sync'
+
+const responsePlugin = new CacheableResponsePlugin({ statuses: [0, 200] })
+
+// 1. Cache First - 폰트, 이미지
+registerRoute(
+  ({ request }) =&gt; request.destination === 'font',
+  new CacheFirst({
+    cacheName: 'fonts-cache',
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 365, maxEntries: 30 })],
+  }),
+)
+
+registerRoute(
+  ({ request }) =&gt; request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'images-cache',
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 30, maxEntries: 100 })],
+  }),
+)
+
+// 2. Network First - API
+registerRoute(
+  ({ url }) =&gt; url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: 'api-cache',
+    networkTimeoutSeconds: 3,
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 300, maxEntries: 200 })],
+  }),
+)
+
+// 3. Stale While Revalidate - CDN 리소스
+registerRoute(
+  ({ url }) =&gt; url.origin !== self.location.origin,
+  new StaleWhileRevalidate({
+    cacheName: 'cdn-cache',
+    plugins: [responsePlugin, new ExpirationPlugin({ maxAgeSeconds: 86400 * 7, maxEntries: 50 })],
+  }),
+)
+
+// 4. Network Only - 인증 관련
+registerRoute(
+  ({ url }) =&gt; url.pathname.startsWith('/auth/'),
+  new NetworkOnly({
+    plugins: [
+      new BackgroundSyncPlugin('auth-retry-queue', {
+        maxRetentionTime: 60, // 1시간
+      }),
+    ],
+  }),
+)
+</code></pre>
+            <hr />
+            <h2 id="6-ux">6. 오프라인 UX 패턴</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 사용자는 "오프라인입니다" 문구만 보면 작업을
+                포기합니다. 무엇을 할 수 있고 무엇이 큐에 들어갔는지 명확히 보여주면 신뢰가
+                유지됩니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 비행기 기내 모드와 같습니다. 메시지 앱이 "전송 중→나중에
+                전송됨→전송 완료"로 상태를 또렷이 보여주는 것처럼, 오프라인 UX도 작업의
+                라이프사이클을 시각적으로 드러내야 합니다.
+              </p>
+            </blockquote>
+            <h3 id="_14">오프라인 사용자 작업 시퀀스</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant User as 사용자
+  participant App as React App
+  participant Queue as IndexedDB 큐
+  participant SW as Service Worker
+  participant API as 서버 API
+
+  User-&gt;&gt;App: 폼 제출 (오프라인)
+  App-&gt;&gt;App: navigator.onLine === false
+  App-&gt;&gt;Queue: enqueue(action)
+  Queue--&gt;&gt;App: id 반환
+  App--&gt;&gt;User: &quot;전송 대기 중&quot; 토스트
+  Note over User,API: 시간 경과 (오프라인 상태)
+  Note over User,API: --- 온라인 복귀 ---
+  App-&gt;&gt;SW: registration.sync.register()
+  SW-&gt;&gt;Queue: getPending()
+  Queue--&gt;&gt;SW: pending actions[]
+  loop 각 action 처리
+    SW-&gt;&gt;API: fetch(action)
+    alt 성공
+      API--&gt;&gt;SW: 200 OK
+      SW-&gt;&gt;Queue: markCompleted(id)
+    else 실패
+      API--&gt;&gt;SW: 4xx/5xx
+      SW-&gt;&gt;Queue: markFailed(id) + retry++
+      Note over SW: 지수 백오프 대기
+    end
+  end
+  SW-&gt;&gt;App: postMessage(SYNC_COMPLETE)
+  App--&gt;&gt;User: &quot;X건 동기화 완료&quot; 알림</pre
+            >
+            <h3 id="61">6.1 네트워크 상태 감지 훅</h3>
+            <pre><code class="language-typescript">// src/hooks/useNetworkStatus.ts
+import { useState, useEffect, useCallback } from 'react'
+
+interface NetworkStatus {
+  isOnline: boolean
+  lastOnlineAt: number | null
+  connectionType: string | null
+  effectiveType: string | null // 'slow-2g' | '2g' | '3g' | '4g'
+  downlink: number | null // Mbps
+}
+
+export function useNetworkStatus(): NetworkStatus {
+  const [status, setStatus] = useState&lt;NetworkStatus&gt;(() =&gt; ({
+    isOnline: navigator.onLine,
+    lastOnlineAt: navigator.onLine ? Date.now() : null,
+    connectionType: null,
+    effectiveType: null,
+    downlink: null,
+  }))
+
+  const updateConnectionInfo = useCallback(() =&gt; {
+    const conn = (navigator as Navigator &amp; { connection?: NetworkInformation }).connection
+    setStatus((prev) =&gt; ({
+      ...prev,
+      isOnline: navigator.onLine,
+      lastOnlineAt: navigator.onLine ? Date.now() : prev.lastOnlineAt,
+      connectionType: conn?.type ?? null,
+      effectiveType: conn?.effectiveType ?? null,
+      downlink: conn?.downlink ?? null,
+    }))
+  }, [])
+
+  useEffect(() =&gt; {
+    const onOnline = () =&gt; updateConnectionInfo()
+    const onOffline = () =&gt; updateConnectionInfo()
+
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+
+    const conn = (navigator as Navigator &amp; { connection?: NetworkInformation }).connection
+    conn?.addEventListener('change', updateConnectionInfo)
+
+    return () =&gt; {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+      conn?.removeEventListener('change', updateConnectionInfo)
+    }
+  }, [updateConnectionInfo])
+
+  return status
+}
+
+interface NetworkInformation extends EventTarget {
+  type: string
+  effectiveType: string
+  downlink: number
+}
+</code></pre>
+            <h3 id="62-indexeddb">6.2 IndexedDB 오프라인 큐</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 카페에서 진동벨을 받는 것과 같습니다. 주문(action)은
+                큐에 들어가 번호표(id)를 받고, 음료가 준비되면(서버 응답 성공) 큐에서 제거됩니다.
+                실패하면 재시도 카운트를 올려 다시 줄을 세웁니다.
+              </p>
+            </blockquote>
+            <h4 id="_15">큐 항목 상태 전이도</h4>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; pending: enqueue()
+  pending --&gt; syncing: markSyncing()
+  syncing --&gt; completed: 서버 200 OK
+  syncing --&gt; pending: 실패 + retry &lt; max
+  syncing --&gt; failed: 실패 + retry &gt;= max
+  completed --&gt; [*]: 큐에서 제거
+  failed --&gt; pending: 사용자 수동 재시도
+  failed --&gt; [*]: dead-letter 이관
+  note right of pending: 큐에 대기 중&lt;br/&gt;아직 미발송
+  note right of syncing: fetch 진행 중&lt;br/&gt;중복 발송 금지
+  note right of failed: 최대 재시도 초과&lt;br/&gt;관측성 알람 대상</pre
+            >
+            <pre><code class="language-typescript">// src/services/offline-queue.ts
+import { openDB, DBSchema, IDBPDatabase } from 'idb'
+
+interface OfflineAction {
+  id: string
+  url: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  headers: Record&lt;string, string&gt;
+  body: string | null
+  timestamp: number
+  retryCount: number
+  maxRetries: number
+  status: 'pending' | 'syncing' | 'failed' | 'completed'
+  errorMessage?: string
+}
+
+interface OfflineQueueDB extends DBSchema {
+  actions: {
+    key: string
+    value: OfflineAction
+    indexes: {
+      'by-status': string
+      'by-timestamp': number
+    }
+  }
+}
+
+export class OfflineQueue {
+  private dbPromise: Promise&lt;IDBPDatabase&lt;OfflineQueueDB&gt;&gt;
+
+  constructor(dbName = 'offline-queue') {
+    this.dbPromise = openDB&lt;OfflineQueueDB&gt;(dbName, 1, {
+      upgrade(db) {
+        const store = db.createObjectStore('actions', { keyPath: 'id' })
+        store.createIndex('by-status', 'status')
+        store.createIndex('by-timestamp', 'timestamp')
+      },
+    })
+  }
+
+  async enqueue(
+    url: string,
+    method: OfflineAction['method'],
+    body?: unknown,
+    headers: Record&lt;string, string&gt; = {},
+  ): Promise&lt;string&gt; {
+    const db = await this.dbPromise
+    const id = crypto.randomUUID()
+    const action: OfflineAction = {
+      id,
+      url,
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body ? JSON.stringify(body) : null,
+      timestamp: Date.now(),
+      retryCount: 0,
+      maxRetries: 3,
+      status: 'pending',
+    }
+    await db.put('actions', action)
+    return id
+  }
+
+  async getPending(): Promise&lt;OfflineAction[]&gt; {
+    const db = await this.dbPromise
+    return db.getAllFromIndex('actions', 'by-status', 'pending')
+  }
+
+  async getFailed(): Promise&lt;OfflineAction[]&gt; {
+    const db = await this.dbPromise
+    return db.getAllFromIndex('actions', 'by-status', 'failed')
+  }
+
+  async markSyncing(id: string): Promise&lt;void&gt; {
+    const db = await this.dbPromise
+    const action = await db.get('actions', id)
+    if (action) {
+      action.status = 'syncing'
+      await db.put('actions', action)
+    }
+  }
+
+  async markCompleted(id: string): Promise&lt;void&gt; {
+    const db = await this.dbPromise
+    await db.delete('actions', id)
+  }
+
+  async markFailed(id: string, error: string): Promise&lt;void&gt; {
+    const db = await this.dbPromise
+    const action = await db.get('actions', id)
+    if (action) {
+      action.retryCount += 1
+      action.errorMessage = error
+      action.status = action.retryCount &gt;= action.maxRetries ? 'failed' : 'pending'
+      await db.put('actions', action)
+    }
+  }
+
+  async getQueueSize(): Promise&lt;number&gt; {
+    const db = await this.dbPromise
+    return db.countFromIndex('actions', 'by-status', 'pending')
+  }
+
+  async clear(): Promise&lt;void&gt; {
+    const db = await this.dbPromise
+    await db.clear('actions')
+  }
+}
+</code></pre>
+            <h3 id="63-background-sync">6.3 Background Sync 동기화 엔진</h3>
+            <pre><code class="language-typescript">// src/services/sync-engine.ts
+import { OfflineQueue } from './offline-queue'
+
+interface SyncProgress {
+  total: number
+  completed: number
+  failed: number
+  current: string | null
+}
+
+type SyncProgressCallback = (progress: SyncProgress) =&gt; void
+
+export class SyncEngine {
+  private queue: OfflineQueue
+  private isSyncing = false
+
+  constructor(queue: OfflineQueue) {
+    this.queue = queue
+  }
+
+  async syncAll(onProgress?: SyncProgressCallback): Promise&lt;SyncProgress&gt; {
+    if (this.isSyncing) throw new Error('동기화 진행 중')
+    this.isSyncing = true
+
+    const pending = await this.queue.getPending()
+    const progress: SyncProgress = {
+      total: pending.length,
+      completed: 0,
+      failed: 0,
+      current: null,
+    }
+
+    for (const action of pending) {
+      progress.current = action.id
+      onProgress?.(progress)
+
+      await this.queue.markSyncing(action.id)
+
+      try {
+        const response = await fetch(action.url, {
+          method: action.method,
+          headers: action.headers,
+          body: action.body,
+        })
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+        await this.queue.markCompleted(action.id)
+        progress.completed += 1
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        await this.queue.markFailed(action.id, message)
+        progress.failed += 1
+      }
+
+      onProgress?.(progress)
+
+      // 지수 백오프 간격
+      if (progress.failed &gt; 0) {
+        await this.delay(Math.min(1000 * 2 ** progress.failed, 30000))
+      }
+    }
+
+    progress.current = null
+    this.isSyncing = false
+    onProgress?.(progress)
+    return progress
+  }
+
+  private delay(ms: number): Promise&lt;void&gt; {
+    return new Promise((resolve) =&gt; setTimeout(resolve, ms))
+  }
+}
+</code></pre>
+            <h3 id="64-3-way-merge">6.4 충돌 해결 (3-way Merge)</h3>
+            <pre><code class="language-typescript">// src/services/conflict-resolver.ts
+
+interface VersionedRecord {
+  id: string
+  data: Record&lt;string, unknown&gt;
+  version: number
+  updatedAt: number
+  updatedBy: string
+}
+
+interface ConflictInfo {
+  field: string
+  baseValue: unknown
+  localValue: unknown
+  serverValue: unknown
+}
+
+interface MergeResult {
+  resolved: Record&lt;string, unknown&gt;
+  conflicts: ConflictInfo[] // 자동 병합 실패한 필드
+  strategy: 'auto-merged' | 'manual-required'
+}
+
+export class ConflictResolver {
+  /**
+   * 3-way merge: base(공통 조상), local(클라이언트), server(서버)를 비교하여
+   * 자동 병합이 가능한 필드는 병합하고, 충돌하는 필드는 목록으로 반환한다.
+   */
+  threeWayMerge(
+    base: VersionedRecord,
+    local: VersionedRecord,
+    server: VersionedRecord,
+  ): MergeResult {
+    const allFields = new Set([
+      ...Object.keys(base.data),
+      ...Object.keys(local.data),
+      ...Object.keys(server.data),
+    ])
+
+    const resolved: Record&lt;string, unknown&gt; = {}
+    const conflicts: ConflictInfo[] = []
+
+    for (const field of allFields) {
+      const baseVal = base.data[field]
+      const localVal = local.data[field]
+      const serverVal = server.data[field]
+
+      const localChanged = !this.deepEqual(baseVal, localVal)
+      const serverChanged = !this.deepEqual(baseVal, serverVal)
+
+      if (!localChanged &amp;&amp; !serverChanged) {
+        // 양쪽 모두 변경 없음
+        resolved[field] = baseVal
+      } else if (localChanged &amp;&amp; !serverChanged) {
+        // 로컬만 변경
+        resolved[field] = localVal
+      } else if (!localChanged &amp;&amp; serverChanged) {
+        // 서버만 변경
+        resolved[field] = serverVal
+      } else if (this.deepEqual(localVal, serverVal)) {
+        // 양쪽 동일하게 변경
+        resolved[field] = localVal
+      } else {
+        // 충돌: 양쪽 다르게 변경
+        conflicts.push({ field, baseValue: baseVal, localValue: localVal, serverValue: serverVal })
+        resolved[field] = serverVal // 기본값은 서버 우선
+      }
+    }
+
+    return {
+      resolved,
+      conflicts,
+      strategy: conflicts.length === 0 ? 'auto-merged' : 'manual-required',
+    }
+  }
+
+  private deepEqual(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b)
+  }
+}
+</code></pre>
+            <h4 id="ui">충돌 해결 UI 컴포넌트</h4>
+            <pre><code class="language-typescript">// src/components/ConflictResolutionDialog.tsx
+import React, { useState } from 'react';
+import { ConflictInfo } from '@/services/conflict-resolver';
+
+interface Props {
+  conflicts: ConflictInfo[];
+  onResolve: (resolutions: Record&lt;string, unknown&gt;) =&gt; void;
+  onCancel: () =&gt; void;
+}
+
+export const ConflictResolutionDialog: React.FC&lt;Props&gt; = ({
+  conflicts,
+  onResolve,
+  onCancel,
+}) =&gt; {
+  const [selections, setSelections] = useState&lt;Record&lt;string, 'local' | 'server'&gt;&gt;(() =&gt;
+    Object.fromEntries(conflicts.map((c) =&gt; [c.field, 'server'])),
+  );
+
+  const handleResolve = () =&gt; {
+    const resolved: Record&lt;string, unknown&gt; = {};
+    for (const conflict of conflicts) {
+      resolved[conflict.field] = selections[conflict.field] === 'local'
+        ? conflict.localValue
+        : conflict.serverValue;
+    }
+    onResolve(resolved);
+  };
+
+  return (
+    &lt;dialog open className=&quot;conflict-dialog&quot;&gt;
+      &lt;h2&gt;데이터 충돌 해결&lt;/h2&gt;
+      &lt;p&gt;오프라인에서 수정한 내용과 서버 내용이 다릅니다. 각 항목에 대해 유지할 버전을 선택하세요.&lt;/p&gt;
+
+      &lt;table className=&quot;conflict-table&quot;&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;필드&lt;/th&gt;
+            &lt;th&gt;내 변경 (로컬)&lt;/th&gt;
+            &lt;th&gt;서버 변경&lt;/th&gt;
+            &lt;th&gt;선택&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          {conflicts.map((conflict) =&gt; (
+            &lt;tr key={conflict.field}&gt;
+              &lt;td&gt;&lt;strong&gt;{conflict.field}&lt;/strong&gt;&lt;/td&gt;
+              &lt;td className={selections[conflict.field] === 'local' ? 'selected' : ''}&gt;
+                &lt;code&gt;{JSON.stringify(conflict.localValue)}&lt;/code&gt;
+              &lt;/td&gt;
+              &lt;td className={selections[conflict.field] === 'server' ? 'selected' : ''}&gt;
+                &lt;code&gt;{JSON.stringify(conflict.serverValue)}&lt;/code&gt;
+              &lt;/td&gt;
+              &lt;td&gt;
+                &lt;select
+                  value={selections[conflict.field]}
+                  onChange={(e) =&gt;
+                    setSelections((prev) =&gt; ({ ...prev, [conflict.field]: e.target.value as 'local' | 'server' }))
+                  }
+                &gt;
+                  &lt;option value=&quot;local&quot;&gt;내 변경&lt;/option&gt;
+                  &lt;option value=&quot;server&quot;&gt;서버 변경&lt;/option&gt;
+                &lt;/select&gt;
+              &lt;/td&gt;
+            &lt;/tr&gt;
+          ))}
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+
+      &lt;div className=&quot;conflict-dialog__actions&quot;&gt;
+        &lt;button onClick={handleResolve} className=&quot;btn btn--primary&quot;&gt;적용&lt;/button&gt;
+        &lt;button onClick={onCancel} className=&quot;btn btn--ghost&quot;&gt;취소&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/dialog&gt;
+  );
+};
+</code></pre>
+            <hr />
+            <h2 id="7-web-push-notifications">7. Web Push Notifications</h2>
+            <blockquote>
+              <p><strong>현재 모바일 브라우저 Web Push 핵심 제약</strong></p>
+              <ul>
+                <li>
+                  일부 모바일 브라우저는
+                  <strong>홈 화면에 설치된 PWA (<code>display: standalone</code>)</strong> 에서만
+                  Push API가 동작한다. 일반 브라우저 탭에서는 권한 요청 자체가 거부될 수 있다.
+                </li>
+                <li>
+                  권한 요청은 <strong>사용자 제스처(클릭/탭) 직후에만</strong> 호출 가능.
+                  <code>useEffect</code>나 페이지 로드 시 자동 호출 금지.
+                </li>
+                <li>
+                  manifest의 <code>display</code>가 <code>standalone</code> 또는
+                  <code>fullscreen</code>이어야 한다. <code>minimal-ui</code>/<code>browser</code>로
+                  폴백되면 Push 비활성화.
+                </li>
+                <li>
+                  지역/플랫폼 정책에 따라 standalone 기능이 제한될 수 있으므로, 이를 감지하여 알림
+                  권한 UI 자체를 숨기는 폴백이 필요하다.
+                </li>
+                <li>
+                  VAPID 키는 서버/클라이언트 동일하게 관리(P-256 ECDSA). 키 교체 시 모든 구독을
+                  무효화한다.
+                </li>
+              </ul>
+              <p><strong>모바일 PWA Push 활성화 사전 체크</strong></p>
+              <p>
+                ```ts function canRequestPushOnMobilePwa(): { eligible: boolean; reason?: string } {
+                const ua = navigator.userAgent const requiresStandalone = /Mobile|Tablet/.test(ua)
+                if (!requiresStandalone) return { eligible: true }
+              </p>
+              <p>
+                // 홈 화면 설치 확인 (standalone) const isStandalone =
+                window.matchMedia('(display-mode: standalone)').matches || // 일부 모바일 브라우저의
+                비표준 standalone 속성 // eslint-disable-next-line
+                @typescript-eslint/no-explicit-any (window.navigator as any).standalone === true if
+                (!isStandalone) return { eligible: false, reason: 'home-screen-required' }
+              </p>
+              <p>
+                if (!('Notification' in window) || !('PushManager' in window)) { return { eligible:
+                false, reason: 'unsupported' } } return { eligible: true } } ```
+              </p>
+            </blockquote>
+            <h3 id="71-vapid">7.1 VAPID 키 생성</h3>
+            <pre><code class="language-typescript">// scripts/generate-vapid-keys.ts
+import webpush from 'web-push'
+
+const vapidKeys = webpush.generateVAPIDKeys()
+console.log('VAPID Public Key:', vapidKeys.publicKey)
+console.log('VAPID Private Key:', vapidKeys.privateKey)
+// .env에 저장:
+// VITE_VAPID_PUBLIC_KEY=&lt;publicKey&gt;
+// VAPID_PRIVATE_KEY=&lt;privateKey&gt;
+</code></pre>
+            <h3 id="72-service-worker-push">7.2 Service Worker Push 핸들러</h3>
+            <pre><code class="language-typescript">// src/sw-push.ts (sw.ts에서 import)
+declare let self: ServiceWorkerGlobalScope
+
+interface PushPayload {
+  title: string
+  body: string
+  icon?: string
+  badge?: string
+  tag?: string
+  url?: string
+  actions?: Array&lt;{ action: string; title: string; icon?: string }&gt;
+}
+
+self.addEventListener('push', (event: PushEvent) =&gt; {
+  if (!event.data) return
+
+  const payload: PushPayload = event.data.json()
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon ?? '/icons/icon-192x192.png',
+      badge: payload.badge ?? '/icons/badge-72x72.png',
+      tag: payload.tag ?? `notification-${Date.now()}`,
+      data: { url: payload.url ?? '/' },
+      actions: payload.actions ?? [
+        { action: 'confirm', title: '확인' },
+        { action: 'dismiss', title: '무시' },
+      ],
+      requireInteraction: false,
+      silent: false,
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event: NotificationEvent) =&gt; {
+  event.notification.close()
+
+  if (event.action === 'dismiss') return
+
+  const targetUrl = (event.notification.data as { url: string })?.url ?? '/'
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) =&gt; {
+      // 이미 열린 탭이 있으면 포커스
+      for (const client of clients) {
+        if (new URL(client.url).pathname === targetUrl &amp;&amp; 'focus' in client) {
+          return client.focus()
+        }
+      }
+      // 없으면 새 창 열기
+      return self.clients.openWindow(targetUrl)
+    }),
+  )
+})
+
+// 알림 닫힘 추적 (분석용)
+self.addEventListener('notificationclose', (event: NotificationEvent) =&gt; {
+  const tag = event.notification.tag
+  // 분석 이벤트 전송 (오프라인이면 큐잉)
+  fetch('/api/analytics/notification-dismissed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tag, timestamp: Date.now() }),
+  }).catch(() =&gt; {
+    /* 오프라인이면 무시 */
+  })
+})
+</code></pre>
+            <h3 id="73">7.3 클라이언트 구독 관리 훅</h3>
+            <pre><code class="language-typescript">// src/hooks/usePushNotification.ts
+import { useState, useEffect, useCallback } from 'react'
+
+interface PushState {
+  isSupported: boolean
+  permission: NotificationPermission
+  isSubscribed: boolean
+  subscribe: () =&gt; Promise&lt;void&gt;
+  unsubscribe: () =&gt; Promise&lt;void&gt;
+}
+
+export function usePushNotification(vapidPublicKey: string): PushState {
+  const [permission, setPermission] = useState&lt;NotificationPermission&gt;(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied',
+  )
+  const [isSubscribed, setIsSubscribed] = useState(false)
+
+  const isSupported = 'serviceWorker' in navigator &amp;&amp; 'PushManager' in window
+
+  useEffect(() =&gt; {
+    if (!isSupported) return
+    navigator.serviceWorker.ready.then(async (reg) =&gt; {
+      const sub = await reg.pushManager.getSubscription()
+      setIsSubscribed(sub !== null)
+    })
+  }, [isSupported])
+
+  const subscribe = useCallback(async () =&gt; {
+    if (!isSupported) return
+
+    const result = await Notification.requestPermission()
+    setPermission(result)
+    if (result !== 'granted') return
+
+    const reg = await navigator.serviceWorker.ready
+    const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4)
+    const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(base64)
+    const key = Uint8Array.from(rawData, (c) =&gt; c.charCodeAt(0))
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: key,
+    })
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription),
+    })
+
+    setIsSubscribed(true)
+  }, [isSupported, vapidPublicKey])
+
+  const unsubscribe = useCallback(async () =&gt; {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      await sub.unsubscribe()
+      await fetch('/api/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      })
+    }
+    setIsSubscribed(false)
+  }, [])
+
+  return { isSupported, permission, isSubscribed, subscribe, unsubscribe }
+}
+</code></pre>
+            <h3 id="74-api">7.4 서버 발송 API</h3>
+            <pre><code class="language-typescript">// server/push-sender.ts
+import webpush from 'web-push'
+
+webpush.setVapidDetails(
+  'mailto:admin@example.com',
+  process.env.VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!,
+)
+
+interface PushTarget {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}
+
+interface PushMessage {
+  title: string
+  body: string
+  icon?: string
+  url?: string
+  tag?: string
+}
+
+export async function sendPushNotification(
+  targets: PushTarget[],
+  message: PushMessage,
+): Promise&lt;{ success: number; failed: number }&gt; {
+  const results = await Promise.allSettled(
+    targets.map((target) =&gt;
+      webpush.sendNotification(
+        { endpoint: target.endpoint, keys: target.keys },
+        JSON.stringify(message),
+        { TTL: 86400, urgency: 'normal' },
+      ),
+    ),
+  )
+
+  return {
+    success: results.filter((r) =&gt; r.status === 'fulfilled').length,
+    failed: results.filter((r) =&gt; r.status === 'rejected').length,
+  }
+}
+</code></pre>
+            <hr />
+            <h2 id="8-app-manifest">8. App Manifest &amp; 설치 프롬프트</h2>
+            <p>
+              매니페스트 동적 생성은 <a href="#22-환경별-매니페스트-동적-생성">2.2절</a>을 참조한다.
+              설치 프롬프트 관리는 <a href="#23-preview-환경-pwa-설치-차단">2.3절</a>의
+              <code>usePWAInstall</code> 훅을 참조한다.
+            </p>
+            <h3 id="lighthouse-pwa-100">Lighthouse PWA 점수 100 체크리스트</h3>
+            <pre><code class="language-typescript">// scripts/pwa-audit-checklist.ts
+// Lighthouse PWA 감사 항목 자동 점검 스크립트
+
+interface AuditItem {
+  id: string
+  description: string
+  check: () =&gt; Promise&lt;boolean&gt;
+}
+
+const PWA_CHECKLIST: AuditItem[] = [
+  {
+    id: 'manifest-exists',
+    description: 'manifest.json 존재',
+    check: async () =&gt; {
+      const res = await fetch('/manifest.json')
+      return res.ok
+    },
+  },
+  {
+    id: 'sw-registered',
+    description: 'Service Worker 등록됨',
+    check: async () =&gt; {
+      const regs = await navigator.serviceWorker.getRegistrations()
+      return regs.length &gt; 0
+    },
+  },
+  {
+    id: 'https',
+    description: 'HTTPS 사용',
+    check: async () =&gt; location.protocol === 'https:',
+  },
+  {
+    id: 'offline-fallback',
+    description: '오프라인 폴백 페이지 존재',
+    check: async () =&gt; {
+      const cache = await caches.open('static-v2')
+      const match = await cache.match('/offline.html')
+      return match !== undefined
+    },
+  },
+  {
+    id: 'icons-192',
+    description: '192x192 아이콘 존재',
+    check: async () =&gt; {
+      const res = await fetch('/icons/icon-192x192.png')
+      return res.ok
+    },
+  },
+  {
+    id: 'icons-512',
+    description: '512x512 아이콘 존재',
+    check: async () =&gt; {
+      const res = await fetch('/icons/icon-512x512.png')
+      return res.ok
+    },
+  },
+  {
+    id: 'maskable-icon',
+    description: 'Maskable 아이콘 존재',
+    check: async () =&gt; {
+      const res = await fetch('/manifest.json')
+      const manifest = await res.json()
+      return manifest.icons?.some((i: { purpose?: string }) =&gt; i.purpose?.includes('maskable'))
+    },
+  },
+  {
+    id: 'theme-color',
+    description: 'theme-color 메타태그 존재',
+    check: async () =&gt; {
+      const meta = document.querySelector('meta[name=&quot;theme-color&quot;]')
+      return meta !== null
+    },
+  },
+  {
+    id: 'viewport',
+    description: 'viewport 메타태그 존재',
+    check: async () =&gt; {
+      const meta = document.querySelector('meta[name=&quot;viewport&quot;]')
+      return meta !== null &amp;&amp; meta.getAttribute('content')?.includes('width=device-width') === true
+    },
+  },
+  {
+    id: 'start-url',
+    description: 'start_url이 캐시에 존재',
+    check: async () =&gt; {
+      const res = await fetch('/manifest.json')
+      const manifest = await res.json()
+      const startUrl = manifest.start_url ?? '/'
+      const cached = await caches.match(startUrl)
+      return cached !== undefined
+    },
+  },
+]
+
+export async function runPWAAudit(): Promise&lt;void&gt; {
+  console.group('PWA Audit Checklist')
+  for (const item of PWA_CHECKLIST) {
+    try {
+      const passed = await item.check()
+      console.log(`${passed ? 'PASS' : 'FAIL'} ${item.description}`)
+    } catch {
+      console.log(`FAIL ${item.description} (에러 발생)`)
+    }
+  }
+  console.groupEnd()
+}
+</code></pre>
+            <hr />
+            <h2 id="85-file-system-access-opfs-storage-buckets-api">
+              8.5 File System Access / OPFS / Storage Buckets API
+            </h2>
+            <p>
+              현재 PWA의 오프라인 저장 옵션은 IndexedDB만이 아니다. 대용량/구조적 데이터를 더 빠르고
+              안전하게 저장할 수 있는 API들이 Baseline에 합류했다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>API</th>
+                    <th>지원 상태</th>
+                    <th>용도</th>
+                    <th>영속성</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>IndexedDB</strong></td>
+                    <td>모든 브라우저</td>
+                    <td>구조적 JSON/Blob</td>
+                    <td>쿼터 내 영속</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cache Storage</strong></td>
+                    <td>모든 브라우저</td>
+                    <td>Request/Response 캐싱</td>
+                    <td>쿼터 내 영속</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Origin Private File System (OPFS)</strong></td>
+                    <td>주요 엔진 전반 지원</td>
+                    <td>대용량 파일 IO (수GB), 동기 read/write 핸들</td>
+                    <td>영속 (<code>navigator.storage.persist</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>File System Access API (user-visible)</strong></td>
+                    <td>엔진별 지원 편차 큼</td>
+                    <td>사용자가 선택한 폴더에 R/W</td>
+                    <td>권한 부여 시 영속</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Storage Buckets API</strong></td>
+                    <td>일부 엔진 안정, 일부 진행 중</td>
+                    <td>도메인 데이터를 여러 버킷으로 분리, 버킷 단위 영속/만료</td>
+                    <td>버킷별 정책</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Web Locks API</strong></td>
+                    <td>모든 브라우저</td>
+                    <td>탭/SW 간 동시성 제어</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="851-opfs">8.5.1 OPFS로 대용량 오프라인 파일 저장</h3>
+            <pre><code class="language-typescript">// src/services/opfs-storage.ts
+// OPFS는 사용자에게 보이지 않는 origin 전용 파일 시스템 -- 가장 빠른 IO 성능
+
+export async function writeBlobToOpfs(path: string, blob: Blob): Promise&lt;void&gt; {
+  const root = await navigator.storage.getDirectory()
+  // 경로 분할 -- 'video/최신/clip.mp4' 같은 중첩 경로 지원
+  const segments = path.split('/').filter(Boolean)
+  const fileName = segments.pop()!
+
+  let dir = root
+  for (const segment of segments) {
+    dir = await dir.getDirectoryHandle(segment, { create: true })
+  }
+
+  const fileHandle = await dir.getFileHandle(fileName, { create: true })
+  // 워커에서는 createSyncAccessHandle()로 동기 IO 가능 (성능 우수)
+  const writable = await fileHandle.createWritable()
+  await writable.write(blob)
+  await writable.close()
+}
+
+export async function readBlobFromOpfs(path: string): Promise&lt;Blob | null&gt; {
+  try {
+    const root = await navigator.storage.getDirectory()
+    const segments = path.split('/').filter(Boolean)
+    const fileName = segments.pop()!
+    let dir = root
+    for (const segment of segments) {
+      dir = await dir.getDirectoryHandle(segment)
+    }
+    const fileHandle = await dir.getFileHandle(fileName)
+    const file = await fileHandle.getFile()
+    return file
+  } catch {
+    return null
+  }
+}
+</code></pre>
+            <h3 id="852-storage-buckets">8.5.2 Storage Buckets로 오프라인 데이터 격리</h3>
+            <pre><code class="language-typescript">// src/services/storage-buckets.ts
+// 사용자 워크스페이스/프로젝트마다 버킷을 분리해 만료 정책을 다르게 적용
+// 현재 기준 엔진별 지원 편차가 있으므로 progressive enhancement로 처리
+
+interface StorageBucketOptions {
+  durability?: 'strict' | 'relaxed'
+  persisted?: boolean
+  quota?: number
+  expires?: number // epoch ms
+}
+
+interface BrowserStorageManager extends StorageManager {
+  getBucket?: (name: string) =&gt; Promise&lt;unknown&gt;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  openOrCreate?: (name: string, options?: StorageBucketOptions) =&gt; Promise&lt;any&gt;
+}
+
+export async function getProjectBucket(projectId: string) {
+  const manager = navigator.storage as BrowserStorageManager
+  if (!manager.openOrCreate) {
+    // 미지원 브라우저 -- 글로벌 IndexedDB로 폴백
+    return null
+  }
+  // 30일 만료, 쿼터 200MB
+  return manager.openOrCreate(`project-${projectId}`, {
+    durability: 'strict',
+    persisted: true,
+    expires: Date.now() + 30 * 86_400_000,
+  })
+}
+</code></pre>
+            <h3 id="853-storage-persistence">8.5.3 영속성 확보 (Storage Persistence)</h3>
+            <pre><code class="language-ts">// 사용자에게 보이지 않게 영속성 요청 (브라우저는 사용자 참여도/북마크 등으로 자동 부여하기도 함)
+async function ensurePersistentStorage(): Promise&lt;boolean&gt; {
+  if (navigator.storage &amp;&amp; navigator.storage.persist) {
+    return navigator.storage.persist()
+  }
+  return false
+}
+</code></pre>
+            <hr />
+            <h2 id="9-background-sync-periodic-sync">9. Background Sync &amp; Periodic Sync</h2>
+            <h3 id="91-background-sync">9.1 Background Sync</h3>
+            <pre><code class="language-typescript">// Service Worker 내 Background Sync 핸들러
+// src/sw-sync.ts
+
+declare let self: ServiceWorkerGlobalScope
+
+import { openDB } from 'idb'
+
+const SYNC_TAG = 'offline-actions-sync'
+const DB_NAME = 'offline-queue'
+
+self.addEventListener('sync', (event: SyncEvent) =&gt; {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(processOfflineQueue())
+  }
+})
+
+async function processOfflineQueue(): Promise&lt;void&gt; {
+  const db = await openDB(DB_NAME, 1)
+  const tx = db.transaction('actions', 'readwrite')
+  const store = tx.objectStore('actions')
+  const index = store.index('by-status')
+  const pending = await index.getAll('pending')
+
+  let completed = 0
+  let failed = 0
+
+  for (const action of pending) {
+    try {
+      action.status = 'syncing'
+      await store.put(action)
+
+      const response = await fetch(action.url, {
+        method: action.method,
+        headers: action.headers,
+        body: action.body,
+      })
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+      await store.delete(action.id)
+      completed += 1
+    } catch (error) {
+      action.retryCount += 1
+      action.status = action.retryCount &gt;= action.maxRetries ? 'failed' : 'pending'
+      action.errorMessage = error instanceof Error ? error.message : 'Unknown'
+      await store.put(action)
+      failed += 1
+    }
+  }
+
+  await tx.done
+
+  // 클라이언트에 동기화 결과 알림
+  const clients = await self.clients.matchAll()
+  for (const client of clients) {
+    client.postMessage({
+      type: 'SYNC_COMPLETE',
+      payload: { total: pending.length, completed, failed },
+    })
+  }
+}
+
+// 클라이언트에서 Background Sync 등록
+export async function requestBackgroundSync(): Promise&lt;void&gt; {
+  const registration = await navigator.serviceWorker.ready
+  await registration.sync.register(SYNC_TAG)
+}
+</code></pre>
+            <h3 id="92-periodic-background-sync">9.2 Periodic Background Sync</h3>
+            <pre><code class="language-typescript">// src/services/periodic-sync.ts
+
+const PERIODIC_SYNC_TAG = 'content-prefetch'
+const MIN_INTERVAL = 12 * 60 * 60 * 1000 // 12시간
+
+export async function registerPeriodicSync(): Promise&lt;boolean&gt; {
+  if (!('periodicSync' in ServiceWorkerRegistration.prototype)) {
+    console.info('[PeriodicSync] 지원하지 않는 브라우저')
+    return false
+  }
+
+  const registration = await navigator.serviceWorker.ready
+  const status = await navigator.permissions.query({
+    name: 'periodic-background-sync' as PermissionName,
+  })
+
+  if (status.state !== 'granted') {
+    console.info('[PeriodicSync] 권한 없음')
+    return false
+  }
+
+  await registration.periodicSync.register(PERIODIC_SYNC_TAG, {
+    minInterval: MIN_INTERVAL,
+  })
+
+  return true
+}
+
+// Service Worker 내 Periodic Sync 핸들러
+// sw-periodic-sync.ts
+declare let self: ServiceWorkerGlobalScope
+
+self.addEventListener('periodicsync', (event: PeriodicSyncEvent) =&gt; {
+  if (event.tag === PERIODIC_SYNC_TAG) {
+    event.waitUntil(prefetchContent())
+  }
+})
+
+async function prefetchContent(): Promise&lt;void&gt; {
+  const urls = ['/api/feed/latest', '/api/notifications/unread-count']
+
+  const cache = await caches.open('prefetch-cache')
+
+  await Promise.allSettled(
+    urls.map(async (url) =&gt; {
+      const response = await fetch(url)
+      if (response.ok) {
+        await cache.put(url, response)
+      }
+    }),
+  )
+}
+
+// PeriodicSyncEvent 타입 선언
+interface PeriodicSyncEvent extends ExtendableEvent {
+  tag: string
+}
+
+interface SyncEvent extends ExtendableEvent {
+  tag: string
+  lastChance: boolean
+}
+
+declare global {
+  interface ServiceWorkerRegistration {
+    periodicSync: {
+      register(tag: string, options?: { minInterval?: number }): Promise&lt;void&gt;
+      unregister(tag: string): Promise&lt;void&gt;
+      getTags(): Promise&lt;string[]&gt;
+    }
+    sync: {
+      register(tag: string): Promise&lt;void&gt;
+      getTags(): Promise&lt;string[]&gt;
+    }
+  }
+}
+</code></pre>
+            <h3 id="93-react">9.3 React 동기화 상태 훅</h3>
+            <pre><code class="language-typescript">// src/hooks/useSyncStatus.ts
+import { useState, useEffect, useCallback } from 'react'
+import { OfflineQueue } from '@/services/offline-queue'
+import { SyncEngine } from '@/services/sync-engine'
+
+interface SyncStatus {
+  pendingCount: number
+  isSyncing: boolean
+  lastSyncResult: { completed: number; failed: number } | null
+  syncNow: () =&gt; Promise&lt;void&gt;
+}
+
+export function useSyncStatus(): SyncStatus {
+  const [pendingCount, setPendingCount] = useState(0)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncResult, setLastSyncResult] = useState&lt;{
+    completed: number
+    failed: number
+  } | null&gt;(null)
+
+  const queue = new OfflineQueue()
+  const engine = new SyncEngine(queue)
+
+  // Service Worker로부터 동기화 완료 메시지 수신
+  useEffect(() =&gt; {
+    const handler = (event: MessageEvent) =&gt; {
+      if (event.data?.type === 'SYNC_COMPLETE') {
+        const { completed, failed } = event.data.payload
+        setLastSyncResult({ completed, failed })
+        setIsSyncing(false)
+        queue.getQueueSize().then(setPendingCount)
+      }
+    }
+    navigator.serviceWorker?.addEventListener('message', handler)
+    return () =&gt; navigator.serviceWorker?.removeEventListener('message', handler)
+  }, [queue])
+
+  // 초기 큐 크기 로드
+  useEffect(() =&gt; {
+    queue.getQueueSize().then(setPendingCount)
+  }, [queue])
+
+  const syncNow = useCallback(async () =&gt; {
+    if (isSyncing || !navigator.onLine) return
+    setIsSyncing(true)
+
+    const result = await engine.syncAll((progress) =&gt; {
+      setPendingCount(progress.total - progress.completed - progress.failed)
+    })
+
+    setLastSyncResult({ completed: result.completed, failed: result.failed })
+    setIsSyncing(false)
+    setPendingCount(await queue.getQueueSize())
+  }, [isSyncing, engine, queue])
+
+  return { pendingCount, isSyncing, lastSyncResult, syncNow }
+}
+</code></pre>
+            <hr />
+            <h2 id="10-serwist-nextjs-pwa">10. Serwist (Next.js PWA 대안)</h2>
+            <p>
+              Next.js 프로젝트에서는 <code>next-pwa</code>가 유지보수 중단 상태이므로, 포크인
+              <strong>Serwist</strong>를 사용한다. Serwist는 Workbox 위에 Next.js App Router /
+              Server Actions 호환 레이어를 제공한다.
+            </p>
+            <h3 id="101">10.1 설치 및 기본 설정</h3>
+            <pre><code class="language-bash"># Serwist 설치
+pnpm add @serwist/next
+pnpm add -D serwist
+</code></pre>
+            <pre><code class="language-typescript">// next.config.ts
+import withSerwist from '@serwist/next'
+
+const nextConfig = {
+  // ... 기존 Next.js 설정
+}
+
+export default withSerwist({
+  swSrc: 'src/sw.ts', // Service Worker 소스 경로
+  swDest: 'public/sw.js', // 빌드 결과물 경로
+  cacheOnNavigation: true, // 네비게이션 요청 캐싱 활성화
+  reloadOnOnline: true, // 온라인 복귀 시 자동 새로고침
+  disable: process.env.NODE_ENV === 'development', // 개발 환경 비활성화
+})(nextConfig)
+</code></pre>
+            <h3 id="102-serwist-service-worker">10.2 Serwist Service Worker 작성</h3>
+            <pre><code class="language-typescript">// src/sw.ts - Serwist 기반 Service Worker
+import { defaultCache } from '@serwist/next/worker'
+import { Serwist } from 'serwist'
+
+declare const self: ServiceWorkerGlobalScope
+
+const serwist = new Serwist({
+  // Serwist가 빌드 시점에 프리캐시 매니페스트를 주입
+  precacheEntries: self.__SW_MANIFEST,
+  precacheOptions: {
+    cleanupOutdatedCaches: true, // 오래된 캐시 자동 정리
+    concurrency: 10, // 프리캐시 병렬 다운로드 수
+  },
+  skipWaiting: true,
+  clientsClaim: true,
+  navigationPreload: true,
+  // 기본 런타임 캐시 규칙 (Next.js 정적/동적 자원)
+  runtimeCaching: defaultCache,
+  // 오프라인 폴백 설정
+  fallbacks: {
+    entries: [
+      {
+        url: '/offline', // App Router 오프라인 페이지
+        matcher: ({ request }) =&gt; request.destination === 'document',
+      },
+    ],
+  },
+})
+
+serwist.addEventListeners()
+</code></pre>
+            <h3 id="103-serwist-vs-workbox">10.3 Serwist vs Workbox 직접 사용 비교</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>Serwist (Next.js)</th>
+                    <th>Workbox + vite-plugin-pwa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>프레임워크</strong></td>
+                    <td>Next.js 전용</td>
+                    <td>Vite / 프레임워크 무관</td>
+                  </tr>
+                  <tr>
+                    <td><strong>App Router 호환</strong></td>
+                    <td>네이티브 지원</td>
+                    <td>수동 설정 필요</td>
+                  </tr>
+                  <tr>
+                    <td><strong>프리캐시 매니페스트</strong></td>
+                    <td><code>self.__SW_MANIFEST</code> 자동 주입</td>
+                    <td><code>self.__WB_MANIFEST</code> 자동 주입</td>
+                  </tr>
+                  <tr>
+                    <td><strong>런타임 캐시 기본값</strong></td>
+                    <td><code>defaultCache</code> 제공</td>
+                    <td>직접 설정 필수</td>
+                  </tr>
+                  <tr>
+                    <td><strong>오프라인 폴백</strong></td>
+                    <td><code>fallbacks</code> 옵션 내장</td>
+                    <td><code>setCatchHandler</code> 수동 설정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>업데이트 감지</strong></td>
+                    <td><code>@serwist/next</code> 자동</td>
+                    <td><code>virtual:pwa-register</code> 사용</td>
+                  </tr>
+                  <tr>
+                    <td><strong>번들 크기</strong></td>
+                    <td>Workbox 하위 호환 (동일)</td>
+                    <td>동일</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="11-pwa">11. PWA 디버깅 &amp; 트러블슈팅</h2>
+            <h3 id="111-chrome-devtools">11.1 Chrome DevTools 활용</h3>
+            <pre><code class="language-typescript">// 개발 시 Service Worker 상태를 콘솔에서 확인하는 유틸리티
+// src/utils/sw-debug.ts
+
+export async function debugServiceWorker(): Promise&lt;void&gt; {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[SW Debug] Service Worker 미지원 브라우저')
+    return
+  }
+
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  console.group('[SW Debug] Service Worker 상태')
+
+  for (const reg of registrations) {
+    console.log('스코프:', reg.scope)
+    console.log('활성 SW:', reg.active?.state ?? '없음')
+    console.log('대기 SW:', reg.waiting?.state ?? '없음')
+    console.log('설치 중 SW:', reg.installing?.state ?? '없음')
+  }
+
+  // 캐시 스토리지 현황
+  const cacheNames = await caches.keys()
+  console.log('캐시 목록:', cacheNames)
+
+  for (const name of cacheNames) {
+    const cache = await caches.open(name)
+    const keys = await cache.keys()
+    console.log(`  ${name}: ${keys.length}개 항목`)
+  }
+
+  // 스토리지 사용량 확인
+  if ('storage' in navigator &amp;&amp; 'estimate' in navigator.storage) {
+    const estimate = await navigator.storage.estimate()
+    const usedMB = ((estimate.usage ?? 0) / (1024 * 1024)).toFixed(2)
+    const quotaMB = ((estimate.quota ?? 0) / (1024 * 1024)).toFixed(2)
+    console.log(`스토리지: ${usedMB}MB / ${quotaMB}MB 사용`)
+  }
+
+  console.groupEnd()
+}
+
+// 캐시 강제 초기화 (트러블슈팅용)
+export async function purgeAllCaches(): Promise&lt;void&gt; {
+  const cacheNames = await caches.keys()
+  await Promise.all(cacheNames.map((name) =&gt; caches.delete(name)))
+
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  await Promise.all(registrations.map((reg) =&gt; reg.unregister()))
+
+  console.info('[SW Debug] 모든 캐시 및 SW 등록 해제 완료. 새로고침하세요.')
+}
+</code></pre>
+            <h3 id="112">11.2 자주 발생하는 문제와 해결</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>증상</th>
+                    <th>원인</th>
+                    <th>해결</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>SW 업데이트가 반영되지 않음</td>
+                    <td><code>skipWaiting</code> 미호출, 탭이 열린 상태</td>
+                    <td>
+                      <code>skipWaiting()</code> + <code>clients.claim()</code> 확인, 또는
+                      사용자에게 새로고침 유도
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>캐시가 계속 커짐</td>
+                    <td><code>ExpirationPlugin</code> 미설정</td>
+                    <td><code>maxEntries</code>, <code>maxAgeSeconds</code> 반드시 설정</td>
+                  </tr>
+                  <tr>
+                    <td>CORS 리소스 캐시 실패</td>
+                    <td><code>CacheableResponsePlugin</code>에 <code>statuses: [0]</code> 누락</td>
+                    <td>opaque 응답(status 0) 허용 추가</td>
+                  </tr>
+                  <tr>
+                    <td>오프라인 폴백이 작동하지 않음</td>
+                    <td><code>/offline.html</code>이 프리캐시에 미포함</td>
+                    <td><code>includeAssets</code>에 <code>offline.html</code> 추가</td>
+                  </tr>
+                  <tr>
+                    <td>일부 모바일 브라우저에서 PWA 동작 이상</td>
+                    <td>모바일 OS/브라우저의 Service Worker 수명 제한</td>
+                    <td>중요 데이터는 IndexedDB에 저장, SW 재활성화 대비</td>
+                  </tr>
+                  <tr>
+                    <td><code>navigator.serviceWorker</code>가 <code>undefined</code></td>
+                    <td>HTTP 환경 또는 iframe 내부</td>
+                    <td>
+                      HTTPS 확인, <code>localhost</code> 예외 활용,
+                      <code>isSecureContext</code> 체크
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="113-playwright-pwa-e2e">11.3 Playwright를 활용한 PWA E2E 테스트</h3>
+            <pre><code class="language-typescript">// tests/pwa.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('PWA 오프라인 기능', () =&gt; {
+  test('오프라인 폴백 페이지가 정상적으로 표시된다', async ({ page, context }) =&gt; {
+    // 먼저 온라인 상태에서 페이지 방문하여 SW 등록 &amp; 캐시
+    await page.goto('/')
+    await page.waitForFunction(() =&gt; navigator.serviceWorker.ready.then(() =&gt; true))
+
+    // 오프라인 전환
+    await context.setOffline(true)
+
+    // 캐시되지 않은 페이지로 이동 시 오프라인 폴백 노출
+    await page.goto('/non-cached-page')
+    await expect(page.locator('text=오프라인')).toBeVisible()
+
+    // 온라인 복귀
+    await context.setOffline(false)
+  })
+
+  test('Service Worker가 정상 등록된다', async ({ page }) =&gt; {
+    await page.goto('/')
+
+    const swRegistered = await page.evaluate(async () =&gt; {
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      return registrations.length &gt; 0
+    })
+
+    expect(swRegistered).toBe(true)
+  })
+
+  test('캐시된 정적 리소스가 오프라인에서 로드된다', async ({ page, context }) =&gt; {
+    // 온라인에서 페이지 로드 (캐시 워밍)
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // 오프라인 전환 후 같은 페이지 새로고침
+    await context.setOffline(true)
+    await page.reload()
+
+    // 앱 셸이 정상 렌더링되는지 확인
+    await expect(page.locator('#root')).toBeVisible()
+  })
+
+  test('오프라인에서 작성한 데이터가 온라인 복귀 시 동기화된다', async ({ page, context }) =&gt; {
+    await page.goto('/')
+    await page.waitForFunction(() =&gt; navigator.serviceWorker.ready.then(() =&gt; true))
+
+    // 오프라인 전환
+    await context.setOffline(true)
+
+    // 오프라인 상태에서 데이터 작성 (IndexedDB 큐에 저장됨)
+    await page.fill('[data-testid=&quot;input-field&quot;]', '오프라인 테스트 데이터')
+    await page.click('[data-testid=&quot;submit-button&quot;]')
+
+    // 온라인 복귀
+    await context.setOffline(false)
+
+    // 동기화 완료 대기
+    await page.waitForSelector('[data-testid=&quot;sync-complete&quot;]', {
+      timeout: 10000,
+    })
+  })
+})
+</code></pre>
+            <hr />
+            <h2 id="12">12. 체크리스트</h2>
+            <h3 id="121-service-worker">12.1 Service Worker 기본</h3>
+            <ul>
+              <li>[ ] Service Worker가 HTTPS(또는 localhost)에서 등록된다</li>
+              <li>
+                [ ] <code>skipWaiting()</code> + <code>clientsClaim()</code>으로 즉시 활성화 설정
+              </li>
+              <li>[ ] <code>cleanupOutdatedCaches()</code>로 이전 버전 캐시 자동 정리</li>
+              <li>
+                [ ] SW 파일에 <code>self.__WB_MANIFEST</code> (또는 <code>self.__SW_MANIFEST</code>)
+                프리캐시 매니페스트 포함
+              </li>
+              <li>
+                [ ] Navigation Preload 활성화
+                (<code>self.registration.navigationPreload.enable()</code>)
+              </li>
+              <li>[ ] SW 업데이트 감지 및 사용자 알림 UI 구현</li>
+              <li>[ ] 에러 핸들링: 모든 fetch 핸들러에 try-catch + 폴백 응답</li>
+            </ul>
+            <h3 id="122">12.2 캐싱 전략</h3>
+            <ul>
+              <li>
+                [ ] 페이지 유형별 캐싱 전략 매핑 완료 (Cache First / Network First / SWR / Network
+                Only)
+              </li>
+              <li>
+                [ ] 모든 런타임 캐시에 <code>ExpirationPlugin</code> 설정 (<code>maxEntries</code>,
+                <code>maxAgeSeconds</code>)
+              </li>
+              <li>
+                [ ] <code>CacheableResponsePlugin</code>으로 유효한 응답만 캐시 (<code
+                  >statuses: [0, 200]</code
+                >)
+              </li>
+              <li>[ ] 캐시 이름에 버전 프리픽스 포함 (<code>v${VERSION}-cache-name</code>)</li>
+              <li>[ ] API 응답 캐시의 TTL이 비즈니스 요구사항에 맞게 설정됨</li>
+              <li>[ ] CDN 리소스에 Stale While Revalidate 적용</li>
+              <li>[ ] 인증/결제 경로는 Network Only 처리</li>
+            </ul>
+            <h3 id="123-ux">12.3 오프라인 UX</h3>
+            <ul>
+              <li>
+                [ ] 오프라인 폴백 페이지(<code>/offline.html</code> 또는 <code>/offline</code>)가
+                프리캐시에 포함
+              </li>
+              <li>[ ] 네트워크 상태 감지 훅(<code>useNetworkStatus</code>) 구현 및 UI 배너 표시</li>
+              <li>[ ] 오프라인에서 작성한 데이터가 IndexedDB 큐에 저장됨</li>
+              <li>[ ] 온라인 복귀 시 자동 동기화 + 진행률 표시</li>
+              <li>[ ] 오프라인 사용 가능/불가능 기능을 UI에서 시각적으로 구분</li>
+              <li>[ ] 충돌 발생 시 3-way merge UI 또는 서버 우선 전략 적용</li>
+              <li>
+                [ ] <code>Connection</code> 타입에 따른 적응형 로딩 (Slow 3G 시 이미지 축소 등)
+              </li>
+            </ul>
+            <h3 id="124-web-push-notification">12.4 Web Push Notification</h3>
+            <ul>
+              <li>[ ] VAPID 키 생성 및 <code>.env</code>에 안전하게 보관</li>
+              <li>[ ] 클라이언트 구독(subscribe) / 해제(unsubscribe) 플로우 구현</li>
+              <li>[ ] SW <code>push</code> 이벤트에서 알림 표시 (제목, 본문, 아이콘, 배지)</li>
+              <li>[ ] <code>notificationclick</code>에서 해당 URL로 포커스 또는 새 창 열기</li>
+              <li>[ ] 태그(<code>tag</code>) 기반 중복 알림 방지</li>
+              <li>[ ] 환경별 Push 토픽 분리 (프로덕션 알림이 테스트 사용자에게 전달되지 않도록)</li>
+              <li>
+                [ ] 모바일 브라우저 호환성: 홈 화면 설치(<code>standalone</code>) 상태에서만 권한
+                요청이 가능한 경우를 감지
+              </li>
+              <li>[ ] 권한 요청이 사용자 제스처 직후에만 발생하도록 가드 구현</li>
+              <li>[ ] EU 지역 사용자(DMA 적용)에 대한 Push 미지원 폴백 UI 제공</li>
+              <li>[ ] VAPID 키 교체(rotation) 절차 문서화 -- 교체 시 구독 무효화</li>
+            </ul>
+            <h3 id="125-background-sync">12.5 Background Sync</h3>
+            <ul>
+              <li>[ ] <code>sync</code> 이벤트 핸들러에서 오프라인 큐 처리</li>
+              <li>[ ] 지수 백오프(exponential backoff) 재시도 로직 구현</li>
+              <li>[ ] 최대 재시도 횟수 초과 시 에러 큐로 분리</li>
+              <li>[ ] 동기화 결과를 <code>postMessage</code>로 클라이언트에 알림</li>
+              <li>[ ] Periodic Background Sync 등록 시 브라우저 지원 여부 확인</li>
+            </ul>
+            <h3 id="126-api-storage">12.6 최신 저장 API (Storage)</h3>
+            <ul>
+              <li>
+                [ ] 대용량 파일 저장에 OPFS(<code>navigator.storage.getDirectory()</code>) 활용 검토
+              </li>
+              <li>
+                [ ] 사용자 폴더 R/W 필요 시 File System Access API + Persistent Permissions(Chrome
+                122+)
+              </li>
+              <li>
+                [ ] 워크스페이스/프로젝트별로 Storage Buckets API로 데이터 격리(Chromium 지원)
+              </li>
+              <li>
+                [ ] <code>navigator.storage.persist()</code>로 영속성 확보, 미지원 환경 폴백 처리
+              </li>
+              <li>[ ] Web Locks API로 SW ↔ 탭 간 동시 쓰기 충돌 방지</li>
+            </ul>
+            <h3 id="127-app-manifest">12.7 App Manifest</h3>
+            <ul>
+              <li>
+                [ ] <code>manifest.json</code>에 <code>name</code>, <code>short_name</code>,
+                <code>start_url</code>, <code>display</code>, <code>theme_color</code> 포함
+              </li>
+              <li>[ ] 아이콘: 192x192 + 512x512 필수, maskable 아이콘 별도 포함</li>
+              <li>[ ] <code>display_override</code>로 Window Controls Overlay 지원 (선택)</li>
+              <li>[ ] <code>screenshots</code> 포함 (wide + narrow 각 최소 1장)</li>
+              <li>[ ] <code>shortcuts</code> 3개 이상 등록 (빈번한 사용자 액션)</li>
+              <li>[ ] <code>share_target</code> 설정으로 Web Share Target 지원 (선택)</li>
+              <li>
+                [ ] <code>&lt;meta name="theme-color"&gt;</code> 태그가 HTML
+                <code>&lt;head&gt;</code>에 존재
+              </li>
+            </ul>
+            <h3 id="128">12.8 멀티 환경 &amp; 배포</h3>
+            <ul>
+              <li>[ ] 환경별(Production/Staging/Canary/Preview) Service Worker 캐시 전략 분리</li>
+              <li>[ ] Preview 환경에서 <code>beforeinstallprompt</code> 차단</li>
+              <li>[ ] 환경별 매니페스트 동적 생성 (앱 이름에 환경 태그 포함)</li>
+              <li>[ ] SW 버전 충돌 감지 및 자동 해결 (캐시 전체 삭제 + 재등록)</li>
+              <li>[ ] Feature Flag로 오프라인 기능 점진적 롤아웃</li>
+              <li>
+                [ ] Lighthouse CI에서 PWA 점수 90+ 유지 (<a href="./08_성능_최적화_가이드.md"
+                  >08. 성능 최적화 가이드</a
+                >
+                참조)
+              </li>
+              <li>
+                [ ] <a href="./12_CDN_캐시_전략.md">12. CDN 캐시 전략</a>과 SW 캐시 간 TTL 정합성
+                확인
+              </li>
+            </ul>
+            <h3 id="129">12.9 테스트</h3>
+            <ul>
+              <li>[ ] Playwright로 오프라인 폴백 E2E 테스트 작성</li>
+              <li>[ ] SW 등록/갱신 테스트 자동화</li>
+              <li>[ ] 네트워크 에뮬레이션(오프라인, Slow 3G, Fast 3G) 시나리오 포함</li>
+              <li>[ ] Background Sync 큐잉/전송 검증 테스트</li>
+              <li>[ ] 캐시 스토리지 용량 초과 시 LRU 제거 검증</li>
+              <li>
+                [ ] CI 파이프라인(CI)에 PWA 테스트 통합 (<a href="./11_CICD_파이프라인_표준.md"
+                  >11. CI/CD 파이프라인 표준</a
+                >
+                참조)
+              </li>
+            </ul>
+            <hr />
+            <blockquote>
+              <p>
+                <strong>다음 단계</strong>: PWA 캐싱 전략은 CDN 캐싱과 밀접하게 연관됩니다.
+                <a href="./12_CDN_캐시_전략.md">12. CDN 캐시 전략</a>에서 CDN 레벨의 캐시 무효화 및
+                TTL 설정을 함께 확인하세요. 성능 지표 모니터링은
+                <a href="./08_성능_최적화_가이드.md">08. 성능 최적화 가이드</a>를 참조하세요.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_16">실무 적용 가이드</h2>
+            <h3 id="_17">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>오프라인, 느린 네트워크, 재접속 상황에서 UX가 깨질 때</li>
+              <li>service worker update가 stale app이나 white screen을 만들 때</li>
+              <li>push/background sync 권한과 실패 처리가 필요할 때</li>
+            </ul>
+            <h3 id="_18">적용 순서</h3>
+            <ol>
+              <li>오프라인에서 반드시 동작할 flow와 동작하지 않아도 되는 flow를 나눈다.</li>
+              <li>app shell, runtime data, media asset cache를 분리한다.</li>
+              <li>service worker update와 rollback 전략을 정한다.</li>
+              <li>sync retry, conflict, exhaustion 상태를 UI로 드러낸다.</li>
+              <li>offline E2E와 cache manifest diff를 PR에 남긴다.</li>
+            </ol>
+            <h3 id="_19">함께 두는 파일</h3>
+            <ul>
+              <li>feature별 offline fallback, sync queue, conflict UI를 기능 폴더에 둔다.</li>
+              <li>공통 service worker 전략은 app/platform 폴더에 둔다.</li>
+              <li>CDN cache 정책과 PWA runtime cache 정책은 링크하되 책임을 분리한다.</li>
+            </ul>
+            <h3 id="_20">흔한 실수</h3>
+            <ul>
+              <li>민감 API 응답을 무심코 캐시한다.</li>
+              <li>새 service worker 활성화 후 기존 탭 동작을 테스트하지 않는다.</li>
+              <li>offline 실패를 단순 toast로만 처리한다.</li>
+              <li>push 권한 요청을 사용자 맥락 없이 먼저 띄운다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] offline 핵심 flow가 통과한다.</li>
+              <li>[ ] SW update/rollback drill이 있다.</li>
+              <li>[ ] cache에 민감정보가 없다.</li>
+              <li>[ ] sync 실패와 conflict UX가 있다.</li>
+            </ul>
+            <h2 id="_21">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — service worker, cache strategy, offline fallback 중 하나를
+                작은 변경 1건에 적용하고 증거(SW lifecycle log)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — PWA 오프라인 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — offline failure, stale data incident, SW update lag
+                추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — PWA 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_22">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : service worker, cache strategy, offline fallback 적용
+                대상을 1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(SW lifecycle log, offline smoke, cache manifest,
+                update prompt test)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : offline failure, stale data incident, SW update lag가
+                기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_23">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 캐시 대상이 정적 자원인지 사용자 데이터인지 먼저
+                구분한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : PWA 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : offline smoke와 update prompt가 통과하면 scope를 넓힌다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 사용자 데이터가 stale로 오인되거나 SW rollback이 없으면
+                중단한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 캐시 범위, 데이터 신선도, update 실패율로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : PWA/플랫폼 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : PWA 오프라인 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li>
+                <code>재평가 주기</code> : 릴리스마다 SW 버전과 cache cleanup 결과를 확인한다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

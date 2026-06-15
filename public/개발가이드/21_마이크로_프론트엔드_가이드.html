@@ -1,0 +1,3955 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 21 마이크로 프론트엔드 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="21">21. 마이크로 프론트엔드 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>팀별 배포 독립성과 사용자 통합성은 함께 갈 수 있지만 경계가 필요합니다.</li>
+              <li>
+                host와 remote의 라이프사이클을 분리하고 오케스트레이션은 최소한으로 유지하세요.
+              </li>
+              <li>공통 런타임 버전 충돌은 운영 장애로 직결됩니다.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>마이크로 프론트엔드에서는 “연결은 가능하지만 강하게 묶이지 않게”가 핵심입니다.</p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>host</code></td>
+                    <td>마이크로 앱을 담는 큰 컨테이너 앱</td>
+                  </tr>
+                  <tr>
+                    <td><code>remote</code></td>
+                    <td>독립적으로 배포되는 하위 앱</td>
+                  </tr>
+                  <tr>
+                    <td><code>공유 런타임</code></td>
+                    <td>여러 앱이 쓰는 공통 라이브러리/상태</td>
+                  </tr>
+                  <tr>
+                    <td><code>버전 충돌</code></td>
+                    <td>서로 다른 버전이 충돌해 기능이 깨지는 상태</td>
+                  </tr>
+                  <tr>
+                    <td><code>오케스트레이션</code></td>
+                    <td>여러 앱의 로딩/연동 흐름을 조정하는 구조</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./22_모노레포_운영_가이드.md">22. 모노레포</a>,
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      MFE 도입 기준, Federation/Import Maps, Runtime API, 독립 카나리 배포, RSC 통합
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"마이크로 프론트엔드는 독립적인 팀이 독립적으로 배포할 수 있는 프론트엔드
+                  아키텍처이다. 핵심은 기술이 아니라 조직의 자율성과 배포 독립성이다."</strong
+                >
+                본 가이드는 특정 런타임이나 번들러가 아니라
+                <strong>독립 배포 가능성, 계약 안정성, 공유 의존성 통제, 장애 격리</strong>를
+                기준으로 마이크로 프론트엔드를 검토하는 방법을 다룹니다. Module Federation 2.x,
+                Native Federation, iframe, route-level composition은 상황별 구현 후보입니다.
+              </p>
+              <p><strong>현재 MFE 생태계 변화 요약</strong></p>
+              <ul>
+                <li>
+                  <strong>Federation 런타임 성숙도</strong>: 런타임 분리, manifest, dynamic type
+                  hint, runtime plugin이 성숙했지만, 번들러/프레임워크 adapter별 호환성 매트릭스를
+                  반드시 확인합니다.
+                </li>
+                <li>
+                  <strong>Runtime API</strong>: <code>loadRemote</code>, <code>preloadRemote</code>,
+                  <code>registerRemotes</code>, <code>prefetch</code>, cache API 통합. 빌드 플러그인
+                  없이 순수 런타임 등록 가능
+                </li>
+                <li>
+                  <strong>Native Federation (ESM)</strong>: Import Maps 기반 대안입니다. 단순한 배포
+                  독립성에는 유리하지만, shared singleton과 legacy browser 전략은 별도 검증이
+                  필요합니다.
+                </li>
+                <li>
+                  <strong>RSC + MFE 통합 패턴</strong>: Server Component에서 데이터 프리페치, Client
+                  경계에서 리모트 로드를 검토하되, 사용하는 Federation 런타임과 프레임워크 adapter의
+                  compatibility matrix를 기준으로 검증합니다.
+                </li>
+                <li>
+                  <strong>MFE 남용 방지</strong>: 팀/배포/도메인 경계가 분명하지 않으면 모노레포 +
+                  route-level ownership이 더 낮은 비용입니다.
+                </li>
+              </ul>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: host와 remote의 책임 경계를 명확히 정하고 버전 정책을
+                문서화하세요.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: shared dependency 충돌은 CI에서 공통 체크로 막고,
+                fallback plan을 먼저 만듭니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 운영 단계에서 리모트 배포 실패는 전체보다 범위 축소
+                전략(카나리/단일 기능)으로 대응하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — host/remote contract와 shared dependency 중 하나를 실제
+                PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — remote manifest, contract test, canary deploy log를 같은
+                작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — remote load failure, shared singleton 충돌, independent deploy
+                lead time가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로
+                판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : host/remote contract와 shared dependency 적용 범위를 어느 화면,
+                패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : remote manifest, contract test, canary deploy log 중 실제로 남긴
+                항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : remote load failure, shared singleton 충돌, independent
+                deploy lead time를 다시 볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      MFE 도입 조건, 도메인 경계, remote 계약, 장애 격리
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./22_모노레포_운영_가이드.md">22. 모노레포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">remote별 독립 배포와 rollback 조건</td>
+                    <td style="text-align: left">
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">remote 성능 예산과 관측 지표</td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./09_장애_대응_및_관측성_표준.md">09. 관측성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 제안한 분할안의 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>도입 조건</strong></td>
+                    <td style="text-align: left">
+                      독립 배포가 실제로 필요한 팀/도메인 경계가 있을 때만 도입합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>계약 관리</strong></td>
+                    <td style="text-align: left">
+                      remote expose, shared dependency, event, route, auth context를 버전
+                      관리합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>장애 격리</strong></td>
+                    <td style="text-align: left">
+                      remote load/render 실패 시 host가 살아남는 fallback과 error boundary를 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>성능 예산</strong></td>
+                    <td style="text-align: left">
+                      각 remote의 JS/CSS/critical path budget과 prefetch 정책을 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>운영성</strong></td>
+                    <td style="text-align: left">
+                      remote별 release, canary, rollback, ownership, observability dimension을
+                      분리합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00-mfe">0.0 MFE 채택/운영 플로우</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[도메인 경계 후보 식별] --&gt; B{독립 배포 필요성}
+  B --&gt;|높음| C[&quot;배포 단위(예: route/domain) 분할&quot;]
+  B --&gt;|낮음| D[모노레포·패키지 분할 대안 검토]
+  C --&gt; E[&quot;Remote 계약(Expose/Shared/Auth) 정의&quot;]
+  D --&gt; E2[도입 보류 및 기존 구조 유지]
+  E --&gt; F[&quot;Host/Remote 빌드·타입·runtime 검증&quot;]
+  E2 --&gt; C
+  F --&gt; G{로드 실패/격리 전략 확인}
+  G --&gt;|안전| H[&quot;canary 배포 + rollback 설계&quot;]
+  G --&gt;|불안정| I[구현 복잡도 재평가]
+  H --&gt; J[&quot;운영 지표 + 장애 격리 모니터링&quot;]
+  I --&gt; C</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      MFE 도입 전 모노레포/route ownership 대안을 먼저 비교한다
+                    </td>
+                    <td style="text-align: left">아키텍처 RFC/ADR, 번들러 공식 문서</td>
+                    <td style="text-align: left">dependency graph, deploy coupling 분석</td>
+                    <td style="text-align: left">팀별 lead time, cross-team blocking</td>
+                    <td style="text-align: left">독립 배포보다 런타임 복잡도가 더 큰 경우</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      remote 계약은 manifest와 타입/런타임 검증을 함께 둔다
+                    </td>
+                    <td style="text-align: left">Federation/Import Maps 공식 문서</td>
+                    <td style="text-align: left">contract test, type generation check</td>
+                    <td style="text-align: left">remote load failure, shared version conflict</td>
+                    <td style="text-align: left">host와 remote가 항상 같은 릴리스로 배포될 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      shared dependency는 singleton 남용을 피하고 충돌 탐지를 자동화한다
+                    </td>
+                    <td style="text-align: left">패키지 매니저/런타임 공식 문서</td>
+                    <td style="text-align: left">version policy lint, bundle duplicate report</td>
+                    <td style="text-align: left">hydration error, duplicate runtime size</td>
+                    <td style="text-align: left">
+                      독립 배포보다 빌드타임 공유 패키지가 더 안정적일 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">canary와 rollback은 remote 단위로 검증한다</td>
+                    <td style="text-align: left">배포/관측성 표준</td>
+                    <td style="text-align: left">route-level canary E2E, rollback rehearsal</td>
+                    <td style="text-align: left">remote별 error rate, conversion impact</td>
+                    <td style="text-align: left">traffic split을 안정적으로 측정할 수 없을 때</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">MFE adoption RFC</td>
+                    <td style="text-align: left">
+                      monorepo 대안 비교, dependency graph, cost model
+                    </td>
+                    <td style="text-align: left">Architecture owner</td>
+                    <td style="text-align: left">route ownership 또는 package boundary로 축소</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Remote contract gate</td>
+                    <td style="text-align: left">manifest diff, type compatibility, host smoke</td>
+                    <td style="text-align: left">Host/remote owners</td>
+                    <td style="text-align: left">이전 remote manifest pinning</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Shared dependency gate</td>
+                    <td style="text-align: left">duplicate bundle report, singleton allowlist</td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">shared 해제 또는 build-time package로 회귀</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Remote canary gate</td>
+                    <td style="text-align: left">route-level error rate, fallback hit rate</td>
+                    <td style="text-align: left">Release owner</td>
+                    <td style="text-align: left">remote traffic 0%, host fallback 유지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-ai">1. AI 보조 마이그레이션/분할 검증 시나리오</h2>
+            <p>
+              이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 단일 출처로
+              따릅니다. 여기서는 마이크로 프론트엔드 분할과 마이그레이션에 필요한 도메인별 질문만
+              다룹니다.
+            </p>
+            <p>
+              AI가 제안한 MFE 분할안은 의사결정 초안입니다. 최종 판단은 의존성 그래프, 배포 결합도,
+              팀 ownership, 런타임 장애 격리, 성능 예산으로 검증합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                    <th style="text-align: left">승인 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">도메인 경계 탐색</td>
+                    <td style="text-align: left">route map, import graph, package ownership</td>
+                    <td style="text-align: left">후보 remote 목록, 단계별 분할안</td>
+                    <td style="text-align: left">dependency graph, 순환 참조 검사</td>
+                    <td style="text-align: left">독립 배포 가치가 런타임 비용보다 큼</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">공유 모듈 계약</td>
+                    <td style="text-align: left">shared package API, consumer 목록</td>
+                    <td style="text-align: left">public API, versioning, deprecation plan</td>
+                    <td style="text-align: left">contract test, type check, consumer smoke</td>
+                    <td style="text-align: left">breaking change가 명시적으로 관리됨</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">remote 설정 생성</td>
+                    <td style="text-align: left">host/remote 목록, bundler, runtime 후보</td>
+                    <td style="text-align: left">federation/native config 초안</td>
+                    <td style="text-align: left">build, remote load E2E, fallback test</td>
+                    <td style="text-align: left">host가 remote 실패 시 계속 동작</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">공유 상태 분리</td>
+                    <td style="text-align: left">store 코드, auth/session 흐름</td>
+                    <td style="text-align: left">event/API 기반 경계 제안</td>
+                    <td style="text-align: left">hydration, auth context, race condition test</td>
+                    <td style="text-align: left">전역 store 직접 공유를 제거 또는 제한</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">라우팅 통합</td>
+                    <td style="text-align: left">route table, navigation ownership</td>
+                    <td style="text-align: left">route composition, deep link, 404 전략</td>
+                    <td style="text-align: left">browser navigation E2E</td>
+                    <td style="text-align: left">URL 계약과 SEO/analytics가 유지됨</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">성능 예산</td>
+                    <td style="text-align: left">bundle report, route traffic, RUM</td>
+                    <td style="text-align: left">remote별 JS/CSS/latency budget</td>
+                    <td style="text-align: left">bundle budget, INP/LCP p75</td>
+                    <td style="text-align: left">remote 추가가 core path를 악화하지 않음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">legacy 통합 전환</td>
+                    <td style="text-align: left">iframe/embedded app 구조</td>
+                    <td style="text-align: left">strangler migration plan</td>
+                    <td style="text-align: left">security boundary, postMessage 제거 계획</td>
+                    <td style="text-align: left">단계별 rollback과 owner가 명확함</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>MFE RFC에는 최소한 다음 결론이 있어야 합니다.</p>
+            <ul>
+              <li>모노레포 + route ownership으로 충분하지 않은 이유</li>
+              <li>remote 장애 시 host fallback 방식</li>
+              <li>shared dependency 충돌 정책</li>
+              <li>독립 배포와 rollback 책임자</li>
+              <li>성능 예산과 관측 dimension</li>
+            </ul>
+            <h2 id="2-module-federation-2x-vs-native-federation">
+              2. Module Federation 2.x vs Native Federation 비교
+            </h2>
+            <p>
+              Module Federation 2.x 계열은 runtime, manifest, type hint, preload 같은 런타임 중심
+              API를 제공하지만, production 도입 여부는 사용하는 bundler와 framework adapter의 공식
+              호환성 매트릭스로 판단합니다. "지원" 표기는 전체 제품 안정성을 의미하지 않으므로
+              host/remote smoke, SSR 여부, shared dependency 충돌을 별도로 검증합니다.
+            </p>
+            <p>
+              <strong>일상 비유</strong>: Module Federation은 같은 회사의 여러 지점이 본사 ERP 한
+              대를 공유해 재고/회계를 실시간으로 정합하는 방식이고, Native Federation은 각 지점이
+              표준 카탈로그(Import Map) 한 장을 들고 같은 창고(CDN)에서 부품을 받아가는 방식이다.
+            </p>
+            <p>
+              이 그림은 빌드 통합(Module Federation)과 런타임 통합(Native Federation/Import Maps) 중
+              어떤 쪽을 선택할지 결정하는 흐름을 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[MFE 통합 방식 선택] --&gt; Q1{공유 의존성&lt;br/&gt;버전 협상 자동화 필요?}
+  Q1 --&gt;|Yes| Q2{SSR/RSC&lt;br/&gt;요구 사항?}
+  Q1 --&gt;|No| Q3{단일 번들러&lt;br/&gt;고정 가능?}
+  Q2 --&gt;|있음| MF[Module Federation 2.x&lt;br/&gt;+ Node Federation]
+  Q2 --&gt;|없음| Q4{런타임 dts/preload&lt;br/&gt;API 필요?}
+  Q4 --&gt;|Yes| MF
+  Q4 --&gt;|No| Native[Native Federation&lt;br/&gt;Import Maps + ESM]
+  Q3 --&gt;|Yes| Native
+  Q3 --&gt;|No| MF
+  MF --&gt; ProveMF[host/remote smoke&lt;br/&gt;shared duplicate report]
+  Native --&gt; ProveNative[Import Map diff&lt;br/&gt;integrity hash 검증]
+  ProveMF --&gt; Done[도입 결정]
+  ProveNative --&gt; Done</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>비교 항목</th>
+                    <th>Module Federation 2.x</th>
+                    <th>Native Federation (ESM)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>번들러</strong></td>
+                    <td>Webpack 5.97+, Rspack, Rolldown, Rsbuild, Vite, Metro</td>
+                    <td>번들러 무관 (순수 ESM)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>런타임</strong></td>
+                    <td><code>@module-federation/runtime</code> (빌드 도구 독립)</td>
+                    <td>Import Maps + ES Modules</td>
+                  </tr>
+                  <tr>
+                    <td><strong>공유 의존성</strong></td>
+                    <td>singleton/eager/strictVersion + share scope 협상</td>
+                    <td>Import Maps로 URL 레벨 공유</td>
+                  </tr>
+                  <tr>
+                    <td><strong>타입 공유</strong></td>
+                    <td>dts 플러그인이 mf-manifest로 자동 생성/소비</td>
+                    <td>수동 타입 패키지 관리</td>
+                  </tr>
+                  <tr>
+                    <td><strong>버전 관리</strong></td>
+                    <td>런타임 share scope negotiation (mf-manifest 활용)</td>
+                    <td>Import Map 버전 명시</td>
+                  </tr>
+                  <tr>
+                    <td><strong>동적 리모트</strong></td>
+                    <td><code>registerRemotes()</code> 런타임 등록 (빌드 시 미선언 가능)</td>
+                    <td>Import Map 동적 주입</td>
+                  </tr>
+                  <tr>
+                    <td><strong>프리로드/프리페치</strong></td>
+                    <td><code>preloadRemote</code>, prefetch API, cache API 내장</td>
+                    <td>수동 (<code>&lt;link rel="modulepreload"&gt;</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>빌드 속도</strong></td>
+                    <td>Rspack/Rolldown 사용 시 매우 빠름</td>
+                    <td>빌드 불필요 (ESM 직접 서빙)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>디버깅</strong></td>
+                    <td>MF DevTools Chrome Extension (2.x에서 강화)</td>
+                    <td>브라우저 네이티브 DevTools</td>
+                  </tr>
+                  <tr>
+                    <td><strong>프레임워크 지원</strong></td>
+                    <td>React, Vue, Angular, Svelte, React Native</td>
+                    <td>프레임워크 무관</td>
+                  </tr>
+                  <tr>
+                    <td><strong>SSR 지원</strong></td>
+                    <td>Node Federation, Next.js 16/15 App Router 및 Modern.js 통합 검증 필요</td>
+                    <td>제한적</td>
+                  </tr>
+                  <tr>
+                    <td><strong>프로덕션 사례</strong></td>
+                    <td>대규모 서비스와 복잡한 공유 의존성 환경에서 다수 채택</td>
+                    <td>단순 구조와 네이티브 ESM 선호 환경에서 증가 중</td>
+                  </tr>
+                  <tr>
+                    <td><strong>적합한 케이스</strong></td>
+                    <td>대규모 팀, 복잡한 공유 의존성, RSC 통합</td>
+                    <td>소규모, 단순 구조, 빌드 속도 중시</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="21-native-federation-esm">2.1 Native Federation (ESM) 기본 구성</h3>
+            <pre><code class="language-json">// import-map.json -- 공유 의존성을 Import Map으로 관리
+{
+  &quot;imports&quot;: {
+    &quot;react&quot;: &quot;https://cdn.example.com/react@19.1.0/esm/index.js&quot;,
+    &quot;react-dom&quot;: &quot;https://cdn.example.com/react-dom@19.1.0/esm/index.js&quot;,
+    &quot;react-dom/client&quot;: &quot;https://cdn.example.com/react-dom@19.1.0/esm/client.js&quot;,
+    &quot;@shared/auth&quot;: &quot;https://mfe.example.com/shared/auth/v2.1.0/index.js&quot;,
+    &quot;@shared/events&quot;: &quot;https://mfe.example.com/shared/events/v1.3.0/index.js&quot;
+  },
+  &quot;scopes&quot;: {
+    &quot;https://mfe.example.com/app-a/&quot;: {
+      &quot;lodash-es&quot;: &quot;https://cdn.example.com/lodash-es@4.17.21/lodash.js&quot;
+    }
+  }
+}
+</code></pre>
+            <pre><code class="language-typescript">// native-federation/loader.ts -- ESM 기반 리모트 앱 로더
+interface RemoteAppConfig {
+  name: string
+  url: string
+  modulePath: string
+  integrity?: string // SRI(Subresource Integrity) 해시
+}
+
+interface RemoteModule {
+  default: React.ComponentType
+  [key: string]: unknown
+}
+
+// 모듈 캐시: 동일 리모트를 중복 로드하지 않기 위한 메모이제이션
+const moduleCache = new Map&lt;string, RemoteModule&gt;()
+
+export async function loadRemoteModule(config: RemoteAppConfig): Promise&lt;RemoteModule&gt; {
+  const cacheKey = `${config.name}@${config.url}`
+
+  if (moduleCache.has(cacheKey)) {
+    return moduleCache.get(cacheKey)!
+  }
+
+  try {
+    // ESM dynamic import -- 브라우저 네이티브 모듈 시스템 활용
+    const moduleUrl = new URL(config.modulePath, config.url).href
+    const mod = (await import(/* webpackIgnore: true */ moduleUrl)) as RemoteModule
+
+    moduleCache.set(cacheKey, mod)
+    return mod
+  } catch (error) {
+    console.error(`Failed to load remote module: ${config.name}`, error)
+    throw new RemoteLoadError(config.name, error)
+  }
+}
+
+class RemoteLoadError extends Error {
+  constructor(
+    public readonly remoteName: string,
+    public readonly cause: unknown,
+  ) {
+    super(`Remote &quot;${remoteName}&quot; failed to load`)
+    this.name = 'RemoteLoadError'
+  }
+}
+</code></pre>
+            <h3 id="22">2.2 선택 기준 요약</h3>
+            <ul>
+              <li>
+                <strong>Module Federation 2.x</strong>: 복잡한 shared dependency, runtime remote
+                registration, typed manifest, host/remote 관측성이 필요할 때 검토합니다. adapter별
+                SSR/브라우저/번들러 호환성을 먼저 확인합니다.
+              </li>
+              <li>
+                <strong>Native Federation (Import Maps)</strong>: ESM과 Import Maps 기반의 단순 배포
+                독립성을 우선할 때 검토합니다. legacy browser, singleton, 타입 공유 전략은 별도로
+                설계합니다.
+              </li>
+              <li>
+                <strong>Vite federation plugin</strong>: Vite 단독 환경에서 작은 remote를 빠르게
+                검증할 때 후보가 될 수 있습니다. maintenance 상태, HMR, SSR, shared dependency
+                동작을 PoC로 확인합니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="3-single-spa-vs-module-federation-vs-iframe">
+              3. Single-SPA vs Module Federation vs iframe 비교
+            </h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>비교 항목</th>
+                    <th>Single-SPA</th>
+                    <th>Module Federation 2.1</th>
+                    <th>iframe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>통합 수준</strong></td>
+                    <td>라우트 기반 앱 마운트</td>
+                    <td>컴포넌트/모듈 레벨 공유</td>
+                    <td>완전 격리</td>
+                  </tr>
+                  <tr>
+                    <td><strong>공유 의존성</strong></td>
+                    <td>Import Maps / SystemJS</td>
+                    <td>런타임 협상 (자동)</td>
+                    <td>없음 (각자 로드)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>스타일 격리</strong></td>
+                    <td>없음 (수동 관리)</td>
+                    <td>없음 (수동 관리)</td>
+                    <td>완전 격리</td>
+                  </tr>
+                  <tr>
+                    <td><strong>JS 격리</strong></td>
+                    <td>없음 (전역 오염 가능)</td>
+                    <td>없음 (전역 오염 가능)</td>
+                    <td>완전 격리</td>
+                  </tr>
+                  <tr>
+                    <td><strong>통신 방식</strong></td>
+                    <td>이벤트 버스, Props</td>
+                    <td>직접 import, 이벤트 버스</td>
+                    <td>postMessage</td>
+                  </tr>
+                  <tr>
+                    <td><strong>라우팅</strong></td>
+                    <td>통합 라우터 필수</td>
+                    <td>Host 라우터 위임</td>
+                    <td>각자 독립</td>
+                  </tr>
+                  <tr>
+                    <td><strong>SSR</strong></td>
+                    <td>지원 (isomorphic-layout-composer)</td>
+                    <td>Node Federation</td>
+                    <td>지원 (각 iframe별)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>번들 크기</strong></td>
+                    <td>중복 가능</td>
+                    <td>최소화 (공유 싱글톤)</td>
+                    <td>최대 (완전 중복)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>초기 로딩</strong></td>
+                    <td>보통</td>
+                    <td>빠름 (프리로드 가능)</td>
+                    <td>느림 (다중 페이지 로드)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>디버깅</strong></td>
+                    <td>보통</td>
+                    <td>좋음 (DevTools 지원)</td>
+                    <td>어려움 (크로스 프레임)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>기술 다양성</strong></td>
+                    <td>최고 (React+Vue+Angular)</td>
+                    <td>좋음 (주요 프레임워크)</td>
+                    <td>최고 (완전 독립)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>도입 난이도</strong></td>
+                    <td>높음</td>
+                    <td>중간</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>적합한 시나리오</strong></td>
+                    <td>다중 프레임워크 점진 마이그레이션</td>
+                    <td>동일 프레임워크 대규모 앱</td>
+                    <td>레거시 통합, 보안 격리 필수</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_7">선택 의사결정 플로차트</h3>
+            <p>
+              <strong>일상 비유</strong>: 식당 인테리어 통합과 같다. 완전한 음식점 격리(iframe)는
+              푸드코트에서 칸막이로 분리, 동일 프레임워크 컴포넌트 공유(Module Federation)는 같은
+              주방을 쓰는 분점, 다양한 주방을 모으는 방식(Single-SPA)은 푸드코트 안에서 메뉴/언어가
+              모두 다른 가게가 한 홀에 모인 모습이다.
+            </p>
+            <p>
+              이 그림은 레거시·기술 스택·통합 단위에 따라 어떤 MFE 통합 방식을 선택할지 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Q1{레거시 앱을&lt;br/&gt;통합해야 하는가?} --&gt;|Yes| Q2{기술 스택&lt;br/&gt;변경 가능?}
+  Q1 --&gt;|No| Q3{단일 프레임워크로&lt;br/&gt;통일 가능?}
+  Q2 --&gt;|No| IFR[iframe&lt;br/&gt;완전 격리·보안 우선]
+  Q2 --&gt;|Yes| SSPA[Single-SPA&lt;br/&gt;점진적 strangler 마이그레이션]
+  Q3 --&gt;|Yes| MF[Module Federation 2.x&lt;br/&gt;컴포넌트/모듈 공유]
+  Q3 --&gt;|No| Multi[Single-SPA 또는&lt;br/&gt;Native Federation]
+  IFR --&gt; Note1[postMessage 통신&lt;br/&gt;SSO/세션 격리 점검]
+  SSPA --&gt; Note2[Import Maps&lt;br/&gt;route 기반 mount]
+  MF --&gt; Note3[shared scope 협상&lt;br/&gt;dts manifest]
+  Multi --&gt; Note4[Import Maps 우선&lt;br/&gt;또는 framework adapter]</pre
+            >
+            <pre><code>레거시 앱을 통합해야 하는가?
+├── Yes → 기술 스택 변경 불가?
+│   ├── Yes → iframe
+│   └── No → Single-SPA (점진적 마이그레이션)
+└── No → 신규 구축 또는 동일 프레임워크?
+    ├── 동일 프레임워크 → Module Federation 2.1
+    └── 다중 프레임워크 → Single-SPA 또는 Native Federation
+</code></pre>
+            <h3 id="31">3.1 스타일 격리 전략 비교</h3>
+            <p>
+              마이크로 프론트엔드에서 스타일 충돌은 가장 빈번한 문제 중 하나다. 통합 방식별 스타일
+              격리 전략을 아래와 같이 적용한다.
+            </p>
+            <pre><code class="language-typescript">// 전략 1: CSS Modules -- Module Federation / Single-SPA 환경에서 권장
+// 각 리모트 앱의 클래스명이 빌드 시 해시 처리되어 충돌 방지
+// dashboard.module.css → .header_a1b2c3
+import styles from './dashboard.module.css';
+
+function DashboardHeader() {
+  return &lt;header className={styles.header}&gt;Dashboard&lt;/header&gt;;
+}
+
+// 전략 2: Shadow DOM -- 완전한 스타일 격리가 필요한 경우
+// 주의: React와의 이벤트 전파 이슈 있음 (React 19에서 개선)
+class RemoteAppHost extends HTMLElement {
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: 'open' });
+    const container = document.createElement('div');
+    shadow.appendChild(container);
+
+    // Shadow DOM 내부에 React 앱 마운트
+    const root = ReactDOM.createRoot(container);
+    root.render(&lt;RemoteApp /&gt;);
+  }
+}
+
+// 전략 3: 네임스페이스 접두사 -- 가장 단순하지만 수동 관리 필요
+// 각 리모트 앱의 최상위에 고유 접두사 부여
+// .mfe-dashboard .header { ... }
+// .mfe-settings .header { ... }
+</code></pre>
+            <hr />
+            <h2 id="4-module-federation-2x">4. Module Federation 2.x 실전 설정</h2>
+            <p>
+              현재 공식 문서 기준 <code>@module-federation/rsbuild-plugin</code>,
+              <code>@module-federation/enhanced</code>(Webpack),
+              <code>@module-federation/vite</code>가 정식 출시되어 주요 번들러에서 같은 API를
+              씁니다. 아래는 rsbuild 기준 설정이며, Webpack 사용자는
+              <code>@module-federation/enhanced/webpack</code>을 import하면 동일하게 동작합니다.
+            </p>
+            <p>
+              <strong>일상 비유</strong>: Host는 백화점 전체 운영본부, Remote는 입점 매장이다.
+              백화점이 공용 전기/엘리베이터(React, react-router 같은 shared singleton)를 제공하면
+              매장들은 자기 인테리어(컴포넌트)만 챙기면 된다. 매장이 자기 발전기를 들고 와 따로
+              돌리면 화재(중복 React 인스턴스, hooks 오류)가 난다.
+            </p>
+            <p>
+              이 그림은 Host와 Remote가 manifest를 통해 어떻게 계약을 맺고 공유 의존성을 협상하는지
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  subgraph Host[Host Shell]
+    HConfig[Host config&lt;br/&gt;remotes + shared scope]
+    HRuntime[MF Runtime&lt;br/&gt;registerRemotes/init]
+    HShared[Shared Singleton&lt;br/&gt;React/react-dom/router]
+  end
+
+  subgraph Remote[Remote App]
+    RConfig[Remote config&lt;br/&gt;expose + shared declare]
+    RBuild[Build output&lt;br/&gt;+ mf-manifest.json]
+    RBundle[Module chunks&lt;br/&gt;+ remoteEntry.js]
+  end
+
+  RConfig --&gt; RBuild
+  RBuild --&gt; RBundle
+  RBundle -- &quot;1. manifest fetch&quot; --&gt; HRuntime
+  HConfig --&gt; HRuntime
+  HRuntime -- &quot;2. shared 협상&quot; --&gt; HShared
+  HShared -- &quot;3. provide singleton&quot; --&gt; RBundle
+  RBundle -- &quot;4. consume singleton&quot; --&gt; HShared
+  HRuntime -- &quot;5. lazy import&quot; --&gt; Render[Component Render]</pre
+            >
+            <h3 id="41-host-shell">4.1 Host (Shell) 설정</h3>
+            <pre><code class="language-typescript">// apps/shell/rsbuild.config.ts
+import { defineConfig } from '@rsbuild/core'
+import { pluginReact } from '@rsbuild/plugin-react'
+import { ModuleFederationPlugin } from '@module-federation/rsbuild-plugin'
+
+export default defineConfig({
+  plugins: [pluginReact()],
+  tools: {
+    rspack: (config) =&gt; {
+      config.plugins?.push(
+        new ModuleFederationPlugin({
+          name: 'shell',
+          remotes: {
+            // 런타임 동적 URL: 환경별 remoteEntry 주소 주입
+            appDashboard: `appDashboard@${getRemoteUrl('app-dashboard')}/mf-manifest.json`,
+            appSettings: `appSettings@${getRemoteUrl('app-settings')}/mf-manifest.json`,
+            appAnalytics: `appAnalytics@${getRemoteUrl('app-analytics')}/mf-manifest.json`,
+          },
+          shared: {
+            react: { singleton: true, requiredVersion: '^19.0.0' },
+            'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
+            'react-router': { singleton: true, requiredVersion: '^7.0.0' },
+            zustand: { singleton: true, requiredVersion: '^5.0.0' },
+            '@shared/auth': { singleton: true, version: '2.0.0' },
+            '@shared/events': { singleton: true, version: '1.0.0' },
+          },
+          // 2.x: mf-manifest.json 기반 타입 자동 생성 및 런타임 share scope 협상
+          dts: {
+            generateTypes: { extractRemoteTypes: true },
+            consumeTypes: { generateAPITypes: true },
+          },
+          // 2.x: 런타임 플러그인 -- prefetch, retry, fallback 등 확장 가능
+          runtimePlugins: [
+            require.resolve('./mf-plugins/retry-plugin'),
+            require.resolve('./mf-plugins/metrics-plugin'),
+          ],
+        }),
+      )
+      return config
+    },
+  },
+})
+
+// 환경별 리모트 URL 조회 함수
+function getRemoteUrl(appName: string): string {
+  const envUrls: Record&lt;string, Record&lt;string, string&gt;&gt; = {
+    production: {
+      'app-dashboard': 'https://dashboard.mfe.example.com',
+      'app-settings': 'https://settings.mfe.example.com',
+      'app-analytics': 'https://analytics.mfe.example.com',
+    },
+    staging: {
+      'app-dashboard': 'https://dashboard.staging.mfe.example.com',
+      'app-settings': 'https://settings.staging.mfe.example.com',
+      'app-analytics': 'https://analytics.staging.mfe.example.com',
+    },
+    development: {
+      'app-dashboard': 'http://localhost:3001',
+      'app-settings': 'http://localhost:3002',
+      'app-analytics': 'http://localhost:3003',
+    },
+  }
+
+  const env = process.env.DEPLOY_ENV ?? 'development'
+  return envUrls[env]?.[appName] ?? envUrls.development[appName]
+}
+</code></pre>
+            <h3 id="42-remote">4.2 Remote (앱) 설정</h3>
+            <pre><code class="language-typescript">// apps/app-dashboard/rsbuild.config.ts
+import { defineConfig } from '@rsbuild/core'
+import { pluginReact } from '@rsbuild/plugin-react'
+import { ModuleFederationPlugin } from '@module-federation/rsbuild-plugin'
+
+export default defineConfig({
+  server: { port: 3001 },
+  plugins: [pluginReact()],
+  tools: {
+    rspack: (config) =&gt; {
+      config.plugins?.push(
+        new ModuleFederationPlugin({
+          name: 'appDashboard',
+          exposes: {
+            // 라우트 단위 노출 -- 페이지 전체를 리모트로 제공
+            './DashboardRoutes': './src/routes/index.tsx',
+            // 개별 컴포넌트 노출 -- 다른 앱에서 위젯처럼 사용
+            './StatCard': './src/components/StatCard.tsx',
+            './RecentActivity': './src/components/RecentActivity.tsx',
+          },
+          shared: {
+            react: { singleton: true, requiredVersion: '^19.0.0' },
+            'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
+            'react-router': { singleton: true, requiredVersion: '^7.0.0' },
+            zustand: { singleton: true, requiredVersion: '^5.0.0' },
+            '@shared/auth': { singleton: true },
+            '@shared/events': { singleton: true },
+          },
+          dts: {
+            generateTypes: {
+              extractThirdParty: true, // 서드파티 타입도 추출
+              abortOnError: false, // 타입 에러 시에도 빌드 계속
+            },
+          },
+        }),
+      )
+      return config
+    },
+  },
+})
+</code></pre>
+            <h3 id="43-host">4.3 Host에서 리모트 컴포넌트 로드</h3>
+            <pre><code class="language-typescript">// apps/shell/src/components/RemoteApp.tsx
+import { init, loadRemote } from '@module-federation/enhanced/runtime';
+import { Suspense, lazy, type ComponentType } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
+
+// 런타임 초기화 (앱 시작 시 1회 호출)
+init({
+  name: 'shell',
+  remotes: [
+    {
+      name: 'appDashboard',
+      entry: process.env.REMOTE_DASHBOARD_URL + '/mf-manifest.json',
+    },
+    {
+      name: 'appSettings',
+      entry: process.env.REMOTE_SETTINGS_URL + '/mf-manifest.json',
+    },
+  ],
+});
+
+// 리모트 컴포넌트 lazy 로드 헬퍼
+function loadRemoteComponent&lt;T = Record&lt;string, never&gt;&gt;(
+  remoteName: string,
+  moduleName: string,
+): React.LazyExoticComponent&lt;ComponentType&lt;T&gt;&gt; {
+  return lazy(async () =&gt; {
+    const mod = await loadRemote&lt;{ default: ComponentType&lt;T&gt; }&gt;(
+      `${remoteName}/${moduleName}`,
+    );
+    if (!mod) {
+      throw new Error(`Remote module ${remoteName}/${moduleName} not found`);
+    }
+    return mod;
+  });
+}
+
+// 리모트 앱 래퍼: 로딩 + 에러 처리를 통합
+interface RemoteAppProps {
+  remoteName: string;
+  moduleName: string;
+  props?: Record&lt;string, unknown&gt;;
+  fallback?: React.ReactNode;
+  errorFallback?: React.ReactNode;
+}
+
+export function RemoteApp({
+  remoteName,
+  moduleName,
+  props = {},
+  fallback = &lt;RemoteLoadingSkeleton /&gt;,
+  errorFallback = &lt;RemoteErrorFallback /&gt;,
+}: RemoteAppProps) {
+  const Component = loadRemoteComponent(remoteName, moduleName);
+
+  return (
+    &lt;ErrorBoundary fallback={errorFallback}&gt;
+      &lt;Suspense fallback={fallback}&gt;
+        &lt;Component {...props} /&gt;
+      &lt;/Suspense&gt;
+    &lt;/ErrorBoundary&gt;
+  );
+}
+
+// 로딩 스켈레톤: 리모트 앱이 로드되는 동안 표시
+function RemoteLoadingSkeleton() {
+  return (
+    &lt;div className=&quot;animate-pulse space-y-4 p-6&quot;&gt;
+      &lt;div className=&quot;h-8 w-1/3 rounded bg-muted&quot; /&gt;
+      &lt;div className=&quot;h-64 rounded bg-muted&quot; /&gt;
+    &lt;/div&gt;
+  );
+}
+
+// 에러 폴백: 리모트 로드 실패 시 표시
+function RemoteErrorFallback() {
+  return (
+    &lt;div className=&quot;rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center&quot;&gt;
+      &lt;p className=&quot;text-sm text-destructive&quot;&gt;앱을 불러오는 데 실패했습니다.&lt;/p&gt;
+      &lt;button
+        className=&quot;mt-2 text-sm underline&quot;
+        onClick={() =&gt; window.location.reload()}
+      &gt;
+        새로고침
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+            <h3 id="44">4.4 공유 의존성 설정 상세</h3>
+            <p>
+              공유 의존성 설정은 마이크로 프론트엔드의 핵심이다. 잘못된 설정은 런타임 오류나 번들
+              크기 폭증으로 이어진다.
+            </p>
+            <pre><code class="language-typescript">// federation.config.ts -- 모든 앱이 공유하는 의존성 설정 중앙 관리
+// 이 파일을 packages/shared/federation-config/ 에 두고 각 앱에서 import
+
+export const sharedDependencies = {
+  // singleton: true -- 전체 앱에서 하나의 인스턴스만 사용
+  // strictVersion: true -- 버전 불일치 시 런타임 에러 (프로덕션 안전)
+  // requiredVersion -- 허용 가능한 semver 범위
+  // eager: true -- Host에서 즉시 로드 (리모트 대기 불필요)
+  react: {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: '^19.0.0',
+    eager: false, // 리모트에서는 false 권장 (Host가 제공)
+  },
+  'react-dom': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: '^19.0.0',
+  },
+  'react-router': {
+    singleton: true,
+    requiredVersion: '^7.0.0',
+  },
+  zustand: {
+    singleton: true,
+    requiredVersion: '^5.0.0',
+  },
+  // 내부 공유 패키지: version 명시로 정확한 호환성 관리
+  '@shared/auth': {
+    singleton: true,
+    version: '2.0.0',
+    requiredVersion: '^2.0.0',
+  },
+  '@shared/events': {
+    singleton: true,
+    version: '1.0.0',
+    requiredVersion: '^1.0.0',
+  },
+} as const
+
+// 각 앱의 rsbuild.config.ts 에서 사용:
+// import { sharedDependencies } from '@shared/federation-config';
+// shared: sharedDependencies,
+</code></pre>
+            <hr />
+            <h2 id="5-ci">5. 공유 의존성 버전 충돌 자동 탐지 CI</h2>
+            <p>
+              <strong>일상 비유</strong>: 같은 건물에 입주한 여러 회사가 같은 회의실 예약 시스템을
+              쓰는데, 회사마다 서로 다른 버전을 깔아 충돌이 나면 회의 알림이 뒤죽박죽이 된다. CI는
+              입주 단계에서 모두 같은 버전의 시스템을 쓰는지 자동 점검하는 관리실 역할이다.
+            </p>
+            <p>
+              이 그림은 shared dependency 충돌 탐지가 어떤 입력을 받아 어떤 출력으로 PR을 차단하는지
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  PR[PR 생성] --&gt; Collect[shared 설정 수집&lt;br/&gt;모든 app rsbuild.config.ts]
+  Lock[lockfile 정보] --&gt; Collect
+  Pkg[package.json] --&gt; Collect
+  Collect --&gt; Compare{버전 일치?}
+  Compare --&gt;|Yes| Pass[Pass&lt;br/&gt;리포트만 출력]
+  Compare --&gt;|No| Sev{심각도}
+  Sev --&gt;|singleton + strict| Block[CI Fail&lt;br/&gt;PR 차단]
+  Sev --&gt;|범위 호환 가능| Warn[Warning + 다음 PR까지 유예]
+  Block --&gt; Suggest[해결안 자동 제안&lt;br/&gt;버전 통일/peerDep 추가]
+  Warn --&gt; Suggest</pre
+            >
+            <h3 id="51">5.1 버전 충돌 탐지 스크립트</h3>
+            <pre><code class="language-typescript">// scripts/check-shared-deps.ts
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
+interface SharedDepConfig {
+  singleton?: boolean
+  requiredVersion?: string
+  version?: string
+  strictVersion?: boolean
+}
+
+interface AppSharedDeps {
+  appName: string
+  configPath: string
+  shared: Record&lt;string, SharedDepConfig&gt;
+  installedVersions: Record&lt;string, string&gt;
+}
+
+interface ConflictReport {
+  dependency: string
+  conflicts: Array&lt;{
+    app: string
+    requiredVersion: string
+    installedVersion: string
+  }&gt;
+  severity: 'error' | 'warning'
+  resolution: string
+}
+
+// 모든 앱 디렉토리를 순회하며 공유 의존성 정보 수집
+function collectSharedDeps(appsDir: string): AppSharedDeps[] {
+  const apps = readdirSync(appsDir, { withFileTypes: true })
+    .filter((d) =&gt; d.isDirectory())
+    .map((d) =&gt; d.name)
+
+  return apps.map((appName) =&gt; {
+    const configPath = join(appsDir, appName, 'rsbuild.config.ts')
+    const pkgPath = join(appsDir, appName, 'package.json')
+
+    // 실제 구현에서는 AST 파싱 또는 별도 JSON 설정 파일 사용
+    const shared = extractSharedFromConfig(configPath)
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+
+    const installedVersions: Record&lt;string, string&gt; = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies,
+    }
+
+    return { appName, configPath, shared, installedVersions }
+  })
+}
+
+// 수집된 의존성 정보에서 충돌 감지
+function detectConflicts(allApps: AppSharedDeps[]): ConflictReport[] {
+  const conflicts: ConflictReport[] = []
+
+  // 모든 앱에서 사용하는 공유 의존성 수집
+  const depMap = new Map&lt;string, Array&lt;{ app: string; required: string; installed: string }&gt;&gt;()
+
+  for (const app of allApps) {
+    for (const [dep, config] of Object.entries(app.shared)) {
+      if (!depMap.has(dep)) depMap.set(dep, [])
+
+      depMap.get(dep)!.push({
+        app: app.appName,
+        required: config.requiredVersion ?? '*',
+        installed: app.installedVersions[dep] ?? 'unknown',
+      })
+    }
+  }
+
+  // 충돌 감지 로직
+  for (const [dep, usages] of depMap) {
+    // singleton인데 major 버전이 다른 경우 → 런타임 에러 위험
+    const majorVersions = new Set(usages.map((u) =&gt; u.installed.replace(/[\^~]/, '').split('.')[0]))
+
+    if (majorVersions.size &gt; 1) {
+      conflicts.push({
+        dependency: dep,
+        conflicts: usages.map((u) =&gt; ({
+          app: u.app,
+          requiredVersion: u.required,
+          installedVersion: u.installed,
+        })),
+        severity: 'error',
+        resolution: `Major version mismatch for singleton &quot;${dep}&quot;. All apps must use the same major version.`,
+      })
+    }
+
+    // minor 버전 불일치 (warning) → 기능 차이 가능
+    const minorVersions = new Set(
+      usages.map((u) =&gt; {
+        const parts = u.installed.replace(/[\^~]/, '').split('.')
+        return `${parts[0]}.${parts[1]}`
+      }),
+    )
+
+    if (minorVersions.size &gt; 1 &amp;&amp; majorVersions.size === 1) {
+      conflicts.push({
+        dependency: dep,
+        conflicts: usages.map((u) =&gt; ({
+          app: u.app,
+          requiredVersion: u.required,
+          installedVersion: u.installed,
+        })),
+        severity: 'warning',
+        resolution: `Minor version difference for &quot;${dep}&quot;. Consider aligning to the latest minor.`,
+      })
+    }
+  }
+
+  return conflicts
+}
+
+// 충돌 리포트 출력
+function printReport(conflicts: ConflictReport[]): void {
+  if (conflicts.length === 0) {
+    console.log('No shared dependency conflicts detected.')
+    return
+  }
+
+  const errors = conflicts.filter((c) =&gt; c.severity === 'error')
+  const warnings = conflicts.filter((c) =&gt; c.severity === 'warning')
+
+  if (errors.length &gt; 0) {
+    console.error(`\n${'='.repeat(60)}`)
+    console.error(`ERRORS: ${errors.length} shared dependency conflicts`)
+    console.error('='.repeat(60))
+
+    for (const conflict of errors) {
+      console.error(`\n  ${conflict.dependency}:`)
+      for (const c of conflict.conflicts) {
+        console.error(`    ${c.app}: required=${c.requiredVersion} installed=${c.installedVersion}`)
+      }
+      console.error(`    Resolution: ${conflict.resolution}`)
+    }
+  }
+
+  if (warnings.length &gt; 0) {
+    console.warn(`\nWARNINGS: ${warnings.length} minor version differences`)
+    for (const w of warnings) {
+      console.warn(
+        `  ${w.dependency}: ${w.conflicts.map((c) =&gt; `${c.app}@${c.installedVersion}`).join(', ')}`,
+      )
+    }
+  }
+
+  // 에러가 있으면 CI 실패 처리
+  if (errors.length &gt; 0) {
+    process.exit(1)
+  }
+}
+
+// 실행
+const allApps = collectSharedDeps('apps')
+const conflicts = detectConflicts(allApps)
+printReport(conflicts)
+
+// 헬퍼: 설정 파일에서 shared 섹션 추출 (프로덕션에서는 AST 파서 사용 권장)
+function extractSharedFromConfig(configPath: string): Record&lt;string, SharedDepConfig&gt; {
+  // 실제로는 federation.config.json 등 별도 파일에서 읽는 것을 권장
+  try {
+    const content = readFileSync(configPath, 'utf-8')
+    const sharedMatch = content.match(/shared:\s*\{([\s\S]*?)\}/)
+    if (!sharedMatch) return {}
+    // ... AST 파싱 로직
+    return {}
+  } catch {
+    return {}
+  }
+}
+</code></pre>
+            <h3 id="52-ci">5.2 CI 파이프라인</h3>
+            <pre><code class="language-yaml"># .ci/workflows/shared-deps-check.yml
+name: Shared Dependencies Check
+
+on:
+  pull_request:
+    paths:
+      - 'apps/*/package.json'
+      - 'apps/*/rsbuild.config.ts'
+      - 'packages/shared/*/package.json'
+
+jobs:
+  check-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 공유 의존성 버전 충돌 검사
+      - name: Check shared dependency versions
+        run: pnpm tsx scripts/check-shared-deps.ts
+
+      # 번들 사이즈 체크 (각 리모트 앱별)
+      - name: Bundle size check
+        run: |
+          for app in apps/*/; do
+            app_name=$(basename &quot;$app&quot;)
+            echo &quot;Checking bundle size for $app_name...&quot;
+            pnpm --filter &quot;$app_name&quot; build
+            pnpm tsx scripts/check-bundle-size.ts &quot;$app&quot; --max-size 150KB
+          done
+
+      # 타입 호환성 검사
+      - name: Type compatibility check
+        run: pnpm tsx scripts/check-type-contracts.ts
+</code></pre>
+            <h3 id="53">5.3 라우트 충돌 감지 스크립트</h3>
+            <p>
+              여러 리모트 앱이 동일한 라우트를 등록하면 런타임에 예측 불가능한 동작이 발생한다.
+              CI에서 사전에 차단한다.
+            </p>
+            <pre><code class="language-typescript">// scripts/check-route-conflicts.ts
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
+interface RouteEntry {
+  path: string
+  app: string
+  file: string
+}
+
+// 각 앱의 라우트 설정 파일에서 경로 추출
+function collectRoutes(appsDir: string): RouteEntry[] {
+  const routes: RouteEntry[] = []
+  const apps = readdirSync(appsDir, { withFileTypes: true }).filter((d) =&gt; d.isDirectory())
+
+  for (const app of apps) {
+    const routeFile = join(appsDir, app.name, 'src/routes/index.tsx')
+    try {
+      const content = readFileSync(routeFile, 'utf-8')
+      // path=&quot;...&quot; 패턴 추출 (실무에서는 AST 파서 사용)
+      const pathMatches = content.matchAll(/path:\s*['&quot;]([^'&quot;]+)['&quot;]/g)
+      for (const match of pathMatches) {
+        routes.push({
+          path: match[1],
+          app: app.name,
+          file: routeFile,
+        })
+      }
+    } catch {
+      // 라우트 파일이 없는 앱은 건너뛰기
+    }
+  }
+
+  return routes
+}
+
+// 중복 라우트 검출
+function detectDuplicates(routes: RouteEntry[]): Map&lt;string, RouteEntry[]&gt; {
+  const pathMap = new Map&lt;string, RouteEntry[]&gt;()
+
+  for (const route of routes) {
+    const normalized = route.path.replace(/\/+$/, '') // 후행 슬래시 제거
+    if (!pathMap.has(normalized)) pathMap.set(normalized, [])
+    pathMap.get(normalized)!.push(route)
+  }
+
+  // 2개 이상의 앱이 등록한 경로만 반환
+  const duplicates = new Map&lt;string, RouteEntry[]&gt;()
+  for (const [path, entries] of pathMap) {
+    const uniqueApps = new Set(entries.map((e) =&gt; e.app))
+    if (uniqueApps.size &gt; 1) {
+      duplicates.set(path, entries)
+    }
+  }
+
+  return duplicates
+}
+
+const routes = collectRoutes('apps')
+const duplicates = detectDuplicates(routes)
+
+if (duplicates.size &gt; 0) {
+  console.error('Route conflicts detected:')
+  for (const [path, entries] of duplicates) {
+    console.error(`  &quot;${path}&quot; is registered by:`)
+    for (const entry of entries) {
+      console.error(`    - ${entry.app} (${entry.file})`)
+    }
+  }
+  process.exit(1)
+} else {
+  console.log('No route conflicts detected.')
+}
+</code></pre>
+            <hr />
+            <h2 id="6">6. 리모트 앱별 독립 카나리 배포</h2>
+            <h3 id="61">6.1 카나리 배포 아키텍처</h3>
+            <p>
+              <strong>일상 비유</strong>: 대형 음식점이 새 메뉴를 한 번에 전 매장에 풀지 않고, 한
+              매장의 한 코너에서 10명에게만 먼저 시식을 받는 방식. 입구(Shell)는 그대로 둔 채 코너
+              메뉴(Remote A)만 신메뉴와 기존 메뉴를 비율로 섞어 서빙한다.
+            </p>
+            <p>
+              이 그림은 Shell이 stable을 유지한 채 특정 Remote만 사용자 비율에 따라 canary/stable
+              버전을 분배하는 구조를 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  User[사용자 요청] --&gt; CDN[CDN / LB]
+  CDN --&gt; Shell[Shell Host&lt;br/&gt;항상 stable]
+  Shell --&gt;|hash userId| Registry{Remote Registry}
+  Registry --&gt;|10%| A1[App A v2.1.0 canary]
+  Registry --&gt;|90%| A2[App A v2.0.3 stable]
+  Shell --&gt; B[App B v1.5.0 stable&lt;br/&gt;100%]
+  Shell --&gt; C[App C v3.0.0 stable&lt;br/&gt;100%]
+  A1 --&gt; Metrics[error rate / INP / 전환율]
+  A2 --&gt; Metrics
+  Metrics --&gt; Decision{게이트 통과?}
+  Decision --&gt;|Pass| Promote[canary 확대 또는 승격]
+  Decision --&gt;|Fail| Rollback[canary 0% 즉시 롤백]</pre
+            >
+            <pre><code>사용자 요청 → CDN / Load Balancer
+                    │
+           ┌────────┴────────┐
+           │   Shell (Host)  │
+           │   항상 stable   │
+           └────────┬────────┘
+                    │
+    ┌───────────────┼───────────────┐
+    ▼               ▼               ▼
+┌────────┐    ┌────────┐    ┌────────┐
+│ App A  │    │ App B  │    │ App C  │
+│ v2.1.0 │    │ v1.5.0 │    │ v3.0.0 │
+│(canary)│    │(stable)│    │(stable)│
+│ 10%    │    │ 100%   │    │ 100%   │
+└────────┘    └────────┘    └────────┘
+     │
+     ├── 10% 트래픽: canary (v2.1.0-canary.1)
+     └── 90% 트래픽: stable (v2.0.3)
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>핵심 원칙</strong>: Shell(Host)은 stable 버전을 유지하고, 각 리모트 앱만
+                독립적으로 카나리 배포한다. 이 구조는 리스크를 낮추면서도 빠른 배포 주기를 유지한다.
+              </p>
+            </blockquote>
+            <h3 id="62-url">6.2 리모트 URL 동적 라우팅 서비스</h3>
+            <pre><code class="language-typescript">// services/remote-registry/src/registry.ts
+import { z } from 'zod'
+
+// 리모트 버전 스키마 정의
+const RemoteVersionSchema = z.object({
+  stable: z.string().url(),
+  canary: z.string().url().optional(),
+  canaryPercentage: z.number().min(0).max(100).default(0),
+})
+
+const RegistrySchema = z.record(z.string(), RemoteVersionSchema)
+
+type Registry = z.infer&lt;typeof RegistrySchema&gt;
+
+// 리모트 레지스트리: 각 앱의 stable/canary URL 관리
+const registry: Registry = {
+  appDashboard: {
+    stable: 'https://dashboard.mfe.example.com/v2.0.3/mf-manifest.json',
+    canary: 'https://dashboard.mfe.example.com/v2.1.0-canary.1/mf-manifest.json',
+    canaryPercentage: 10,
+  },
+  appSettings: {
+    stable: 'https://settings.mfe.example.com/v1.5.0/mf-manifest.json',
+    canaryPercentage: 0,
+  },
+  appAnalytics: {
+    stable: 'https://analytics.mfe.example.com/v3.0.0/mf-manifest.json',
+    canaryPercentage: 0,
+  },
+}
+
+interface ResolvedRemotes {
+  [remoteName: string]: {
+    url: string
+    version: 'stable' | 'canary'
+  }
+}
+
+// 사용자 ID와 feature flag를 기반으로 각 리모트의 URL 결정
+export function resolveRemoteUrls(
+  userId: string,
+  featureFlags?: Record&lt;string, boolean&gt;,
+): ResolvedRemotes {
+  const resolved: ResolvedRemotes = {}
+
+  for (const [name, config] of Object.entries(registry)) {
+    // 카나리 배포 대상 결정: 해시 기반 일관된 분배
+    const isCanaryUser = shouldServeCanary(userId, name, config.canaryPercentage)
+
+    // Feature flag 오버라이드: 특정 사용자에게 강제 카나리
+    const forceCanary = featureFlags?.[`canary_${name}`] === true
+
+    if ((isCanaryUser || forceCanary) &amp;&amp; config.canary) {
+      resolved[name] = { url: config.canary, version: 'canary' }
+    } else {
+      resolved[name] = { url: config.stable, version: 'stable' }
+    }
+  }
+
+  return resolved
+}
+
+// 일관된 해싱: 같은 사용자는 항상 같은 버전을 받도록 보장
+function shouldServeCanary(userId: string, appName: string, percentage: number): boolean {
+  if (percentage === 0) return false
+  if (percentage === 100) return true
+
+  // 사용자 ID + 앱 이름 기반 해시 (세션 간 일관성 보장)
+  const hash = simpleHash(`${userId}:${appName}`)
+  return hash % 100 &lt; percentage
+}
+
+function simpleHash(str: string): number {
+  let hash = 0
+  for (let i = 0; i &lt; str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = (hash &lt;&lt; 5) - hash + char
+    hash = hash &amp; hash // 32비트 정수 변환
+  }
+  return Math.abs(hash)
+}
+</code></pre>
+            <h3 id="63-shell">6.3 Shell에서 카나리 리모트 주입</h3>
+            <pre><code class="language-typescript">// apps/shell/src/bootstrap.ts
+import { init, registerRemotes } from '@module-federation/enhanced/runtime'
+
+interface BootstrapConfig {
+  userId: string
+  featureFlags: Record&lt;string, boolean&gt;
+}
+
+export async function bootstrapShell(config: BootstrapConfig): Promise&lt;void&gt; {
+  // 1. 리모트 레지스트리에서 URL 조회 (서버 API)
+  const response = await fetch('/api/remote-registry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: config.userId,
+      featureFlags: config.featureFlags,
+    }),
+  })
+
+  const remotes = await response.json()
+
+  // 2. Module Federation 런타임 초기화
+  init({
+    name: 'shell',
+    remotes: Object.entries(remotes).map(([name, info]) =&gt; ({
+      name,
+      entry: (info as { url: string }).url,
+    })),
+  })
+
+  // 3. 카나리 버전 로깅 (모니터링용)
+  for (const [name, info] of Object.entries(remotes)) {
+    const { version } = info as { url: string; version: string }
+    if (version === 'canary') {
+      console.info(`[MFE Canary] ${name} serving canary version`)
+      reportCanaryActivation(name, config.userId)
+    }
+  }
+}
+
+// 카나리 활성화 메트릭을 비동기로 전송
+function reportCanaryActivation(appName: string, userId: string): void {
+  if (typeof navigator.sendBeacon === 'function') {
+    navigator.sendBeacon(
+      '/api/metrics/canary',
+      JSON.stringify({
+        event: 'canary_activated',
+        app: appName,
+        userId,
+        timestamp: Date.now(),
+      }),
+    )
+  }
+}
+</code></pre>
+            <h3 id="64">6.4 카나리 롤백 자동화</h3>
+            <pre><code class="language-yaml"># .ci/workflows/canary-deploy.yml
+name: Canary Deploy Remote App
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Remote app to deploy'
+        required: true
+        type: choice
+        options: [app-dashboard, app-settings, app-analytics]
+      canary_percentage:
+        description: 'Canary traffic percentage'
+        required: true
+        type: number
+        default: 10
+      auto_rollback_threshold:
+        description: 'Error rate threshold for auto-rollback (%)'
+        type: number
+        default: 5
+
+jobs:
+  canary-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 해당 앱만 빌드
+      - name: Build remote app
+        run: pnpm --filter ${{ inputs.app_name }} build
+
+      # 버전 태깅된 경로로 CDN 배포
+      - name: Deploy to CDN (canary path)
+        run: |
+          VERSION=$(node -p &quot;require('./apps/${{ inputs.app_name }}/package.json').version&quot;)
+          CANARY_VERSION=&quot;${VERSION}-canary.${GITHUB_RUN_NUMBER}&quot;
+          pnpm tsx scripts/deploy-cdn.ts \
+            --app ${{ inputs.app_name }} \
+            --version &quot;$CANARY_VERSION&quot; \
+            --path &quot;canary&quot;
+
+      # 레지스트리 업데이트: canary URL + 비율 설정
+      - name: Update remote registry
+        run: |
+          pnpm tsx scripts/update-registry.ts \
+            --app ${{ inputs.app_name }} \
+            --canary-percentage ${{ inputs.canary_percentage }}
+
+      # 10분간 에러율 모니터링
+      - name: Monitor canary health
+        run: |
+          pnpm tsx scripts/monitor-canary.ts \
+            --app ${{ inputs.app_name }} \
+            --duration 600 \
+            --error-threshold ${{ inputs.auto_rollback_threshold }}
+        continue-on-error: true
+        id: monitor
+
+      # 에러율 초과 시 자동 롤백
+      - name: Auto-rollback on failure
+        if: steps.monitor.outcome == 'failure'
+        run: |
+          echo &quot;Canary error threshold exceeded. Rolling back...&quot;
+          pnpm tsx scripts/update-registry.ts \
+            --app ${{ inputs.app_name }} \
+            --canary-percentage 0
+
+      # 성공 시 점진적 확대 알림
+      - name: Notify success
+        if: steps.monitor.outcome == 'success'
+        run: |
+          echo &quot;Canary healthy. Consider increasing traffic percentage.&quot;
+</code></pre>
+            <h3 id="65">6.5 카나리 점진적 확대 전략</h3>
+            <p>카나리 배포는 한 번에 100%로 전환하지 않고 단계적으로 트래픽을 확대한다.</p>
+            <p>
+              <strong>일상 비유</strong>: 무대 조명을 끄고 켜는 게 아니라 디머(dimmer)로 천천히
+              밝기를 올리는 것과 같다. 도중에 객석 반응(에러율/INP)을 보고 멈추거나 되돌릴 수 있다.
+            </p>
+            <p>이 그림은 단계별 트래픽 비율과 게이트 시점을 시간 축으로 보여줍니다.</p>
+            <pre class="mermaid">
+gantt
+  title 카나리 트래픽 확대 타임라인 (예시)
+  dateFormat HH:mm
+  axisFormat %H:%M
+  section Phase1 (10%)
+    내부 QA 배포 :p1, 09:00, 10m
+    에러율 모니터링 :after p1, 10m
+  section Phase2 (25%)
+    얼리 어답터 배포 :p2, 09:20, 30m
+    INP/LCP 비교 :after p2, 5m
+  section Phase3 (50%)
+    절반 트래픽 :p3, 09:55, 60m
+    비즈니스 메트릭 :after p3, 10m
+  section Phase4 (100%)
+    전체 승격 :p4, 11:05, 5m
+    stable 아카이브 :after p4, 5m</pre
+            >
+            <pre><code>Phase 1: 10% (내부 QA 팀)
+  → 10분 모니터링 → 에러율 &lt; 1% 확인
+Phase 2: 25% (얼리 어답터)
+  → 30분 모니터링 → Core Web Vitals 변화 확인
+Phase 3: 50% (일반 사용자 절반)
+  → 1시간 모니터링 → 비즈니스 메트릭 (전환율 등) 확인
+Phase 4: 100% (전체 사용자)
+  → canary → stable 승격, 이전 stable 아카이브
+</code></pre>
+            <hr />
+            <h2 id="7-server-components-fe">7. Server Components + 마이크로 FE 통합 패턴</h2>
+            <h3 id="71">7.1 아키텍처 개요</h3>
+            <p>
+              <strong>일상 비유</strong>: 호텔 룸서비스 같다. 주방(Server Component)이 식사 재료를
+              미리 준비해 트레이(props)에 담아 보내면, 객실 앞 카트(Client boundary)에서 셰프가
+              마무리 토핑(인터랙션)을 올린다. 트레이가 도착하기 전에는 사진(skeleton)만 보여 줘 빈
+              화면을 피한다.
+            </p>
+            <p>
+              이 그림은 Server Component 레이어와 Client Component 레이어가 어떻게 분리되고 데이터가
+              어디로 흐르는지 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Browser[브라우저 요청] --&gt; Shell[Shell Next.js]
+  subgraph Shell
+    direction TB
+    RSC[Server Components&lt;br/&gt;레이아웃/프리페치/인증]
+    Bridge[Client Boundary&lt;br/&gt;use client]
+    Client[Client Components&lt;br/&gt;인터랙션]
+  end
+  RSC --&gt;|HTML + serialized props| Bridge
+  Bridge --&gt; Client
+  Client --&gt;|registerRemotes/import| Remote1[Remote App A]
+  Client --&gt;|lazy import| Remote2[Remote App B]
+  RSC -.-&gt;|cache revalidate| API[(Internal API/DB)]
+  Remote1 -.-&gt;|own client data| API2[(Remote API)]</pre
+            >
+            <pre><code>브라우저 요청
+     │
+     ▼
+┌──────────────────────────────────────┐
+│           Shell (Next.js)            │
+│  ┌─────────────────────────────────┐ │
+│  │     Server Components Layer     │ │
+│  │  - 레이아웃, 네비게이션 (RSC)    │ │
+│  │  - 데이터 프리페치              │ │
+│  │  - 인증 상태 주입               │ │
+│  └──────────┬──────────────────────┘ │
+│             │                        │
+│  ┌──────────▼──────────────────────┐ │
+│  │    Client Components Layer      │ │
+│  │  - Module Federation 리모트 로드 │ │
+│  │  - 인터랙티브 컴포넌트          │ │
+│  └─────────────────────────────────┘ │
+└──────────────────────────────────────┘
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>원칙</strong>: Server Component에서 데이터를 프리페치하고, Client Component
+                경계(boundary)에서 Module Federation 리모트를 로드한다. SSR의 SEO/성능 이점과 MFE의
+                독립 배포 이점을 함께 얻는 배치다.
+              </p>
+            </blockquote>
+            <h3 id="72-server-component">7.2 Server Component에서 리모트 데이터 프리페치</h3>
+            <pre><code class="language-typescript">// apps/shell/src/app/dashboard/page.tsx (Server Component)
+
+interface DashboardData {
+  stats: { label: string; value: number }[];
+  recentActivity: { id: string; action: string; timestamp: string }[];
+}
+
+// Server Component: 데이터를 서버에서 가져와 클라이언트 MFE에 주입
+export default async function DashboardPage() {
+  // 서버에서 데이터 프리페치 (DB 직접 접근 또는 내부 API)
+  const data = await fetchDashboardData();
+
+  return (
+    &lt;main className=&quot;space-y-6 p-6&quot;&gt;
+      &lt;h1 className=&quot;text-2xl font-bold&quot;&gt;Dashboard&lt;/h1&gt;
+
+      {/* Server Component: 정적 레이아웃 (JS 번들 0) */}
+      &lt;div className=&quot;grid grid-cols-3 gap-4&quot;&gt;
+        {data.stats.map((stat) =&gt; (
+          &lt;StatCardStatic key={stat.label} label={stat.label} value={stat.value} /&gt;
+        ))}
+      &lt;/div&gt;
+
+      {/* Client Component: Module Federation 리모트 로드 */}
+      &lt;DashboardRemoteSection initialData={data.recentActivity} /&gt;
+    &lt;/main&gt;
+  );
+}
+
+// 순수 Server Component -- 클라이언트 JS 번들에 포함되지 않음
+function StatCardStatic({ label, value }: { label: string; value: number }) {
+  return (
+    &lt;div className=&quot;rounded-lg border bg-card p-4&quot;&gt;
+      &lt;p className=&quot;text-sm text-muted-foreground&quot;&gt;{label}&lt;/p&gt;
+      &lt;p className=&quot;text-2xl font-bold&quot;&gt;{value.toLocaleString()}&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}
+
+async function fetchDashboardData(): Promise&lt;DashboardData&gt; {
+  const res = await fetch(`${process.env.API_URL}/dashboard`, {
+    next: { revalidate: 60 }, // 60초 ISR 캐시
+  });
+  return res.json();
+}
+</code></pre>
+            <h3 id="73-client-boundary-mfe">7.3 Client Boundary에서 MFE 로드</h3>
+            <pre><code class="language-typescript">// apps/shell/src/app/dashboard/DashboardRemoteSection.tsx
+'use client';
+
+import { Suspense } from 'react';
+import { RemoteApp } from '@/components/RemoteApp';
+
+interface Props {
+  initialData: Array&lt;{ id: string; action: string; timestamp: string }&gt;;
+}
+
+// 'use client' 경계: 이 컴포넌트부터 클라이언트 영역
+export function DashboardRemoteSection({ initialData }: Props) {
+  return (
+    &lt;section className=&quot;space-y-4&quot;&gt;
+      &lt;h2 className=&quot;text-lg font-semibold&quot;&gt;Recent Activity&lt;/h2&gt;
+
+      {/* Module Federation 리모트: 서버에서 가져온 데이터를 props로 전달 */}
+      &lt;RemoteApp
+        remoteName=&quot;appDashboard&quot;
+        moduleName=&quot;RecentActivity&quot;
+        props={{ initialData }}
+        fallback={
+          &lt;div className=&quot;h-48 animate-pulse rounded bg-muted&quot; /&gt;
+        }
+      /&gt;
+    &lt;/section&gt;
+  );
+}
+</code></pre>
+            <h3 id="74-rsc-mfe">7.4 RSC + MFE 데이터 흐름 패턴</h3>
+            <pre><code class="language-typescript">// patterns/server-client-bridge.ts
+// Server Component에서 가져온 데이터를 MFE 리모트에 안전하게 전달
+
+import { z } from 'zod'
+
+// 계약 스키마: Server → Client 전달 데이터의 형태를 정의
+const DashboardPropsSchema = z.object({
+  initialData: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      timestamp: z.string(),
+    }),
+  ),
+  userId: z.string(),
+  permissions: z.array(z.string()),
+})
+
+type DashboardProps = z.infer&lt;typeof DashboardPropsSchema&gt;
+
+// 서버 사이드: 데이터를 직렬화 가능한 형태로 변환 + 검증
+export function prepareDashboardProps(raw: unknown): DashboardProps {
+  // zod로 런타임 검증 (Server → Client 경계에서 계약 보장)
+  return DashboardPropsSchema.parse(raw)
+}
+
+// 클라이언트 사이드: 리모트 앱이 수신한 props 검증
+export function validateRemoteProps(props: unknown): DashboardProps {
+  const result = DashboardPropsSchema.safeParse(props)
+  if (!result.success) {
+    console.error('Remote props validation failed:', result.error.issues)
+    throw new Error('Invalid props received from host')
+  }
+  return result.data
+}
+</code></pre>
+            <h3 id="75-ssr">7.5 SSR 호환성 주의사항</h3>
+            <p>Module Federation 리모트를 SSR 환경에서 사용할 때 주의할 점:</p>
+            <pre><code class="language-typescript">// apps/shell/src/components/SafeRemoteApp.tsx
+'use client';
+
+import { useEffect, useState, type ReactNode } from 'react';
+import { RemoteApp } from './RemoteApp';
+
+interface SafeRemoteAppProps {
+  remoteName: string;
+  moduleName: string;
+  props?: Record&lt;string, unknown&gt;;
+  ssrFallback?: ReactNode; // SSR 시 표시할 플레이스홀더
+}
+
+// SSR 안전한 리모트 앱 래퍼
+// Module Federation은 브라우저 전용이므로 서버에서는 fallback 표시
+export function SafeRemoteApp({
+  remoteName,
+  moduleName,
+  props,
+  ssrFallback = &lt;div className=&quot;h-48 animate-pulse rounded bg-muted&quot; /&gt;,
+}: SafeRemoteAppProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() =&gt; {
+    // 클라이언트에서만 리모트 로드
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return &lt;&gt;{ssrFallback}&lt;/&gt;;
+  }
+
+  return (
+    &lt;RemoteApp
+      remoteName={remoteName}
+      moduleName={moduleName}
+      props={props}
+    /&gt;
+  );
+}
+</code></pre>
+            <hr />
+            <h2 id="8">8. 공유 상태/인증/라우팅/에러 바운더리 패턴</h2>
+            <h3 id="81-cross-app">8.1 이벤트 버스 (Cross-App 통신)</h3>
+            <pre><code class="language-typescript">// packages/shared/events/src/event-bus.ts
+
+// 타입 안전한 이벤트 핸들러
+type EventHandler&lt;T = unknown&gt; = (payload: T) =&gt; void
+
+// 전체 MFE 시스템에서 사용하는 이벤트 타입 정의
+interface EventMap {
+  'auth:login': { userId: string; token: string }
+  'auth:logout': undefined
+  'theme:change': { theme: 'light' | 'dark' }
+  'notification:show': { message: string; type: 'info' | 'success' | 'error' }
+  'remote:loaded': { name: string; version: string }
+  'remote:error': { name: string; error: string }
+  'navigation:change': { path: string; source: string }
+}
+
+class MFEEventBus {
+  private handlers = new Map&lt;string, Set&lt;EventHandler&gt;&gt;()
+
+  // 이벤트 구독 -- 구독 해제 함수를 반환하여 메모리 누수 방지
+  on&lt;K extends keyof EventMap&gt;(event: K, handler: EventHandler&lt;EventMap[K]&gt;): () =&gt; void {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set())
+    }
+    this.handlers.get(event)!.add(handler as EventHandler)
+
+    // 구독 해제 함수 반환 (useEffect cleanup에서 사용)
+    return () =&gt; {
+      this.handlers.get(event)?.delete(handler as EventHandler)
+    }
+  }
+
+  // 이벤트 발행 -- 모든 구독자에게 payload 전달
+  emit&lt;K extends keyof EventMap&gt;(event: K, payload: EventMap[K]): void {
+    const handlers = this.handlers.get(event)
+    if (!handlers) return
+
+    for (const handler of handlers) {
+      try {
+        handler(payload)
+      } catch (error) {
+        console.error(`Event handler error for &quot;${event}&quot;:`, error)
+      }
+    }
+  }
+
+  // 일회성 이벤트 구독 -- 한 번 실행 후 자동 해제
+  once&lt;K extends keyof EventMap&gt;(event: K, handler: EventHandler&lt;EventMap[K]&gt;): () =&gt; void {
+    const wrappedHandler: EventHandler&lt;EventMap[K]&gt; = (payload) =&gt; {
+      unsubscribe()
+      handler(payload)
+    }
+    const unsubscribe = this.on(event, wrappedHandler)
+    return unsubscribe
+  }
+
+  // 디버깅용: 등록된 이벤트 목록 조회
+  getRegisteredEvents(): string[] {
+    return [...this.handlers.keys()]
+  }
+
+  // 모든 구독 해제 (앱 언마운트 시 사용)
+  clear(): void {
+    this.handlers.clear()
+  }
+}
+
+// 싱글톤: 전역 윈도우에 할당하여 MFE 간 공유
+function getEventBus(): MFEEventBus {
+  const key = '__MFE_EVENT_BUS__'
+
+  if (typeof window !== 'undefined') {
+    if (!(window as Record&lt;string, unknown&gt;)[key]) {
+      ;(window as Record&lt;string, unknown&gt;)[key] = new MFEEventBus()
+    }
+    return (window as Record&lt;string, unknown&gt;)[key] as MFEEventBus
+  }
+
+  // SSR 환경에서는 임시 인스턴스 반환
+  return new MFEEventBus()
+}
+
+export const eventBus = getEventBus()
+export type { EventMap }
+</code></pre>
+            <h3 id="82-react-hook">8.2 React Hook으로 이벤트 버스 사용</h3>
+            <pre><code class="language-typescript">// packages/shared/events/src/useEventBus.ts
+import { useEffect, useCallback } from 'react'
+import { eventBus, type EventMap } from './event-bus'
+
+// 이벤트 구독 훅 -- 컴포넌트 언마운트 시 자동으로 구독 해제
+export function useEventListener&lt;K extends keyof EventMap&gt;(
+  event: K,
+  handler: (payload: EventMap[K]) =&gt; void,
+): void {
+  useEffect(() =&gt; {
+    const unsubscribe = eventBus.on(event, handler)
+    return unsubscribe // cleanup에서 자동 해제
+  }, [event, handler])
+}
+
+// 이벤트 발행 훅 -- 메모이제이션된 emit 함수 반환
+export function useEventEmitter&lt;K extends keyof EventMap&gt;(
+  event: K,
+): (payload: EventMap[K]) =&gt; void {
+  return useCallback(
+    (payload: EventMap[K]) =&gt; {
+      eventBus.emit(event, payload)
+    },
+    [event],
+  )
+}
+
+// 사용 예시:
+// function NotificationBanner() {
+//   useEventListener('notification:show', (payload) =&gt; {
+//     showToast(payload.message, payload.type);
+//   });
+//   return null;
+// }
+</code></pre>
+            <h3 id="83">8.3 공유 인증 컨텍스트</h3>
+            <pre><code class="language-typescript">// packages/shared/auth/src/AuthProvider.tsx
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { eventBus } from '@shared/events';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+
+interface AuthContextValue {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (token: string) =&gt; Promise&lt;void&gt;;
+  logout: () =&gt; void;
+  hasPermission: (permission: string) =&gt; boolean;
+}
+
+const AuthContext = createContext&lt;AuthContextValue | null&gt;(null);
+
+// Shell(Host)에서 AuthProvider를 최상위에 배치하면
+// 모든 리모트 앱이 동일한 인증 상태를 공유할 수 있음
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState&lt;User | null&gt;(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    // 초기 인증 상태 복원
+    restoreSession().then((restoredUser) =&gt; {
+      setUser(restoredUser);
+      setIsLoading(false);
+    });
+
+    // 다른 MFE에서 발생한 로그아웃 이벤트 수신
+    const unsubLogout = eventBus.on('auth:logout', () =&gt; {
+      setUser(null);
+    });
+
+    return () =&gt; { unsubLogout(); };
+  }, []);
+
+  const login = async (token: string) =&gt; {
+    const userData = await fetchUserProfile(token);
+    setUser(userData);
+    sessionStorage.setItem('auth_token', token);
+    // 모든 MFE에 로그인 이벤트 브로드캐스트
+    eventBus.emit('auth:login', { userId: userData.id, token });
+  };
+
+  const logout = () =&gt; {
+    setUser(null);
+    sessionStorage.removeItem('auth_token');
+    // 모든 MFE에 로그아웃 이벤트 브로드캐스트
+    eventBus.emit('auth:logout', undefined);
+  };
+
+  const hasPermission = (permission: string) =&gt; {
+    return user?.roles.includes(permission) ?? false;
+  };
+
+  return (
+    &lt;AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, hasPermission }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
+
+async function restoreSession(): Promise&lt;User | null&gt; {
+  const token = sessionStorage.getItem('auth_token');
+  if (!token) return null;
+
+  try {
+    return await fetchUserProfile(token);
+  } catch {
+    sessionStorage.removeItem('auth_token');
+    return null;
+  }
+}
+
+async function fetchUserProfile(token: string): Promise&lt;User&gt; {
+  const res = await fetch('/api/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Auth failed');
+  return res.json();
+}
+</code></pre>
+            <h3 id="84">8.4 에러 바운더리 (리모트 앱 격리)</h3>
+            <p>
+              <strong>일상 비유</strong>: 빌딩 방화구획과 같다. 한 호실에서 불이 나도 방화문이
+              닫히면서 옆 호실과 1층 로비는 계속 운영된다. Error Boundary가 방화문이고, Shell이 1층
+              로비다.
+            </p>
+            <p>
+              이 그림은 Remote 부트스트랩과 fallback 전환 흐름, Error Boundary가 잡아내는 지점을
+              시퀀스로 보여줍니다.
+            </p>
+            <pre class="mermaid">
+sequenceDiagram
+  participant U as 사용자
+  participant H as Host Shell
+  participant R as MF Runtime
+  participant Reg as Registry
+  participant Re as Remote App
+  participant EB as ErrorBoundary
+  participant Bus as EventBus
+
+  U-&gt;&gt;H: 페이지 진입
+  H-&gt;&gt;Reg: resolveRemoteUrls(userId)
+  Reg--&gt;&gt;H: stable/canary URL
+  H-&gt;&gt;R: registerRemotes()
+  R-&gt;&gt;Re: fetch mf-manifest.json
+  alt 정상 로드
+    Re--&gt;&gt;R: chunks + expose map
+    R--&gt;&gt;H: lazy module
+    H-&gt;&gt;EB: Render(&lt;RemoteApp/&gt;)
+    EB--&gt;&gt;U: 화면 표시
+  else 로드/런타임 실패
+    Re--&gt;&gt;R: error
+    R--&gt;&gt;EB: throw
+    EB-&gt;&gt;Bus: emit remote:error
+    EB--&gt;&gt;U: fallback UI + retry
+    Bus-&gt;&gt;H: 메트릭/관측 송신
+  end</pre
+            >
+            <pre><code class="language-typescript">// packages/shared/ui/src/ErrorBoundary.tsx
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { eventBus } from '@shared/events';
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+  remoteName?: string;
+  onError?: (error: Error, info: ErrorInfo) =&gt; void;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+// 리모트 앱별 에러 바운더리: 하나의 리모트가 크래시해도 전체 앱에 영향 없음
+export class RemoteErrorBoundary extends Component&lt;Props, State&gt; {
+  state: State = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    const { remoteName, onError } = this.props;
+
+    // 에러 리포팅 (참고: [09. 관측성](./09_장애_대응_및_관측성_표준.md))
+    console.error(`[MFE Error] ${remoteName ?? 'unknown'}:`, error, info);
+
+    // 이벤트 버스로 에러 전파 (Shell에서 수집하여 대시보드에 표시)
+    if (remoteName) {
+      eventBus.emit('remote:error', {
+        name: remoteName,
+        error: error.message,
+      });
+    }
+
+    onError?.(error, info);
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        &lt;div className=&quot;rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950&quot;&gt;
+          &lt;p className=&quot;text-sm text-red-600 dark:text-red-400&quot;&gt;
+            {this.props.remoteName
+              ? `${this.props.remoteName} 앱에서 오류가 발생했습니다.`
+              : '오류가 발생했습니다.'}
+          &lt;/p&gt;
+          &lt;button
+            className=&quot;mt-3 rounded bg-red-100 px-4 py-1.5 text-xs text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300&quot;
+            onClick={() =&gt; this.setState({ hasError: false, error: null })}
+          &gt;
+            다시 시도
+          &lt;/button&gt;
+        &lt;/div&gt;
+      );
+    }
+
+    return this.props.children;
+  }
+}
+</code></pre>
+            <h3 id="85-host-remote">8.5 Host-Remote 라우팅 통합</h3>
+            <pre><code class="language-typescript">// apps/shell/src/routes/index.tsx
+// Shell(Host)의 라우트 설정: 각 리모트 앱을 lazy 라우트로 등록
+
+import { createBrowserRouter, type RouteObject } from 'react-router';
+import { RemoteApp } from '@/components/RemoteApp';
+import { ShellLayout } from '@/layouts/ShellLayout';
+
+// 리모트 앱 라우트를 Shell 라우터에 통합
+const routes: RouteObject[] = [
+  {
+    path: '/',
+    element: &lt;ShellLayout /&gt;, // 공통 레이아웃 (헤더, 사이드바)
+    children: [
+      {
+        path: 'dashboard/*', // /dashboard 이하 모든 경로를 리모트에 위임
+        element: (
+          &lt;RemoteApp
+            remoteName=&quot;appDashboard&quot;
+            moduleName=&quot;DashboardRoutes&quot;
+          /&gt;
+        ),
+      },
+      {
+        path: 'settings/*', // /settings 이하 → appSettings 리모트
+        element: (
+          &lt;RemoteApp
+            remoteName=&quot;appSettings&quot;
+            moduleName=&quot;SettingsRoutes&quot;
+          /&gt;
+        ),
+      },
+      {
+        path: 'analytics/*', // /analytics 이하 → appAnalytics 리모트
+        element: (
+          &lt;RemoteApp
+            remoteName=&quot;appAnalytics&quot;
+            moduleName=&quot;AnalyticsRoutes&quot;
+          /&gt;
+        ),
+      },
+    ],
+  },
+];
+
+export const router = createBrowserRouter(routes);
+
+// 리모트 앱 내부에서는 상대 경로를 사용하여 Host 라우터와 독립적으로 동작
+// 예: appDashboard 내부의 /overview → Host에서는 /dashboard/overview
+</code></pre>
+            <pre><code class="language-typescript">// apps/app-dashboard/src/routes/index.tsx
+// 리모트 앱의 내부 라우트 -- Host로부터 받은 basename 기준 상대 경로
+
+import { Routes, Route } from 'react-router';
+import { DashboardOverview } from '../pages/DashboardOverview';
+import { DashboardDetails } from '../pages/DashboardDetails';
+
+export default function DashboardRoutes() {
+  return (
+    &lt;Routes&gt;
+      {/* 상대 경로: Host의 /dashboard/* 와 결합됨 */}
+      &lt;Route index element={&lt;DashboardOverview /&gt;} /&gt;
+      &lt;Route path=&quot;details/:id&quot; element={&lt;DashboardDetails /&gt;} /&gt;
+    &lt;/Routes&gt;
+  );
+}
+</code></pre>
+            <hr />
+            <h2 id="9">9. 성능 최적화 + 모니터링</h2>
+            <h3 id="91">9.1 리모트 프리로드 전략</h3>
+            <pre><code class="language-typescript">// apps/shell/src/lib/remote-preload.ts
+import { preloadRemote } from '@module-federation/enhanced/runtime'
+
+interface PreloadConfig {
+  name: string
+  // 프리로드 트리거 조건
+  trigger: 'immediate' | 'idle' | 'hover' | 'viewport'
+  // hover/viewport 트리거 시 대상 DOM 셀렉터
+  selector?: string
+}
+
+const preloadConfigs: PreloadConfig[] = [
+  // 대시보드: 로그인 직후 즉시 프리로드 (가장 방문 빈도 높은 페이지)
+  { name: 'appDashboard', trigger: 'immediate' },
+  // 설정: 사이드바 설정 메뉴에 마우스 올릴 때 (사전 로드)
+  { name: 'appSettings', trigger: 'hover', selector: '[data-nav=&quot;settings&quot;]' },
+  // 분석: 뷰포트 진입 시 (스크롤 기반 레이아웃에서 유용)
+  { name: 'appAnalytics', trigger: 'viewport', selector: '#analytics-section' },
+]
+
+export function setupPreloading(): void {
+  for (const config of preloadConfigs) {
+    switch (config.trigger) {
+      case 'immediate':
+        // 앱 시작 시 즉시 프리로드
+        preloadRemote([{ nameOrAlias: config.name, prefetchInterface: true }])
+        break
+
+      case 'idle':
+        // 브라우저 유휴 시간에 프리로드 (메인 스레드 차단 최소화)
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() =&gt; {
+            preloadRemote([{ nameOrAlias: config.name }])
+          })
+        }
+        break
+
+      case 'hover': {
+        // 마우스 호버 시 프리로드 (사용자 의도 감지)
+        const el = document.querySelector(config.selector!)
+        el?.addEventListener(
+          'mouseenter',
+          () =&gt; {
+            preloadRemote([{ nameOrAlias: config.name }])
+          },
+          { once: true },
+        ) // 한 번만 실행
+        break
+      }
+
+      case 'viewport': {
+        // 뷰포트 진입 시 프리로드 (Intersection Observer 활용)
+        const el = document.querySelector(config.selector!)
+        if (el) {
+          const observer = new IntersectionObserver(
+            ([entry]) =&gt; {
+              if (entry.isIntersecting) {
+                preloadRemote([{ nameOrAlias: config.name }])
+                observer.disconnect()
+              }
+            },
+            { rootMargin: '200px' }, // 200px 전에 미리 로드
+          )
+          observer.observe(el)
+        }
+        break
+      }
+    }
+  }
+}
+</code></pre>
+            <h3 id="92">9.2 리모트 로드 성능 모니터링</h3>
+            <pre><code class="language-typescript">// apps/shell/src/lib/remote-monitor.ts
+
+interface RemoteLoadMetric {
+  remoteName: string
+  loadTimeMs: number
+  cacheHit: boolean
+  version: 'stable' | 'canary'
+  timestamp: number
+}
+
+class RemoteMonitor {
+  private metrics: RemoteLoadMetric[] = []
+
+  // 리모트 로드 시간 추적 래퍼
+  async trackLoad&lt;T&gt;(
+    remoteName: string,
+    version: 'stable' | 'canary',
+    loadFn: () =&gt; Promise&lt;T&gt;,
+  ): Promise&lt;T&gt; {
+    const start = performance.now()
+    let cacheHit = false
+
+    try {
+      // Performance API 마크 -- Chrome DevTools에서 확인 가능
+      performance.mark(`mfe-load-start:${remoteName}`)
+
+      const result = await loadFn()
+
+      const loadTime = performance.now() - start
+      performance.mark(`mfe-load-end:${remoteName}`)
+      performance.measure(
+        `mfe-load:${remoteName}`,
+        `mfe-load-start:${remoteName}`,
+        `mfe-load-end:${remoteName}`,
+      )
+
+      // 캐시 히트 판정: 5ms 미만이면 메모리 캐시로 간주
+      cacheHit = loadTime &lt; 5
+
+      const metric: RemoteLoadMetric = {
+        remoteName,
+        loadTimeMs: Math.round(loadTime),
+        cacheHit,
+        version,
+        timestamp: Date.now(),
+      }
+
+      this.metrics.push(metric)
+      this.reportMetric(metric)
+
+      return result
+    } catch (error) {
+      const loadTime = performance.now() - start
+      console.error(`[MFE Monitor] ${remoteName} failed after ${Math.round(loadTime)}ms`)
+      throw error
+    }
+  }
+
+  // 메트릭을 서버로 전송 (sendBeacon으로 비동기 전송)
+  private reportMetric(metric: RemoteLoadMetric): void {
+    if (typeof navigator.sendBeacon === 'function') {
+      navigator.sendBeacon('/api/metrics/mfe-load', JSON.stringify(metric))
+    }
+  }
+
+  // 수집된 메트릭 조회
+  getMetrics(): RemoteLoadMetric[] {
+    return [...this.metrics]
+  }
+
+  // 평균 로드 시간 계산 (캐시 히트 제외)
+  getAverageLoadTime(remoteName?: string): number {
+    const filtered = remoteName
+      ? this.metrics.filter((m) =&gt; m.remoteName === remoteName &amp;&amp; !m.cacheHit)
+      : this.metrics.filter((m) =&gt; !m.cacheHit)
+
+    if (filtered.length === 0) return 0
+    return filtered.reduce((sum, m) =&gt; sum + m.loadTimeMs, 0) / filtered.length
+  }
+}
+
+export const remoteMonitor = new RemoteMonitor()
+</code></pre>
+            <h3 id="93">9.3 번들 사이즈 모니터링 스크립트</h3>
+            <pre><code class="language-typescript">// scripts/check-bundle-size.ts
+// CI에서 각 리모트 앱의 번들 사이즈를 검사하여 예산 초과 시 PR 블로킹
+
+import { readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
+import { readFileSync } from 'node:fs'
+
+interface BundleReport {
+  app: string
+  files: Array&lt;{
+    name: string
+    rawSize: number
+    gzipSize: number
+  }&gt;
+  totalRaw: number
+  totalGzip: number
+  budget: number // gzip 기준 예산 (bytes)
+  overBudget: boolean
+}
+
+function analyzeBundle(distDir: string, budgetKB: number): BundleReport {
+  const app = distDir.split('/').at(-2) ?? 'unknown'
+  const budget = budgetKB * 1024 // KB → bytes
+  const files: BundleReport['files'] = []
+
+  // dist 디렉토리의 모든 JS 파일 분석
+  const jsFiles = findFiles(distDir, /\.js$/)
+
+  for (const file of jsFiles) {
+    const content = readFileSync(file)
+    const gzipped = gzipSync(content)
+    files.push({
+      name: file.replace(distDir, ''),
+      rawSize: content.length,
+      gzipSize: gzipped.length,
+    })
+  }
+
+  const totalRaw = files.reduce((sum, f) =&gt; sum + f.rawSize, 0)
+  const totalGzip = files.reduce((sum, f) =&gt; sum + f.gzipSize, 0)
+
+  return {
+    app,
+    files: files.sort((a, b) =&gt; b.gzipSize - a.gzipSize), // 큰 파일 순
+    totalRaw,
+    totalGzip,
+    budget,
+    overBudget: totalGzip &gt; budget,
+  }
+}
+
+function findFiles(dir: string, pattern: RegExp): string[] {
+  const results: string[] = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      results.push(...findFiles(fullPath, pattern))
+    } else if (pattern.test(entry.name)) {
+      results.push(fullPath)
+    }
+  }
+  return results
+}
+
+// CLI 실행
+const [distDir, , budgetStr] = process.argv.slice(2)
+const budgetKB = parseInt(budgetStr ?? '150', 10)
+const report = analyzeBundle(join(distDir, 'dist'), budgetKB)
+
+console.log(`\n=== Bundle Report: ${report.app} ===`)
+console.log(`Total: ${(report.totalGzip / 1024).toFixed(1)}KB gzip (budget: ${budgetKB}KB)`)
+
+if (report.overBudget) {
+  console.error(`OVER BUDGET by ${((report.totalGzip - report.budget) / 1024).toFixed(1)}KB`)
+  console.error('Top files:')
+  for (const file of report.files.slice(0, 5)) {
+    console.error(`  ${file.name}: ${(file.gzipSize / 1024).toFixed(1)}KB`)
+  }
+  process.exit(1)
+}
+</code></pre>
+            <hr />
+            <h2 id="10-mfe">10. 마이그레이션 전략: 모놀리스에서 MFE로</h2>
+            <p>
+              기존 모놀리스를 한 번에 MFE로 전환하는 것은 위험하다. 아래의 단계적 마이그레이션
+              전략을 따른다.
+            </p>
+            <h3 id="101-5">10.1 5단계 마이그레이션 로드맵</h3>
+            <p>
+              <strong>일상 비유</strong>: 영업 중인 식당의 주방을 통째로 리모델링하지 않는다. 영업
+              시간 중에는 임시 부엌(Shell)을 짓고, 메뉴 한 코너씩(도메인 하나씩) 새 주방으로
+              옮겨가며 영업을 멈추지 않게 한다.
+            </p>
+            <p>이 그림은 5단계의 마이그레이션 일정과 단계 간 의존성을 시간 축으로 보여줍니다.</p>
+            <pre class="mermaid">
+gantt
+  title 모놀리스 → MFE 마이그레이션 로드맵
+  dateFormat YYYY-MM-DD
+  section Phase 0 준비
+    의존성 그래프 분석 :p0a, 2030-01-01, 14d
+    도메인 경계 식별 :p0b, after p0a, 14d
+  section Phase 1 Shell 추출
+    Shell 분리 :p1, after p0b, 21d
+  section Phase 2 첫 Remote
+    독립 도메인 추출 :p2a, after p1, 21d
+    카나리 파이프라인 :p2b, after p1, 14d
+  section Phase 3 점진 분리
+    나머지 도메인 분리 :p3, after p2a, 84d
+  section Phase 4 제거
+    모놀리스 아카이브 :p4, after p3, 21d</pre
+            >
+            <pre><code>Phase 0: 준비 (2-4주)
+  - 의존성 그래프 분석 (dependency-cruiser, madge)
+  - 도메인 경계 식별 (1장의 도메인 경계 탐색 시나리오 활용)
+  - 공유 모듈 API 계약 설계
+
+Phase 1: Shell 추출 (2-3주)
+  - 레이아웃, 네비게이션, 인증을 Shell 앱으로 분리
+  - 기존 모놀리스를 단일 리모트로 등록 (전체를 하나의 MFE로)
+  - 이 시점에서는 기능 변경 없이 구조만 변경
+
+Phase 2: 첫 번째 리모트 분리 (3-4주)
+  - 가장 독립적인 도메인 하나를 리모트로 추출
+  - 공유 상태 이벤트 버스 구축
+  - 카나리 배포 파이프라인 구성
+  - Feature flag로 모놀리스/MFE 전환 스위치
+
+Phase 3: 점진적 분리 (6-12주)
+  - 나머지 도메인을 하나씩 리모트로 분리
+  - 각 분리 시 계약 테스트 추가
+  - 팀별 소유권 이전
+
+Phase 4: 모놀리스 제거 (2-4주)
+  - 모든 기능이 리모트로 이전 확인
+  - 모놀리스 코드 아카이브
+  - 모니터링 대시보드 완성
+</code></pre>
+            <h3 id="102-feature-flag">10.2 Feature Flag 기반 점진적 전환</h3>
+            <pre><code class="language-typescript">// apps/shell/src/components/FeatureFlaggedRemote.tsx
+'use client';
+
+import { useFeatureFlag } from '@shared/feature-flags';
+import { RemoteApp } from './RemoteApp';
+
+interface Props {
+  flagKey: string;            // feature flag 키
+  remoteName: string;         // MFE 리모트 이름
+  moduleName: string;         // 리모트 모듈 이름
+  LegacyComponent: React.ComponentType; // 기존 모놀리스 컴포넌트
+}
+
+// Feature flag로 모놀리스 컴포넌트와 MFE 리모트를 전환
+// 롤백이 필요하면 flag만 끄면 즉시 모놀리스로 복귀
+export function FeatureFlaggedRemote({
+  flagKey,
+  remoteName,
+  moduleName,
+  LegacyComponent,
+}: Props) {
+  const isMFEEnabled = useFeatureFlag(flagKey);
+
+  if (isMFEEnabled) {
+    return (
+      &lt;RemoteApp
+        remoteName={remoteName}
+        moduleName={moduleName}
+        // MFE 로드 실패 시 모놀리스 컴포넌트로 자동 폴백
+        errorFallback={&lt;LegacyComponent /&gt;}
+      /&gt;
+    );
+  }
+
+  // flag가 꺼져 있으면 기존 모놀리스 컴포넌트 렌더링
+  return &lt;LegacyComponent /&gt;;
+}
+
+// 사용 예시:
+// &lt;FeatureFlaggedRemote
+//   flagKey=&quot;mfe_dashboard_enabled&quot;
+//   remoteName=&quot;appDashboard&quot;
+//   moduleName=&quot;DashboardRoutes&quot;
+//   LegacyComponent={LegacyDashboard}
+// /&gt;
+</code></pre>
+            <h3 id="103">10.3 공유 상태 마이그레이션 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>상태 유형</th>
+                    <th>범위</th>
+                    <th>마이그레이션 방식</th>
+                    <th>예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>App-local</strong></td>
+                    <td>단일 MFE 내부</td>
+                    <td>그대로 유지 (내부 Zustand/useState)</td>
+                    <td>폼 상태, 모달 열림/닫힘</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cross-app</strong></td>
+                    <td>2-3개 MFE 공유</td>
+                    <td>이벤트 버스 (eventBus)</td>
+                    <td>알림, 네비게이션 변경</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Global</strong></td>
+                    <td>전체 앱 공유</td>
+                    <td>Shell Context + 이벤트 버스</td>
+                    <td>인증, 테마, 언어 설정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Server</strong></td>
+                    <td>서버 캐시</td>
+                    <td>React Query / SWR (각 MFE 독립)</td>
+                    <td>API 데이터, 사용자 프로필</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="11">11. 테스팅 전략</h2>
+            <p>
+              마이크로 프론트엔드에서는 단위 테스트뿐 아니라 <strong>계약 테스트</strong>와
+              <strong>통합 테스트</strong>가 중요하다. 더 자세한 테스팅 패턴은
+              <a href="./07_테스팅_가이드.md">07. 테스팅 가이드</a>를 참고한다.
+            </p>
+            <h3 id="111-contract-testing">11.1 계약 테스트 (Contract Testing)</h3>
+            <pre><code class="language-typescript">// packages/shared/contracts/src/__tests__/event-contract.test.ts
+// 이벤트 버스 계약 테스트: 리모트 앱 간 이벤트 형식이 호환되는지 검증
+
+import { describe, it, expect } from 'vitest'
+import { z } from 'zod'
+
+// 이벤트 스키마 정의 -- 이 파일이 변경되면 모든 앱이 영향 받음
+const AuthLoginSchema = z.object({
+  userId: z.string().min(1),
+  token: z.string().min(10),
+})
+
+const NotificationSchema = z.object({
+  message: z.string().min(1),
+  type: z.enum(['info', 'success', 'error']),
+})
+
+describe('이벤트 계약 테스트', () =&gt; {
+  it('auth:login 이벤트가 스키마와 일치해야 한다', () =&gt; {
+    // 실제 앱에서 발행하는 이벤트 형태
+    const payload = { userId: 'user-123', token: 'jwt-token-abc' }
+    expect(AuthLoginSchema.safeParse(payload).success).toBe(true)
+  })
+
+  it('notification:show 이벤트가 스키마와 일치해야 한다', () =&gt; {
+    const payload = { message: '저장되었습니다', type: 'success' as const }
+    expect(NotificationSchema.safeParse(payload).success).toBe(true)
+  })
+
+  it('잘못된 이벤트 페이로드는 거부되어야 한다', () =&gt; {
+    const invalid = { userId: '', token: '' } // 빈 문자열
+    expect(AuthLoginSchema.safeParse(invalid).success).toBe(false)
+  })
+})
+</code></pre>
+            <h3 id="112">11.2 리모트 앱 격리 테스트</h3>
+            <pre><code class="language-typescript">// apps/app-dashboard/src/__tests__/standalone.test.tsx
+// 리모트 앱이 Host 없이도 독립 실행 가능한지 검증
+
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { describe, it, expect, vi } from 'vitest';
+import DashboardRoutes from '../routes/index';
+
+// 공유 의존성 모킹 -- Host 없이 테스트하기 위해
+vi.mock('@shared/auth', () =&gt; ({
+  useAuth: () =&gt; ({
+    user: { id: 'test-user', name: 'Test', email: 'test@example.com', roles: ['admin'] },
+    isAuthenticated: true,
+    isLoading: false,
+    hasPermission: () =&gt; true,
+  }),
+}));
+
+vi.mock('@shared/events', () =&gt; ({
+  eventBus: {
+    on: vi.fn(() =&gt; vi.fn()), // 구독 해제 함수 반환
+    emit: vi.fn(),
+  },
+}));
+
+describe('Dashboard 리모트 앱 독립 실행', () =&gt; {
+  it('Host 없이도 대시보드가 렌더링되어야 한다', () =&gt; {
+    render(
+      &lt;MemoryRouter initialEntries={['/']}&gt;
+        &lt;DashboardRoutes /&gt;
+      &lt;/MemoryRouter&gt;,
+    );
+
+    expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
+  });
+
+  it('상세 페이지 라우트가 동작해야 한다', () =&gt; {
+    render(
+      &lt;MemoryRouter initialEntries={['/details/123']}&gt;
+        &lt;DashboardRoutes /&gt;
+      &lt;/MemoryRouter&gt;,
+    );
+
+    expect(screen.getByText(/details/i)).toBeInTheDocument();
+  });
+});
+</code></pre>
+            <h3 id="113-e2e">11.3 E2E 통합 테스트</h3>
+            <pre><code class="language-typescript">// e2e/mfe-integration.spec.ts
+// Playwright 기반 E2E 테스트: Shell + 리모트 앱 통합 검증
+
+import { test, expect } from '@playwright/test'
+
+test.describe('마이크로 프론트엔드 통합 테스트', () =&gt; {
+  test('Shell 로드 후 Dashboard 리모트가 정상 표시되어야 한다', async ({ page }) =&gt; {
+    await page.goto('/dashboard')
+
+    // Shell 레이아웃 확인
+    await expect(page.locator('header')).toBeVisible()
+    await expect(page.locator('nav')).toBeVisible()
+
+    // 리모트 앱 로드 완료 대기 (스켈레톤 사라짐)
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
+
+    // 대시보드 콘텐츠 표시 확인
+    await expect(page.getByText('Dashboard')).toBeVisible()
+  })
+
+  test('리모트 로드 실패 시 에러 폴백이 표시되어야 한다', async ({ page }) =&gt; {
+    // 리모트 URL을 차단하여 로드 실패 시뮬레이션
+    await page.route('**/mf-manifest.json', (route) =&gt; route.abort())
+    await page.goto('/dashboard')
+
+    // 에러 폴백 UI 확인
+    await expect(page.getByText('앱을 불러오는 데 실패했습니다')).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('리모트 앱 간 네비게이션이 정상 동작해야 한다', async ({ page }) =&gt; {
+    await page.goto('/dashboard')
+    await page.click('[data-nav=&quot;settings&quot;]')
+
+    // URL 변경 확인
+    await expect(page).toHaveURL(/\/settings/)
+
+    // Shell 레이아웃이 유지되는지 확인
+    await expect(page.locator('header')).toBeVisible()
+  })
+})
+</code></pre>
+            <hr />
+            <h2 id="12">12. 체크리스트</h2>
+            <h3 id="_8">아키텍처 설계</h3>
+            <ul>
+              <li>[ ] 도메인 경계 분석 완료 (1장의 도메인 경계 탐색 시나리오 활용)</li>
+              <li>[ ] 공유 모듈 API 계약 정의 (@shared/types, @shared/events)</li>
+              <li>
+                [ ] 통합 방식 결정 (Module Federation / Native Federation / Single-SPA / iframe)
+              </li>
+              <li>[ ] Host-Remote 라우팅 전략 확정 및 라우트 충돌 검사 CI 추가</li>
+              <li>[ ] Server Components + Client MFE 경계 설계</li>
+              <li>[ ] 스타일 격리 전략 확정 (CSS Modules / Shadow DOM / 네임스페이스)</li>
+              <li>[ ] 공유 상태 분류 완료 (App-local / Cross-app / Global / Server)</li>
+            </ul>
+            <h3 id="_9">개발 환경</h3>
+            <ul>
+              <li>[ ] Module Federation 2.1 Host/Remote 설정 완료</li>
+              <li>[ ] 공유 의존성 목록 확정 + singleton/strictVersion 설정</li>
+              <li>[ ] 공유 의존성 중앙 관리 (federation.config.ts)</li>
+              <li>[ ] TypeScript 타입 자동 생성 (dts 플러그인) 설정 완료</li>
+              <li>[ ] 로컬 개발 환경: 독립 실행 + 통합 실행 모두 지원 확인</li>
+              <li>[ ] 이벤트 버스 + 인증 컨텍스트 공유 구현 완료</li>
+              <li>[ ] React Hook 기반 이벤트 버스 래퍼 (useEventListener, useEventEmitter) 구현</li>
+            </ul>
+            <h3 id="cicd">CI/CD</h3>
+            <ul>
+              <li>[ ] 공유 의존성 버전 충돌 CI 검사 설정 (check-shared-deps.ts)</li>
+              <li>[ ] 라우트 충돌 감지 CI 검사 설정 (check-route-conflicts.ts)</li>
+              <li>[ ] 앱별 독립 빌드/배포 파이프라인 구축</li>
+              <li>[ ] 카나리 배포 워크플로 구성 (비율 조절, 자동 롤백 포함)</li>
+              <li>[ ] 번들 사이즈 예산 CI 체크 (리모트당 150KB gzip 이하)</li>
+              <li>[ ] 타입 계약 호환성 검사 (check-type-contracts.ts)</li>
+            </ul>
+            <h3 id="_10">마이그레이션</h3>
+            <ul>
+              <li>[ ] 마이그레이션 Phase 0-4 로드맵 수립 완료</li>
+              <li>[ ] Feature flag 기반 점진적 전환 메커니즘 구현</li>
+              <li>[ ] 모놀리스 → MFE 전환 시 롤백 스위치 (feature flag) 확인</li>
+              <li>[ ] 공유 상태 마이그레이션 매트릭스 작성 완료</li>
+            </ul>
+            <h3 id="_11">테스팅</h3>
+            <ul>
+              <li>[ ] 계약 테스트: 이벤트/타입 스키마 검증 (vitest + zod)</li>
+              <li>[ ] 격리 테스트: 각 리모트 앱이 Host 없이 독립 실행 가능 확인</li>
+              <li>[ ] E2E 통합 테스트: Shell + 리모트 앱 연동 검증 (Playwright)</li>
+              <li>[ ] 리모트 로드 실패 시 에러 폴백 동작 확인</li>
+            </ul>
+            <h3 id="_12">성능/모니터링</h3>
+            <ul>
+              <li>[ ] 리모트 프리로드 전략 설정 (immediate/idle/hover/viewport)</li>
+              <li>[ ] 리모트 로드 타임아웃 + fallback UI 구현</li>
+              <li>[ ] 에러 바운더리로 리모트 앱 격리 (RemoteErrorBoundary)</li>
+              <li>[ ] Core Web Vitals 모니터링 (LCP &lt; 2.5s, INP &lt; 200ms, CLS &lt; 0.1)</li>
+              <li>[ ] 카나리 배포 에러율 모니터링 대시보드 구축</li>
+              <li>[ ] 번들 사이즈 추이 모니터링 (check-bundle-size.ts)</li>
+              <li>[ ] SSR 호환성 확인 (SafeRemoteApp 래퍼 사용)</li>
+            </ul>
+            <h3 id="_13">참고 자료</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>주제</th>
+                    <th>링크</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Module Federation 2.x</td>
+                    <td>https://module-federation.io</td>
+                  </tr>
+                  <tr>
+                    <td>MF Runtime API (loadRemote, preloadRemote)</td>
+                    <td>https://module-federation.io/guide/runtime/runtime-api</td>
+                  </tr>
+                  <tr>
+                    <td>Rsbuild Module Federation Plugin</td>
+                    <td>https://rsbuild.rs/guide/advanced/module-federation</td>
+                  </tr>
+                  <tr>
+                    <td>Rspack (Rust 번들러)</td>
+                    <td>https://rspack.rs</td>
+                  </tr>
+                  <tr>
+                    <td>Vite federation plugin</td>
+                    <td>https://github.com/originjs/vite-plugin-federation</td>
+                  </tr>
+                  <tr>
+                    <td>Native Federation</td>
+                    <td>https://www.npmjs.com/package/@softarc/native-federation</td>
+                  </tr>
+                  <tr>
+                    <td>Single-SPA 6.x</td>
+                    <td>https://single-spa.js.org</td>
+                  </tr>
+                  <tr>
+                    <td>React 19 Server Components</td>
+                    <td>https://react.dev/reference/rsc/server-components</td>
+                  </tr>
+                  <tr>
+                    <td>Next.js App Router + MFE 통합</td>
+                    <td>https://module-federation.io/practice/frameworks/next/nextjs-mf</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_14">연관 가이드</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>번호</th>
+                    <th>가이드</th>
+                    <th>관련 내용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="./04_아키텍처_설계_패턴.md">04</a></td>
+                    <td>아키텍처 설계 패턴</td>
+                    <td>FSD, Clean Architecture</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./07_테스팅_가이드.md">07</a></td>
+                    <td>테스팅 가이드</td>
+                    <td>단위/통합/E2E 테스트 전략</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./08_성능_최적화_가이드.md">08</a></td>
+                    <td>성능 최적화 가이드</td>
+                    <td>Core Web Vitals, 번들 최적화</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./09_장애_대응_및_관측성_표준.md">09</a></td>
+                    <td>장애 대응 및 관측성 표준</td>
+                    <td>에러 모니터링, 장애 대응</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./11_CICD_파이프라인_표준.md">11</a></td>
+                    <td>CI/CD 파이프라인 표준</td>
+                    <td>빌드/배포 파이프라인</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./12_CDN_캐시_전략.md">12</a></td>
+                    <td>CDN 캐시 전략</td>
+                    <td>CDN 배포, 캐시 무효화</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./22_모노레포_운영_가이드.md">22</a></td>
+                    <td>모노레포 운영 가이드</td>
+                    <td>pnpm workspace, Turborepo</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="_15">실무 적용 가이드</h2>
+            <h3 id="_16">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>팀별 독립 배포가 필요하지만 host/remote 계약이 불안정할 때</li>
+              <li>shared dependency 충돌로 런타임 오류가 날 때</li>
+              <li>한 remote 장애가 전체 shell 장애로 번질 때</li>
+            </ul>
+            <h3 id="_17">적용 순서</h3>
+            <ol>
+              <li>
+                MFE가 필요한 이유를 배포 독립성, ownership, runtime isolation 관점에서 확인한다.
+              </li>
+              <li>host/remote public contract와 버전 정책을 정한다.</li>
+              <li>shared dependency singleton과 허용 버전을 명시한다.</li>
+              <li>remote load 실패 fallback과 kill switch를 구현한다.</li>
+              <li>contract test와 canary health를 배포 gate로 둔다.</li>
+            </ol>
+            <h3 id="_18">함께 두는 파일</h3>
+            <ul>
+              <li>
+                remote별 manifest, exposed module, contract test, fallback UI를 같은 remote 폴더에
+                둔다.
+              </li>
+              <li>shared dependency 정책은 host와 remote가 함께 참조하는 위치에 둔다.</li>
+              <li>공통 UI는 디자인 시스템 package로 분리한다.</li>
+            </ul>
+            <h3 id="_19">흔한 실수</h3>
+            <ul>
+              <li>단순 폴더 정리 문제를 MFE로 해결하려 한다.</li>
+              <li>shared dependency 버전을 느슨하게 둔다.</li>
+              <li>remote 실패 시 전체 shell이 죽는다.</li>
+              <li>독립 rollback 경로 없이 독립 배포를 말한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] host/remote contract test가 있다.</li>
+              <li>[ ] remote fallback과 kill switch가 있다.</li>
+              <li>[ ] shared dependency report가 있다.</li>
+              <li>[ ] remote 단독 rollback이 가능하다.</li>
+            </ul>
+            <h2 id="_20">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — host/remote contract와 shared dependency 중 하나를 작은
+                변경 1건에 적용하고 증거(remote manifest)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 마이크로 프론트엔드 기준을 팀 템플릿, 체크리스트, CI 중
+                한 곳에 고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — remote load failure, shared singleton 충돌, independent
+                deploy lead time 추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — MFE 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_21">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : host/remote contract와 shared dependency 적용 대상을
+                1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(remote manifest, contract test, canary deploy
+                log)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : remote load failure, shared singleton 충돌,
+                independent deploy lead time가 기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_22">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 독립 배포가 사용자 경험과 dependency 경계를 깨지 않는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : MFE 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : host/remote contract와 rollback route가 확인되면 remote를
+                늘린다.
+              </li>
+              <li>
+                <code>정지 조건</code> : shared dependency 충돌이나 remote 장애 격리가 안 되면
+                중단한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : remote 수, shared singleton 수, runtime fallback 범위로
+                산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 플랫폼 아키텍트가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 마이크로 프론트엔드 작성자, 검토자, 운영 확인자를 분리해
+                기록한다.
+              </li>
+              <li><code>재평가 주기</code> : remote 추가 때마다 dependency matrix를 갱신한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

@@ -502,11 +502,13 @@ function validateGuideIndexReferences(guideFiles) {
     readmeGuideLinks.add(match[1]);
   }
 
-  for (const match of siteText.matchAll(/github\.com\/blue45f\/heejun\/blob\/main\/public\/개발가이드\/([^"]+\.md)/g)) {
+  for (const match of siteText.matchAll(/public\/개발가이드\/([^"]+\.html)/g)) {
     try {
-      siteGuideLinks.add(decodeURI(match[1]));
+      const mdName = decodeURI(match[1]).replace(".html", ".md");
+      siteGuideLinks.add(mdName);
     } catch {
-      siteGuideLinks.add(match[1]);
+      const mdName = match[1].replace(".html", ".md");
+      siteGuideLinks.add(mdName);
     }
   }
 

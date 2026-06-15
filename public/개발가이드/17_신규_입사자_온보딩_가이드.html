@@ -1,0 +1,1774 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 17 신규 입사자 온보딩 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="17">17. 신규 입사자 온보딩 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>환경 설정을 끝내고, 본인 코드 소유권/권한을 정리한 뒤 첫 PR로 시작하세요.</li>
+              <li>초반엔 큰 변화보다 팀 규칙을 복제해 적용하는 것이 중요합니다.</li>
+              <li>매일 짧은 피드백으로 질문을 규칙으로 바꾸는 흐름을 유지하세요.</li>
+            </ul>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 첫 2주의 경험이 입사자의 이후 6개월 기여 속도를
+                결정합니다. 단순 환영 행사가 아니라 "팀의 품질 기준을 손으로 익히는 시기"입니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 새 직장의 사물함, 출입증, 매뉴얼, 첫 거래처 인사를
+                준비된 매뉴얼로 받느냐, 매번 물어가며 찾느냐가 첫 달의 만족도를 가르는 것과
+                같습니다.
+              </p>
+            </blockquote>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              입사는 "설정 완료 + 첫 PR + 피드백 루프"의 3단계로 진행하면 실패 확률이 내려갑니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  D0[Day 0&lt;br/&gt;준비] --&gt; D1[Day 1&lt;br/&gt;환경/권한]
+  D1 --&gt; W1[Week 1&lt;br/&gt;First PR]
+  W1 --&gt; M1[30일&lt;br/&gt;독립 작업]
+  M1 --&gt; M2[60일&lt;br/&gt;중간 기능]
+  M2 --&gt; M3[90일&lt;br/&gt;영역 owner]</pre
+            >
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>Day 0</code></td>
+                    <td>입사 첫날 환경/권한을 정리하는 단계</td>
+                  </tr>
+                  <tr>
+                    <td><code>first PR</code></td>
+                    <td>팀 규칙을 따라 첫 번째로 병합되는 PR</td>
+                  </tr>
+                  <tr>
+                    <td><code>멘토링</code></td>
+                    <td>질문에 대한 즉시 답보다 방법을 같이 정리하는 지원</td>
+                  </tr>
+                  <tr>
+                    <td><code>피드백 루프</code></td>
+                    <td>피드백을 받아 기준을 빠르게 고치는 반복</td>
+                  </tr>
+                  <tr>
+                    <td><code>30/60/90</code></td>
+                    <td>입사 후 목표 정렬을 위한 기간별 체크 포인트</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">협업 &amp; 성장</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./00_종합_가이드_목차.md">00. 목차</a>,
+                      <a href="./15_RFC_의사결정_프로세스.md">15. 의사결정</a>,
+                      <a href="./16_AI_협업_코드리뷰_가이드.md">16. 코드리뷰</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      개발 환경, 권한, 첫 PR, 멘토링, 30/60/90 기대치, AI 사용 정책
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                온보딩 표준은 특정 협업 도구 초대 절차가 아니라
+                <strong
+                  >신규 구성원이 안전하게 개발 환경을 만들고, 첫 기여를 하며, 팀의 품질 기준을
+                  빠르게 이해하도록 돕는 시스템</strong
+                >입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: Day0에 계정·접근권한·필수 도구를 하루 내 완료해 첫 주
+                활동을 지연 없이 시작하세요.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 첫 PR까지 팀의 <code>공통 PR 기준</code>을 그대로
+                따라가고 피드백은 짧은 주기로 받습니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 30/60/90 체크리스트는 팀 목표와 연동해 주기적으로
+                갱신하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — 개발 환경, 권한, 첫 PR, 멘토링 루프 중 하나를 실제 PR이나
+                운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — setup log, first PR, access checklist, 멘토 피드백를 같은
+                작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — setup 소요 시간, 첫 PR lead time, 막힌 항목 수가 나아졌는지
+                30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : 개발 환경, 권한, 첫 PR, 멘토링 루프 적용 범위를 어느 화면,
+                패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : setup log, first PR, access checklist, 멘토 피드백 중 실제로
+                남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : setup 소요 시간, 첫 PR lead time, 막힌 항목 수를 다시 볼
+                날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      Day 0/Day 1/Week 1/30-60-90 onboarding 목표와 증적
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./00_종합_가이드_목차.md">00. 종합 가이드</a>,
+                      <a href="./16_AI_협업_코드리뷰_가이드.md">16. 코드리뷰</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">개발 환경, 권한, 첫 PR, 멘토링 기준</td>
+                    <td style="text-align: left">
+                      <a href="./10_인프라_IaC_가이드.md">10. 인프라</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">워킹그룹/RFC/ADR와 팀 의사결정 학습 경로</td>
+                    <td style="text-align: left">
+                      <a href="./15_RFC_의사결정_프로세스.md">15. 의사결정</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">신규 구성원의 AI 사용 정책과 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">공통 기준</th>
+                    <th style="text-align: left">산출물</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>개발 환경</strong></td>
+                    <td style="text-align: left">
+                      한 문서 또는 한 명령으로 로컬/원격 개발 환경 준비
+                    </td>
+                    <td style="text-align: left">setup guide</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>권한</strong></td>
+                    <td style="text-align: left">최소 권한, 역할별 승인, 만료/회수 절차</td>
+                    <td style="text-align: left">access checklist</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>첫 과제</strong></td>
+                    <td style="text-align: left">1~2일 안에 완료 가능한 first issue</td>
+                    <td style="text-align: left">first PR</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>멘토링</strong></td>
+                    <td style="text-align: left">사람 멘토와 문서/AI 보조 채널 분리</td>
+                    <td style="text-align: left">mentor plan</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>품질 기준</strong></td>
+                    <td style="text-align: left">테스트, 리뷰, 배포, 접근성, 보안 기준 학습</td>
+                    <td style="text-align: left">learning path</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>AI 정책</strong></td>
+                    <td style="text-align: left">민감정보, 코드 반출, 검증 책임 기준 명시</td>
+                    <td style="text-align: left">AI usage policy</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>30/60/90</strong></td>
+                    <td style="text-align: left">기간별 기대 결과와 피드백 cadence 정의</td>
+                    <td style="text-align: left">growth checkpoint</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 온보딩 여정 한눈에 보기</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[Day 0 준비] --&gt; B[환경/권한 셋업 완료]
+  B --&gt; C[Day 1 목표 달성]
+  C --&gt; D[Week1 First PR]
+  D --&gt; E[30/60/90 체크포인트]
+  E --&gt; F{피드백 필요 여부}
+  F --&gt;|필요| G[멘토링 확대 + 과제 조정]
+  F --&gt;|완료| H[독립 작업 확대]
+  G --&gt; C
+  H --&gt; I[팀 온보딩 품질 지표 개선 제안]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">개발 환경 자동화</td>
+                    <td style="text-align: left">repo README와 toolchain 파일</td>
+                    <td style="text-align: left">setup verification command</td>
+                    <td style="text-align: left">onboarding lead time</td>
+                    <td style="text-align: left">반복 실패 항목은 setup 문서 수정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">최소 권한</td>
+                    <td style="text-align: left">보안/권한 운영 기준</td>
+                    <td style="text-align: left">access checklist</td>
+                    <td style="text-align: left">권한 누락/과다 이슈</td>
+                    <td style="text-align: left">임시 권한은 만료 없으면 금지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">First PR</td>
+                    <td style="text-align: left">코드리뷰/품질 표준</td>
+                    <td style="text-align: left">first PR template</td>
+                    <td style="text-align: left">time-to-first-PR</td>
+                    <td style="text-align: left">과제가 너무 크면 onboarding backlog 재분류</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Day 0 readiness</td>
+                    <td style="text-align: left">계정, 권한, 장비, 문서, 첫 과제 체크리스트</td>
+                    <td style="text-align: left">Manager</td>
+                    <td style="text-align: left">첫 과제 시작 보류 또는 임시 접근 제한</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Setup verification</td>
+                    <td style="text-align: left">install/test/dev command 성공 기록</td>
+                    <td style="text-align: left">Onboarding owner</td>
+                    <td style="text-align: left">setup guide 수정과 blocker 재검증</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">First PR</td>
+                    <td style="text-align: left">PR template, test result, review 기록</td>
+                    <td style="text-align: left">Mentor</td>
+                    <td style="text-align: left">더 작은 issue로 재배정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">30/60/90 checkpoint</td>
+                    <td style="text-align: left">checkpoint note, feedback, 다음 목표</td>
+                    <td style="text-align: left">Manager/Mentor</td>
+                    <td style="text-align: left">기대치와 학습 경로 재조정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-day-0">1. Day 0 준비</h2>
+            <p>신규 멤버가 오기 전에 팀이 준비해야 할 항목입니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">계정</td>
+                    <td style="text-align: left">필요한 시스템 목록, owner, 승인자</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">권한</td>
+                    <td style="text-align: left">read/write/admin 권한 분리, 임시 권한 만료일</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">장비/환경</td>
+                    <td style="text-align: left">OS, 런타임, IDE, 패키지 매니저, 인증서</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">문서</td>
+                    <td style="text-align: left">
+                      README, architecture map, runbook, coding standard
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">첫 과제</td>
+                    <td style="text-align: left">난이도 낮고 테스트/리뷰를 경험할 수 있는 작업</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">멘토</td>
+                    <td style="text-align: left">기술 멘토, 도메인 멘토, 매니저 역할 분리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="2-day-1">2. Day 1 목표</h2>
+            <p>
+              Day 1의 성공 기준은 "많은 정보를 전달했다"가 아니라 "스스로 검증 가능한 개발 루프를
+              만들었다"입니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">목표</th>
+                    <th style="text-align: left">완료 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">저장소 이해</td>
+                    <td style="text-align: left">주요 app/package, ownership, 실행 명령 파악</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">개발 환경</td>
+                    <td style="text-align: left">install, test, dev server 또는 storybook 실행</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">품질 게이트</td>
+                    <td style="text-align: left">lint/type/unit test 하나 이상 직접 실행</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">제품 흐름</td>
+                    <td style="text-align: left">핵심 사용자 flow를 staging/preview에서 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">질문 경로</td>
+                    <td style="text-align: left">어디에 어떤 질문을 올릴지 파악</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="3-week-1">3. Week 1 목표</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 첫 PR을 너무 늦게 시작하면 환경 셋업 단계의 사소한
+                막힘을 발견하지 못하고, 너무 일찍 큰 일을 맡기면 리뷰 부담만 늘어납니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">목표</th>
+                    <th style="text-align: left">완료 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">First PR</td>
+                    <td style="text-align: left">작은 변경을 작성하고 코드리뷰를 받음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">테스트 작성</td>
+                    <td style="text-align: left">변경에 맞는 unit/integration/e2e 중 하나 추가</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">코드리뷰 참여</td>
+                    <td style="text-align: left">다른 PR에 question 또는 suggestion 남김</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">도메인 학습</td>
+                    <td style="text-align: left">핵심 용어와 주요 API 흐름 설명 가능</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">운영 이해</td>
+                    <td style="text-align: left">배포와 장애 대응 runbook 위치 파악</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>첫 PR은 생산성 평가가 아니라 팀의 개발 루프를 체험하는 과제입니다.</p>
+            <h3 id="31-pr">3.1 첫 PR까지의 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  S[Day 1 환경 setup 완료] --&gt; ISSUE[멘토가 first issue 배정&lt;br/&gt;난이도 XS/S]
+  ISSUE --&gt; BRANCH[branch 생성&lt;br/&gt;네이밍 규칙 학습]
+  BRANCH --&gt; CODE[코드 변경&lt;br/&gt;2일 내]
+  CODE --&gt; LOCAL[lint/type/test&lt;br/&gt;로컬 실행]
+  LOCAL --&gt;|실패| FIX[수정 또는 멘토 페어링]
+  FIX --&gt; LOCAL
+  LOCAL --&gt;|통과| PUSH[push + PR 생성&lt;br/&gt;템플릿 채움]
+  PUSH --&gt; AI[AI 1차 리뷰]
+  AI --&gt; REVIEW[멘토 + reviewer 피드백]
+  REVIEW --&gt;|수정 요청| CODE
+  REVIEW --&gt;|승인| MERGE[Merge]
+  MERGE --&gt; NOTE[배운 점 학습 노트 기록]
+  NOTE --&gt; NEXT[Week 1 후속 과제 진행]</pre
+            >
+            <p>
+              비유: 자전거 보조바퀴와 같습니다. 첫 PR은 멘토가 옆에서 손잡이를 잡아주는 시간이지,
+              시속 30km로 달리는 시험이 아닙니다.
+            </p>
+            <hr />
+            <h2 id="4-306090">4. 30/60/90 기대치</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 기대치가 입사자 머릿속에만 있으면 매니저와의 평가
+                기준이 어긋나고, 첫 평가 시점에 동상이몽이 됩니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시점</th>
+                    <th style="text-align: left">기대 결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">30일</td>
+                    <td style="text-align: left">
+                      작은 기능/버그를 독립적으로 처리, 테스트와 리뷰 기준 이해
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">60일</td>
+                    <td style="text-align: left">
+                      중간 규모 기능을 설계부터 배포까지 수행, RFC/ADR 읽고 반영
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">90일</td>
+                    <td style="text-align: left">
+                      도메인 영역 하나의 owner 역할 수행, 품질 개선 제안 가능
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>기대치는 직무 레벨에 따라 조정하되, 기준과 피드백 주기는 사전에 공유합니다.</p>
+            <h3 id="41-306090-gantt">4.1 30/60/90 타임라인 (gantt)</h3>
+            <pre class="mermaid">
+gantt
+  title 신규 입사자 30/60/90 일정
+  dateFormat  YYYY-MM-DD
+  axisFormat  Day %j
+  section Day 0-1
+  계정/권한/장비 준비    :done, d0, 2030-01-05, 1d
+  환경 setup verify     :a1, after d0, 1d
+  section Week 1
+  핵심 flow 학습        :a2, after a1, 2d
+  First PR 작성/머지    :a3, after a2, 3d
+  section 30일
+  작은 기능 독립 처리   :b1, after a3, 21d
+  리뷰 기준 내재화      :b2, after a3, 21d
+  section 60일
+  중간 규모 기능 설계   :c1, after b1, 30d
+  RFC/ADR 읽기 반영     :c2, after b1, 30d
+  section 90일
+  영역 owner 역할       :d1, after c1, 30d
+  품질 개선 제안        :d2, after c1, 30d
+  section 회고
+  90일 회고/온보딩 개선 :e1, after d1, 3d</pre
+            >
+            <h3 id="42">4.2 권한 부여 단계별 흐름</h3>
+            <pre class="mermaid">
+flowchart LR
+  subgraph D0[&quot;Day 0 입사 전&quot;]
+    P0[계정 생성&lt;br/&gt;SSO]
+    R0[read 권한&lt;br/&gt;저장소/문서]
+  end
+  subgraph D1[&quot;Day 1-7&quot;]
+    P1[write 권한&lt;br/&gt;feature branch]
+    R1[staging deploy&lt;br/&gt;preview]
+  end
+  subgraph W4[&quot;30일 이후&quot;]
+    P2[main 머지 권한&lt;br/&gt;code owner 후보]
+    R2[production read&lt;br/&gt;로그/모니터링]
+  end
+  subgraph W12[&quot;90일 이후&quot;]
+    P3[production deploy&lt;br/&gt;승인자 동반]
+    R3[secret/IAM&lt;br/&gt;한정 범위]
+  end
+  D0 --&gt; D1
+  D1 --&gt; W4
+  W4 --&gt; W12</pre
+            >
+            <p>
+              비유: 운전면허 단계와 같습니다. 학원(read), 임시 면허(write+staging), 정식 면허(main
+              머지), 영업용 면허(production)로 점진적으로 확장합니다.
+            </p>
+            <hr />
+            <h2 id="5">5. 개발 환경 표준</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Runtime</td>
+                    <td style="text-align: left">버전 파일로 고정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Package manager</td>
+                    <td style="text-align: left">lockfile 기반 설치</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Env</td>
+                    <td style="text-align: left">예제 파일과 필수/선택 변수 설명</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Seed data</td>
+                    <td style="text-align: left">민감정보 없는 샘플 데이터</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Troubleshooting</td>
+                    <td style="text-align: left">자주 깨지는 설치/권한/포트 문제 해결</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Verification</td>
+                    <td style="text-align: left">setup 완료를 확인하는 명령 제공</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <pre><code class="language-bash">install
+typecheck
+test
+dev
+</code></pre>
+            <p>
+              위 명령은 실제 팀의 스크립트명으로 바꾸되, 온보딩 문서에는 "무엇을 검증하는
+              명령인지"를 함께 적습니다.
+            </p>
+            <hr />
+            <h2 id="6">6. 권한 관리</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">원칙</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">최소 권한</td>
+                    <td style="text-align: left">
+                      첫 주에는 read 중심, write/admin은 필요 시 부여
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">역할 기반</td>
+                    <td style="text-align: left">개인 예외보다 역할/그룹 기반 권한</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">만료</td>
+                    <td style="text-align: left">임시 권한은 만료일 필수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">감사</td>
+                    <td style="text-align: left">민감 시스템 접근은 승인 이력 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">회수</td>
+                    <td style="text-align: left">이동/퇴사/역할 변경 시 체크리스트 기반 회수</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              신규 멤버가 작업을 못 할 정도로 권한을 늦게 주는 것도 문제지만, production 권한을
+              초기에 넓게 주는 것은 더 큰 위험입니다.
+            </p>
+            <hr />
+            <h2 id="7-ai">7. AI 사용 정책</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">허용</th>
+                    <th style="text-align: left">금지</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">공개 API 문서 요약</td>
+                    <td style="text-align: left">secret, token, cookie 공유</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">테스트 케이스 초안 생성</td>
+                    <td style="text-align: left">고객 데이터 원문 입력</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">코드 설명 요청</td>
+                    <td style="text-align: left">내부 URL/인프라 정보 무분별 공유</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR 설명 초안</td>
+                    <td style="text-align: left">검증 없이 AI 코드 merge</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">에러 메시지 익명화 후 분석</td>
+                    <td style="text-align: left">민감 로그 원문 전송</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>AI가 답한 내용은 공식 문서, 로컬 실행, 테스트 중 하나로 검증해야 합니다.</p>
+            <hr />
+            <h2 id="8">8. 멘토링 운영</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 멘토가 한 명에게 모든 부담이 쏠리면 멘토도 입사자도
+                지칩니다. 역할을 분리해 한 사람당 시간 부담을 작게 만들어야 지속됩니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">역할</th>
+                    <th style="text-align: left">책임</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">기술 멘토</td>
+                    <td style="text-align: left">코드베이스, 테스트, 리뷰, 배포 루프 지원</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">도메인 멘토</td>
+                    <td style="text-align: left">제품 용어, 사용자 흐름, 비즈니스 규칙 설명</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">매니저</td>
+                    <td style="text-align: left">기대치, 우선순위, 피드백 cadence 관리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">신규 멤버</td>
+                    <td style="text-align: left">질문 기록, 학습 메모, 막힌 지점 공유</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              멘토링은 질문을 대신 해결해 주는 것이 아니라, 다음에 스스로 해결할 수 있는 경로를
+              알려주는 것입니다.
+            </p>
+            <h3 id="81">8.1 온보딩 상태 다이어그램</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Preboard: 입사 확정
+  Preboard --&gt; Day0: 계정/권한 준비
+  Day0 --&gt; Day1: 장비 수령
+  Day1 --&gt; Week1: 환경 setup 완료
+  Week1 --&gt; RampUp: First PR merged
+  RampUp --&gt; Independent: 30일 체크포인트 통과
+  Independent --&gt; Owner: 90일 영역 owner
+  Owner --&gt; [*]: 정식 구성원
+
+  RampUp --&gt; Stuck: 반복 막힘 감지
+  Stuck --&gt; RampUp: 멘토링 강화 + 과제 재조정
+
+  Independent --&gt; Stuck: 피드백 부족
+  Stuck --&gt; Independent: 1:1 cadence 강화</pre
+            >
+            <h3 id="82">8.2 질문 → 규칙 변환 루프</h3>
+            <pre class="mermaid">
+flowchart LR
+  Q[입사자 질문] --&gt; ANS[멘토 답변]
+  ANS --&gt; RECORD[학습 노트에 기록]
+  RECORD --&gt; REPEAT{같은 질문 3회+?}
+  REPEAT --&gt;|예| DOC[온보딩 문서/FAQ에 PR로 반영]
+  REPEAT --&gt;|아니오| KEEP[개인 노트로 유지]
+  DOC --&gt; FUTURE[다음 입사자가 셀프서비스로 해결]</pre
+            >
+            <p>
+              비유: 도서관 사서가 자주 받는 질문은 안내판으로 만들어 두는 것과 같습니다. 같은 답을
+              100번 하지 않도록 시스템화합니다.
+            </p>
+            <hr />
+            <h2 id="9">9. 온보딩 체크리스트</h2>
+            <ul>
+              <li>[ ] 개발 환경 setup 문서가 최신인가</li>
+              <li>[ ] 신규 멤버가 첫날 품질 게이트를 직접 실행했는가</li>
+              <li>[ ] first issue와 reviewer가 사전에 지정되어 있는가</li>
+              <li>[ ] 권한 목록과 만료/회수 절차가 있는가</li>
+              <li>[ ] AI 사용 정책과 민감정보 기준을 설명했는가</li>
+              <li>[ ] 30/60/90 기대치와 피드백 일정이 공유되었는가</li>
+              <li>[ ] 신규 멤버가 개선해야 할 온보딩 문서를 PR로 제안할 수 있는가</li>
+            </ul>
+            <hr />
+            <h2 id="10">10. 제외한 벤더 종속 항목</h2>
+            <p>
+              공통 개발 가이드에는 특정 원격 IDE, 특정 메신저, 특정 문서 도구, 특정 AI 코딩 도구,
+              특정 계정 자동화 workflow를 표준으로 포함하지 않습니다. 이 문서에는 어떤 회사와
+              도구에서도 적용 가능한 환경 준비, 권한, 첫 PR, 멘토링, 성장 체크포인트, AI 사용 정책만
+              남깁니다.
+            </p>
+            <hr />
+            <h2 id="11">11. 로컬 품질 도구 온보딩</h2>
+            <p>신규 구성원은 첫 PR 전에 품질 게이트를 "왜 실패하는지"까지 이해해야 합니다.</p>
+            <h3 id="111">11.1 첫날 확인 명령</h3>
+            <pre><code class="language-bash">pnpm install --frozen-lockfile
+pnpm exec husky init
+pnpm exec commitlint --from=HEAD~1 --to=HEAD --verbose
+pnpm exec secretlint &quot;**/*&quot;
+pnpm test
+</code></pre>
+            <ul>
+              <li>
+                <code>husky init</code>으로 <code>.husky/pre-commit</code>과
+                <code>prepare</code> script가 만들어지는지 확인합니다.
+              </li>
+              <li>
+                commitlint 실패 예시를 한 번 실행해 conventional commit type/scope/subject 규칙을
+                익힙니다.
+              </li>
+              <li>
+                secretlint는 fixture나 문서 예시에서 false positive가 생길 수 있으므로
+                <code>.secretlintignore</code>와 허용 절차를 함께 설명합니다.
+              </li>
+              <li>
+                MSW handler가 어디에 있고 local dev, unit/integration test, Storybook에서 어떻게
+                공유되는지 첫 PR에서 확인합니다.
+              </li>
+            </ul>
+            <h3 id="112-pr">11.2 첫 PR 리뷰 훈련</h3>
+            <ul>
+              <li>
+                CodeRabbit 같은 AI 리뷰 도구가 있다면 <code>.coderabbit.yaml</code>의 path
+                instruction과 실제 comment를 함께 읽습니다.
+              </li>
+              <li>AI finding은 그대로 반영하지 않고 accept/reject/follow-up으로 분류합니다.</li>
+              <li>
+                <code>TODO</code>, <code>FIXME</code>, <code>eslint-disable</code> 주석이 필요한
+                경우 owner, issue, 제거 조건을 남기는 연습을 합니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="_7">실무 적용 가이드</h2>
+            <h3 id="_8">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>새 구성원이 환경 설정과 첫 PR에서 오래 막힐 때</li>
+              <li>권한, 보안, 배포 책임이 구두로만 전달될 때</li>
+              <li>도메인 학습 순서가 없어 질문이 반복될 때</li>
+            </ul>
+            <h3 id="_9">적용 순서</h3>
+            <ol>
+              <li>Day 0에 계정, 권한, devcontainer/local setup을 준비한다.</li>
+              <li>Day 1에는 앱 실행, 테스트 실행, 문서 위치 찾기를 완료한다.</li>
+              <li>Week 1에는 작은 버그 수정 또는 문서 PR을 merge한다.</li>
+              <li>30/60/90 목표를 코드, 운영, 도메인 이해로 나눈다.</li>
+              <li>멘토링 질문과 막힌 지점을 문서 개선 backlog로 연결한다.</li>
+            </ol>
+            <h3 id="_10">함께 두는 파일</h3>
+            <ul>
+              <li>온보딩 체크리스트와 setup script는 repository 루트에 둔다.</li>
+              <li>도메인별 학습 문서는 해당 feature/package README에 둔다.</li>
+              <li>첫 PR 예제는 실제 기능 폴더와 연결한다.</li>
+            </ul>
+            <h3 id="_11">흔한 실수</h3>
+            <ul>
+              <li>권한을 너무 넓게 먼저 준다.</li>
+              <li>설정 실패를 개인 문제로 보고 자동화하지 않는다.</li>
+              <li>AI 사용 정책과 데이터 반출 기준을 나중에 알려준다.</li>
+              <li>첫 PR 범위가 너무 커서 리뷰 학습이 어렵다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] 환경 설정이 재현 가능하다.</li>
+              <li>[ ] 권한과 보안 교육 증거가 있다.</li>
+              <li>[ ] 첫 PR이 작은 범위로 완료되었다.</li>
+              <li>[ ] 30/60/90 피드백이 문서 개선으로 이어졌다.</li>
+            </ul>
+            <h2 id="_12">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — 개발 환경, 권한, 첫 PR, 멘토링 루프 중 하나를 작은 변경
+                1건에 적용하고 증거(setup log)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 온보딩 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — setup 소요 시간, 첫 PR lead time, 막힌 항목 수 추이를
+                보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 온보딩 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_13">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : 개발 환경, 권한, 첫 PR, 멘토링 루프 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(setup log, first PR, access checklist, 멘토
+                피드백)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : setup 소요 시간, 첫 PR lead time, 막힌 항목 수가 기준
+                안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_14">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li><code>실행 게이트</code> : 권한과 로컬 품질 도구가 같은 날에 확인됐는지 본다.</li>
+              <li>
+                <code>승인 체계</code> : 온보딩 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 첫 PR이 검증 게이트를 통과하면 다음 업무 범위를 넓힌다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 권한 누락이나 로컬 검증 실패가 반복되면 문서와 템플릿을
+                고친다.
+              </li>
+              <li><code>리스크 점수</code> : 권한 범위, 미완료 setup, 멘토 부재로 산정한다.</li>
+              <li><code>리더 승인자</code> : 팀 리드/멘토가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 온보딩 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 30/60/90일 회고 때 체크리스트를 갱신한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

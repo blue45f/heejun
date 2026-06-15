@@ -1,0 +1,3232 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 01 TypeScript 심화 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="01-typescript">01. TypeScript 심화 가이드</h1>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>이 문서는 “어떤 타입이 틀리면 왜 버그가 생기는지”를 설명하는 문서입니다.</p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>타입</code></td>
+                    <td>변수/함수의 모양을 미리 적어두는 설계도</td>
+                  </tr>
+                  <tr>
+                    <td><code>런타임</code></td>
+                    <td>앱이 실제로 실행되고 있는 시간/공간(브라우저/서버)</td>
+                  </tr>
+                  <tr>
+                    <td><code>스키마</code></td>
+                    <td>데이터 형태를 규칙으로 정의한 문서</td>
+                  </tr>
+                  <tr>
+                    <td><code>strict</code></td>
+                    <td>타입 검사를 엄격하게 켜서 실수를 덜 만들게 하는 모드</td>
+                  </tr>
+                  <tr>
+                    <td><code>브랜딩 타입</code></td>
+                    <td>
+                      같은 형태(<code>string</code>)라도 용도(유저ID/주문ID 등)를 구분하게 하는 방식
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>,
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      Type Branding, Zod 4 Validation, Standard Schema, Discriminated Unions, Type
+                      Guard, Generics
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <blockquote>
+              <p>
+                <strong
+                  >본 가이드는 현재 공식 문서 기준 TypeScript 6.0 안정판을 기본선으로
+                  둡니다.</strong
+                >
+                TypeScript 5.8/5.9의 <code>--erasableSyntaxOnly</code>,
+                <code>--module node20</code>, <code>import defer</code>는 지원 런타임과 번들러가
+                확인된 경우에만 opt-in합니다. TypeScript 7.0 Beta는 Go 기반 native toolchain 전환
+                후보로, 기존 <code>tsc</code>와 side-by-side로 검증한 뒤 채택합니다.
+              </p>
+            </blockquote>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <p>이 문서를 처음 읽는다면 먼저 아래 3가지만 기억하세요.</p>
+            <ol>
+              <li>
+                <strong
+                  >타입 검사는 버그를 줄여주지만, 런타임에서는 꼭 별도의 검증이 필요합니다.</strong
+                >
+              </li>
+              <li>API 응답이 엉뚱해도 컴파일은 통과할 수 있습니다.</li>
+              <li>
+                <strong><code>strict</code>는 기본값입니다.</strong>
+              </li>
+              <li>팀에서 같은 규칙을 쓰면 코드리뷰 갈등이 줄고, 같은 버그를 반복하지 않습니다.</li>
+              <li>
+                <strong
+                  ><code>as</code>, <code>!</code>, <code>any</code>는 임시 방편입니다.</strong
+                >
+              </li>
+              <li>꼭 필요한 곳은 분리하고 이유를 문서에 남겨야 합니다.</li>
+            </ol>
+            <p>이 3가지를 먼저 정하면 이후 1~9장 문항을 읽을 때 기준이 생깁니다.</p>
+            <h2 id="_3">쉬운 말로 보는 용어 정리 (이 문서 중심)</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>평소 말투로 바꿔 말하면</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>런타임</code></td>
+                    <td>실제로 브라우저에서 코드가 실행되는 그 순간</td>
+                  </tr>
+                  <tr>
+                    <td><code>컴파일</code></td>
+                    <td>내가 쓴 코드를 브라우저가 이해할 수 있게 바꾸는 과정</td>
+                  </tr>
+                  <tr>
+                    <td><code>strict</code></td>
+                    <td>TypeScript가 기본 검사를 조금 더 엄격하게 켜는 설정</td>
+                  </tr>
+                  <tr>
+                    <td><code>브랜딩 타입</code></td>
+                    <td>같은 문자열이어도 맥락이 다른 값(사용자ID/주문ID)처럼 구분하는 장치</td>
+                  </tr>
+                  <tr>
+                    <td><code>schema</code></td>
+                    <td>들어온 데이터가 <code>어떤 모양인지</code> 적어둔 규칙표</td>
+                  </tr>
+                  <tr>
+                    <td><code>type guard</code></td>
+                    <td>함수가 “이 값이 맞는 타입인지” 직접 확인해주는 안전 검사</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"타입은 단순한 주석이 아니라, 런타임의 안전성을 보장하는 살아있는
+                  명세서다."</strong
+                >
+                본 가이드는 단순한 문법을 넘어, 대규모 프로젝트에서 타입 시스템을 설계하는 고도화된
+                전략을 다룹니다. 각 섹션은 <strong>왜 필요한지</strong>,
+                <strong>어떻게 사용하는지</strong>, <strong>흔한 실수는 무엇인지</strong>를 중심으로
+                구성되어 있습니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_4">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: <code>tsconfig</code>에서 <code>strict</code>를 켠 뒤,
+                <code>any</code>/<code>as</code> 남용 구역만 즉시 축소합니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: API 입력/외부 데이터는
+                <code>unknown -&gt; 검증 -&gt; 타입 좁힘</code> 흐름으로 통일하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 파일럿 기능부터
+                <code>noUncheckedIndexedAccess</code>/<code>noImplicitAny</code> 정책을 CI에 붙여 팀
+                규칙으로 고정하세요.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — runtime boundary와 strict 옵션 중 하나를 실제 PR이나 운영
+                이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — <code>tsc --noEmit</code>, schema fixture, generated type
+                diff를 같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — <code>any/as/!</code> 신규 사용 수와 boundary 실패 fixture
+                수가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_6">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : runtime boundary와 strict 옵션 적용 범위를 어느 화면, 패키지,
+                문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : <code>tsc --noEmit</code>, schema fixture, generated type diff
+                중 실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : <code>any/as/!</code> 신규 사용 수와 boundary 실패 fixture
+                수를 다시 볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_7">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      TypeScript strictness, branded type, type guard, runtime boundary typing
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>,
+                      <a href="./06_웹_보안_심화_가이드.md">06. 보안</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      생성 타입, contract type, schema inference 정책
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">타입 테스트와 CI 품질 게이트</td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 제안한 타입 리팩터의 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <p>
+              TypeScript 표준은 팀 규모와 도메인에 상관없이 <strong>런타임 경계의 안전성</strong>을
+              보장하는 데 초점을 둡니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Strict Mode</strong></td>
+                    <td style="text-align: left">
+                      <code>strict: true</code>, <code>noUncheckedIndexedAccess</code>,
+                      <code>exactOptionalPropertyTypes</code>를 신규 패키지 기본값으로 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>런타임 입력 검증</strong></td>
+                    <td style="text-align: left">
+                      API 응답, URL 파라미터, localStorage, feature flag, postMessage payload는 타입
+                      단언이 아니라 스키마로 검증합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>타입 단언 제한</strong></td>
+                    <td style="text-align: left">
+                      <code>as</code>, non-null assertion(<code>!</code>), <code>any</code>는
+                      boundary adapter 또는 legacy migration 파일로 격리하고 PR에서 근거를
+                      요구합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>공유 타입 출처</strong></td>
+                    <td style="text-align: left">
+                      백엔드 계약은 OpenAPI/GraphQL/protobuf 등 계약 파일에서 생성하고, 수동 복제
+                      타입을 금지합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>도메인 ID 구분</strong></td>
+                    <td style="text-align: left">
+                      UserId, OrderId처럼 구조가 같은 식별자는 branded type으로 섞임을 방지합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>타입 테스트</strong></td>
+                    <td style="text-align: left">
+                      공용 유틸/SDK/디자인 시스템 타입은 <code>tsd</code>,
+                      <code>expectTypeOf</code>, <code>vitest</code> type test 중 하나로 회귀를
+                      막습니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 타입 가드/경계 흐름</h3>
+            <pre class="mermaid">
+flowchart TB
+  A[외부 입력: API/URL/로컬 저장소/메시지] --&gt; B{런타임 스키마 검사}
+  B -- 통과 --&gt; C[도메인 타입으로 정규화]
+  B -- 실패 --&gt; D[에러 로깅 + 방어적 응답]
+  C --&gt; E[Service/도메인 로직]
+  E --&gt; F[UI 상태 반영]
+  C --&gt; G[&quot;타입 단언(as/!) 금지 구간 체크&quot;]
+  G --&gt;|감사 추적| H[&quot;코드 리뷰 승인 필요&quot;]
+  D --&gt; I[회복 플로우: fallback UI/사용자 알림]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>strict</code> + 경계 검증</td>
+                    <td style="text-align: left">TypeScript 공식 릴리스와 tsconfig 문서</td>
+                    <td style="text-align: left"><code>tsc --noEmit</code>, runtime schema test</td>
+                    <td style="text-align: left">API validation failure rate</td>
+                    <td style="text-align: left">legacy package는 migration ADR과 만료일 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">생성 타입 우선</td>
+                    <td style="text-align: left">OpenAPI/GraphQL/protobuf 스펙</td>
+                    <td style="text-align: left">contract test, generated diff review</td>
+                    <td style="text-align: left">API mismatch incident 감소</td>
+                    <td style="text-align: left">codegen 실패 시 수동 타입 임시 허용 후 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>any/as</code> 통제</td>
+                    <td style="text-align: left">TypeScript 타입 시스템 한계 명시</td>
+                    <td style="text-align: left">lint rule, type test</td>
+                    <td style="text-align: left">runtime type error 추적</td>
+                    <td style="text-align: left">migration boundary 외 사용 금지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Strict type gate</td>
+                    <td style="text-align: left">
+                      <code>tsc --noEmit</code>, strict tsconfig diff
+                    </td>
+                    <td style="text-align: left">Package owner</td>
+                    <td style="text-align: left">migration ADR로 예외 범위와 만료일 설정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Runtime boundary gate</td>
+                    <td style="text-align: left">schema test, invalid payload fixture</td>
+                    <td style="text-align: left">API/FE owner</td>
+                    <td style="text-align: left">
+                      schema enforcement를 warning mode로 낮추고 incident backlog 생성
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Type generation gate</td>
+                    <td style="text-align: left">generated diff, contract test</td>
+                    <td style="text-align: left">API contract owner</td>
+                    <td style="text-align: left">이전 generated artifact pinning</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Unsafe escape hatch gate</td>
+                    <td style="text-align: left">
+                      <code>any/as/!</code> lint report, PR rationale
+                    </td>
+                    <td style="text-align: left">Tech lead</td>
+                    <td style="text-align: left">escape hatch를 adapter 파일로 격리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="03-typescript-67">0.3 TypeScript 6/7 전환 계약</h3>
+            <p>
+              TypeScript 버전 정책은 "새 기능을 빠르게 쓰기"보다
+              <strong>타입 안정성, 빌드 재현성, 런타임 호환성</strong>을 우선합니다. 신규 패키지는
+              TypeScript 6.0 안정판을 기준으로 하고, TypeScript 7.0 Beta는 성능과 호환성 증거가
+              필요한 실험 채널로 분리합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">구분</th>
+                    <th style="text-align: left">채택 기준</th>
+                    <th style="text-align: left">검증 증거</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>TypeScript 6.0 stable</strong></td>
+                    <td style="text-align: left">
+                      신규 패키지 기본선. <code>strict</code>를 켜고, <code>types</code>는 필요한
+                      전역 타입만 명시합니다. <code>target/lib</code>는 evergreen 브라우저와 Node
+                      지원 정책에 맞춰 <code>es2025</code> 이상을 우선 검토합니다.
+                    </td>
+                    <td style="text-align: left">
+                      <code>tsc --noEmit</code>, <code>tsc --showConfig</code>, DOM/Node type smoke
+                      test
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>6.0 마이그레이션 정리</strong></td>
+                    <td style="text-align: left">
+                      <code>target: es5</code>, <code>downlevelIteration</code>,
+                      <code>moduleResolution: node/node10/classic</code>,
+                      <code>module: amd/umd/systemjs/none</code>, <code>baseUrl</code> 의존을
+                      제거합니다.
+                    </td>
+                    <td style="text-align: left">
+                      deprecation diff, tsconfig migration PR, build artifact 비교
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Module resolution</strong></td>
+                    <td style="text-align: left">
+                      번들러 기반 웹 앱은 <code>moduleResolution: bundler</code> +
+                      <code>module: preserve</code>/<code>esnext</code>를 우선합니다. Node 런타임
+                      패키지는 <code>node20</code> 또는 <code>nodenext</code> 중 배포 런타임과 맞는
+                      옵션만 사용합니다.
+                    </td>
+                    <td style="text-align: left">
+                      runtime smoke, package exports/imports test, ESM/CJS interop test
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <strong><code>--erasableSyntaxOnly</code></strong>
+                    </td>
+                    <td style="text-align: left">
+                      Node의 type stripping 또는 타입 전용 소스 실행을 목표로 하는 패키지에서만
+                      사용합니다. enum, runtime namespace, parameter property,
+                      <code>import =</code> 패턴은 신규 코드에서 금지합니다.
+                    </td>
+                    <td style="text-align: left">
+                      <code>tsc --erasableSyntaxOnly --noEmit</code>, lint rule, migration ADR
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <strong><code>import defer</code></strong>
+                    </td>
+                    <td style="text-align: left">
+                      <code>preserve</code>/<code>esnext</code> 모듈 출력과 런타임/번들러 지원이
+                      모두 확인된 경우에만 사용합니다. 성능 최적화 목적이면 dynamic import, route
+                      split, prefetch와 비교합니다.
+                    </td>
+                    <td style="text-align: left">
+                      bundle output diff, browser/runtime smoke, startup metric
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>TypeScript 7.0 Beta</strong></td>
+                    <td style="text-align: left">
+                      대형 코드베이스의 빌드/에디터 성능 검증용으로
+                      <code>@typescript/native-preview@beta</code>와 <code>tsgo</code>를 기존
+                      <code>tsc</code> 옆에서 실행합니다. 안정 API가 필요한 도구는 6.x에 남깁니다.
+                    </td>
+                    <td style="text-align: left">
+                      <code>tsc</code> vs <code>tsgo</code> diagnostics diff, build time p50/p95,
+                      editor smoke
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h4 id="_8">전환 원칙</h4>
+            <ul>
+              <li>
+                <strong>Stable first</strong>: 제품 빌드와 릴리스 게이트는 안정판 TypeScript를
+                기준으로 합니다.
+              </li>
+              <li>
+                <strong>Beta as shadow CI</strong>: TypeScript 7.0 Beta는 빠른 피드백을 위해
+                nightly/optional CI에 연결하되, 실패가 제품 배포를 막는 게이트가 되려면 RFC와 롤백
+                기준이 필요합니다.
+              </li>
+              <li>
+                <strong>No silent config drift</strong>: <code>tsconfig.base.json</code>, 패키지별
+                override, generated type 설정은 변경 시 diff와 근거를 PR에 남깁니다.
+              </li>
+              <li>
+                <strong>Runtime boundary first</strong>: TypeScript 버전을 올려도 외부 입력은 여전히
+                <code>unknown</code>에서 시작하고 Standard Schema 호환 스키마로 검증합니다.
+              </li>
+            </ul>
+            <h4 id="_9">타입 정책 변경 판정 흐름</h4>
+            <pre class="mermaid">
+flowchart TD
+  START[&quot;타입 정책 변경 제안&quot;] --&gt; SCOPE{&quot;영향 범위는?&quot;}
+  SCOPE --&gt;|&quot;feature 내부&quot;| LOCAL[&quot;feature owner 승인&quot;]
+  SCOPE --&gt;|&quot;shared/API/generated&quot;| RFC[&quot;짧은 RFC 또는 ADR 작성&quot;]
+  LOCAL --&gt; BOUNDARY{&quot;외부 입력 boundary가 있나?&quot;}
+  RFC --&gt; BOUNDARY
+  BOUNDARY --&gt;|&quot;있음&quot;| SCHEMA[&quot;schema success/failure fixture 추가&quot;]
+  BOUNDARY --&gt;|&quot;없음&quot;| TSC[&quot;tsc --noEmit + type test&quot;]
+  SCHEMA --&gt; TSC
+  TSC --&gt; ESCAPE{&quot;any/as/! 신규 사용?&quot;}
+  ESCAPE --&gt;|&quot;있음&quot;| ISOLATE[&quot;adapter/legacy 파일로 격리 + 만료일&quot;]
+  ESCAPE --&gt;|&quot;없음&quot;| MERGE[&quot;PR 증거로 merge 가능&quot;]
+  ISOLATE --&gt; REVIEW{&quot;제거 계획 승인?&quot;}
+  REVIEW --&gt;|&quot;예&quot;| MERGE
+  REVIEW --&gt;|&quot;아니오&quot;| HOLD[&quot;보류 또는 설계 재검토&quot;]</pre
+            >
+            <hr />
+            <h2 id="1-zod-4">1. 런타임 안전성: Zod 4 기반의 스키마 검증</h2>
+            <h3 id="_10">왜 중요한가</h3>
+            <p>
+              TypeScript의 타입은 <strong>컴파일 타임에만 존재</strong>합니다. 빌드가 완료된
+              JavaScript에는 타입 정보가 전혀 남아 있지 않습니다. 이 말은 외부 API, localStorage,
+              URL 파라미터, 사용자 입력 등 <strong>런타임에 들어오는 모든 데이터</strong>에 대해
+              TypeScript가 아무런 보호도 제공하지 못한다는 뜻입니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 컴파일 타임 타입은 "공장 출하 전 도면 검수"와 같고,
+                런타임 검증은 "포장지를 뜯고 실제 부품이 도면대로 왔는지 확인"하는 단계입니다.
+                도면이 아무리 정확해도 실제 박스를 안 열어보면 잘못 배송된 부품을 알 수 없습니다.
+              </p>
+            </blockquote>
+            <p>
+              <code>as</code> 키워드로 타입을 강제 캐스팅하면 컴파일러는 만족하지만, 실제 데이터
+              구조가 다를 경우 런타임에서 예측 불가능한 오류가 발생합니다. Zod는
+              <strong>스키마 정의 한 번으로 런타임 검증과 타입 추론을 동시에</strong> 해결해주는
+              라이브러리입니다.
+            </p>
+            <h4 id="_11">스키마 검증 처리 시퀀스</h4>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Client as 클라이언트
+  participant API as 외부 API
+  participant Schema as Zod 스키마
+  participant Domain as 도메인 로직
+  participant Log as 모니터링
+
+  Client-&gt;&gt;API: fetch(/api/user/:id)
+  API--&gt;&gt;Client: JSON 응답 (unknown 형태)
+  Client-&gt;&gt;Schema: safeParse(response)
+  alt 스키마 통과
+    Schema--&gt;&gt;Client: result.success = true, data: User
+    Client-&gt;&gt;Domain: 정규화된 User 사용
+    Domain--&gt;&gt;Client: 결과
+  else 스키마 실패
+    Schema--&gt;&gt;Client: result.success = false, issues
+    Client-&gt;&gt;Log: 계약 불일치 기록 (필드/예상/실제)
+    Client--&gt;&gt;Client: fallback UI 또는 사용자 알림
+  end</pre
+            >
+            <h3 id="zod-4-2025-ga">Zod 4 (2025년 GA) 주요 변경점</h3>
+            <ul>
+              <li>
+                <strong>성능 개선</strong>: 파싱 속도가 v3 대비 약 3~4배 향상되고, 컴파일 타임 타입
+                인스턴스화도 빨라졌습니다.
+              </li>
+              <li>
+                <strong>트리쉐이킹 가능한 <code>zod/v4-mini</code></strong
+                >: 함수형 API 방식의 별도 엔트리포인트로, 번들 크기에 민감한 환경에서 사용합니다.
+              </li>
+              <li>
+                <strong>Standard Schema 인터페이스 구현</strong>: Zod 4부터
+                <code>~standard</code> 프로퍼티를 통해 <code>Standard Schema v1</code> 스펙을
+                만족하므로, TanStack Form, Next.js Server Actions 등 Standard Schema 기반
+                라이브러리와 어댑터 없이 호환됩니다.
+              </li>
+              <li>
+                <strong><code>z.discriminatedUnion</code>/<code>z.object</code> API 정비</strong>:
+                에러 트리(<code>error.issues</code>), <code>prettifyError</code> 헬퍼 등 디버깅 친화
+                기능이 추가됐습니다.
+              </li>
+            </ul>
+            <h3 id="11">1.1 유효성 검증 및 타입 추론</h3>
+            <pre><code class="language-typescript">import { z } from 'zod'
+
+// 1. 스키마 정의 (런타임 검증용)
+// Zod 스키마가 곧 &quot;진짜 타입&quot;의 역할을 합니다.
+const UserSchema = z.object({
+  id: z.string().uuid(), // UUID 형식 강제
+  email: z.string().email(), // 이메일 형식 검증
+  age: z.number().min(18).max(120), // 범위 제한으로 논리적 오류 방지
+  role: z.enum(['admin', 'user', 'guest']), // 허용된 값만 통과
+  createdAt: z.string().datetime(), // ISO 8601 날짜 형식 검증
+})
+
+// 2. 타입 추출 (컴파일 타임용)
+// 스키마에서 타입을 자동 추론하므로 타입과 검증 로직이 항상 동기화됩니다.
+type User = z.infer&lt;typeof UserSchema&gt;
+
+// 3. API 응답을 안전하게 처리하는 함수
+async function fetchUser(id: string): Promise&lt;User&gt; {
+  const response = await fetch(`/api/user/${id}`).then((res) =&gt; res.json())
+
+  // safeParse()는 에러를 던지지 않고 결과 객체를 반환합니다.
+  // parse()는 유효하지 않으면 ZodError를 던집니다.
+  const result = UserSchema.safeParse(response)
+
+  if (!result.success) {
+    // 어떤 필드가 어떻게 잘못되었는지 상세하게 로깅
+    console.error('API 스펙 불일치:', result.error.format())
+    throw new Error('Invalid User Data')
+  }
+
+  // result.data는 이미 User 타입으로 추론됩니다.
+  return result.data
+}
+</code></pre>
+            <h3 id="12-bad-practice-vs-good-practice">1.2 Bad Practice vs Good Practice</h3>
+            <pre><code class="language-typescript">// ❌ Bad: as 키워드로 타입 강제 캐스팅
+// API 응답이 실제로 User 구조가 아니어도 컴파일러가 통과시킴
+async function fetchUserBad(id: string): Promise&lt;User&gt; {
+  const response = await fetch(`/api/user/${id}`).then((res) =&gt; res.json())
+  return response as User // 위험! 런타임에서 아무런 검증도 하지 않음
+}
+
+// ✅ Good: Zod를 사용한 런타임 검증
+// 데이터 구조가 다르면 즉시 에러를 감지할 수 있음
+async function fetchUserGood(id: string): Promise&lt;User&gt; {
+  const response = await fetch(`/api/user/${id}`).then((res) =&gt; res.json())
+  return UserSchema.parse(response) // 유효하지 않으면 명확한 에러 발생
+}
+</code></pre>
+            <h3 id="13-zod">1.3 Zod 스키마 조합과 변환</h3>
+            <pre><code class="language-typescript">// 기존 스키마를 확장하여 새로운 스키마를 만들 수 있습니다.
+const CreateUserSchema = UserSchema.omit({ id: true, createdAt: true })
+type CreateUserInput = z.infer&lt;typeof CreateUserSchema&gt;
+
+// 부분 업데이트를 위한 Partial 스키마
+const UpdateUserSchema = UserSchema.partial().omit({ id: true })
+type UpdateUserInput = z.infer&lt;typeof UpdateUserSchema&gt;
+
+// transform()으로 데이터 변환과 검증을 동시에 수행
+const DateStringSchema = z.string().transform((val) =&gt; new Date(val))
+
+// 기본값 설정
+const PaginationSchema = z.object({
+  page: z.number().min(1).default(1), // 기본값 1
+  limit: z.number().min(1).max(100).default(20), // 기본값 20
+})
+</code></pre>
+            <h3 id="14-standard-schema">1.4 Standard Schema: 라이브러리 종속성 분리</h3>
+            <p>
+              <code>Standard Schema</code>는 Zod, Valibot, ArkType의 메인테이너들이 함께 만든
+              <strong>60줄짜리 TypeScript 인터페이스 스펙</strong>입니다. 검증 라이브러리가 아니라
+              "각 라이브러리가 공통으로 노출하는 형태"의 명세입니다. TanStack Form, Next.js Server
+              Actions, tRPC 등은 이미 Standard Schema를 채택하여 사용자가 원하는 검증 라이브러리를
+              자유롭게 골라 쓸 수 있습니다.
+            </p>
+            <pre><code class="language-typescript">// 라이브러리에 종속되지 않는 유틸리티 작성 가능
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
+// Zod, Valibot, ArkType 어느 것이든 받을 수 있는 검증 헬퍼
+async function safeValidate&lt;T extends StandardSchemaV1&gt;(
+  schema: T,
+  input: unknown,
+): Promise&lt;StandardSchemaV1.InferOutput&lt;T&gt;&gt; {
+  let result = schema['~standard'].validate(input)
+  if (result instanceof Promise) result = await result
+  if (result.issues) {
+    throw new Error(result.issues.map((i) =&gt; i.message).join('\n'))
+  }
+  return result.value
+}
+
+// 이제 Zod든 Valibot이든 동일한 함수로 검증 가능
+const zodUser = await safeValidate(UserSchema, input)
+// const valibotUser = await safeValidate(v.object({ ... }), input);
+</code></pre>
+            <h3 id="15">1.5 검증 라이브러리 선택 가이드 (현재 기준)</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">라이브러리</th>
+                    <th style="text-align: left">번들 크기 (gzip)</th>
+                    <th style="text-align: left">성능</th>
+                    <th style="text-align: left">권장 시점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Zod 4</strong></td>
+                    <td style="text-align: left">약 13~17KB</td>
+                    <td style="text-align: left">표준</td>
+                    <td style="text-align: left">
+                      가장 풍부한 생태계, 학습 자료 다수. 일반적인 백오피스/SaaS에 적합
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Zod 4 Mini</strong></td>
+                    <td style="text-align: left">약 4~5KB</td>
+                    <td style="text-align: left">표준</td>
+                    <td style="text-align: left">클라이언트 번들 민감 + Zod 친숙도 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Valibot 1.x</strong></td>
+                    <td style="text-align: left">약 1~2KB</td>
+                    <td style="text-align: left">빠름</td>
+                    <td style="text-align: left">트리쉐이킹 극대화가 중요한 엣지/엔드유저 번들</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>ArkType 2.x</strong></td>
+                    <td style="text-align: left">약 5~6KB</td>
+                    <td style="text-align: left">매우 빠름</td>
+                    <td style="text-align: left">
+                      TypeScript 문법을 그대로 쓰고 싶을 때, 대량 데이터 검증
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              <strong>핵심 결론</strong>: 라이브러리는 Standard Schema 호환 여부로 고르면 추후 교체
+              비용이 거의 없습니다. 신규 프로젝트는
+              <strong>Zod 4 + 필요 시 <code>zod/v4-mini</code></strong> 조합이 가장 무난합니다.
+            </p>
+            <h3 id="_12">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수 1: parse()와 safeParse()를 혼동
+// parse()는 에러를 throw하므로 try-catch가 필요합니다.
+try {
+  const user = UserSchema.parse(data) // 실패 시 ZodError throw
+} catch (e) {
+  // 반드시 에러 처리 필요
+}
+
+// ❌ 실수 2: z.infer 타입을 별도로 수동 정의
+// 스키마와 타입이 서로 달라질 위험이 있습니다.
+interface UserManual {
+  id: string
+  email: string
+  // age 필드를 빼먹어도 컴파일러가 경고하지 않음!
+}
+
+// ✅ 올바른 방법: 항상 z.infer로 타입을 추출
+type UserCorrect = z.infer&lt;typeof UserSchema&gt;
+</code></pre>
+            <hr />
+            <h2 id="2-branded-types">2. Branded Types: 논리적 구분 강화</h2>
+            <h3 id="_13">왜 중요한가</h3>
+            <p>
+              TypeScript의 타입 시스템은 <strong>구조적 타이핑(Structural Typing)</strong>을
+              사용합니다. 즉, 두 타입의 구조(형태)가 같으면 호환되는 것으로 판단합니다. 이 때문에
+              <code>UserId</code>와 <code>OrderId</code>가 둘 다 <code>string</code>이면 실수로 섞어
+              사용해도 컴파일러가 잡아주지 못합니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 같은 모양의 문(door) 열쇠라도 한 쪽엔 "현관용", 다른
+                쪽엔 "사무실용" 라벨이 붙어 있어야 잘못 가져가는 일이 없습니다. 브랜딩 타입은 그
+                라벨을 코드에 붙이는 일입니다.
+              </p>
+            </blockquote>
+            <p>
+              대규모 프로젝트에서 이런 실수는 <strong>조용한 버그</strong>로 이어집니다. 잘못된 ID로
+              API를 호출하면 데이터가 삭제되거나 잘못된 정보가 반환될 수 있습니다.
+              <strong>Branded Types</strong>는 구조가 같은 타입이라도 논리적으로 구분되도록
+              "표식(brand)"을 붙여주는 패턴입니다.
+            </p>
+            <h4 id="_14">브랜딩 타입 적용 결정 흐름</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[새 식별자 도입] --&gt; B{구조가 동일한&lt;br/&gt;다른 식별자가 있나?}
+  B -- 없음 --&gt; C[일반 string/number 사용 가능]
+  B -- 있음 --&gt; D{혼용 시 위험도?}
+  D --&gt;|&quot;낮음 (UI 표시용)&quot;| C
+  D --&gt;|&quot;중간 (API 호출 인자)&quot;| E[Brand 타입으로 분리]
+  D --&gt;|&quot;높음 (삭제/결제)&quot;| F[&quot;Brand + 런타임 검증 팩토리&quot;]
+  E --&gt; G[as Brand 캐스팅은&lt;br/&gt;팩토리 함수 내부에서만]
+  F --&gt; H[&quot;Zod .brand() + parse&quot;]
+  G --&gt; I[사용처에서는 import 만]
+  H --&gt; I</pre
+            >
+            <h3 id="21">2.1 브랜드 타입 구현 예시</h3>
+            <pre><code class="language-typescript">// 브랜드 유틸리티 타입 정의
+// __brand는 실제 런타임에는 존재하지 않지만, 컴파일러가 타입을 구분하는 데 사용합니다.
+type Brand&lt;K, T&gt; = K &amp; { readonly __brand: T }
+
+// 고유 ID 타입 정의
+type UserId = Brand&lt;string, 'UserId'&gt;
+type OrderId = Brand&lt;string, 'OrderId'&gt;
+type ProductId = Brand&lt;string, 'ProductId'&gt;
+
+// 타입 안전한 생성 함수
+// 외부 입력을 받아 브랜드 타입으로 변환하는 유일한 진입점
+function asUserId(id: string): UserId {
+  // 필요 시 여기서 UUID 형식 검증도 가능
+  if (!id.startsWith('user-')) {
+    throw new Error(`잘못된 UserId 형식: ${id}`)
+  }
+  return id as UserId
+}
+
+function asOrderId(id: string): OrderId {
+  return id as OrderId
+}
+
+// 사용 예시: 컴파일러가 잘못된 ID 사용을 잡아냄
+function deleteUser(id: UserId): void {
+  console.log(`유저 삭제: ${id}`)
+}
+
+function cancelOrder(id: OrderId): void {
+  console.log(`주문 취소: ${id}`)
+}
+
+const myUserId = asUserId('user-123')
+const myOrderId = asOrderId('order-456')
+
+deleteUser(myUserId) // ✅ 정상
+cancelOrder(myOrderId) // ✅ 정상
+
+// deleteUser(myOrderId);  // ❌ 컴파일 에러! OrderId는 UserId에 할당 불가
+// cancelOrder(myUserId);  // ❌ 컴파일 에러! UserId는 OrderId에 할당 불가
+</code></pre>
+            <h3 id="22-bad-practice-vs-good-practice">2.2 Bad Practice vs Good Practice</h3>
+            <pre><code class="language-typescript">// ❌ Bad: 일반 string 타입 사용
+// userId와 orderId가 모두 string이므로 실수로 바꿔 넣어도 에러 없음
+function deleteUserBad(userId: string): void {
+  /* ... */
+}
+function cancelOrderBad(orderId: string): void {
+  /* ... */
+}
+
+const userId = 'user-123'
+const orderId = 'order-456'
+
+deleteUserBad(orderId) // 컴파일 통과! 하지만 런타임에서 잘못된 유저 삭제 시도
+
+// ✅ Good: Branded Types 사용
+// 논리적으로 다른 ID를 타입 수준에서 구분
+function deleteUserGood(userId: UserId): void {
+  /* ... */
+}
+function cancelOrderGood(orderId: OrderId): void {
+  /* ... */
+}
+
+const safeUserId = asUserId('user-123')
+const safeOrderId = asOrderId('order-456')
+
+// deleteUserGood(safeOrderId); // ❌ 컴파일 에러로 실수 방지
+</code></pre>
+            <h3 id="23-zod-branded-types">2.3 Zod와 Branded Types 결합</h3>
+            <pre><code class="language-typescript">// Zod의 .brand()를 사용하면 더 간결하게 브랜드 타입을 만들 수 있습니다.
+const UserIdSchema = z.string().uuid().brand&lt;'UserId'&gt;()
+type ZodUserId = z.infer&lt;typeof UserIdSchema&gt;
+
+const OrderIdSchema = z.string().uuid().brand&lt;'OrderId'&gt;()
+type ZodOrderId = z.infer&lt;typeof OrderIdSchema&gt;
+
+// 런타임 검증과 브랜딩을 동시에!
+const validUserId = UserIdSchema.parse('550e8400-e29b-41d4-a716-446655440000')
+</code></pre>
+            <h3 id="_15">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수: 브랜드 타입을 직접 as 캐스팅으로 생성
+// 생성 함수를 거치지 않으면 브랜드 타입의 의미가 없어집니다.
+const unsafeId = '아무값이나' as UserId // 검증 없이 브랜딩 → 무의미
+
+// ✅ 올바른 방법: 반드시 생성 함수(팩토리)를 통해 생성
+const safeId = asUserId('user-789') // 검증 로직을 거쳐 안전하게 생성
+</code></pre>
+            <hr />
+            <h2 id="3">3. 고급 유틸리티 타입: 템플릿 리터럴과 매핑</h2>
+            <h3 id="_16">왜 중요한가</h3>
+            <p>
+              TypeScript의 <strong>템플릿 리터럴 타입(Template Literal Types)</strong>과
+              <strong>매핑된 타입(Mapped Types)</strong>은 반복적인 타입 정의를 자동화하고, 오타와
+              불일치를 컴파일 타임에 잡아주는 강력한 도구입니다.
+            </p>
+            <p>
+              예를 들어, CSS 색상 코드는 <code>#</code>으로 시작해야 한다거나 이벤트 핸들러 이름은
+              <code>on</code>으로 시작해야 한다는 식의 <strong>패턴 기반 규칙</strong>도 타입으로
+              표현할 수 있습니다. IDE 자동완성과 컴파일러 검증을 같은 규칙에서 얻는 방식입니다.
+            </p>
+            <h3 id="31">3.1 템플릿 리터럴 타입</h3>
+            <pre><code class="language-typescript">// 특정 접두사를 강제하는 타입
+type ColorHex = `#${string}`
+const validColor: ColorHex = '#ff0000' // ✅ 올바른 형식
+// const invalidColor: ColorHex = &quot;ff0000&quot;; // ❌ '#'이 없으므로 에러
+
+// API 엔드포인트 경로를 타입으로 제한
+type ApiPath = `/api/${string}`
+const usersEndpoint: ApiPath = '/api/users' // ✅
+// const badEndpoint: ApiPath = &quot;/users&quot;;          // ❌ '/api/'로 시작하지 않음
+
+// CSS 단위를 포함한 값 타입
+type CSSLength = `${number}${'px' | 'rem' | 'em' | '%'}`
+const fontSize: CSSLength = '16px' // ✅
+const margin: CSSLength = '1.5rem' // ✅
+// const bad: CSSLength = &quot;16&quot;;        // ❌ 단위 없음
+
+// 이벤트 이름 패턴
+type EventName = `on${Capitalize&lt;string&gt;}`
+const clickHandler: EventName = 'onClick' // ✅
+const changeHandler: EventName = 'onChange' // ✅
+</code></pre>
+            <h3 id="32-mapped-types">3.2 매핑된 타입 (Mapped Types)</h3>
+            <pre><code class="language-typescript">// 객체의 모든 키를 특정 형식으로 변환하는 유틸리티
+// Getter 패턴: 각 프로퍼티에 대해 get 접두사가 붙은 메서드를 자동 생성
+type Getter&lt;T&gt; = {
+  [K in keyof T as `get${Capitalize&lt;string &amp; K&gt;}`]: () =&gt; T[K]
+}
+
+// Setter 패턴도 동일하게 구현 가능
+type Setter&lt;T&gt; = {
+  [K in keyof T as `set${Capitalize&lt;string &amp; K&gt;}`]: (value: T[K]) =&gt; void
+}
+
+interface UserState {
+  name: string
+  age: number
+  email: string
+}
+
+// Getter&lt;UserState&gt;의 결과:
+// {
+//   getName: () =&gt; string;
+//   getAge: () =&gt; number;
+//   getEmail: () =&gt; string;
+// }
+type UserGetter = Getter&lt;UserState&gt;
+
+// Getter와 Setter를 합쳐서 사용
+type UserAccessor = Getter&lt;UserState&gt; &amp; Setter&lt;UserState&gt;
+</code></pre>
+            <h3 id="33">3.3 조건부 타입과 키 필터링</h3>
+            <pre><code class="language-typescript">// 특정 타입의 키만 추출하는 유틸리티
+// T의 프로퍼티 중 값 타입이 V인 것만 골라냅니다.
+type KeysOfType&lt;T, V&gt; = {
+  [K in keyof T]: T[K] extends V ? K : never
+}[keyof T]
+
+interface MixedData {
+  id: number
+  name: string
+  email: string
+  age: number
+  isActive: boolean
+}
+
+// string 타입인 키만 추출: &quot;name&quot; | &quot;email&quot;
+type StringKeys = KeysOfType&lt;MixedData, string&gt;
+
+// number 타입인 키만 추출: &quot;id&quot; | &quot;age&quot;
+type NumberKeys = KeysOfType&lt;MixedData, number&gt;
+
+// 이를 활용해 문자열 필드만 검색 가능하게 만드는 함수
+function searchByStringField&lt;K extends StringKeys&gt;(
+  data: MixedData,
+  field: K,
+  query: string,
+): boolean {
+  return data[field].includes(query)
+}
+</code></pre>
+            <h3 id="bad-practice-vs-good-practice">Bad Practice vs Good Practice</h3>
+            <pre><code class="language-typescript">// ❌ Bad: 수동으로 Getter 인터페이스를 정의
+// 원본 인터페이스가 변경되면 동기화를 잊기 쉬움
+interface UserGetterManual {
+  getName: () =&gt; string
+  getAge: () =&gt; number
+  // getEmail을 추가하는 것을 잊어버림!
+}
+
+// ✅ Good: Mapped Types로 자동 생성
+// 원본 인터페이스가 변경되면 자동으로 반영됨
+type UserGetterAuto = Getter&lt;UserState&gt;
+</code></pre>
+            <h3 id="_17">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수: 템플릿 리터럴 타입에서 너무 넓은 타입 사용
+type TooWide = `${string}-${string}` // 거의 모든 문자열이 통과됨
+// &quot;abc-def&quot; ✅, &quot;a-b&quot; ✅ → 의미 없는 검증
+
+// ✅ 개선: 가능하면 유니온 타입으로 범위를 좁힙니다.
+type Locale = `${'ko' | 'en' | 'ja'}-${'KR' | 'US' | 'JP'}`
+// &quot;ko-KR&quot; ✅, &quot;en-US&quot; ✅, &quot;fr-FR&quot; ❌
+</code></pre>
+            <hr />
+            <h2 id="4-satisfies-typescript-50">
+              4. <code>satisfies</code> 연산자의 실무 활용 (TypeScript 5.0+)
+            </h2>
+            <h3 id="_18">왜 중요한가</h3>
+            <p>
+              TypeScript에서 변수에 타입을 명시적으로 선언하면(<code>: Type</code>) 컴파일러는 해당
+              타입으로 값을 <strong>넓혀서(widen)</strong> 인식합니다. 이 과정에서 우리가 실제로
+              넣은 <strong>구체적인 값 정보가 사라질</strong> 수 있습니다.
+            </p>
+            <p>
+              <code>satisfies</code> 연산자는
+              <strong
+                >"이 값이 특정 타입을 만족하는지 검사하되, 원래의 구체적인 타입 추론은
+                유지해줘"</strong
+              >라는 의미입니다. 타입 안전성과 타입 추론의 정밀함을 동시에 얻을 수 있는 매우 유용한
+              기능입니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>현재 적용 기준</strong>: <code>satisfies</code>는 TypeScript 5.0 이후
+                안정적으로 사용할 수 있는 타입 검증 문법입니다. TypeScript 6.0/7.0 전환기에도 config
+                차이로 리터럴 타입이 넓어지는 문제를 줄이기 위해, 상수 설정·라우트 맵·디자인
+                토큰·API status map에는 <code>as</code>보다 <code>satisfies</code>를 우선합니다.
+              </p>
+            </blockquote>
+            <h3 id="41">4.1 기본 사용법</h3>
+            <pre><code class="language-typescript">type Palette = 'primary' | 'secondary' | 'accent'
+type ColorHex = `#${string}`
+
+// ❌ Bad: 타입을 직접 선언하면 값의 구체적 타입이 사라짐
+const paletteAnnotated: Record&lt;Palette, ColorHex&gt; = {
+  primary: '#007bff',
+  secondary: '#6c757d',
+  accent: '#ffc107',
+}
+// paletteAnnotated.primary의 타입: ColorHex (= `#${string}`)
+// → &quot;#007bff&quot;라는 구체적인 값을 알 수 없음
+
+// ✅ Good: satisfies를 사용하면 검증과 추론을 동시에
+const paletteSatisfies = {
+  primary: '#007bff',
+  secondary: '#6c757d',
+  accent: '#ffc107',
+} satisfies Record&lt;Palette, ColorHex&gt;
+// paletteSatisfies.primary의 타입: &quot;#007bff&quot; (리터럴 타입 유지!)
+// → substring, toUpperCase 등 string 메서드도 자동완성됨
+
+paletteSatisfies.primary.substring(1) // ✅ 타입 추론이 살아있어 string 메서드 사용 가능
+</code></pre>
+            <h3 id="42">4.2 실무에서의 활용 패턴</h3>
+            <pre><code class="language-typescript">// 라우트 설정에서 satisfies 활용
+interface RouteConfig {
+  path: string
+  component: React.ComponentType
+  auth: boolean
+}
+
+// satisfies를 사용하면 각 라우트의 path가 리터럴 타입으로 유지됩니다.
+const routes = {
+  home: { path: '/', component: HomePage, auth: false },
+  dashboard: { path: '/dashboard', component: DashboardPage, auth: true },
+  profile: { path: '/profile', component: ProfilePage, auth: true },
+} satisfies Record&lt;string, RouteConfig&gt;
+
+// routes.home.path의 타입: &quot;/&quot; (리터럴!)
+// 다른 곳에서 이 경로를 참조할 때 오타를 방지할 수 있습니다.
+
+// 에러 메시지 맵에서 satisfies 활용
+type ErrorCode = 'NOT_FOUND' | 'UNAUTHORIZED' | 'SERVER_ERROR'
+
+const errorMessages = {
+  NOT_FOUND: '요청한 리소스를 찾을 수 없습니다.',
+  UNAUTHORIZED: '인증이 필요합니다. 다시 로그인해 주세요.',
+  SERVER_ERROR: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+} satisfies Record&lt;ErrorCode, string&gt;
+// 만약 ErrorCode에 새 코드가 추가되면, 여기서 컴파일 에러 발생 → 빠뜨림 방지
+</code></pre>
+            <h3 id="_19">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수: satisfies와 as const를 혼동
+// as const는 모든 값을 readonly 리터럴로 만들고, 타입 호환성 검사를 하지 않음
+const colorsConst = {
+  primary: '#007bff',
+  typo: '#ffffff', // 키가 잘못되어도 에러 없음!
+} as const
+
+// ✅ satisfies는 타입 호환성을 검사하면서도 리터럴 추론을 유지
+const colorsSatisfies = {
+  primary: '#007bff',
+  // typo: &quot;#ffffff&quot;, // ❌ 에러! 'typo'는 Palette 타입의 키가 아님
+  secondary: '#6c757d',
+  accent: '#ffc107',
+} satisfies Record&lt;Palette, ColorHex&gt;
+
+// ✅ 둘을 합쳐서 사용할 수도 있음: 검증 + 완전한 불변 리터럴
+const colorsImmutable = {
+  primary: '#007bff',
+  secondary: '#6c757d',
+  accent: '#ffc107',
+} as const satisfies Record&lt;Palette, ColorHex&gt;
+</code></pre>
+            <hr />
+            <h2 id="5-discriminated-unions">5. Discriminated Unions: 조건부 타입 설계</h2>
+            <h3 id="_20">왜 중요한가</h3>
+            <p>
+              <strong>Discriminated Unions(판별 유니온)</strong>은 하나의 "판별자(discriminant)"
+              프로퍼티를 기준으로 여러 타입 중 하나를 선택하는 패턴입니다. React 컴포넌트 Props
+              설계에서 특히 강력한데, <code>variant</code>나 <code>type</code> 같은 프로퍼티 값에
+              따라 다른 프로퍼티가 필수/금지되는 조건을 <strong>타입 수준에서 강제</strong>할 수
+              있습니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 우체국 송장 양식에서 "국내 배송"이면 우편번호가, "국제
+                배송"이면 국가코드가 필수입니다. 판별자(<code>shipping_type</code>)가 뒤따라야 할
+                필드를 결정합니다. 판별 유니온도 같은 원리입니다.
+              </p>
+            </blockquote>
+            <p>
+              이 패턴을 사용하면 "이 prop 조합은 허용하면 안 되는데..." 같은 런타임 버그를 컴파일
+              타임에 예방할 수 있습니다.
+            </p>
+            <h4 id="narrowing">판별 유니온 좁히기(narrowing) 흐름</h4>
+            <pre class="mermaid">
+flowchart LR
+  A[ButtonProps 입력] --&gt; B{props.variant ?}
+  B -- &quot;primary&quot; --&gt; C[size: sm/md/lg 필수&lt;br/&gt;href: never]
+  B -- &quot;link&quot; --&gt; D[href: string 필수&lt;br/&gt;size: never]
+  B -- &quot;ghost&quot; --&gt; E[size: 선택적&lt;br/&gt;href: never]
+  C --&gt; F[&lt;button class=primary&gt;]
+  D --&gt; G[&lt;a href=...&gt;]
+  E --&gt; H[&lt;button class=ghost&gt;]
+  B -. 알 수 없는 값 .-&gt; X[assertNever&lt;br/&gt;컴파일 에러 발생]</pre
+            >
+            <h3 id="51-props">5.1 컴포넌트 Props에 적용</h3>
+            <pre><code class="language-typescript">// 버튼 컴포넌트: variant에 따라 허용되는 props가 달라짐
+// &quot;primary&quot;일 때는 size가 필수, &quot;link&quot;일 때는 size가 없어야 하고 href가 필수
+
+type PrimaryButtonProps = {
+  variant: &quot;primary&quot;;
+  size: &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;; // 필수
+  href?: never;              // 금지 (never로 사용 불가능하게)
+  children: React.ReactNode;
+  onClick?: () =&gt; void;
+};
+
+type LinkButtonProps = {
+  variant: &quot;link&quot;;
+  size?: never;              // 금지
+  href: string;              // 필수
+  children: React.ReactNode;
+  onClick?: () =&gt; void;
+};
+
+type GhostButtonProps = {
+  variant: &quot;ghost&quot;;
+  size?: &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;; // 선택
+  href?: never;
+  children: React.ReactNode;
+  onClick?: () =&gt; void;
+};
+
+// 유니온으로 합침
+type ButtonProps = PrimaryButtonProps | LinkButtonProps | GhostButtonProps;
+
+function Button(props: ButtonProps) {
+  // variant로 분기하면 TypeScript가 자동으로 타입을 좁혀줌
+  switch (props.variant) {
+    case &quot;primary&quot;:
+      // 여기서 props.size는 &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot; (필수)
+      return &lt;button className={`btn-primary btn-${props.size}`}&gt;{props.children}&lt;/button&gt;;
+    case &quot;link&quot;:
+      // 여기서 props.href는 string (필수)
+      return &lt;a href={props.href} className=&quot;btn-link&quot;&gt;{props.children}&lt;/a&gt;;
+    case &quot;ghost&quot;:
+      // 여기서 props.size는 선택적
+      return &lt;button className={`btn-ghost ${props.size ? `btn-${props.size}` : &quot;&quot;}`}&gt;{props.children}&lt;/button&gt;;
+  }
+}
+
+// ✅ 올바른 사용
+&lt;Button variant=&quot;primary&quot; size=&quot;lg&quot;&gt;확인&lt;/Button&gt;
+&lt;Button variant=&quot;link&quot; href=&quot;/about&quot;&gt;더 알아보기&lt;/Button&gt;
+
+// ❌ 컴파일 에러: &quot;primary&quot;인데 size가 없음
+// &lt;Button variant=&quot;primary&quot;&gt;확인&lt;/Button&gt;
+
+// ❌ 컴파일 에러: &quot;link&quot;인데 href가 없음
+// &lt;Button variant=&quot;link&quot;&gt;더 알아보기&lt;/Button&gt;
+
+// ❌ 컴파일 에러: &quot;link&quot;인데 size를 전달함
+// &lt;Button variant=&quot;link&quot; href=&quot;/about&quot; size=&quot;lg&quot;&gt;더 알아보기&lt;/Button&gt;
+</code></pre>
+            <h3 id="52-api">5.2 API 응답 타입에 적용</h3>
+            <pre><code class="language-typescript">// API 응답을 성공/실패로 명확하게 구분
+type ApiResponse&lt;T&gt; =
+  | { status: 'success'; data: T; error?: never }
+  | { status: 'error'; data?: never; error: { code: number; message: string } }
+  | { status: 'loading'; data?: never; error?: never }
+
+function handleResponse&lt;T&gt;(response: ApiResponse&lt;T&gt;) {
+  switch (response.status) {
+    case 'success':
+      // response.data가 T 타입으로 안전하게 접근 가능
+      console.log('데이터:', response.data)
+      break
+    case 'error':
+      // response.error가 { code, message }로 안전하게 접근 가능
+      console.error(`에러 ${response.error.code}: ${response.error.message}`)
+      break
+    case 'loading':
+      // data도 error도 없음
+      console.log('로딩 중...')
+      break
+  }
+}
+</code></pre>
+            <h3 id="53-exhaustiveness">5.3 exhaustiveness 검사 (모든 케이스 처리 보장)</h3>
+            <pre><code class="language-typescript">// never 타입을 활용하여 switch문에서 모든 케이스를 처리했는지 검사
+function assertNever(value: never): never {
+  throw new Error(`처리되지 않은 케이스: ${JSON.stringify(value)}`)
+}
+
+type Shape =
+  | { kind: 'circle'; radius: number }
+  | { kind: 'rectangle'; width: number; height: number }
+  | { kind: 'triangle'; base: number; height: number }
+
+function getArea(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle':
+      return Math.PI * shape.radius ** 2
+    case 'rectangle':
+      return shape.width * shape.height
+    case 'triangle':
+      return (shape.base * shape.height) / 2
+    default:
+      // 만약 Shape에 새로운 kind가 추가되면 여기서 컴파일 에러 발생!
+      return assertNever(shape)
+  }
+}
+</code></pre>
+            <h3 id="_21">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수: 판별자 없이 유니온 타입 사용
+// TypeScript가 어떤 타입인지 자동으로 좁혀줄 수 없음
+type BadUnion = { name: string; age: number } | { name: string; email: string }
+// name이 두 타입 모두에 있어서 구분이 불가능
+
+// ✅ 올바른 방법: 공통 판별자 프로퍼티를 추가
+type GoodUnion =
+  | { type: 'person'; name: string; age: number }
+  | { type: 'contact'; name: string; email: string }
+// type 프로퍼티로 명확하게 구분 가능
+</code></pre>
+            <hr />
+            <h2 id="6-type-guard-narrowing">6. 타입 가드(Type Guard)와 타입 내로잉(Narrowing)</h2>
+            <h3 id="_22">왜 중요한가</h3>
+            <p>
+              TypeScript의 타입 시스템은 <strong>제어 흐름 분석(Control Flow Analysis)</strong>을
+              통해 조건문 내부에서 타입을 자동으로 좁혀줍니다. 하지만 복잡한 비즈니스 로직에서는
+              기본 제공 연산자(<code>typeof</code>, <code>instanceof</code>,
+              <code>in</code>)만으로는 부족할 때가 있습니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 병원 접수에서 "이름·주민번호·증상"을 단계적으로 물어가며
+                어떤 진료과로 보낼지 좁혀가는 과정과 같습니다. 한 번에 모든 정보를 묻는 대신, 알게
+                된 정보로 다음 질문을 좁혀갑니다.
+              </p>
+            </blockquote>
+            <p>
+              <strong>사용자 정의 타입 가드(User-Defined Type Guard)</strong>를 사용하면 개발자가
+              직접 타입 좁힘 로직을 정의하고, 이를 재사용 가능한 함수로 만들 수 있습니다. 타입
+              가드를 잘 활용하면 <code>as</code> 키워드 사용을 거의 없앨 수 있습니다.
+            </p>
+            <h4 id="_23">타입 좁히기 분기 선택 가이드</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[unknown 또는 union 입력] --&gt; B{원시 타입 구분?&lt;br/&gt;string/number/boolean}
+  B -- 예 --&gt; C[typeof 사용]
+  B -- 아니오 --&gt; D{클래스 인스턴스 구분?}
+  D -- 예 --&gt; E[instanceof 사용]
+  D -- 아니오 --&gt; F{프로퍼티 존재로 구분?}
+  F -- 예 --&gt; G[in 연산자 사용]
+  F -- 아니오 --&gt; H{판별자 프로퍼티 있나?}
+  H -- 예 --&gt; I[discriminated union&lt;br/&gt;switch case]
+  H -- 아니오 --&gt; J[user-defined type guard&lt;br/&gt;x is T 시그니처]
+  C --&gt; K[좁혀진 타입으로 안전 접근]
+  E --&gt; K
+  G --&gt; K
+  I --&gt; K
+  J --&gt; K</pre
+            >
+            <h3 id="61-typeof-instanceof-in">6.1 기본 내로잉: typeof / instanceof / in</h3>
+            <pre><code class="language-typescript">// typeof: 원시 타입 구분
+function processValue(value: string | number) {
+  if (typeof value === 'string') {
+    // 이 블록 안에서 value는 string 타입
+    console.log(value.toUpperCase())
+  } else {
+    // 이 블록 안에서 value는 number 타입
+    console.log(value.toFixed(2))
+  }
+}
+
+// instanceof: 클래스 인스턴스 구분
+class ApiError extends Error {
+  constructor(
+    public code: number,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+class NetworkError extends Error {
+  constructor(
+    public retryable: boolean,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+function handleError(error: ApiError | NetworkError) {
+  if (error instanceof ApiError) {
+    // error.code에 안전하게 접근 가능
+    console.error(`API 에러 ${error.code}: ${error.message}`)
+  } else {
+    // error.retryable에 안전하게 접근 가능
+    if (error.retryable) {
+      console.log('재시도 가능한 네트워크 오류')
+    }
+  }
+}
+
+// in: 특정 프로퍼티 존재 여부로 구분
+interface Dog {
+  bark: () =&gt; void
+  breed: string
+}
+
+interface Cat {
+  meow: () =&gt; void
+  color: string
+}
+
+function interact(animal: Dog | Cat) {
+  if ('bark' in animal) {
+    // animal은 Dog 타입
+    animal.bark()
+    console.log(`품종: ${animal.breed}`)
+  } else {
+    // animal은 Cat 타입
+    animal.meow()
+    console.log(`색상: ${animal.color}`)
+  }
+}
+</code></pre>
+            <h3 id="62-is">6.2 사용자 정의 타입 가드 (<code>is</code> 키워드)</h3>
+            <pre><code class="language-typescript">// 반환 타입에 &quot;is&quot; 키워드를 사용하면 TypeScript에게 타입 좁힘 정보를 알려줌
+interface Admin {
+  role: 'admin'
+  permissions: string[]
+  department: string
+}
+
+interface RegularUser {
+  role: 'user'
+  subscriptionTier: 'free' | 'pro'
+}
+
+type AppUser = Admin | RegularUser
+
+// 사용자 정의 타입 가드 함수
+// 반환 타입 &quot;user is Admin&quot;이 핵심
+function isAdmin(user: AppUser): user is Admin {
+  return user.role === 'admin'
+}
+
+function renderDashboard(user: AppUser) {
+  if (isAdmin(user)) {
+    // 이 블록에서 user는 Admin 타입
+    console.log(`관리자 부서: ${user.department}`)
+    console.log(`권한: ${user.permissions.join(', ')}`)
+  } else {
+    // 이 블록에서 user는 RegularUser 타입
+    console.log(`구독 등급: ${user.subscriptionTier}`)
+  }
+}
+
+// 배열 필터링에서 타입 가드 활용
+const users: AppUser[] = [
+  { role: 'admin', permissions: ['read', 'write'], department: 'Engineering' },
+  { role: 'user', subscriptionTier: 'pro' },
+  { role: 'admin', permissions: ['read'], department: 'Marketing' },
+]
+
+// isAdmin을 타입 가드로 사용하면 filter 결과가 Admin[] 타입으로 추론됨!
+const admins: Admin[] = users.filter(isAdmin)
+</code></pre>
+            <h3 id="63-nullundefined">6.3 null/undefined 필터링 타입 가드</h3>
+            <pre><code class="language-typescript">// 실무에서 매우 자주 사용하는 패턴: null/undefined 제거
+function isNotNullish&lt;T&gt;(value: T | null | undefined): value is T {
+  return value != null // null과 undefined를 동시에 체크
+}
+
+const mixedArray: (string | null | undefined)[] = ['hello', null, 'world', undefined, '!']
+
+// filter(Boolean)은 타입을 좁혀주지 않지만, 커스텀 가드는 가능!
+const cleanArray: string[] = mixedArray.filter(isNotNullish)
+// cleanArray: [&quot;hello&quot;, &quot;world&quot;, &quot;!&quot;]
+// 타입도 string[]으로 정확하게 추론됨
+</code></pre>
+            <h3 id="bad-practice-vs-good-practice_1">Bad Practice vs Good Practice</h3>
+            <pre><code class="language-typescript">// ❌ Bad: 타입 단언(as)으로 강제 캐스팅
+function getAdminPermissions(user: AppUser): string[] {
+  return (user as Admin).permissions // Admin이 아니면 런타임 에러!
+}
+
+// ✅ Good: 타입 가드로 안전하게 좁힘
+function getAdminPermissionsSafe(user: AppUser): string[] | null {
+  if (isAdmin(user)) {
+    return user.permissions // 안전하게 접근
+  }
+  return null
+}
+</code></pre>
+            <h3 id="_24">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수: 타입 가드 함수에서 반환 타입 &quot;is&quot;를 빼먹음
+// boolean만 반환하면 TypeScript가 타입을 좁혀주지 않음
+function isAdminBad(user: AppUser): boolean {
+  return user.role === 'admin'
+}
+
+if (isAdminBad(user)) {
+  // user는 여전히 AppUser 타입 → Admin의 프로퍼티에 접근 불가!
+  // user.permissions; // ❌ 에러
+}
+
+// ✅ 올바른 방법: 반환 타입에 &quot;is&quot; 명시
+function isAdminGood(user: AppUser): user is Admin {
+  return user.role === 'admin'
+}
+
+if (isAdminGood(user)) {
+  user.permissions // ✅ 안전하게 접근 가능
+}
+</code></pre>
+            <hr />
+            <h2 id="7">7. 제네릭 실전 패턴</h2>
+            <h3 id="_25">왜 중요한가</h3>
+            <p>
+              <strong>제네릭(Generics)</strong>은 "타입을 매개변수처럼" 사용하는 기능입니다. 함수나
+              클래스를 작성할 때 특정 타입에 종속되지 않으면서도 타입 안전성을 유지할 수 있게
+              해줍니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 도시락 통은 "어떤 음식이든 담을 수 있는 빈 공간"을
+                제공하지만, 통이 받아들이는 형태(밀폐, 사각형)는 정해져 있습니다. 제네릭은 비어 있되
+                형태가 정해진 도시락 통이며, <code>extends</code>는 "이 통은 액체만 받습니다" 같은
+                제약입니다.
+              </p>
+            </blockquote>
+            <p>
+              제네릭이 없다면 범용 유틸리티 함수를 만들 때 <code>any</code>를 사용하게 되고, 이는
+              타입 안전성을 완전히 포기하는 것입니다. 제네릭을 올바르게 활용하면
+              <strong>재사용성과 타입 안전성을 동시에</strong> 확보할 수 있습니다.
+            </p>
+            <h4 id="_26">제네릭 추론 단계</h4>
+            <pre class="mermaid">
+flowchart LR
+  A[&quot;호출: findById(users, 'u1')&quot;] --&gt; B[&quot;1. 인자 타입 추출&lt;br/&gt;users: User[]&quot;]
+  B --&gt; C[&quot;2. 제약 검사&lt;br/&gt;User extends HasId ?&quot;]
+  C -- 통과 --&gt; D[&quot;3. T = User로 바인딩&quot;]
+  D --&gt; E[&quot;4. T['id'] = User['id'] = string&quot;]
+  E --&gt; F[&quot;5. 두 번째 인자가 string인지 검사&quot;]
+  F -- 통과 --&gt; G[&quot;6. 반환 타입 User | undefined&quot;]
+  C -- 실패 --&gt; X[&quot;컴파일 에러: 제약 위반&quot;]
+  F -- 실패 --&gt; Y[&quot;컴파일 에러: id 타입 불일치&quot;]</pre
+            >
+            <h3 id="71-constraints">7.1 제네릭 제약 조건 (Constraints)</h3>
+            <pre><code class="language-typescript">// extends를 사용하여 제네릭 타입에 제약 조건을 부여
+// &quot;T는 반드시 id 프로퍼티를 가진 객체여야 한다&quot;
+interface HasId {
+  id: string | number
+}
+
+// T extends HasId: T는 HasId를 만족하는 타입만 허용
+function findById&lt;T extends HasId&gt;(items: T[], id: T['id']): T | undefined {
+  return items.find((item) =&gt; item.id === id)
+}
+
+interface User {
+  id: string
+  name: string
+}
+
+interface Product {
+  id: number
+  title: string
+  price: number
+}
+
+const users: User[] = [{ id: 'u1', name: '김철수' }]
+const products: Product[] = [{ id: 1, title: '키보드', price: 50000 }]
+
+const user = findById(users, 'u1') // 반환 타입: User | undefined
+const product = findById(products, 1) // 반환 타입: Product | undefined
+// findById(products, &quot;u1&quot;);               // ❌ 에러: number 타입에 string 할당 불가
+</code></pre>
+            <h3 id="72">7.2 제네릭 커스텀 훅</h3>
+            <pre><code class="language-typescript">import { useState, useCallback } from &quot;react&quot;;
+
+// 비동기 작업을 위한 제네릭 훅
+// T: 성공 시 데이터 타입, E: 에러 타입
+function useAsync&lt;T, E = Error&gt;() {
+  const [data, setData] = useState&lt;T | null&gt;(null);
+  const [error, setError] = useState&lt;E | null&gt;(null);
+  const [loading, setLoading] = useState(false);
+
+  // execute는 Promise&lt;T&gt;를 반환하는 함수를 받아 실행
+  const execute = useCallback(async (asyncFn: () =&gt; Promise&lt;T&gt;) =&gt; {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await asyncFn();
+      setData(result);
+      return result;
+    } catch (err) {
+      setError(err as E);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { data, error, loading, execute } as const;
+}
+
+// 사용 예시: 타입이 자동으로 추론됨
+function UserProfile({ userId }: { userId: string }) {
+  const { data, error, loading, execute } = useAsync&lt;User&gt;();
+
+  useEffect(() =&gt; {
+    execute(() =&gt; fetchUser(userId));
+  }, [userId, execute]);
+
+  if (loading) return &lt;div&gt;로딩 중...&lt;/div&gt;;
+  if (error) return &lt;div&gt;에러 발생&lt;/div&gt;;
+  if (!data) return null;
+
+  // data는 User 타입으로 안전하게 사용 가능
+  return &lt;div&gt;{data.name}&lt;/div&gt;;
+}
+</code></pre>
+            <h3 id="73-keyof">7.3 keyof와 제네릭 조합</h3>
+            <pre><code class="language-typescript">// 객체에서 특정 키의 값을 안전하게 가져오는 유틸리티
+function getProperty&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key]
+}
+
+const user = { name: '김철수', age: 30, email: 'kim@test.com' }
+
+const name = getProperty(user, 'name') // 타입: string
+const age = getProperty(user, 'age') // 타입: number
+// getProperty(user, &quot;phone&quot;);            // ❌ 에러: &quot;phone&quot;은 keyof User가 아님
+
+// 여러 키를 동시에 가져오는 pick 유틸리티
+function pick&lt;T, K extends keyof T&gt;(obj: T, keys: K[]): Pick&lt;T, K&gt; {
+  const result = {} as Pick&lt;T, K&gt;
+  keys.forEach((key) =&gt; {
+    result[key] = obj[key]
+  })
+  return result
+}
+
+const nameAndAge = pick(user, ['name', 'age'])
+// 타입: Pick&lt;typeof user, &quot;name&quot; | &quot;age&quot;&gt; = { name: string; age: number }
+</code></pre>
+            <h3 id="74">7.4 제네릭 팩토리 패턴</h3>
+            <pre><code class="language-typescript">// API 엔드포인트별 CRUD 함수를 자동 생성하는 팩토리
+function createApi&lt;T extends HasId&gt;(endpoint: string) {
+  return {
+    // 전체 목록 조회
+    async getAll(): Promise&lt;T[]&gt; {
+      const res = await fetch(`/api/${endpoint}`)
+      return res.json()
+    },
+
+    // 단건 조회
+    async getById(id: T['id']): Promise&lt;T&gt; {
+      const res = await fetch(`/api/${endpoint}/${id}`)
+      return res.json()
+    },
+
+    // 생성 (id 제외)
+    async create(data: Omit&lt;T, 'id'&gt;): Promise&lt;T&gt; {
+      const res = await fetch(`/api/${endpoint}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      return res.json()
+    },
+
+    // 부분 수정
+    async update(id: T['id'], data: Partial&lt;Omit&lt;T, 'id'&gt;&gt;): Promise&lt;T&gt; {
+      const res = await fetch(`/api/${endpoint}/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      })
+      return res.json()
+    },
+  }
+}
+
+// 사용: 타입 안전한 API 클라이언트가 자동 생성됨
+const userApi = createApi&lt;User&gt;('users')
+const productApi = createApi&lt;Product&gt;('products')
+
+// userApi.getById의 인자는 string (User의 id 타입)
+// productApi.getById의 인자는 number (Product의 id 타입)
+</code></pre>
+            <h3 id="bad-practice-vs-good-practice_2">Bad Practice vs Good Practice</h3>
+            <pre><code class="language-typescript">// ❌ Bad: any를 사용한 범용 함수
+function getPropertyBad(obj: any, key: string): any {
+  return obj[key] // 타입 안전성 전혀 없음
+}
+const value = getPropertyBad(user, 'nonexistent') // 에러 없이 undefined 반환
+
+// ✅ Good: 제네릭을 사용한 타입 안전 함수
+function getPropertyGood&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key] // 존재하는 키만 허용, 반환 타입도 정확
+}
+// getPropertyGood(user, &quot;nonexistent&quot;); // ❌ 컴파일 에러
+</code></pre>
+            <h3 id="_27">흔한 실수</h3>
+            <pre><code class="language-typescript">// ❌ 실수 1: 불필요한 제네릭 (제네릭이 한 번만 사용됨)
+// T가 반환 타입에만 사용되면 그냥 구체 타입을 쓰는 게 나음
+function badGeneric&lt;T&gt;(value: T): void {
+  console.log(value) // T를 반환하지 않으므로 제네릭이 의미 없음
+}
+
+// ✅ 개선: 제네릭 없이도 충분
+function goodSimple(value: unknown): void {
+  console.log(value)
+}
+
+// ❌ 실수 2: 제네릭 기본값을 설정하지 않아 사용처마다 타입을 명시해야 함
+function useFetchBad&lt;T&gt;() {
+  /* ... */
+}
+// 매번 useFetchBad&lt;User&gt;()로 타입을 명시해야 함
+
+// ✅ 개선: 기본값 설정
+function useFetchGood&lt;T = unknown&gt;() {
+  /* ... */
+}
+// 타입 없이 useFetchGood()만으로도 사용 가능 (unknown으로 추론)
+
+// ❌ 실수 3: extends 제약 조건을 너무 넓게 잡음
+function processBad&lt;T extends object&gt;(data: T) {
+  /* ... */
+}
+// object는 너무 넓음 → 배열, 함수, Date 등 모든 객체가 들어올 수 있음
+
+// ✅ 개선: 필요한 구조를 명확하게 제약
+function processGood&lt;T extends { id: string; name: string }&gt;(data: T) {
+  /* ... */
+}
+</code></pre>
+            <hr />
+            <h2 id="8-typescript-58-70">8. TypeScript 5.8-7.0 기능 채택 가이드</h2>
+            <h3 id="_28">왜 중요한가</h3>
+            <p>
+              TypeScript는 6개월마다 새 기능을 추가하지만, "쓸 수 있다"와 "써도 안전하다"는
+              다릅니다. 런타임 변환·번들러 지원·에디터 호환성을 확인하지 않으면 갑자기 빌드가 깨질
+              수 있어, 단계적 채택 기준이 필요합니다.
+            </p>
+            <h4 id="_29">버전별 채택 결정 흐름</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[새 TS 기능 검토] --&gt; B{기능 분류}
+  B -- 안정판 신문법&lt;br/&gt;satisfies/const generics --&gt; C[즉시 채택&lt;br/&gt;lint 룰만 정비]
+  B -- 컴파일러 옵션&lt;br/&gt;erasableSyntaxOnly 등 --&gt; D{런타임 매칭?}
+  D -- Node type stripping --&gt; E[채택, 신규 코드 enum 금지]
+  D -- 번들러 사용 --&gt; F[검토 후 채택]
+  B -- 신규 import 문법&lt;br/&gt;import defer --&gt; G{모듈 출력 지원?}
+  G -- module: preserve/esnext --&gt; H[shadow CI에서 검증]
+  G -- 미지원 --&gt; I[보류]
+  B -- 7.0 Beta tsgo --&gt; J[기존 tsc와 side-by-side]
+  J --&gt; K[diagnostics diff/성능/도구 호환]
+  K -- 일치 --&gt; L[shadow CI에 연결]
+  K -- 불일치 --&gt; M[6.x 안정판 유지]
+  E --&gt; N[CI 게이트 갱신]
+  F --&gt; N
+  H --&gt; N
+  L --&gt; N</pre
+            >
+            <h3 id="81-erasablesyntaxonly-58">8.1 <code>--erasableSyntaxOnly</code> (5.8)</h3>
+            <p>
+              Node.js의 type stripping 계열 실행, Deno, Bun처럼 "타입 주석만 제거하고 그대로
+              실행"하는 환경이 늘었습니다. <code>--erasableSyntaxOnly</code>를 켜면
+              <code>enum</code>, 네임스페이스, 파라미터 프로퍼티(<code
+                >constructor(public name: string)</code
+              >)처럼 <strong>런타임 코드를 발생시키는 TS 전용 문법</strong>을 즉시 컴파일 에러로
+              잡아줍니다.
+            </p>
+            <pre><code class="language-jsonc">// tsconfig.json
+{
+  &quot;compilerOptions&quot;: {
+    &quot;erasableSyntaxOnly&quot;: true,
+    &quot;verbatimModuleSyntax&quot;: true,
+  },
+}
+</code></pre>
+            <pre><code class="language-typescript">// ❌ enum, namespace, parameter properties는 모두 컴파일 에러
+enum Status {
+  Active,
+  Inactive,
+}
+class User {
+  constructor(public name: string) {} // ❌ parameter property
+}
+
+// ✅ as const 객체 + class 안에서 명시적 할당
+const Status = { Active: 'active', Inactive: 'inactive' } as const
+class UserOk {
+  name: string
+  constructor(name: string) {
+    this.name = name
+  }
+}
+</code></pre>
+            <h3 id="82-import-defer-59">8.2 <code>import defer</code> (5.9)</h3>
+            <p>
+              ECMAScript의 <strong>Deferred Module Evaluation</strong> 제안에 대응하는 신규
+              구문입니다. 모듈을 임포트하되 실제 평가(코드 실행)는 첫 사용 시점까지 미룰 수 있어,
+              콜드 스타트 시간을 줄이는 데 효과적입니다.
+            </p>
+            <pre><code class="language-typescript">// 모듈은 로드하지만, 실제 실행은 첫 접근까지 지연
+import * as Charts from './charts'
+
+function renderDashboard(showCharts: boolean) {
+  if (showCharts) {
+    // 이 시점에 charts 모듈이 처음 평가됨
+    return Charts.render()
+  }
+  return null
+}
+</code></pre>
+            <p>
+              TypeScript는 <code>import defer</code>를 변환하거나 downlevel하지 않습니다.
+              <code>--module preserve</code> 또는 <code>--module esnext</code> 출력과 실제
+              런타임/번들러 지원이 모두 확인된 경우에만 사용합니다. 단순 성능 최적화 목적이라면
+              dynamic import, route-level code splitting, prefetch와 먼저 비교합니다.
+            </p>
+            <h3 id="83-typescript-60">8.3 TypeScript 6.0 전환 점검</h3>
+            <p>
+              TypeScript 6.0은 7.0 native toolchain으로 넘어가기 위한 전환 릴리스입니다. 새
+              프로젝트는 6.0의 기본값을 기준으로 두고, 기존 프로젝트는 deprecated option을
+              명시적으로 제거합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">6.0 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>types</code></td>
+                    <td style="text-align: left">
+                      전역 타입 자동 포함에 의존하지 말고 <code>["node"]</code>,
+                      <code>["vitest"]</code>처럼 필요한 타입만 명시합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>rootDir</code></td>
+                    <td style="text-align: left">
+                      추론에 의존하지 말고 <code>./src</code> 등 실제 소스 루트를 명시합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">module resolution</td>
+                    <td style="text-align: left">
+                      브라우저 번들 앱은 <code>bundler</code>, Node 런타임 패키지는
+                      <code>node20</code>/<code>nodenext</code>를 사용합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">legacy output</td>
+                    <td style="text-align: left">
+                      ES5, AMD/UMD/SystemJS, classic/node10 resolution은 신규 표준에서 제외합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">declaration emit</td>
+                    <td style="text-align: left">
+                      public package는 declaration diff와 API extractor/타입 테스트를 함께
+                      확인합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="84-typescript-70-beta-shadow-ci">8.4 TypeScript 7.0 Beta shadow CI</h3>
+            <p>
+              TypeScript 7.0 Beta는 Go 기반 native compiler/toolchain으로, 대형 코드베이스에서
+              빌드와 에디터 응답성을 크게 줄이는 것이 목표입니다. 다만 안정 programmatic API는 후속
+              릴리스에서 제공될 수 있으므로, 제품 게이트는 다음처럼 분리합니다.
+            </p>
+            <pre><code class="language-bash"># 기존 안정판 게이트
+pnpm exec tsc --noEmit
+
+# optional/shadow 게이트
+pnpm exec tsgo --noEmit
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">검증</th>
+                    <th style="text-align: left">통과 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">diagnostics diff</td>
+                    <td style="text-align: left">
+                      <code>tsc</code>와 <code>tsgo</code>의 에러 차이를 0건 또는 승인된 known
+                      issue로 관리
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">성능</td>
+                    <td style="text-align: left">
+                      cold/warm build p50/p95와 editor diagnostics latency를 기록
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">리소스</td>
+                    <td style="text-align: left">
+                      CI runner CPU/메모리에서 <code>--checkers</code>, <code>--builders</code>,
+                      <code>--singleThreaded</code> 옵션을 비교
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">tooling</td>
+                    <td style="text-align: left">
+                      typescript-eslint, API extractor, bundler plugin처럼 TypeScript API에 의존하는
+                      도구는 6.x 호환 경로 유지
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="85-60">8.5 모범 설정 (6.0+)</h3>
+            <p>
+              신규 브라우저 번들 앱은 TypeScript 6.0 기준으로 아래 설정을 기본값에 가깝게 둡니다.
+              Node 라이브러리, SSR 서버, CLI 패키지는 <code>module</code>,
+              <code>moduleResolution</code>, <code>types</code>, <code>target</code>을 실제 배포
+              런타임에 맞게 별도 override합니다.
+            </p>
+            <pre><code class="language-jsonc">// tsconfig.json (현재 권장 기본값)
+{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;es2025&quot;,
+    &quot;lib&quot;: [&quot;dom&quot;, &quot;dom.iterable&quot;, &quot;es2025&quot;],
+    &quot;module&quot;: &quot;preserve&quot;,
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    &quot;strict&quot;: true,
+    &quot;noUncheckedIndexedAccess&quot;: true,
+    &quot;exactOptionalPropertyTypes&quot;: true,
+    &quot;noUncheckedSideEffectImports&quot;: true,
+    &quot;types&quot;: [],
+    &quot;verbatimModuleSyntax&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+  },
+}
+</code></pre>
+            <hr />
+            <h2 id="9">9. 주의사항 및 흔한 실수</h2>
+            <p>
+              이 섹션은 TypeScript를 사용하면서 실무에서 자주 마주치는 실수와 안티패턴을 모아놓은
+              것입니다. 각 항목을 숙지하면 디버깅 시간을 크게 줄일 수 있습니다.
+            </p>
+            <h3 id="91-any">9.1 <code>any</code> 남용</h3>
+            <pre><code class="language-typescript">// ❌ any는 타입 시스템을 완전히 비활성화합니다.
+function parseData(data: any) {
+  return data.users.map((u: any) =&gt; u.name) // 런타임 에러 위험
+}
+
+// ✅ unknown을 사용하고 타입 가드로 좁히세요.
+function parseDataSafe(data: unknown) {
+  if (
+    typeof data === 'object' &amp;&amp;
+    data !== null &amp;&amp;
+    'users' in data &amp;&amp;
+    Array.isArray((data as { users: unknown }).users)
+  ) {
+    // 안전하게 처리
+  }
+}
+
+// ✅ 더 나은 방법: Zod 스키마로 검증
+const DataSchema = z.object({
+  users: z.array(z.object({ name: z.string() })),
+})
+
+function parseDataBest(data: unknown) {
+  const result = DataSchema.parse(data)
+  return result.users.map((u) =&gt; u.name) // 완전히 타입 안전
+}
+</code></pre>
+            <h3 id="92-non-null-assertion">9.2 <code>!</code> (Non-null assertion) 남용</h3>
+            <pre><code class="language-typescript">// ❌ 느낌표(!)는 &quot;이 값은 절대 null이 아니야&quot;라고 컴파일러에게 거짓말하는 것
+function getUserName(user: User | null) {
+  return user!.name // user가 null이면 런타임 에러
+}
+
+// ✅ 올바르게 null 체크
+function getUserNameSafe(user: User | null): string {
+  if (!user) {
+    throw new Error('유저 정보가 없습니다.')
+  }
+  return user.name // TypeScript가 자동으로 null 제거
+}
+
+// ✅ 옵셔널 체이닝과 기본값 활용
+function getUserNameDefault(user: User | null): string {
+  return user?.name ?? '알 수 없음'
+}
+</code></pre>
+            <h3 id="93-enum-as-const">
+              9.3 <code>enum</code> 대신 <code>as const</code> 유니온 사용
+            </h3>
+            <blockquote>
+              <p>
+                <strong>경고 </strong>: <code>enum</code>은 (1) 트리쉐이킹이 어렵고, (2) TS 5.8의
+                <code>--erasableSyntaxOnly</code> 환경에서 사용 불가하며, (3) Node.js 22+/Deno/Bun의
+                네이티브 TS 실행과 호환되지 않습니다.
+                <strong
+                  >신규 코드는 모두 <code>as const</code> 객체 또는 리터럴 유니온으로
+                  작성하세요.</strong
+                >
+              </p>
+            </blockquote>
+            <pre><code class="language-typescript">// ❌ enum은 트리쉐이킹이 안 되고, --erasableSyntaxOnly에서 빌드 실패
+enum StatusBad {
+  Active = 'active',
+  Inactive = 'inactive',
+  Pending = 'pending',
+}
+
+// ✅ as const + 유니온 타입이 더 가벼움
+const STATUS = {
+  Active: 'active',
+  Inactive: 'inactive',
+  Pending: 'pending',
+} as const
+
+type Status = (typeof STATUS)[keyof typeof STATUS]
+// 타입: &quot;active&quot; | &quot;inactive&quot; | &quot;pending&quot;
+
+// 혹은 더 간단하게 (값 목록이 작을 때)
+type StatusSimple = 'active' | 'inactive' | 'pending'
+</code></pre>
+            <h3 id="94">9.4 인덱스 시그니처 남용</h3>
+            <pre><code class="language-typescript">// ❌ Record&lt;string, any&gt;는 어떤 키든 어떤 값이든 허용
+const configBad: Record&lt;string, any&gt; = {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+  // 오타가 있어도 에러 없음
+  tiemout: 3000,
+}
+
+// ✅ 구체적인 타입을 정의하세요
+interface AppConfig {
+  apiUrl: string
+  timeout: number
+  retryCount: number
+  debug: boolean
+}
+
+const configGood: AppConfig = {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+  retryCount: 3,
+  debug: false,
+  // tiemout: 3000, // ❌ 컴파일 에러! 오타 즉시 발견
+}
+</code></pre>
+            <h3 id="95-as">9.5 타입 단언(as) 체인</h3>
+            <pre><code class="language-typescript">// ❌ as를 체인으로 사용하면 거의 모든 타입 검사를 우회할 수 있음
+const value = 'hello' as unknown as number // 문자열을 숫자로?!
+
+// ❌ API 응답에 as를 직접 사용
+const user = response.data as User // 실제 데이터가 User가 아닐 수 있음
+
+// ✅ Zod로 검증하거나 타입 가드를 사용
+const validatedUser = UserSchema.parse(response.data)
+</code></pre>
+            <h3 id="96-vs-undefined">9.6 옵셔널 프로퍼티 vs undefined 유니온</h3>
+            <pre><code class="language-typescript">// 이 두 가지는 다릅니다!
+interface WithOptional {
+  name?: string // 키 자체가 없어도 됨
+}
+
+interface WithUndefined {
+  name: string | undefined // 키는 반드시 있어야 하고, 값이 undefined일 수 있음
+}
+
+const a: WithOptional = {} // ✅ name 키 자체가 없어도 OK
+const b: WithUndefined = {} // ❌ 에러: name이 필수
+const c: WithUndefined = { name: undefined } // ✅ 키는 있되 값이 undefined
+
+// 실무 팁: exactOptionalPropertyTypes 컴파일러 옵션을 켜면
+// 옵셔널 프로퍼티에 명시적으로 undefined를 할당하는 것도 에러가 됩니다.
+</code></pre>
+            <hr />
+            <h2 id="ai">AI 보조 타입 설계 검증</h2>
+            <p>
+              AI 사용 정책과 검증 책임은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 따릅니다.
+              TypeScript 산출물은 타입이 통과하는지만 보지 않고, 런타임 경계와 유지보수성을 함께
+              확인합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Props 유니온 설계</td>
+                    <td style="text-align: left">variant별 요구사항, 금지 조합</td>
+                    <td style="text-align: left">discriminated union 초안</td>
+                    <td style="text-align: left">
+                      <code>tsd</code>/<code>expectTypeOf</code>, 잘못된 조합 fixture
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">제네릭 API 설계</td>
+                    <td style="text-align: left">엔티티 타입, CRUD 계약</td>
+                    <td style="text-align: left">generic factory 후보</td>
+                    <td style="text-align: left">public API type test, inference snapshot</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">스키마 전환</td>
+                    <td style="text-align: left">기존 interface, 실제 payload fixture</td>
+                    <td style="text-align: left">Zod/Standard Schema 초안</td>
+                    <td style="text-align: left">invalid payload test, bundle diff</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">unsafe cast 제거</td>
+                    <td style="text-align: left"><code>any/as/!</code> 사용 위치</td>
+                    <td style="text-align: left">type guard/refinement 후보</td>
+                    <td style="text-align: left">lint report, runtime branch test</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="_30">체크리스트</h2>
+            <h3 id="_31">런타임 안전성</h3>
+            <ul>
+              <li>
+                [ ] API 응답에 <code>as</code> 대신 <code>Zod 4</code>(혹은 Valibot/ArkType) 스키마
+                검증을 적용했나요?
+              </li>
+              <li>[ ] 외부 입력(URL 파라미터, localStorage, 사용자 입력)에 대한 검증이 있나요?</li>
+              <li>
+                [ ] <code>z.infer</code>로 타입을 추출하여 스키마와 타입의 동기화를 보장하나요?
+              </li>
+              <li>
+                [ ] 라이브러리 간 호환을 위해 <strong>Standard Schema</strong> 인터페이스를 노출하고
+                있나요?
+              </li>
+              <li>
+                [ ] 클라이언트 번들 크기가 중요한 경우 <code>zod/v4-mini</code> 또는 Valibot 도입을
+                검토했나요?
+              </li>
+            </ul>
+            <h3 id="_32">타입 설계</h3>
+            <ul>
+              <li>[ ] ID 값들에 대해 <strong>Branded Types</strong> 적용을 검토했나요?</li>
+              <li>
+                [ ] <code>Record&lt;string, any&gt;</code> 대신 구체적인 인덱스 시그니처나 유니온
+                타입을 사용했나요?
+              </li>
+              <li>
+                [ ] 라이브러리 설계 시 <code>satisfies</code>를 활용해 타입 추론을 극대화했나요?
+              </li>
+              <li>
+                [ ] Props에 조건부 요구사항이 있으면 <strong>Discriminated Unions</strong>을
+                사용했나요?
+              </li>
+            </ul>
+            <h3 id="_33">타입 안전성</h3>
+            <ul>
+              <li>
+                [ ] <code>any</code> 대신 <code>unknown</code>을 사용하고 타입 가드로 좁히고 있나요?
+              </li>
+              <li>
+                [ ] <code>!</code> (non-null assertion)을 남용하지 않고 적절한 null 체크를 하고
+                있나요?
+              </li>
+              <li>[ ] <code>as</code> 타입 단언을 최소화하고 타입 가드를 활용하고 있나요?</li>
+              <li>
+                [ ] <code>enum</code> 대신 <code>as const</code> 유니온 타입을 사용하고 있나요?
+              </li>
+            </ul>
+            <h3 id="_34">제네릭과 유틸리티</h3>
+            <ul>
+              <li>[ ] 제네릭에 적절한 <code>extends</code> 제약 조건을 걸었나요?</li>
+              <li>
+                [ ] <code>keyof</code>, <code>Pick</code>, <code>Omit</code> 등 내장 유틸리티 타입을
+                활용하고 있나요?
+              </li>
+              <li>[ ] 커스텀 타입 가드 함수에 <code>is</code> 반환 타입을 명시했나요?</li>
+              <li>
+                [ ] switch문에서 <code>assertNever</code>로 exhaustiveness 검사를 하고 있나요?
+              </li>
+            </ul>
+            <h3 id="_35">코드 품질</h3>
+            <ul>
+              <li>
+                [ ] 옵셔널 프로퍼티(<code>?</code>)와 <code>undefined</code> 유니온의 차이를
+                이해하고 적절히 사용했나요?
+              </li>
+              <li>[ ] 템플릿 리터럴 타입으로 문자열 패턴을 강제하고 있나요?</li>
+              <li>[ ] 매핑된 타입으로 반복적인 타입 정의를 자동화했나요?</li>
+            </ul>
+            <h3 id="ts-60">모던 컴파일러 설정 (TS 6.0+)</h3>
+            <ul>
+              <li>
+                [ ] <code>strict</code>, <code>noUncheckedIndexedAccess</code>,
+                <code>exactOptionalPropertyTypes</code>를 켰나요?
+              </li>
+              <li>
+                [ ] <code>types</code>, <code>rootDir</code>, <code>moduleResolution</code>을
+                TypeScript 6.0 기준에 맞게 명시했나요?
+              </li>
+              <li>
+                [ ] type stripping 실행 호환이 필요한 패키지에서만
+                <code>--erasableSyntaxOnly</code>를 검토했나요?
+              </li>
+              <li>
+                [ ] <code>enum</code> 사용처를 <code>as const</code> 객체로 마이그레이션했나요?
+              </li>
+              <li>
+                [ ] <code>import defer</code>를 사용한다면 런타임/번들러 지원과 대체안(dynamic
+                import, route split)을 비교했나요?
+              </li>
+              <li>
+                [ ] TypeScript 7.0 Beta를 도입한다면 기존 <code>tsc</code>와
+                <code>tsgo</code> diagnostics diff를 shadow CI에서 비교하나요?
+              </li>
+            </ul>
+            <hr />
+            <h2 id="13-frontend-fundamentals">13. Frontend Fundamentals 기반 타입 코드 품질</h2>
+            <p>
+              TypeScript 코드는 타입이 있다는 이유만으로 예측 가능해지지 않습니다. 조건, 상수, 반환
+              타입, 주석이 실제 동작과 같은 언어를 써야 합니다.
+            </p>
+            <h3 id="131">13.1 복잡한 조건에는 이름을 붙인다</h3>
+            <ul>
+              <li>
+                <code>filter</code>, <code>some</code>, <code>every</code>, <code>&amp;&amp;</code>,
+                <code>||</code>가 두 단계 이상 중첩되면 <code>isSameCategory</code>,
+                <code>isPriceInRange</code>처럼 조건의 목적을 드러냅니다.
+              </li>
+              <li>
+                같은 predicate가 두 번 이상 쓰이거나 정책 변경 가능성이 있으면 함수로 분리하고 단위
+                테스트를 붙입니다.
+              </li>
+              <li>
+                한 번만 쓰이고 한 줄로 읽히는 단순 변환은 이름을 늘리지 않아도 됩니다. 이름은 맥락을
+                줄일 때만 추가합니다.
+              </li>
+            </ul>
+            <pre><code class="language-typescript">const matchedProducts = products.filter((product) =&gt; {
+  const isSameCategory = product.categoryId === targetCategoryId
+  const isPriceInRange = minPrice &lt;= product.price &amp;&amp; product.price &lt;= maxPrice
+
+  return isSameCategory &amp;&amp; isPriceInRange
+})
+</code></pre>
+            <h3 id="132">13.2 매직 넘버는 단위와 변경 이유를 이름에 담는다</h3>
+            <ul>
+              <li>
+                시간값은 <code>_MS</code>, <code>_SEC</code>, <code>_MIN</code>처럼 단위를 붙입니다.
+              </li>
+              <li>
+                정책값은 <code>MAX_NAME_LENGTH</code>, <code>MIN_AGE</code>,
+                <code>RETRY_DELAY_MS</code>처럼 도메인 의미를 드러냅니다.
+              </li>
+              <li>
+                animation duration, retry delay, API timeout처럼 관련 구현이 함께 바뀌는 값은 해당
+                feature 폴더에 둡니다.
+              </li>
+            </ul>
+            <h3 id="133">13.3 같은 종류의 함수는 반환 타입을 통일한다</h3>
+            <ul>
+              <li>
+                <code>useUser</code>, <code>useServerTime</code> 같은 query hook은
+                <code>UseQueryResult</code>를 반환할지, <code>data</code>만 반환할지 팀 단위로
+                통일합니다.
+              </li>
+              <li>
+                validation 함수는 boolean과 <code>{ ok, reason }</code> 객체를 섞지 않습니다. 실패
+                이유가 필요하면 discriminated union으로 통일합니다.
+              </li>
+              <li>
+                반환 타입을 명시해 호출자가 <code>if (result)</code> 같은 암묵적 truthy 판단에
+                기대지 않게 합니다.
+              </li>
+            </ul>
+            <pre><code class="language-typescript">type ValidationResult = { ok: true } | { ok: false; reason: string }
+
+function checkIsNameValid(name: string): ValidationResult {
+  if (name.length === 0) {
+    return { ok: false, reason: 'name is required' }
+  }
+
+  if (name.length &gt;= MAX_NAME_LENGTH) {
+    return { ok: false, reason: 'name is too long' }
+  }
+
+  return { ok: true }
+}
+</code></pre>
+            <h3 id="134">13.4 주석은 타입과 이름으로 표현할 수 없는 맥락만 남긴다</h3>
+            <ul>
+              <li>"무엇을 하는지" 설명하는 주석은 함수명, 변수명, 타입명으로 옮깁니다.</li>
+              <li>
+                "왜 이렇게 해야 하는지", "언제 제거해야 하는지", "어떤 외부 제약 때문인지"는
+                주석으로 남길 수 있습니다.
+              </li>
+              <li>
+                <code>eslint-disable</code>, <code>TODO</code>, <code>FIXME</code>는 owner, issue,
+                만료 조건 없이 남기지 않습니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="_36">실무 적용 가이드</h2>
+            <h3 id="_37">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>API 응답, URL 파라미터, localStorage처럼 외부 입력을 타입만 믿고 쓰고 있을 때</li>
+              <li>
+                <code>any</code>, <code>as</code>, <code>!</code>가 늘어나 타입 오류가 런타임 오류로
+                넘어갈 때
+              </li>
+              <li>백엔드 계약과 프론트 타입이 따로 놀아 배포 후 mismatch가 발생할 때</li>
+            </ul>
+            <h3 id="_38">적용 순서</h3>
+            <ol>
+              <li>외부 입력 지점을 <code>unknown</code>으로 받는 boundary adapter로 모은다.</li>
+              <li>Zod 또는 Standard Schema 호환 스키마로 런타임 검증을 추가한다.</li>
+              <li>검증된 값에서만 도메인 타입과 branded type을 만든다.</li>
+              <li>공용 타입 유틸은 타입 테스트를 붙이고, 예외 타입 단언은 파일 단위로 격리한다.</li>
+              <li>generated type diff와 <code>tsc --noEmit</code> 결과를 PR에 남긴다.</li>
+            </ol>
+            <h3 id="_39">함께 두는 파일</h3>
+            <ul>
+              <li>
+                기능별 <code>model/schema.ts</code>, <code>model/types.ts</code>,
+                <code>api/*.ts</code>, <code>*.test.ts</code>를 같은 feature 폴더에 둔다.
+              </li>
+              <li>
+                여러 기능에서 재사용되는 타입은 값 객체, validator, 테스트가 함께 있을 때만
+                <code>shared</code>로 올린다.
+              </li>
+              <li>
+                generated type은 수동 도메인 타입과 섞지 않고 <code>api/generated</code>처럼 출처가
+                드러나는 위치에 둔다.
+              </li>
+            </ul>
+            <h3 id="_40">흔한 실수</h3>
+            <ul>
+              <li>API 응답에 <code>as User</code>를 바로 붙인다.</li>
+              <li>도메인 ID를 모두 <code>string</code>으로 둬 서로 섞이게 만든다.</li>
+              <li>
+                타입 유틸을 <code>shared/types</code>에 모아 변경 범위를 추적할 수 없게 만든다.
+              </li>
+              <li>런타임 검증 없이 TypeScript 버전 업그레이드만으로 안전해졌다고 판단한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] <code>tsc --noEmit</code>이 통과한다.</li>
+              <li>[ ] 외부 입력 boundary에 성공/실패 fixture 테스트가 있다.</li>
+              <li>[ ] <code>any/as/!</code> 신규 사용은 이유와 제거 계획이 있다.</li>
+              <li>[ ] 함께 바뀌는 schema/type/client/test가 가까이 있다.</li>
+            </ul>
+            <h2 id="_41">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — runtime boundary와 strict 옵션 중 하나를 작은 변경 1건에
+                적용하고 증거(<code>tsc --noEmit</code>)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — TypeScript 경계 기준을 팀 템플릿, 체크리스트, CI 중 한
+                곳에 고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — <code>any/as/!</code> 신규 사용 수와 boundary 실패
+                fixture 수 추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 타입 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_42">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : runtime boundary와 strict 옵션 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(<code>tsc --noEmit</code>, schema fixture,
+                generated type diff)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : <code>any/as/!</code> 신규 사용 수와 boundary 실패
+                fixture 수가 기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_43">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 외부 입력을 타입 단언으로 바로 통과시키지 않았는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 타입 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 성공/실패 fixture와 <code>tsc --noEmit</code>이 함께
+                통과하면 적용 범위를 넓힌다.
+              </li>
+              <li><code>정지 조건</code> : 런타임 검증 없이 타입만 바뀌면 merge를 보류한다.</li>
+              <li>
+                <code>리스크 점수</code> : boundary 수, 단언 수, generated diff 크기로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : TypeScript 표준 오너가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : TypeScript 경계 작성자, 검토자, 운영 확인자를 분리해
+                기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 릴리스 단위로 strict 옵션과 예외 파일을 다시 본다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

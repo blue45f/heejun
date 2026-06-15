@@ -1,0 +1,3635 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 20 디자인 시스템 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="20">20. 디자인 시스템 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>디자인 시스템은 컴포넌트 구현보다도 <code>사용 규칙</code>이 먼저입니다.</li>
+              <li>토큰/변형/가이드가 팀 전체에서 공유되면 UI 일관성 비용이 줄어듭니다.</li>
+              <li>새 기능은 기존 규칙으로 시작하고, 예외는 문서화된 이유와 함께 정리하세요.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>디자인 시스템은 “누가 만들든 같은 느낌”을 내는 팀 계약입니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 디자인 시스템은 프랜차이즈 매장 운영 매뉴얼과 같습니다.
+                어느 매장에 가도 같은 맛, 같은 메뉴 배치, 같은 응대를 받습니다. 매뉴얼이 없으면
+                매장마다 결과가 달라지고, 매뉴얼이 너무 두꺼우면 새 직원이 적응할 수 없습니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>디자인 토큰</code></td>
+                    <td>색/간격/폰트 같은 공통 수치의 중앙 정의</td>
+                  </tr>
+                  <tr>
+                    <td><code>컴포넌트 API</code></td>
+                    <td>컴포넌트에서 외부에 공개하는 사용 규칙</td>
+                  </tr>
+                  <tr>
+                    <td><code>variant</code></td>
+                    <td>같은 컴포넌트의 변형(버튼 크기/색상/상태)</td>
+                  </tr>
+                  <tr>
+                    <td><code>primitive</code></td>
+                    <td>기본 조각 컴포넌트(토대가 되는 최소 단위)</td>
+                  </tr>
+                  <tr>
+                    <td><code>마이그레이션</code></td>
+                    <td>기존 UI를 새 규격으로 점진 이전</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_3">디자인 시스템 전체 구조 한눈에 보기</h3>
+            <pre class="mermaid">
+flowchart TD
+  subgraph Foundation[&quot;기반층&quot;]
+    T1[&quot;Primitive Token&lt;br/&gt;(원시 값)&quot;]
+    T2[&quot;Semantic Token&lt;br/&gt;(의미 부여)&quot;]
+    T3[&quot;Component Token&lt;br/&gt;(컴포넌트 바인딩)&quot;]
+    T1 --&gt; T2 --&gt; T3
+  end
+  subgraph Components[&quot;컴포넌트층&quot;]
+    P1[&quot;Primitive&lt;br/&gt;(Radix/React Aria)&quot;]
+    P2[&quot;UI Component&lt;br/&gt;(Button, Dialog, Card)&quot;]
+    P3[&quot;Pattern&lt;br/&gt;(Form, Table, Wizard)&quot;]
+    P1 --&gt; P2 --&gt; P3
+  end
+  subgraph Apps[&quot;소비층&quot;]
+    A1[&quot;Feature 컴포넌트&quot;]
+    A2[&quot;페이지&quot;]
+  end
+  T3 --&gt; P2
+  P3 --&gt; A1 --&gt; A2</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">심화 주제</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./19_웹_접근성_가이드.md">19. 웹 접근성</a>,
+                      <a href="./25_웹_애니메이션_모션_가이드.md">25. 애니메이션</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      Tailwind CSS v4 라인, DTCG Tokens, headless primitives, source-owned registry,
+                      Dark Mode
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"디자인 시스템은 컴포넌트 모음이 아니라, 팀의 일관된 언어이자 효율적인 협업
+                  도구다."</strong
+                >
+                본 가이드는 특정 디자인 도구나 컴포넌트 라이브러리가 아니라
+                <strong>토큰 표준, 접근성 계약, 컴포넌트 API, 배포/버전 정책</strong>을 기준으로
+                디자인 시스템을 운영하는 방법을 다룹니다. Tailwind CSS v4, headless primitive,
+                zero-runtime CSS, registry 기반 컴포넌트는 선택 가능한 구현 예시로만 취급합니다.
+              </p>
+              <p><strong>현재 디자인 시스템 생태계 변화 요약</strong></p>
+              <ul>
+                <li>
+                  <strong>Design Tokens Format Module 2025.10</strong>: W3C Community Group Final
+                  Specification으로 공개되어 <code>$value</code>, <code>$type</code>,
+                  group/alias/composite token 교환 형식이 안정화되었습니다.
+                </li>
+                <li>
+                  <strong>CSS-first theming</strong>: Cascade Layers, <code>@property</code>,
+                  <code>color-mix()</code>, container queries, logical properties 기반 토큰 적용이
+                  production baseline에 가까워졌습니다.
+                </li>
+                <li>
+                  <strong>Headless primitive + registry</strong>: 접근성 동작과 시각 스타일을
+                  분리하고, 컴포넌트 소스 코드를 제품 저장소에서 소유하는 방식이 확산되었습니다.
+                </li>
+                <li>
+                  <strong>Zero-runtime styling</strong>: RSC/SSR, 번들 크기, hydration cost를 줄이기
+                  위해 빌드타임 CSS 추출과 CSS 변수 토큰부터 평가합니다.
+                </li>
+                <li>
+                  <strong>Design QA 자동화</strong>: 토큰 diff, visual regression, a11y regression,
+                  RTL/pseudo-localization smoke test를 release gate로 둡니다.
+                </li>
+              </ul>
+            </blockquote>
+            <hr />
+            <h2 id="_4">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 컴포넌트 토큰과 variant API를 먼저 정해 팀간 해석 오차를
+                줄입니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 배포/버전 규칙을 정해서 breaking change 영향을 미리
+                통지하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 디자인 토큰 변경은 accessibility 검증과 릴리즈 노트와
+                함께 승인받습니다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — token, component API, migration plan 중 하나를 실제 PR이나
+                운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — token diff, Storybook/visual test, migration codemod 결과를
+                같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — 중복 컴포넌트 수, token drift, visual regression 수가
+                나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_6">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : token, component API, migration plan 적용 범위를 어느 화면,
+                패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : token diff, Storybook/visual test, migration codemod 결과 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : 중복 컴포넌트 수, token drift, visual regression 수를 다시
+                볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_7">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      token contract, component API, theme, design QA gate
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./19_웹_접근성_가이드.md">19. 웹 접근성</a>,
+                      <a href="./25_웹_애니메이션_모션_가이드.md">25. 애니메이션</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">컴포넌트 배포, 버전, breaking change 관리</td>
+                    <td style="text-align: left">
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">React/RSC 경계와 client component 정책</td>
+                    <td style="text-align: left">
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 제안한 컴포넌트/토큰 변경의 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Token contract</strong></td>
+                    <td style="text-align: left">
+                      primitive, semantic, component token을 분리하고 DTCG 호환 JSON 또는 동등한
+                      구조로 export합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Accessibility contract</strong></td>
+                    <td style="text-align: left">
+                      컴포넌트별 keyboard, focus, ARIA, reduced motion, contrast 기준을 문서와
+                      테스트로 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>API stability</strong></td>
+                    <td style="text-align: left">
+                      variant, size, slot, state, data attribute를 public API로 관리하고 breaking
+                      change를 release note에 남깁니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Cross-platform</strong></td>
+                    <td style="text-align: left">
+                      web/mobile/native를 모두 지원하지 않더라도 naming, color, spacing, typography
+                      단위가 플랫폼 변환 가능해야 합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Governance</strong></td>
+                    <td style="text-align: left">
+                      새 컴포넌트 추가, 토큰 변경, deprecated variant 제거는 RFC/ADR 또는 동등한
+                      변경 기록을 남깁니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 디자인 시스템 계약 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[도메인/제품 요구] --&gt; B[Token Contract 설계]
+  B --&gt; C[컴포넌트 API/Slot/Variant 정의]
+  C --&gt; D[접근성·테마·RTL 정책 바인딩]
+  D --&gt; E[문서화 + 스냅샷 기준]
+  E --&gt; F[테스트 자동화 적용]
+  F --&gt; G{Visual/A11y/성능 gate}
+  G --&gt;|Fail| H[컴포넌트/API 수정]
+  G --&gt;|Pass| I[릴리즈 버전/변경 기록]
+  H --&gt; C
+  I --&gt; J[소비 앱 마이그레이션 가이드 배포]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      디자인 토큰은 DTCG 2025.10 호환 구조를 우선한다
+                    </td>
+                    <td style="text-align: left">W3C Design Tokens CG Final Specification</td>
+                    <td style="text-align: left">token schema validation, build transform</td>
+                    <td style="text-align: left">토큰 drift, 플랫폼 변환 실패율</td>
+                    <td style="text-align: left">
+                      기존 toolchain이 DTCG를 안정 지원하지 않아 adapter 비용이 더 큰 경우
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      headless primitive는 접근성 계약을 통과한 경우만 채택한다
+                    </td>
+                    <td style="text-align: left">WAI-ARIA APG, WCAG 2.2</td>
+                    <td style="text-align: left">keyboard/focus/a11y tests</td>
+                    <td style="text-align: left">접근성 회귀, support issue</td>
+                    <td style="text-align: left">
+                      제품 상호작용이 표준 pattern과 맞지 않아 custom primitive가 더 안전할 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CSS 변수 기반 theming을 기본값으로 둔다</td>
+                    <td style="text-align: left">CSS Custom Properties/Cascade Layers 표준</td>
+                    <td style="text-align: left">theme switch E2E, visual diff</td>
+                    <td style="text-align: left">theme defect, dark mode contrast issue</td>
+                    <td style="text-align: left">레거시 브라우저 지원 비용이 더 클 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">visual regression은 release gate에 포함한다</td>
+                    <td style="text-align: left">테스트 도구 공식 문서, 디자인 QA 정책</td>
+                    <td style="text-align: left">snapshot diff threshold</td>
+                    <td style="text-align: left">디자인 회귀 발견 시간</td>
+                    <td style="text-align: left">
+                      동적/개인화 화면이 많아 deterministic snapshot이 불가능할 때
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Token 변경</td>
+                    <td style="text-align: left">
+                      token diff, schema validation, platform transform 결과
+                    </td>
+                    <td style="text-align: left">Design system owner</td>
+                    <td style="text-align: left">이전 token set 복구 또는 alias 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Component API</td>
+                    <td style="text-align: left">
+                      breaking change 여부, migration note, usage scan
+                    </td>
+                    <td style="text-align: left">Component owner</td>
+                    <td style="text-align: left">deprecated API 유지 기간 연장</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">접근성/시각 회귀</td>
+                    <td style="text-align: left">keyboard/focus/a11y report, visual diff</td>
+                    <td style="text-align: left">QA owner</td>
+                    <td style="text-align: left">release 차단 또는 affected component rollback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">배포/버전</td>
+                    <td style="text-align: left">release note, changelog, 소비 앱 영향 범위</td>
+                    <td style="text-align: left">Release owner</td>
+                    <td style="text-align: left">patch release 또는 registry 이전 버전 고정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-tailwind-css-v4">1. 스타일링 기초: Tailwind CSS v4</h2>
+            <p>
+              Tailwind CSS v4 라인은 2025.01 GA 이후 CSS-first 설정, 자동 content detection, design
+              token의 CSS 변수 노출, container query 내장을 핵심 변화로 제공합니다. 현재 공식 문서
+              기준 공식 문서는 v4.3 라인을 표시하므로, 표준 문서에서는 특정 patch 버전에 고정하지
+              않고 lockfile과 upgrade guide로 검증합니다. 성능 개선 수치는 제품별 CSS 규모, 빌드
+              도구, cache 상태에 따라 달라지므로 공식 벤치마크를 그대로 SLA로 쓰지 않습니다.
+            </p>
+            <h3 id="10-tailwind-v4">1.0 Tailwind v4의 핵심 변경점</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">v3</th>
+                    <th style="text-align: left">v4</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>빌드 엔진</strong></td>
+                    <td style="text-align: left">Node.js 기반</td>
+                    <td style="text-align: left">
+                      새 high-performance engine, 제품별 build benchmark로 검증
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>설정 방식</strong></td>
+                    <td style="text-align: left"><code>tailwind.config.js</code> (JS)</td>
+                    <td style="text-align: left"><code>@theme { ... }</code> (CSS-first)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>콘텐츠 탐색</strong></td>
+                    <td style="text-align: left"><code>content: [...]</code> 명시</td>
+                    <td style="text-align: left">자동 감지 (heuristic 기반)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>CSS 변수 노출</strong></td>
+                    <td style="text-align: left">opt-in</td>
+                    <td style="text-align: left">모든 토큰을 CSS 변수로 자동 노출</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>3D Transforms</strong></td>
+                    <td style="text-align: left">미지원</td>
+                    <td style="text-align: left">
+                      <code>rotate-x-*</code>, <code>rotate-y-*</code>, <code>translate-z-*</code>,
+                      <code>perspective-*</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Dynamic Utilities</strong></td>
+                    <td style="text-align: left">미리 정의된 값만</td>
+                    <td style="text-align: left">
+                      <code>color-mix()</code>, <code>@property</code> 기반 즉석 생성
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Color Scheme</strong></td>
+                    <td style="text-align: left">별도 플러그인</td>
+                    <td style="text-align: left">
+                      <code>scheme-light</code>, <code>scheme-dark</code> 유틸리티 내장
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>컨테이너 쿼리</strong></td>
+                    <td style="text-align: left">플러그인 필요</td>
+                    <td style="text-align: left"><code>@container</code> 빌트인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>현대 CSS 기능</strong></td>
+                    <td style="text-align: left">부분 지원</td>
+                    <td style="text-align: left">
+                      Cascade Layers, <code>@property</code>, <code>color-mix()</code> 기본 활용
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="11-theming">1.1 테마 정의 (Theming)</h3>
+            <pre><code class="language-css">/* app.css - Tailwind v4 CSS-first 설정 */
+@import 'tailwindcss';
+
+@theme {
+  /* ── 색상 시스템 ── */
+  --color-primary: #007bff;
+  --color-primary-hover: #0056b3;
+  --color-primary-active: #004494;
+  --color-secondary: #6c757d;
+  --color-accent: #17a2b8;
+
+  /* 시맨틱 색상 (의미 기반) */
+  --color-success: #28a745;
+  --color-warning: #ffc107;
+  --color-error: #dc3545;
+  --color-info: #17a2b8;
+
+  /* 표면(Surface) 색상 - 라이트 모드 기본값 */
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8f9fa;
+  --color-surface-sunken: #e9ecef;
+  --color-on-surface: #212529;
+  --color-on-surface-muted: #6c757d;
+
+  /* ── 타이포그래피 ── */
+  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* 폰트 크기 - fluid typography 스케일 */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-4xl: 2.25rem; /* 36px */
+
+  /* ── 간격 시스템 (4px 그리드) ── */
+  --spacing-unit: 0.25rem;
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 1rem; /* 16px */
+  --spacing-lg: 1.5rem; /* 24px */
+  --spacing-xl: 2rem; /* 32px */
+  --spacing-2xl: 3rem; /* 48px */
+  --spacing-3xl: 4rem; /* 64px */
+
+  /* ── 반응형 브레이크포인트 ── */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ── 그림자 시스템 ── */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+
+  /* ── 둥글기(Radius) ── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* ── 트랜지션 ── */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── z-index 스케일 ── */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+</code></pre>
+            <h3 id="12">1.2 다크 모드 테마 확장</h3>
+            <pre><code class="language-css">/* app.css - 다크 모드 토큰 오버라이드 */
+@theme dark {
+  --color-surface: #1a1a2e;
+  --color-surface-elevated: #16213e;
+  --color-surface-sunken: #0f0f23;
+  --color-on-surface: #e2e8f0;
+  --color-on-surface-muted: #94a3b8;
+
+  --color-primary: #60a5fa;
+  --color-primary-hover: #93c5fd;
+  --color-primary-active: #3b82f6;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+}
+</code></pre>
+            <h3 id="13-tailwind-v4">1.3 Tailwind v4 커스텀 플러그인</h3>
+            <pre><code class="language-css">/* 커스텀 유틸리티 추가 */
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &amp;::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 커스텀 variant 추가 */
+@variant hocus (&amp;:hover, &amp;:focus-visible);
+@variant group-hocus (:merge(.group):hover &amp;, :merge(.group):focus-visible &amp;);
+</code></pre>
+            <h3 id="14-v3-v4">1.4 v3 → v4 마이그레이션 핵심 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">v3 (tailwind.config.js)</th>
+                    <th style="text-align: left">v4 (CSS @theme)</th>
+                    <th style="text-align: left">비고</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>theme.extend.colors</code></td>
+                    <td style="text-align: left"><code>@theme { --color-* }</code></td>
+                    <td style="text-align: left">CSS 변수로 전환</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>theme.extend.spacing</code></td>
+                    <td style="text-align: left"><code>@theme { --spacing-* }</code></td>
+                    <td style="text-align: left">동일 패턴</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>plugins: [...]</code></td>
+                    <td style="text-align: left">
+                      <code>@plugin "..."</code> 또는 <code>@utility</code>
+                    </td>
+                    <td style="text-align: left">CSS 내 선언</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>darkMode: 'class'</code></td>
+                    <td style="text-align: left">
+                      <code>@variant dark (&amp;:where(.dark, .dark *))</code>
+                    </td>
+                    <td style="text-align: left">기본은 <code>prefers-color-scheme</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>content: [...]</code></td>
+                    <td style="text-align: left">자동 감지 (설정 불필요)</td>
+                    <td style="text-align: left">콘텐츠 경로 자동 탐색</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>tailwind.config.js</code></td>
+                    <td style="text-align: left">삭제 가능</td>
+                    <td style="text-align: left">호환 모드에서는 유지 가능</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h4 id="_8">마이그레이션 단계 다이어그램</h4>
+            <pre class="mermaid">
+flowchart LR
+  S0[&quot;v3 프로젝트&quot;] --&gt; S1[&quot;1. upgrade CLI 실행&quot;]
+  S1 --&gt; S2[&quot;2. config theme&lt;br/&gt;→ @theme 이동&quot;]
+  S2 --&gt; S3[&quot;3. plugin&lt;br/&gt;→ @utility/@variant&quot;]
+  S3 --&gt; S4[&quot;4. content 배열 제거&quot;]
+  S4 --&gt; S5[&quot;5. darkMode 전환&quot;]
+  S5 --&gt; S6[&quot;6. 빌드 회귀 검증&quot;]
+  S6 --&gt;|통과| Done[&quot;v4 적용&quot;]
+  S6 --&gt;|회귀| Roll[&quot;호환 모드 유지&lt;br/&gt;+ 점진 마이그레이션&quot;]
+  Roll --&gt; S2</pre
+            >
+            <p><strong>마이그레이션 단계:</strong></p>
+            <ol>
+              <li><code>@tailwindcss/upgrade</code> CLI 도구로 자동 변환 실행</li>
+              <li>
+                <code>tailwind.config.js</code>의 커스텀 테마를 <code>@theme</code> 블록으로 이동
+              </li>
+              <li>커스텀 플러그인을 <code>@utility</code> / <code>@variant</code>로 전환</li>
+              <li><code>content</code> 배열 제거 (v4는 자동 감지)</li>
+              <li><code>darkMode</code> 설정을 CSS <code>@variant</code> 방식으로 전환</li>
+            </ol>
+            <pre><code class="language-bash"># 자동 마이그레이션 도구 실행
+npx @tailwindcss/upgrade
+</code></pre>
+            <p>
+              <strong>일상 비유</strong>: v3 → v4 마이그레이션은 종이 가계부에서 가계부 앱으로
+              옮기는 것과 같습니다. 모든 항목(테마, 플러그인, 다크 모드)을 한 번에 옮기려 하지 말고,
+              자동 변환기로 1차 옮긴 다음 손으로 다듬는 것이 안전합니다.
+            </p>
+            <p>이 그림은 Tailwind v3 → v4 전환을 시간 순으로 어떤 단계로 나누는지 보여줍니다.</p>
+            <pre class="mermaid">
+gantt
+  title Tailwind v3 → v4 마이그레이션 단계
+  dateFormat YYYY-MM-DD
+  axisFormat %m/%d
+
+  section 준비
+  의존성/노드 버전 점검            :done, prep1, 2025-01-01, 1d
+  현재 config 스냅샷 백업           :done, prep2, after prep1, 1d
+
+  section 자동 변환
+  npx @tailwindcss/upgrade 실행     :active, auto1, after prep2, 1d
+  변환 diff 리뷰                    :auto2, after auto1, 1d
+
+  section 수동 정리
+  @theme 블록 정리                  :man1, after auto2, 2d
+  커스텀 플러그인 → @utility 변환   :man2, after man1, 2d
+  darkMode → @variant 전환          :man3, after man2, 1d
+  content 배열 제거                 :man4, after man3, 1d
+
+  section 검증
+  Storybook 시각 회귀               :ver1, after man4, 2d
+  E2E 핵심 페이지 비교              :ver2, after ver1, 1d
+  점진 배포 (feature flag)          :ver3, after ver2, 2d</pre
+            >
+            <blockquote>
+              <p>
+                <strong>단계별 핵심 산출물</strong>: 각 단계가 끝날 때마다 ① 변환 diff PR, ② 시각
+                회귀 리포트, ③ 점진 배포 metric을 남겨두면 rollback 결정이 빨라집니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="2">2. 디자인 토큰 체계</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 토큰 없이 색상/간격을 직접 쓰면 다크 모드, 브랜드
+                리프레시, 접근성 대응이 전부 검색-치환 작업으로 바뀝니다. 토큰은 "한 곳을 바꾸면
+                모든 곳이 따라온다"를 보장하는 단일 출처입니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 토큰 계층은 화폐 단위와 같습니다. 1원이라는 원시
+                단위(primitive)가 있고, "점심 한 끼"라는 의미 단위(semantic)가 있고, "이 식당의 메뉴
+                가격"이라는 구체 단위(component)가 있습니다. 셋을 섞어 쓰면 가격표 변경이 악몽이
+                됩니다.
+              </p>
+            </blockquote>
+            <p>
+              토큰은 코드뿐만 아니라 디자인 도구와 동기화되어야 합니다. 3계층 토큰 구조를 통해
+              일관성과 유연성을 동시에 확보합니다.
+            </p>
+            <h3 id="21-primitive-semantic-component">
+              2.1 토큰 계층 구조 (Primitive → Semantic → Component)
+            </h3>
+            <pre class="mermaid">
+flowchart TD
+  subgraph L3[&quot;Component Tokens (컴포넌트 토큰)&quot;]
+    C1[&quot;--button-bg&quot;]
+    C2[&quot;--card-border-radius&quot;]
+    C3[&quot;--input-padding&quot;]
+  end
+  subgraph L2[&quot;Semantic Tokens (시맨틱 토큰)&quot;]
+    S1[&quot;--color-primary&quot;]
+    S2[&quot;--color-error&quot;]
+    S3[&quot;--spacing-md&quot;]
+    S4[&quot;--radius-lg&quot;]
+  end
+  subgraph L1[&quot;Primitive Tokens (기본 토큰)&quot;]
+    P1[&quot;--blue-500&quot;]
+    P2[&quot;--blue-600&quot;]
+    P3[&quot;--red-500&quot;]
+    P4[&quot;--gray-100&quot;]
+    P5[&quot;--space-4&quot;]
+  end
+  P2 --&gt; S1
+  P3 --&gt; S2
+  P5 --&gt; S3
+  S1 --&gt; C1
+  S4 --&gt; C2
+  S3 --&gt; C3
+  note[&quot;다크 모드는 L2 토큰만 재정의&lt;br/&gt;L3과 컴포넌트는 그대로 유지&quot;]</pre
+            >
+            <pre><code>┌─────────────────────────────────────────────────────────┐
+│  Component Tokens (컴포넌트 토큰)                         │
+│  예: --button-bg, --card-border-radius                  │
+│  → 특정 컴포넌트에 바인딩된 토큰                            │
+├─────────────────────────────────────────────────────────┤
+│  Semantic Tokens (시맨틱 토큰)                             │
+│  예: --color-primary, --color-error, --spacing-md       │
+│  → 의미(역할)를 나타내는 토큰. 테마 전환 시 이 레벨에서 교체   │
+├─────────────────────────────────────────────────────────┤
+│  Primitive Tokens (기본 토큰)                              │
+│  예: --blue-500, --gray-100, --space-4                  │
+│  → 절대적인 원시 값. 직접 사용하지 않음                      │
+└─────────────────────────────────────────────────────────┘
+</code></pre>
+            <h3 id="_9">토큰 사용 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Q[&quot;새 컴포넌트에서 색상 필요&quot;] --&gt; Q1{&quot;공통 의미가 있나?&lt;br/&gt;(brand/error/success 등)&quot;}
+  Q1 --&gt;|예| SEM[&quot;Semantic Token 사용&lt;br/&gt;--color-primary 등&quot;]
+  Q1 --&gt;|아니오| Q2{&quot;이 컴포넌트만 쓰나?&quot;}
+  Q2 --&gt;|예| COMP[&quot;Component Token 신설&lt;br/&gt;--toast-warning-bg&quot;]
+  Q2 --&gt;|아니오| SEM
+  Q1 --&gt;|새 의미가 필요| ADD[&quot;Semantic Token 추가 제안&lt;br/&gt;(디자인 시스템 팀 협의)&quot;]
+  ADD --&gt; SEM</pre
+            >
+            <pre><code class="language-css">/* 1단계: Primitive 토큰 - 원시 값 정의 */
+:root {
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+}
+
+/* 2단계: Semantic 토큰 - 의미 부여 (Tailwind @theme과 연결) */
+@theme {
+  --color-primary: var(--blue-600);
+  --color-primary-hover: var(--blue-700);
+  --color-error: var(--red-500);
+  --color-bg-default: var(--gray-50);
+  --color-bg-elevated: white;
+  --color-text-default: var(--gray-900);
+  --color-text-muted: var(--gray-500);
+  --color-border-default: var(--gray-200);
+}
+
+/* 3단계: Component 토큰 - 컴포넌트별 바인딩 */
+:root {
+  --button-bg: var(--color-primary);
+  --button-bg-hover: var(--color-primary-hover);
+  --button-text: white;
+  --button-radius: var(--radius-md);
+  --button-padding-x: var(--space-4);
+  --button-padding-y: var(--space-2);
+
+  --card-bg: var(--color-bg-elevated);
+  --card-border: var(--color-border-default);
+  --card-radius: var(--radius-lg);
+  --card-shadow: var(--shadow-md);
+  --card-padding: var(--space-6);
+
+  --input-bg: var(--color-bg-default);
+  --input-border: var(--color-border-default);
+  --input-border-focus: var(--color-primary);
+  --input-radius: var(--radius-md);
+  --input-padding: var(--space-2) var(--space-4);
+}
+</code></pre>
+            <h3 id="22">2.2 디자인 도구 동기화 워크플로우</h3>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 디자이너 파일과 코드 토큰이 따로 살면 두 곳에서 같은
+                결정을 두 번 내리게 됩니다. 한 곳에서 결정을 내리고 다른 곳은 자동 생성되어야
+                합니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 우체국 우편번호 데이터베이스가 한 곳에만 있어야 하는
+                것과 같습니다. 사무실마다 별도 우편번호 책을 쓰면 누군가는 항상 옛 주소로 보냅니다.
+              </p>
+            </blockquote>
+            <p>
+              디자이너와 개발자 간 토큰 불일치를 방지하기 위해
+              <strong>단일 소스(Single Source of Truth)</strong>를 유지합니다. W3C DTCG(Design
+              Tokens Community Group) 포맷(<code>$value</code>, <code>$type</code>,
+              <code>$description</code>)은 토큰 교환을 위한 상호운용 기준으로 우선 검토하고, 토큰
+              빌드 도구와 디자인 도구 adapter가 이 형식을 지원하는지 확인합니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  D[&quot;Design Tool Variables&lt;br/&gt;(디자이너 작업)&quot;] --&gt;|export| T[&quot;tokens.json&lt;br/&gt;(DTCG W3C 표준 포맷)&quot;]
+  T --&gt;|Style Dictionary 4| C1[&quot;CSS Custom Properties&quot;]
+  T --&gt;|Style Dictionary 4| C2[&quot;TypeScript 상수&quot;]
+  T --&gt;|Style Dictionary 4| C3[&quot;iOS Swift&quot;]
+  T --&gt;|Style Dictionary 4| C4[&quot;Android XML&quot;]
+  T -.역방향 sync.-&gt; D
+  C1 --&gt; App1[&quot;Web App&quot;]
+  C2 --&gt; App1
+  C3 --&gt; App2[&quot;Mobile App&quot;]
+  C4 --&gt; App2</pre
+            >
+            <pre><code>Design Tool Variables  ──►  tokens.json (DTCG)  ──►  CSS / TS / iOS / Android
+(디자이너 작업)      (W3C 표준 포맷)         (다중 플랫폼 출력)
+      ▲                       │
+      └───── 역방향 동기화 (token sync adapter) ──┘
+</code></pre>
+            <p><strong>권장 도구 (현재 기준):</strong></p>
+            <ul>
+              <li>
+                <strong>Style Dictionary 4</strong>: DTCG <code>$value</code>/<code>$type</code>
+                포맷 first-class 지원, 다중 플랫폼 빌드 (CSS, JS/TS, iOS Swift, Android XML)
+              </li>
+              <li>
+                <strong>token transform adapter</strong>: 디자인 도구 export → Style Dictionary 변환
+              </li>
+              <li>
+                <strong>Open Props v1</strong>: 프레임워크 독립 CSS 변수 기반 토큰 시스템(대안)
+              </li>
+            </ul>
+            <pre><code class="language-json">// tokens/color.json - Style Dictionary 4 / DTCG (W3C) 포맷
+// 현재 표준: $value, $type, $description prefix 사용
+{
+  &quot;color&quot;: {
+    &quot;primitive&quot;: {
+      &quot;blue&quot;: {
+        &quot;500&quot;: { &quot;$value&quot;: &quot;#3b82f6&quot;, &quot;$type&quot;: &quot;color&quot; },
+        &quot;600&quot;: { &quot;$value&quot;: &quot;#2563eb&quot;, &quot;$type&quot;: &quot;color&quot; }
+      }
+    },
+    &quot;semantic&quot;: {
+      &quot;primary&quot;: {
+        &quot;$value&quot;: &quot;{color.primitive.blue.600}&quot;,
+        &quot;$type&quot;: &quot;color&quot;,
+        &quot;$description&quot;: &quot;주요 브랜드 색상. CTA 버튼, 링크 등에 사용&quot;
+      },
+      &quot;error&quot;: {
+        &quot;$value&quot;: &quot;{color.primitive.red.500}&quot;,
+        &quot;$type&quot;: &quot;color&quot;,
+        &quot;$description&quot;: &quot;오류 상태 표시. 유효성 검증 실패, 에러 메시지 등&quot;
+      }
+    }
+  }
+}
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>DTCG 호환성 메모</strong>: Style Dictionary 4는 기존
+                <code>value</code>/<code>type</code> 포맷과 <code>$value</code>/<code>$type</code>
+                포맷을 모두 허용합니다. 신규 프로젝트는 W3C 표준인 <code>$</code> prefix를
+                권장합니다. 디자인 도구에서 export할 때 DTCG 호환 모드를 활성화하세요.
+              </p>
+            </blockquote>
+            <pre><code class="language-js">// style-dictionary.config.js
+export default {
+  source: ['tokens/**/*.json'],
+  platforms: {
+    css: {
+      // CSS Custom Properties로 변환
+      transformGroup: 'css',
+      buildPath: 'src/styles/',
+      files: [
+        {
+          destination: 'tokens.css',
+          format: 'css/variables',
+        },
+      ],
+    },
+    ts: {
+      // TypeScript 상수로 변환 (타입 안전성 확보)
+      transformGroup: 'js',
+      buildPath: 'src/tokens/',
+      files: [
+        {
+          destination: 'tokens.ts',
+          format: 'javascript/es6',
+        },
+      ],
+    },
+  },
+}
+</code></pre>
+            <h3 id="23">2.3 토큰 문서화 템플릿</h3>
+            <p>모든 토큰은 아래 형식으로 문서화하여 팀 내 공유합니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">토큰 이름</th>
+                    <th style="text-align: left">값</th>
+                    <th style="text-align: left">용도</th>
+                    <th style="text-align: left">다크 모드 값</th>
+                    <th style="text-align: left">사용 예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>--color-primary</code></td>
+                    <td style="text-align: left"><code>#2563eb</code></td>
+                    <td style="text-align: left">CTA, 링크, 강조</td>
+                    <td style="text-align: left"><code>#60a5fa</code></td>
+                    <td style="text-align: left"><code>bg-primary</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>--color-error</code></td>
+                    <td style="text-align: left"><code>#dc3545</code></td>
+                    <td style="text-align: left">오류, 경고</td>
+                    <td style="text-align: left"><code>#f87171</code></td>
+                    <td style="text-align: left"><code>text-error</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>--color-surface</code></td>
+                    <td style="text-align: left"><code>#ffffff</code></td>
+                    <td style="text-align: left">기본 배경</td>
+                    <td style="text-align: left"><code>#1a1a2e</code></td>
+                    <td style="text-align: left"><code>bg-surface</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>--spacing-md</code></td>
+                    <td style="text-align: left"><code>1rem</code></td>
+                    <td style="text-align: left">기본 여백</td>
+                    <td style="text-align: left">동일</td>
+                    <td style="text-align: left"><code>p-md</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>--radius-lg</code></td>
+                    <td style="text-align: left"><code>0.5rem</code></td>
+                    <td style="text-align: left">카드, 모달 둥글기</td>
+                    <td style="text-align: left">동일</td>
+                    <td style="text-align: left"><code>rounded-lg</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="3-headless-ui">3. 컴포넌트 설계: Headless UI 전략</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 접근성 동작(키보드, 포커스, ARIA)을 모든 컴포넌트마다
+                처음부터 만들면 비용이 크고 오류도 많습니다. Radix/React Aria는 수십 명의 전문가가
+                검증한 결과물입니다. 우리는 스타일만 입히면 됩니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 헤드리스 라이브러리는 "엔진과 변속기까지 검증된
+                차대(chassis)"입니다. 우리가 입히는 외관과 색상은 자유롭게 결정해도 안전 표준은
+                깨지지 않습니다.
+              </p>
+            </blockquote>
+            <h3 id="30">3.0 컴포넌트 의존성 그래프</h3>
+            <pre class="mermaid">
+flowchart TD
+  subgraph HL[&quot;헤드리스 레이어 (외부 의존)&quot;]
+    R1[&quot;Radix Primitives&quot;]
+    R2[&quot;React Aria&quot;]
+  end
+  subgraph Style[&quot;스타일 도구&quot;]
+    S1[&quot;CVA&lt;br/&gt;(variant 관리)&quot;]
+    S2[&quot;tailwind-merge&lt;br/&gt;(클래스 병합)&quot;]
+    S3[&quot;cn() 유틸&quot;]
+  end
+  subgraph DS[&quot;디자인 시스템 컴포넌트&quot;]
+    B[&quot;Button&quot;]
+    D[&quot;Dialog&quot;]
+    P[&quot;Popover&quot;]
+    F[&quot;Form Field&quot;]
+  end
+  R1 --&gt; D
+  R1 --&gt; P
+  R2 --&gt; F
+  S1 --&gt; B
+  S1 --&gt; D
+  S2 --&gt; S3
+  S3 --&gt; B
+  S3 --&gt; D
+  S3 --&gt; P
+  S3 --&gt; F
+  subgraph App[&quot;애플리케이션&quot;]
+    Feat[&quot;Feature 컴포넌트&quot;]
+  end
+  B --&gt; Feat
+  D --&gt; Feat
+  P --&gt; Feat
+  F --&gt; Feat</pre
+            >
+            <p>
+              직접 모든 로직(접근성, 키보드 인터랙션 등)을 구현하기보다, 검증된
+              <strong>Headless UI</strong> 라이브러리를 기반으로 스타일을 입히는 것을 권장합니다.
+            </p>
+            <ul>
+              <li>
+                <strong>Radix Primitives / React Aria</strong>: 가장 성숙한 headless 접근성
+                라이브러리입니다. production 기준은 WCAG 2.2와 WAI-ARIA 1.2 안정 패턴이며, ARIA 1.3
+                draft 속성은 브라우저/스크린 리더 호환성 검증 후 제한적으로 도입합니다.
+              </li>
+              <li>
+                <strong>shadcn/ui registry</strong>: Tailwind v4 + React 19 기반 컴포넌트 레시피.
+                모든 primitive에 <code>data-slot</code> 속성이 추가되어 데이터 속성 기반 스타일링이
+                표준화됨.
+              </li>
+              <li>
+                <strong>CVA (Class Variance Authority)</strong>: 컴포넌트의 다양한 변형(Variant)을
+                타입 안전하게 관리합니다.
+              </li>
+              <li>
+                <strong>tailwind-merge</strong>: 충돌하는 Tailwind 클래스를 지능적으로 병합합니다.
+              </li>
+              <li>
+                <strong>Pigment CSS / Panda CSS</strong>: zero-runtime CSS-in-JS가 필요할 때(특히
+                React Server Components 환경) 검토. 런타임 비용 없이 빌드 타임에 CSS 추출.
+              </li>
+            </ul>
+            <h3 id="31-cn">3.1 유틸리티 함수: cn()</h3>
+            <pre><code class="language-ts">// lib/utils.ts
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+/** Tailwind 클래스 병합 유틸리티 - 중복/충돌 클래스를 자동 해결 */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+</code></pre>
+            <h3 id="32-button-cva">3.2 Button 컴포넌트 (CVA 완전한 예시)</h3>
+            <pre><code class="language-tsx">// components/ui/Button.tsx
+import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { Slot } from '@radix-ui/react-slot'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from '@/lib/utils'
+
+/** 버튼 스타일 변형 정의 */
+const buttonVariants = cva(
+  // 기본 스타일 (모든 변형에 적용)
+  [
+    'inline-flex items-center justify-center gap-2',
+    'rounded-md text-sm font-medium whitespace-nowrap',
+    'transition-colors duration-fast ease-default',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+    'disabled:pointer-events-none disabled:opacity-50',
+    'aria-disabled:pointer-events-none aria-disabled:opacity-50',
+  ],
+  {
+    variants: {
+      /** 시각적 스타일 */
+      variant: {
+        primary: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active shadow-sm',
+        secondary: 'bg-secondary text-white hover:bg-secondary/80',
+        outline:
+          'border border-border-default bg-transparent hover:bg-surface-elevated text-on-surface',
+        ghost: 'hover:bg-surface-elevated text-on-surface',
+        destructive: 'bg-error text-white hover:bg-error/90',
+        link: 'text-primary underline-offset-4 hover:underline p-0 h-auto',
+      },
+      /** 크기 */
+      size: {
+        xs: 'h-7 px-2 text-xs rounded',
+        sm: 'h-9 px-3 text-sm',
+        md: 'h-10 px-4 py-2 text-sm',
+        lg: 'h-11 px-6 text-base',
+        xl: 'h-12 px-8 text-lg',
+        icon: 'h-10 w-10', // 아이콘 전용 정사각형
+        'icon-sm': 'h-8 w-8',
+      },
+      /** 너비 */
+      fullWidth: {
+        true: 'w-full',
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  },
+)
+
+export interface ButtonProps
+  extends ButtonHTMLAttributes&lt;HTMLButtonElement&gt;, VariantProps&lt;typeof buttonVariants&gt; {
+  /** true이면 자식 요소를 버튼으로 렌더링 (Slot 패턴) */
+  asChild?: boolean
+  /** 로딩 상태 */
+  isLoading?: boolean
+}
+
+/** 디자인 시스템 기본 버튼 컴포넌트 */
+const Button = forwardRef&lt;HTMLButtonElement, ButtonProps&gt;(
+  (
+    {
+      className,
+      variant,
+      size,
+      fullWidth,
+      asChild = false,
+      isLoading,
+      children,
+      disabled,
+      ...props
+    },
+    ref,
+  ) =&gt; {
+    const Comp = asChild ? Slot : 'button'
+    return (
+      &lt;Comp
+        ref={ref}
+        className={cn(buttonVariants({ variant, size, fullWidth, className }))}
+        disabled={disabled || isLoading}
+        aria-disabled={disabled || isLoading}
+        {...props}
+      &gt;
+        {isLoading ? (
+          &lt;&gt;
+            {/* 로딩 스피너 */}
+            &lt;svg
+              className=&quot;h-4 w-4 animate-spin&quot;
+              xmlns=&quot;http://www.w3.org/2000/svg&quot;
+              fill=&quot;none&quot;
+              viewBox=&quot;0 0 24 24&quot;
+              aria-hidden=&quot;true&quot;
+            &gt;
+              &lt;circle
+                className=&quot;opacity-25&quot;
+                cx=&quot;12&quot;
+                cy=&quot;12&quot;
+                r=&quot;10&quot;
+                stroke=&quot;currentColor&quot;
+                strokeWidth=&quot;4&quot;
+              /&gt;
+              &lt;path
+                className=&quot;opacity-75&quot;
+                fill=&quot;currentColor&quot;
+                d=&quot;M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z&quot;
+              /&gt;
+            &lt;/svg&gt;
+            &lt;span&gt;로딩 중...&lt;/span&gt;
+          &lt;/&gt;
+        ) : (
+          children
+        )}
+      &lt;/Comp&gt;
+    )
+  },
+)
+Button.displayName = 'Button'
+
+export { Button, buttonVariants }
+</code></pre>
+            <h3 id="33-modaldialog-radix-ui">3.3 Modal/Dialog 컴포넌트 (Radix UI 기반)</h3>
+            <pre><code class="language-tsx">// components/ui/Dialog.tsx
+import { forwardRef, type ComponentPropsWithoutRef } from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+/** 루트 - 상태 관리 */
+const Dialog = DialogPrimitive.Root
+
+/** 트리거 - 열기 버튼 */
+const DialogTrigger = DialogPrimitive.Trigger
+
+/** 포탈 - body에 렌더링 */
+const DialogPortal = DialogPrimitive.Portal
+
+/** 닫기 버튼 */
+const DialogClose = DialogPrimitive.Close
+
+/** 오버레이 - 배경 딤 처리 */
+const DialogOverlay = forwardRef&lt;
+  HTMLDivElement,
+  ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Overlay&gt;
+&gt;(({ className, ...props }, ref) =&gt; (
+  &lt;DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      'fixed inset-0 z-modal-backdrop bg-black/50',
+      // 진입/퇴장 애니메이션
+      'data-[state=open]:animate-in data-[state=open]:fade-in-0',
+      'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
+      className,
+    )}
+    {...props}
+  /&gt;
+))
+DialogOverlay.displayName = 'DialogOverlay'
+
+/** 콘텐츠 - 모달 본문 */
+const DialogContent = forwardRef&lt;
+  HTMLDivElement,
+  ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Content&gt;
+&gt;(({ className, children, ...props }, ref) =&gt; (
+  &lt;DialogPortal&gt;
+    &lt;DialogOverlay /&gt;
+    &lt;DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        // 위치 및 크기
+        'fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2',
+        'w-full max-w-lg max-h-[85vh] overflow-y-auto',
+        // 스타일
+        'rounded-xl bg-surface p-6 shadow-xl border border-border-default',
+        // 애니메이션
+        'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+        'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+        // 포커스 트랩은 Radix가 자동 처리
+        className,
+      )}
+      {...props}
+    &gt;
+      {children}
+      {/* 닫기 버튼 - 키보드 Esc와 동일 동작 */}
+      &lt;DialogPrimitive.Close
+        className={cn(
+          'absolute right-4 top-4 rounded-sm opacity-70',
+          'hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary',
+          'transition-opacity',
+        )}
+        aria-label=&quot;닫기&quot;
+      &gt;
+        &lt;X className=&quot;h-4 w-4&quot; /&gt;
+      &lt;/DialogPrimitive.Close&gt;
+    &lt;/DialogPrimitive.Content&gt;
+  &lt;/DialogPortal&gt;
+))
+DialogContent.displayName = 'DialogContent'
+
+/** 헤더 영역 */
+const DialogHeader = ({ className, ...props }: React.HTMLAttributes&lt;HTMLDivElement&gt;) =&gt; (
+  &lt;div className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)} {...props} /&gt;
+)
+
+/** 제목 */
+const DialogTitle = forwardRef&lt;
+  HTMLHeadingElement,
+  ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Title&gt;
+&gt;(({ className, ...props }, ref) =&gt; (
+  &lt;DialogPrimitive.Title
+    ref={ref}
+    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    {...props}
+  /&gt;
+))
+DialogTitle.displayName = 'DialogTitle'
+
+/** 설명 */
+const DialogDescription = forwardRef&lt;
+  HTMLParagraphElement,
+  ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Description&gt;
+&gt;(({ className, ...props }, ref) =&gt; (
+  &lt;DialogPrimitive.Description
+    ref={ref}
+    className={cn('text-sm text-on-surface-muted', className)}
+    {...props}
+  /&gt;
+))
+DialogDescription.displayName = 'DialogDescription'
+
+/** 푸터 영역 */
+const DialogFooter = ({ className, ...props }: React.HTMLAttributes&lt;HTMLDivElement&gt;) =&gt; (
+  &lt;div
+    className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2 mt-6', className)}
+    {...props}
+  /&gt;
+)
+
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+}
+</code></pre>
+            <p><strong>사용 예시:</strong></p>
+            <pre><code class="language-tsx">// 실제 사용 코드
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/Dialog'
+import { Button } from '@/components/ui/Button'
+
+function DeleteConfirmDialog() {
+  return (
+    &lt;Dialog&gt;
+      &lt;DialogTrigger asChild&gt;
+        &lt;Button variant=&quot;destructive&quot;&gt;삭제&lt;/Button&gt;
+      &lt;/DialogTrigger&gt;
+      &lt;DialogContent&gt;
+        &lt;DialogHeader&gt;
+          &lt;DialogTitle&gt;정말 삭제하시겠습니까?&lt;/DialogTitle&gt;
+          &lt;DialogDescription&gt;
+            이 작업은 되돌릴 수 없습니다. 데이터가 영구적으로 삭제됩니다.
+          &lt;/DialogDescription&gt;
+        &lt;/DialogHeader&gt;
+        &lt;DialogFooter&gt;
+          &lt;DialogClose asChild&gt;
+            &lt;Button variant=&quot;outline&quot;&gt;취소&lt;/Button&gt;
+          &lt;/DialogClose&gt;
+          &lt;Button variant=&quot;destructive&quot; onClick={handleDelete}&gt;
+            삭제 확인
+          &lt;/Button&gt;
+        &lt;/DialogFooter&gt;
+      &lt;/DialogContent&gt;
+    &lt;/Dialog&gt;
+  )
+}
+</code></pre>
+            <h3 id="34-compound-component">3.4 Compound Component 패턴</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: Compound 컴포넌트는 레고 블록 세트입니다. 루트
+                블록(Card)이 공통 색·결합 규칙을 정해두면, 위에 끼우는 헤더·본문·푸터 블록은
+                자유롭게 조합할 수 있습니다. 호출부는 "어떤 블록을 어떤 순서로 끼울지"만 결정하면
+                됩니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 Compound 컴포넌트의 primitive 합성 흐름을 보여줍니다. 루트가 Context로
+              상태를 내려주고, 자식은 정해진 슬롯에 자유롭게 꽂힙니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  subgraph Author[&quot;디자인 시스템 저작 영역&quot;]
+    Root[&quot;Card.Root&lt;br/&gt;(Context Provider)&quot;]
+    Slot1[&quot;Card.Header&quot;]
+    Slot2[&quot;Card.Title&quot;]
+    Slot3[&quot;Card.Content&quot;]
+    Slot4[&quot;Card.Footer&quot;]
+    Root -. &quot;Context: variant&quot; .-&gt; Slot1
+    Root -. &quot;Context: variant&quot; .-&gt; Slot2
+    Root -. &quot;Context: variant&quot; .-&gt; Slot3
+    Root -. &quot;Context: variant&quot; .-&gt; Slot4
+  end
+  subgraph Caller[&quot;애플리케이션 호출부&quot;]
+    Use1[&quot;&lt;Card variant=elevated&gt;&quot;]
+    Use2[&quot;&lt;Card.Header&gt;&lt;Card.Title/&gt;&lt;/Card.Header&gt;&quot;]
+    Use3[&quot;&lt;Card.Content&gt;...&lt;/Card.Content&gt;&quot;]
+    Use4[&quot;&lt;Card.Footer&gt;&lt;Button/&gt;&lt;/Card.Footer&gt;&quot;]
+  end
+  Slot1 --&gt; Use2
+  Slot2 --&gt; Use2
+  Slot3 --&gt; Use3
+  Slot4 --&gt; Use4
+  Use1 --&gt; Use2
+  Use1 --&gt; Use3
+  Use1 --&gt; Use4
+  Use4 --&gt; Render[&quot;DOM 렌더 결과&quot;]
+  Use3 --&gt; Render
+  Use2 --&gt; Render</pre
+            >
+            <p>
+              <strong>핵심 규칙</strong>: ① 자식은 루트 없이 단독으로 렌더되지 않습니다. ② variant
+              같은 공통 상태는 Context로 전달합니다. ③ 호출부는 빈 슬롯을 선택적으로 끼울 수
+              있으므로 헤더 없는 카드, 푸터 두 개짜리 카드도 만들 수 있습니다.
+            </p>
+            <pre><code class="language-tsx">// components/ui/Card.tsx
+// Compound Component: 하위 요소를 자유롭게 조합하는 패턴
+import { createContext, useContext, type ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+
+interface CardContextValue {
+  variant: 'default' | 'outlined' | 'elevated'
+}
+
+const CardContext = createContext&lt;CardContextValue&gt;({ variant: 'default' })
+
+/** Card 루트 */
+function Card({
+  variant = 'default',
+  className,
+  children,
+}: {
+  variant?: CardContextValue['variant']
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    &lt;CardContext.Provider value={{ variant }}&gt;
+      &lt;div
+        className={cn(
+          'rounded-xl p-card-padding',
+          {
+            default: 'bg-card-bg border border-card-border shadow-card-shadow',
+            outlined: 'bg-transparent border-2 border-card-border',
+            elevated: 'bg-card-bg shadow-lg',
+          }[variant],
+          className,
+        )}
+      &gt;
+        {children}
+      &lt;/div&gt;
+    &lt;/CardContext.Provider&gt;
+  )
+}
+
+/** Card 헤더 */
+function CardHeader({ className, children }: { className?: string; children: ReactNode }) {
+  return &lt;div className={cn('flex flex-col gap-1.5 pb-4', className)}&gt;{children}&lt;/div&gt;
+}
+
+/** Card 제목 */
+function CardTitle({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    &lt;h3 className={cn('text-xl font-semibold leading-tight tracking-tight', className)}&gt;
+      {children}
+    &lt;/h3&gt;
+  )
+}
+
+/** Card 본문 */
+function CardContent({ className, children }: { className?: string; children: ReactNode }) {
+  return &lt;div className={cn('text-sm text-on-surface-muted', className)}&gt;{children}&lt;/div&gt;
+}
+
+/** Card 푸터 */
+function CardFooter({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    &lt;div className={cn('flex items-center gap-2 pt-4 border-t border-border-default', className)}&gt;
+      {children}
+    &lt;/div&gt;
+  )
+}
+
+// Compound Component로 내보내기
+Card.Header = CardHeader
+Card.Title = CardTitle
+Card.Content = CardContent
+Card.Footer = CardFooter
+
+export { Card }
+
+// ── 사용 예시 ──
+// &lt;Card variant=&quot;elevated&quot;&gt;
+//   &lt;Card.Header&gt;
+//     &lt;Card.Title&gt;프로젝트 현황&lt;/Card.Title&gt;
+//   &lt;/Card.Header&gt;
+//   &lt;Card.Content&gt;
+//     &lt;p&gt;진행 중인 작업: 12건&lt;/p&gt;
+//   &lt;/Card.Content&gt;
+//   &lt;Card.Footer&gt;
+//     &lt;Button size=&quot;sm&quot;&gt;자세히 보기&lt;/Button&gt;
+//   &lt;/Card.Footer&gt;
+// &lt;/Card&gt;
+</code></pre>
+            <hr />
+            <h2 id="4-storybook-9">4. 문서화 및 검증: Storybook 9</h2>
+            <p>
+              컴포넌트의 독립적인 개발과 테스트를 위해 Storybook 같은 컴포넌트 워크벤치를
+              사용합니다. Storybook 9 라인을 선택하는 경우 공식 release note와 addon 호환성을
+              확인하고, 접근성·인터랙션·시각 회귀 테스트가 release gate와 연결되는지 검증합니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: Storybook은 공장의 품질검사 라인입니다. 같은
+                부품(컴포넌트)을 다양한 각도(variant, props, viewport)로 점검대에 올려두고, 사람 눈
+                검수(시각 회귀)·기계 측정(인터랙션 테스트)·안전 점검(a11y)을 차례로 통과시킵니다.
+              </p>
+            </blockquote>
+            <p>이 그림은 Storybook이 컴포넌트를 어떻게 단계별로 검증하는지 보여줍니다.</p>
+            <pre class="mermaid">
+flowchart LR
+  Dev[&quot;개발자&lt;br/&gt;컴포넌트 변경&quot;] --&gt; Story[&quot;*.stories.tsx&lt;br/&gt;(variant 매트릭스 정의)&quot;]
+  Story --&gt; SB[&quot;Storybook 빌드&quot;]
+  SB --&gt; A11y[&quot;a11y addon&lt;br/&gt;WCAG 위반 점검&quot;]
+  SB --&gt; Int[&quot;interaction test&lt;br/&gt;(@storybook/test)&quot;]
+  SB --&gt; VR[&quot;Chromatic&lt;br/&gt;(시각 회귀)&quot;]
+  A11y --&gt;|위반| Fix[&quot;디자인/마크업 수정&quot;]
+  Int --&gt;|실패| Fix
+  VR --&gt;|diff| Review[&quot;디자이너 리뷰&quot;]
+  Fix --&gt; Story
+  Review --&gt;|승인| Merge[&quot;PR merge&quot;]
+  Review --&gt;|거절| Fix
+  A11y --&gt;|통과| Merge
+  Int --&gt;|통과| Merge</pre
+            >
+            <blockquote>
+              <p><strong>컴포넌트 워크벤치 검증 기준</strong></p>
+              <ul>
+                <li>접근성 애드온 또는 동등한 검사로 WCAG 위반을 개발 중에 확인합니다.</li>
+                <li>인터랙션 테스트는 실제 사용자 이벤트와 focus 이동을 검증합니다.</li>
+                <li>
+                  RSC/SSR preview는 사용하는 React/프레임워크 조합에서 별도 smoke test를 둡니다.
+                </li>
+                <li>test runner는 CI에서 동일한 브라우저/환경으로 재현되어야 합니다.</li>
+              </ul>
+            </blockquote>
+            <h3 id="41">4.1 스토리 파일 작성</h3>
+            <pre><code class="language-tsx">// components/ui/Button.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react'
+import { fn } from '@storybook/test'
+import { Button } from './Button'
+
+/** Button 컴포넌트 메타 정보 */
+const meta = {
+  title: 'UI/Button',
+  component: Button,
+  tags: ['autodocs'], // 자동 문서 생성
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: '디자인 시스템의 기본 버튼 컴포넌트. CVA 기반 변형 관리.',
+      },
+    },
+  },
+  // 글로벌 args 기본값
+  args: {
+    onClick: fn(), // Storybook Actions에 자동 연결
+    children: '버튼',
+  },
+  // Controls 패널 설정
+  argTypes: {
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary', 'outline', 'ghost', 'destructive', 'link'],
+      description: '버튼의 시각적 스타일',
+    },
+    size: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'xl', 'icon'],
+      description: '버튼 크기',
+    },
+    isLoading: {
+      control: 'boolean',
+      description: '로딩 상태 표시',
+    },
+    disabled: {
+      control: 'boolean',
+      description: '비활성화 상태',
+    },
+  },
+} satisfies Meta&lt;typeof Button&gt;
+
+export default meta
+type Story = StoryObj&lt;typeof meta&gt;
+
+/** 기본 버튼 */
+export const Primary: Story = {
+  args: {
+    variant: 'primary',
+    children: '기본 버튼',
+  },
+}
+
+/** 모든 변형 한눈에 보기 */
+export const AllVariants: Story = {
+  render: () =&gt; (
+    &lt;div className=&quot;flex flex-wrap gap-4&quot;&gt;
+      &lt;Button variant=&quot;primary&quot;&gt;Primary&lt;/Button&gt;
+      &lt;Button variant=&quot;secondary&quot;&gt;Secondary&lt;/Button&gt;
+      &lt;Button variant=&quot;outline&quot;&gt;Outline&lt;/Button&gt;
+      &lt;Button variant=&quot;ghost&quot;&gt;Ghost&lt;/Button&gt;
+      &lt;Button variant=&quot;destructive&quot;&gt;Destructive&lt;/Button&gt;
+      &lt;Button variant=&quot;link&quot;&gt;Link&lt;/Button&gt;
+    &lt;/div&gt;
+  ),
+}
+
+/** 모든 크기 */
+export const AllSizes: Story = {
+  render: () =&gt; (
+    &lt;div className=&quot;flex items-center gap-4&quot;&gt;
+      &lt;Button size=&quot;xs&quot;&gt;XS&lt;/Button&gt;
+      &lt;Button size=&quot;sm&quot;&gt;SM&lt;/Button&gt;
+      &lt;Button size=&quot;md&quot;&gt;MD&lt;/Button&gt;
+      &lt;Button size=&quot;lg&quot;&gt;LG&lt;/Button&gt;
+      &lt;Button size=&quot;xl&quot;&gt;XL&lt;/Button&gt;
+    &lt;/div&gt;
+  ),
+}
+
+/** 로딩 상태 */
+export const Loading: Story = {
+  args: {
+    isLoading: true,
+    children: '저장 중',
+  },
+}
+
+/** 비활성화 */
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    children: '비활성화',
+  },
+}
+</code></pre>
+            <h3 id="42-interaction-test">4.2 Interaction Test (인터랙션 테스트)</h3>
+            <pre><code class="language-tsx">// components/ui/Button.stories.tsx (테스트 추가)
+import { expect, userEvent, within } from '@storybook/test'
+
+/** 클릭 인터랙션 테스트 */
+export const ClickTest: Story = {
+  args: {
+    children: '클릭 테스트',
+  },
+  play: async ({ canvasElement, args }) =&gt; {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole('button', { name: '클릭 테스트' })
+
+    // 버튼이 렌더링 되었는지 확인
+    await expect(button).toBeInTheDocument()
+    await expect(button).toBeEnabled()
+
+    // 클릭 이벤트 발생
+    await userEvent.click(button)
+    await expect(args.onClick).toHaveBeenCalledTimes(1)
+
+    // 키보드 접근성: Enter와 Space로 활성화
+    await userEvent.keyboard('{Enter}')
+    await expect(args.onClick).toHaveBeenCalledTimes(2)
+  },
+}
+
+/** 비활성화 상태에서 클릭 차단 테스트 */
+export const DisabledClickTest: Story = {
+  args: {
+    disabled: true,
+    children: '비활성화 버튼',
+  },
+  play: async ({ canvasElement, args }) =&gt; {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole('button')
+
+    // disabled 상태 확인
+    await expect(button).toBeDisabled()
+
+    // 클릭해도 핸들러가 호출되지 않아야 함
+    await userEvent.click(button)
+    await expect(args.onClick).not.toHaveBeenCalled()
+  },
+}
+</code></pre>
+            <h3 id="43-chromatic-ci">4.3 Chromatic CI 연동</h3>
+            <pre><code class="language-yaml"># .ci/workflows/chromatic.yml
+name: Chromatic - Visual Regression
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 전체 히스토리 (비교 기준)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Chromatic 퍼블리시
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          buildScriptName: 'build-storybook'
+          exitZeroOnChanges: true # 변경 감지 시에도 CI 실패하지 않음
+          autoAcceptChanges: 'main' # main 브랜치는 자동 승인
+</code></pre>
+            <h3 id="44-a11y">4.4 접근성 애드온 (a11y)</h3>
+            <pre><code class="language-ts">// .storybook/main.ts
+import type { StorybookConfig } from '@storybook/react-vite'
+
+const config: StorybookConfig = {
+  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  addons: [
+    '@storybook/addon-essentials',
+    '@storybook/addon-a11y', // 접근성 자동 검사
+    '@storybook/addon-interactions', // 인터랙션 테스트
+    '@storybook/addon-themes', // 테마 전환 (다크 모드)
+  ],
+  framework: {
+    name: '@storybook/react-vite',
+    options: {},
+  },
+}
+
+export default config
+</code></pre>
+            <pre><code class="language-ts">// .storybook/preview.ts
+import type { Preview } from '@storybook/react'
+
+const preview: Preview = {
+  parameters: {
+    // 접근성 검사 기본 설정
+    a11y: {
+      config: {
+        rules: [
+          { id: 'color-contrast', enabled: true }, // 색상 대비 검사
+          { id: 'label', enabled: true }, // 폼 라벨 검사
+        ],
+      },
+    },
+    // 다크 모드 전환 지원
+    backgrounds: {
+      default: 'light',
+      values: [
+        { name: 'light', value: '#ffffff' },
+        { name: 'dark', value: '#1a1a2e' },
+      ],
+    },
+  },
+}
+
+export default preview
+</code></pre>
+            <hr />
+            <h2 id="5">5. 다크 모드 구현 전략</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 다크 모드를 "색 반전"으로만 보면 그림자, 대비,
+                일러스트가 모두 깨집니다. 라이트와 다크는 별개 테마이고, 토큰 시스템이 받쳐줘야
+                흔들리지 않습니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 다크 모드는 같은 식당의 점심·저녁 분위기 전환입니다.
+                조명을 끄는 것만으로는 부족하고, 메뉴판 글씨 크기, 식탁 광택, 음악 볼륨까지 같이
+                바뀝니다.
+              </p>
+            </blockquote>
+            <h3 id="_10">다크 모드 상태 머신</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; System: 초기 로드
+  System --&gt; Dark: prefers-color-scheme: dark
+  System --&gt; Light: prefers-color-scheme: light
+  Dark --&gt; Light: 사용자 토글
+  Light --&gt; Dark: 사용자 토글
+  Light --&gt; System: 토글 (시스템 모드)
+  Dark --&gt; System: 토글 (시스템 모드)
+  System --&gt; Dark: OS 설정 변경 감지
+  System --&gt; Light: OS 설정 변경 감지
+  note right of System
+    localStorage에 저장
+    .dark / .light 클래스로 DOM 표시
+    FOUC 방지 인라인 스크립트로 첫 렌더 처리
+  end note</pre
+            >
+            <p>
+              다크 모드는 단순한 색상 반전이 아니라, 가독성과 시각적 계층을 유지하면서 사용자 눈의
+              피로를 줄이는 독립적 테마입니다.
+            </p>
+            <h3 id="51-css-custom-properties">5.1 CSS Custom Properties 기반 구현</h3>
+            <pre><code class="language-css">/* themes.css - 시스템 테마 연동 + 수동 전환 지원 */
+
+/* 라이트 모드 (기본) */
+:root {
+  color-scheme: light;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-tertiary: #6c757d;
+  --border-default: #dee2e6;
+  --border-strong: #adb5bd;
+}
+
+/* 다크 모드 - 시스템 설정 자동 감지 */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-tertiary: #0f3460;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --border-default: #334155;
+    --border-strong: #475569;
+  }
+}
+
+/* 다크 모드 - 수동 강제 적용 (클래스 기반) */
+:root.dark {
+  color-scheme: dark;
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --border-default: #334155;
+  --border-strong: #475569;
+}
+</code></pre>
+            <h3 id="52-react">5.2 테마 토글 구현 (React)</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 테마 적용 결정은 호텔 룸 조명 같은 것입니다. 손님이 직접
+                누른 스위치가 있으면 그걸 따르고, 없으면 호텔 시스템(OS 설정)이 시간대에 맞춰
+                자동으로 켜고 끕니다. 우리 코드는 이 두 입력을 순서대로 읽어 최종 모드를 정합니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 한 사용자가 페이지를 열었을 때 어떤 모드를 적용할지 결정하는 흐름입니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[&quot;페이지 로드&quot;] --&gt; Q1{&quot;localStorage에&lt;br/&gt;theme-preference 있나?&quot;}
+  Q1 --&gt;|예| Q2{&quot;값이 system인가?&quot;}
+  Q1 --&gt;|아니오| OS{&quot;prefers-color-scheme&lt;br/&gt;= dark?&quot;}
+  Q2 --&gt;|아니오| Apply1[&quot;저장된 light/dark 강제 적용&quot;]
+  Q2 --&gt;|예| OS
+  OS --&gt;|예| ApplyDark[&quot;다크 모드 적용&lt;br/&gt;.dark 클래스 부착&quot;]
+  OS --&gt;|아니오| ApplyLight[&quot;라이트 모드 적용&lt;br/&gt;.light 클래스 부착&quot;]
+  Apply1 --&gt; Render[&quot;최종 렌더&quot;]
+  ApplyDark --&gt; Render
+  ApplyLight --&gt; Render
+  Render --&gt; Listen{&quot;OS 설정 변경&lt;br/&gt;이벤트 발생?&quot;}
+  Listen --&gt;|&quot;저장값이 system&quot;| OS
+  Listen --&gt;|&quot;저장값이 명시&quot;| Apply1</pre
+            >
+            <blockquote>
+              <p>
+                <strong>FOUC 방지 포인트</strong>: 이 결정은 React 렌더 이전,
+                <code>&lt;head&gt;</code> 인라인 스크립트에서 동기적으로 수행해야 합니다. 그렇지
+                않으면 첫 paint가 라이트로 잡혔다가 다크로 깜빡입니다 (5.3 절 참고).
+              </p>
+            </blockquote>
+            <pre><code class="language-tsx">// hooks/useTheme.ts
+import { useCallback, useEffect, useState } from 'react'
+
+type Theme = 'light' | 'dark' | 'system'
+
+const STORAGE_KEY = 'theme-preference'
+
+/** 테마 관리 훅 - localStorage 영속화 + 시스템 설정 연동 */
+export function useTheme() {
+  const [theme, setThemeState] = useState&lt;Theme&gt;(() =&gt; {
+    // SSR 안전: 서버에서는 기본값 반환
+    if (typeof window === 'undefined') return 'system'
+    return (localStorage.getItem(STORAGE_KEY) as Theme) || 'system'
+  })
+
+  // 실제 적용되는 테마 계산
+  const resolvedTheme = useResolvedTheme(theme)
+
+  const setTheme = useCallback((newTheme: Theme) =&gt; {
+    setThemeState(newTheme)
+    localStorage.setItem(STORAGE_KEY, newTheme)
+  }, [])
+
+  // DOM에 클래스 적용
+  useEffect(() =&gt; {
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+
+    if (theme !== 'system') {
+      root.classList.add(theme)
+    }
+  }, [theme])
+
+  return { theme, resolvedTheme, setTheme }
+}
+
+/** 시스템 설정을 반영한 실제 테마 계산 */
+function useResolvedTheme(theme: Theme): 'light' | 'dark' {
+  const [systemTheme, setSystemTheme] = useState&lt;'light' | 'dark'&gt;('light')
+
+  useEffect(() =&gt; {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    setSystemTheme(mq.matches ? 'dark' : 'light')
+
+    const handler = (e: MediaQueryListEvent) =&gt; {
+      setSystemTheme(e.matches ? 'dark' : 'light')
+    }
+    mq.addEventListener('change', handler)
+    return () =&gt; mq.removeEventListener('change', handler)
+  }, [])
+
+  return theme === 'system' ? systemTheme : theme
+}
+</code></pre>
+            <pre><code class="language-tsx">// components/ThemeToggle.tsx
+import { Moon, Sun, Monitor } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
+import { Button } from '@/components/ui/Button'
+
+/** 3단 테마 전환 버튼 (라이트 / 다크 / 시스템) */
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  const cycle = () =&gt; {
+    const next = { light: 'dark', dark: 'system', system: 'light' } as const
+    setTheme(next[theme])
+  }
+
+  const Icon = { light: Sun, dark: Moon, system: Monitor }[theme]
+  const label = { light: '라이트 모드', dark: '다크 모드', system: '시스템 설정' }[theme]
+
+  return (
+    &lt;Button variant=&quot;ghost&quot; size=&quot;icon&quot; onClick={cycle} aria-label={`현재 ${label}, 클릭하여 전환`}&gt;
+      &lt;Icon className=&quot;h-5 w-5&quot; /&gt;
+    &lt;/Button&gt;
+  )
+}
+</code></pre>
+            <h3 id="53-foucflash-of-unstyled-content">5.3 FOUC(Flash of Unstyled Content) 방지</h3>
+            <pre><code class="language-html">&lt;!-- index.html &lt;head&gt; 최상단에 인라인 스크립트 삽입 --&gt;
+&lt;script&gt;
+  // 렌더링 차단 스크립트: 깜빡임 방지를 위해 동기적으로 실행
+  ;(function () {
+    var theme = localStorage.getItem('theme-preference')
+    if (theme === 'dark' || (!theme &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    }
+  })()
+&lt;/script&gt;
+</code></pre>
+            <hr />
+            <h2 id="6">6. 아이콘 시스템 구축</h2>
+            <h3 id="61-lucide-react">6.1 lucide-react 통합</h3>
+            <pre><code class="language-tsx">// components/ui/Icon.tsx
+import { type LucideIcon, type LucideProps } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface IconProps extends LucideProps {
+  /** lucide-react에서 가져온 아이콘 컴포넌트 */
+  icon: LucideIcon
+  /** 미리 정의된 크기 */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+}
+
+const sizeMap = {
+  xs: 'h-3 w-3',
+  sm: 'h-4 w-4',
+  md: 'h-5 w-5',
+  lg: 'h-6 w-6',
+  xl: 'h-8 w-8',
+} as const
+
+/** 디자인 시스템 표준 아이콘 래퍼 */
+export function Icon({ icon: LucideIcon, size = 'md', className, ...props }: IconProps) {
+  return (
+    &lt;LucideIcon
+      className={cn(sizeMap[size], className)}
+      aria-hidden=&quot;true&quot; // 장식용 아이콘은 스크린 리더에서 숨김
+      {...props}
+    /&gt;
+  )
+}
+</code></pre>
+            <pre><code class="language-tsx">// 사용 예시
+import { Icon } from '@/components/ui/Icon'
+import { Search, Bell, Settings, ChevronRight } from 'lucide-react'
+
+function NavigationIcons() {
+  return (
+    &lt;nav className=&quot;flex items-center gap-4&quot;&gt;
+      &lt;Icon icon={Search} size=&quot;md&quot; /&gt;
+      &lt;Icon icon={Bell} size=&quot;md&quot; /&gt;
+      &lt;Icon icon={Settings} size=&quot;md&quot; /&gt;
+      {/* 의미가 있는 아이콘은 aria-label 명시 */}
+      &lt;button aria-label=&quot;알림 3건&quot;&gt;
+        &lt;Icon icon={Bell} size=&quot;md&quot; aria-hidden={undefined} /&gt;
+        &lt;span className=&quot;sr-only&quot;&gt;알림 3건&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/nav&gt;
+  )
+}
+</code></pre>
+            <h3 id="62-svg">6.2 SVG 스프라이트 (대규모 커스텀 아이콘용)</h3>
+            <pre><code class="language-tsx">// 커스텀 아이콘이 많을 때는 SVG 스프라이트로 번들 최적화
+// public/icons/sprite.svg
+// &lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+//   &lt;symbol id=&quot;icon-dashboard&quot; viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/symbol&gt;
+//   &lt;symbol id=&quot;icon-analytics&quot; viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/symbol&gt;
+// &lt;/svg&gt;
+
+interface SpriteIconProps {
+  name: string
+  className?: string
+  title?: string
+}
+
+/** SVG 스프라이트 기반 아이콘 컴포넌트 */
+export function SpriteIcon({ name, className, title }: SpriteIconProps) {
+  return (
+    &lt;svg className={cn('h-5 w-5', className)} aria-hidden={!title} role={title ? 'img' : undefined}&gt;
+      {title &amp;&amp; &lt;title&gt;{title}&lt;/title&gt;}
+      &lt;use href={`/icons/sprite.svg#icon-${name}`} /&gt;
+    &lt;/svg&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="7">7. 반응형 디자인 시스템</h2>
+            <h3 id="71">7.1 브레이크포인트 토큰 활용</h3>
+            <pre><code class="language-tsx">// hooks/useBreakpoint.ts
+import { useEffect, useState } from 'react'
+
+const breakpoints = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+  '2xl': 1536,
+} as const
+
+type Breakpoint = keyof typeof breakpoints
+
+/** 현재 브레이크포인트를 반환하는 훅 */
+export function useBreakpoint(): Breakpoint {
+  const [current, setCurrent] = useState&lt;Breakpoint&gt;('sm')
+
+  useEffect(() =&gt; {
+    const update = () =&gt; {
+      const width = window.innerWidth
+      if (width &gt;= breakpoints['2xl']) setCurrent('2xl')
+      else if (width &gt;= breakpoints.xl) setCurrent('xl')
+      else if (width &gt;= breakpoints.lg) setCurrent('lg')
+      else if (width &gt;= breakpoints.md) setCurrent('md')
+      else setCurrent('sm')
+    }
+
+    update()
+    window.addEventListener('resize', update)
+    return () =&gt; window.removeEventListener('resize', update)
+  }, [])
+
+  return current
+}
+
+/** 특정 브레이크포인트 이상인지 확인 */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false)
+
+  useEffect(() =&gt; {
+    const mq = window.matchMedia(query)
+    setMatches(mq.matches)
+    const handler = (e: MediaQueryListEvent) =&gt; setMatches(e.matches)
+    mq.addEventListener('change', handler)
+    return () =&gt; mq.removeEventListener('change', handler)
+  }, [query])
+
+  return matches
+}
+</code></pre>
+            <h3 id="72-container-queries">7.2 Container Queries</h3>
+            <p>
+              부모 컨테이너 크기에 반응하는 컴포넌트를 구현합니다. 뷰포트가 아닌 컨테이너 기준이므로
+              재사용성이 뛰어납니다.
+            </p>
+            <pre><code class="language-tsx">// Tailwind v4 Container Query 활용
+function ResponsiveCard() {
+  return (
+    // @container로 컨테이너 쿼리 컨텍스트 선언
+    &lt;div className=&quot;@container&quot;&gt;
+      &lt;div
+        className={cn(
+          'flex flex-col gap-4 p-4',
+          // 컨테이너가 400px 이상이면 가로 배치
+          '@md:flex-row @md:items-center @md:gap-6',
+          // 컨테이너가 600px 이상이면 더 넓은 패딩
+          '@lg:p-8',
+        )}
+      &gt;
+        &lt;img src=&quot;/thumbnail.jpg&quot; alt=&quot;&quot; className=&quot;w-full rounded-lg @md:w-48 @md:shrink-0&quot; /&gt;
+        &lt;div className=&quot;flex-1&quot;&gt;
+          &lt;h3 className=&quot;text-base font-semibold @lg:text-xl&quot;&gt;제목&lt;/h3&gt;
+          &lt;p className=&quot;text-sm text-on-surface-muted mt-1&quot;&gt;설명 텍스트&lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <h3 id="73-fluid-typography">7.3 Fluid Typography (유동 타이포그래피)</h3>
+            <p>뷰포트 크기에 따라 글꼴 크기가 부드럽게 변하도록 설정합니다.</p>
+            <pre><code class="language-css">/* Fluid typography - clamp()를 활용한 부드러운 스케일링 */
+@theme {
+  /* 최소 16px ~ 최대 20px, 뷰포트 기준 선형 보간 */
+  --text-fluid-base: clamp(1rem, 0.5rem + 1vw, 1.25rem);
+
+  /* 최소 24px ~ 최대 40px */
+  --text-fluid-heading: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+
+  /* 최소 36px ~ 최대 64px */
+  --text-fluid-display: clamp(2.25rem, 1.5rem + 3vw, 4rem);
+}
+</code></pre>
+            <pre><code class="language-tsx">// 사용 예시
+function HeroSection() {
+  return (
+    &lt;section className=&quot;px-4 py-20 text-center&quot;&gt;
+      {/* fluid 크기가 뷰포트에 따라 자동 조절 */}
+      &lt;h1 className=&quot;text-fluid-display font-bold tracking-tight text-balance&quot;&gt;
+        미래를 설계하는 디자인 시스템
+      &lt;/h1&gt;
+      &lt;p className=&quot;text-fluid-base text-on-surface-muted mt-4 max-w-2xl mx-auto&quot;&gt;
+        일관성, 접근성, 확장성을 갖춘 컴포넌트 라이브러리
+      &lt;/p&gt;
+    &lt;/section&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="8-api">8. 컴포넌트 API 설계 원칙</h2>
+            <h3 id="81-as-prop">8.1 다형성 컴포넌트 (<code>as</code> prop)</h3>
+            <pre><code class="language-tsx">// components/ui/Box.tsx
+import { type ElementType, type ComponentPropsWithoutRef, forwardRef } from 'react'
+import { cn } from '@/lib/utils'
+
+/**
+ * 다형성(Polymorphic) 컴포넌트 타입
+ * `as` prop에 따라 렌더링되는 HTML 요소와 허용 속성이 동적으로 변경
+ */
+type BoxProps&lt;C extends ElementType = 'div'&gt; = {
+  as?: C
+  className?: string
+} &amp; Omit&lt;ComponentPropsWithoutRef&lt;C&gt;, 'as' | 'className'&gt;
+
+/** 다형성 Box 컴포넌트 - 어떤 HTML 요소로든 렌더링 가능 */
+function Box&lt;C extends ElementType = 'div'&gt;({ as, className, ...props }: BoxProps&lt;C&gt;) {
+  const Component = as || 'div'
+  return &lt;Component className={cn(className)} {...props} /&gt;
+}
+
+// 사용 예시:
+// &lt;Box as=&quot;section&quot; className=&quot;p-4&quot;&gt;섹션&lt;/Box&gt;
+// &lt;Box as=&quot;article&quot; className=&quot;prose&quot;&gt;본문&lt;/Box&gt;
+// &lt;Box as=&quot;a&quot; href=&quot;/about&quot; className=&quot;text-primary&quot;&gt;링크처럼 동작&lt;/Box&gt;
+</code></pre>
+            <h3 id="82-render-props-vs-hooks">8.2 Render Props vs Hooks 패턴</h3>
+            <pre><code class="language-tsx">// ── Render Props: UI 렌더링 제어권을 사용자에게 위임 ──
+interface DropdownProps&lt;T&gt; {
+  items: T[]
+  /** 각 항목의 렌더링을 사용자가 결정 */
+  renderItem: (item: T, index: number) =&gt; React.ReactNode
+  /** 트리거 버튼 렌더링 */
+  renderTrigger: (props: { isOpen: boolean; toggle: () =&gt; void }) =&gt; React.ReactNode
+}
+
+function Dropdown&lt;T&gt;({ items, renderItem, renderTrigger }: DropdownProps&lt;T&gt;) {
+  const [isOpen, setIsOpen] = useState(false)
+  const toggle = () =&gt; setIsOpen((prev) =&gt; !prev)
+
+  return (
+    &lt;div className=&quot;relative&quot;&gt;
+      {renderTrigger({ isOpen, toggle })}
+      {isOpen &amp;&amp; (
+        &lt;ul
+          role=&quot;listbox&quot;
+          className=&quot;absolute mt-1 rounded-md bg-surface shadow-lg border border-border-default&quot;
+        &gt;
+          {items.map((item, i) =&gt; (
+            &lt;li key={i} role=&quot;option&quot;&gt;
+              {renderItem(item, i)}
+            &lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/div&gt;
+  )
+}
+
+// ── Custom Hook: 로직만 제공, UI는 완전히 자유 ──
+function useToggle(initial = false) {
+  const [isOpen, setIsOpen] = useState(initial)
+  const toggle = useCallback(() =&gt; setIsOpen((p) =&gt; !p), [])
+  const open = useCallback(() =&gt; setIsOpen(true), [])
+  const close = useCallback(() =&gt; setIsOpen(false), [])
+  return { isOpen, toggle, open, close } as const
+}
+</code></pre>
+            <p>
+              <strong>선택 기준:</strong> | 상황 | 권장 패턴 | | :--- | :--- | | UI 커스터마이징이
+              핵심 | Render Props | | 로직 재사용이 핵심, UI는 호출부에서 결정 | Custom Hook | |
+              정해진 UI 구조 내에서 콘텐츠만 교체 | Compound Component | | 단순 on/off, 시각적
+              변형만 필요 | Props (CVA variants) |
+            </p>
+            <h3 id="83-api">8.3 좋은 컴포넌트 API 설계 규칙</h3>
+            <pre><code class="language-tsx">// ✅ 좋은 예: 의미 기반 props, 일관된 네이밍
+&lt;Button variant=&quot;destructive&quot; size=&quot;sm&quot; isLoading disabled&gt;삭제&lt;/Button&gt;
+&lt;Input type=&quot;email&quot; isRequired isInvalid errorMessage=&quot;올바른 이메일을 입력하세요&quot; /&gt;
+
+// ❌ 나쁜 예: 불명확한 props, 불일치 네이밍
+&lt;Button color=&quot;red&quot; small loading={true} isDisabled&gt;삭제&lt;/Button&gt;
+&lt;Input inputType=&quot;email&quot; required invalid error=&quot;올바른 이메일을 입력하세요&quot; /&gt;
+</code></pre>
+            <p><strong>규칙 요약:</strong></p>
+            <ol>
+              <li>
+                boolean prop은 <code>is</code>/<code>has</code> 접두어 사용 (<code>isLoading</code>,
+                <code>hasError</code>)
+              </li>
+              <li>
+                이벤트 핸들러는 <code>on</code> 접두어 (<code>onClick</code>,
+                <code>onValueChange</code>)
+              </li>
+              <li>열거형은 <code>variant</code>, <code>size</code> 등 의미 기반 이름</li>
+              <li><code>className</code>은 항상 마지막 스타일 오버라이드용으로 지원</li>
+              <li><code>children</code>은 가능한 한 지원하여 유연성 확보</li>
+            </ol>
+            <hr />
+            <h2 id="9">9. 디자인 시스템 배포 및 버저닝</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 디자인 시스템은 "수십 개 제품이 동시에 의존하는
+                코드"입니다. breaking change 한 번에 여러 팀의 빌드가 깨질 수 있어, 버전 관리와
+                마이그레이션 가이드가 핵심 자산입니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 디자인 시스템 배포는 운영체제 업데이트와 비슷합니다.
+                patch는 보안 패치(자동 설치 가능), minor는 새 기능(선택 설치), major는 새 OS 버전(앱
+                호환성 점검 필수)입니다.
+              </p>
+            </blockquote>
+            <h3 id="90">9.0 디자인 시스템 릴리즈 흐름</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Dev as 컴포넌트 개발자
+  participant CS as Changeset
+  participant CI as CI 파이프라인
+  participant Reg as npm 레지스트리
+  participant Apps as 소비 앱(여러 제품)
+  Dev-&gt;&gt;CS: 변경 의도 기록 (patch/minor/major)
+  Dev-&gt;&gt;CI: PR 생성
+  CI-&gt;&gt;CI: lint + visual regression + a11y test
+  CI--&gt;&gt;Dev: 결과 보고
+  Dev-&gt;&gt;CS: PR 머지
+  CS-&gt;&gt;Reg: 자동 버전 bump + 퍼블리시
+  CS-&gt;&gt;Apps: changelog + migration note 공지
+  Apps-&gt;&gt;Apps: 업그레이드 + 마이그레이션
+  Apps--&gt;&gt;Dev: 회귀 보고</pre
+            >
+            <h3 id="91-semver">9.1 시맨틱 버저닝 (SemVer)</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: SemVer는 책의 판본 표기와 같습니다. 오탈자 수정은 인쇄
+                차수(patch), 새 챕터 추가는 개정판(minor), 책 구조를 갈아엎으면 새 판(major)입니다.
+                표지에 적힌 숫자만 보고도 독자가 마이그레이션 노력을 가늠할 수 있어야 합니다.
+              </p>
+            </blockquote>
+            <p>이 그림은 변경이 들어왔을 때 어떤 bump 종류를 선택할지 보여줍니다.</p>
+            <pre class="mermaid">
+flowchart TD
+  Change[&quot;변경 사항 정리&quot;] --&gt; Q1{&quot;기존 API가&lt;br/&gt;제거/이름 변경/시그니처 변경?&quot;}
+  Q1 --&gt;|예| MAJ[&quot;MAJOR bump&lt;br/&gt;X.0.0&quot;]
+  Q1 --&gt;|아니오| Q2{&quot;새 컴포넌트/&lt;br/&gt;새 prop/&lt;br/&gt;새 variant 추가?&quot;}
+  Q2 --&gt;|예| MIN[&quot;MINOR bump&lt;br/&gt;x.X.0&quot;]
+  Q2 --&gt;|아니오| Q3{&quot;버그 수정/&lt;br/&gt;내부 리팩토링/&lt;br/&gt;의존성 패치?&quot;}
+  Q3 --&gt;|예| PAT[&quot;PATCH bump&lt;br/&gt;x.x.X&quot;]
+  Q3 --&gt;|아니오| Doc[&quot;문서 전용 변경&lt;br/&gt;버전 bump 없음&quot;]
+  MAJ --&gt; Mig[&quot;마이그레이션 가이드 작성 필수&lt;br/&gt;(codemod 권장)&quot;]
+  MIN --&gt; News[&quot;release note에 추가 기능 명시&quot;]
+  PAT --&gt; Quick[&quot;자동 배포 가능&lt;br/&gt;(시각 회귀 통과 시)&quot;]
+  Doc --&gt; Skip[&quot;changeset 생략&quot;]</pre
+            >
+            <blockquote>
+              <p>
+                <strong>주의</strong>: 토큰 값을 바꾸는 것도 시각적으로는 breaking일 수 있습니다.
+                예: <code>--color-primary</code>가 파랑→보라로 바뀌면 minor가 아니라 major로
+                취급해야 하는 조직도 있습니다. 조직별 정책을 changeset 가이드에 명시하세요.
+              </p>
+            </blockquote>
+            <pre><code>MAJOR.MINOR.PATCH
+
+MAJOR (1.0.0 → 2.0.0): Breaking change - 기존 API 변경/삭제
+  예: Button의 `type` prop이 `variant`로 이름 변경
+
+MINOR (1.0.0 → 1.1.0): 하위 호환 기능 추가
+  예: Button에 `ghost` variant 추가
+
+PATCH (1.0.0 → 1.0.1): 버그 수정
+  예: Button의 포커스 링 색상 수정
+</code></pre>
+            <h3 id="92-changelog">9.2 Changelog 자동 생성</h3>
+            <pre><code class="language-json">// package.json
+{
+  &quot;name&quot;: &quot;@company/design-system&quot;,
+  &quot;version&quot;: &quot;1.5.0&quot;,
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsup src/index.ts --format esm,cjs --dts&quot;,
+    &quot;release&quot;: &quot;changeset publish&quot;,
+    &quot;version&quot;: &quot;changeset version&quot;
+  }
+}
+</code></pre>
+            <pre><code class="language-markdown">## &lt;!-- .changeset/add-ghost-button.md --&gt;
+
+## &quot;@company/design-system&quot;: minor
+
+Button 컴포넌트에 `ghost` variant를 추가했습니다.
+배경 없이 텍스트만 표시되며, hover 시 배경이 나타납니다.
+</code></pre>
+            <h3 id="93">9.3 패키지 구조 및 퍼블리싱</h3>
+            <pre><code>packages/design-system/
+├── src/
+│   ├── components/
+│   │   ├── Button/
+│   │   │   ├── Button.tsx
+│   │   │   ├── Button.stories.tsx
+│   │   │   ├── Button.test.tsx
+│   │   │   └── index.ts
+│   │   ├── Dialog/
+│   │   └── Card/
+│   ├── tokens/
+│   │   └── tokens.css
+│   ├── hooks/
+│   │   └── useTheme.ts
+│   └── index.ts          ← 모든 컴포넌트 barrel export
+├── tsup.config.ts
+├── package.json
+└── CHANGELOG.md
+</code></pre>
+            <pre><code class="language-ts">// src/index.ts - Barrel export
+export { Button, type ButtonProps, buttonVariants } from './components/Button'
+export { Dialog, DialogContent, DialogTrigger } from './components/Dialog'
+export { Card } from './components/Card'
+export { useTheme } from './hooks/useTheme'
+
+// 토큰 CSS도 함께 제공
+import './tokens/tokens.css'
+</code></pre>
+            <pre><code class="language-ts">// tsup.config.ts
+import { defineConfig } from 'tsup'
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  format: ['esm', 'cjs'], // ESM + CommonJS 동시 지원
+  dts: true, // 타입 선언 파일 자동 생성
+  splitting: true, // 코드 스플리팅으로 트리 셰이킹 지원
+  sourcemap: true,
+  clean: true,
+  external: ['react', 'react-dom'], // peer dependency 제외
+})
+</code></pre>
+            <hr />
+            <h2 id="10">10. 주의사항 및 흔한 실수</h2>
+            <h3 id="101-over-abstraction">10.1 과도한 추상화 (Over-Abstraction)</h3>
+            <pre><code class="language-tsx">// ❌ 과도한 추상화: 의미 파악이 어려움
+&lt;FlexContainer direction=&quot;row&quot; justify=&quot;between&quot; align=&quot;center&quot; wrap gap={4}&gt;
+  &lt;TextElement variant=&quot;heading&quot; level={3} weight=&quot;bold&quot; /&gt;
+&lt;/FlexContainer&gt;
+
+// ✅ Tailwind 유틸리티를 직접 사용하는 것이 더 명확
+&lt;div className=&quot;flex items-center justify-between flex-wrap gap-4&quot;&gt;
+  &lt;h3 className=&quot;text-xl font-bold&quot;&gt;제목&lt;/h3&gt;
+&lt;/div&gt;
+</code></pre>
+            <p>
+              <strong>원칙:</strong> 레이아웃 유틸리티(<code>Flex</code>, <code>Grid</code>,
+              <code>Stack</code>)는 Tailwind 클래스로 충분합니다. 비즈니스 의미가 있는 컴포넌트만
+              추상화하세요.
+            </p>
+            <h3 id="102">10.2 토큰 불일치</h3>
+            <pre><code class="language-css">/* ❌ 하드코딩: 토큰과 무관한 임의 값 */
+.card {
+  border-radius: 7px;
+  padding: 18px;
+}
+
+/* ✅ 토큰 사용: 시스템과 일관성 유지 */
+.card {
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+</code></pre>
+            <p><strong>ESLint 규칙으로 강제:</strong></p>
+            <pre><code class="language-json">// eslint 설정에서 임의 값 사용 경고
+{
+  &quot;rules&quot;: {
+    &quot;no-restricted-syntax&quot;: [
+      &quot;warn&quot;,
+      {
+        &quot;selector&quot;: &quot;Literal[value=/^\\d+px$/]&quot;,
+        &quot;message&quot;: &quot;하드코딩된 px 값 대신 디자인 토큰을 사용하세요.&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+            <h3 id="103">10.3 접근성 누락</h3>
+            <pre><code class="language-tsx">// ❌ 접근성 누락: 스크린 리더에서 의미 전달 불가
+&lt;div onClick={handleClick} className=&quot;cursor-pointer&quot;&gt;삭제&lt;/div&gt;
+&lt;img src=&quot;chart.png&quot; /&gt;
+&lt;input placeholder=&quot;이메일&quot; /&gt;
+
+// ✅ 접근성 준수
+&lt;button onClick={handleClick} type=&quot;button&quot;&gt;삭제&lt;/button&gt;
+&lt;img src=&quot;chart.png&quot; alt=&quot;월간 매출 추이 차트 - 3월 최고치 기록&quot; /&gt;
+&lt;label&gt;
+  이메일
+  &lt;input type=&quot;email&quot; aria-required=&quot;true&quot; /&gt;
+&lt;/label&gt;
+</code></pre>
+            <blockquote>
+              <p>
+                접근성 상세 가이드는 <a href="./19_웹_접근성_가이드.md">19. 웹 접근성 가이드</a>를
+                참고하세요.
+              </p>
+            </blockquote>
+            <h3 id="104">10.4 다크 모드에서 흔한 실수</h3>
+            <pre><code class="language-css">/* ❌ 그림자가 다크 모드에서 보이지 않음 */
+.card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ 다크 모드에서는 border나 밝은 그림자로 대체 */
+.card {
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-default);
+}
+
+/* ❌ 배경과 텍스트 대비 부족 */
+.dark .muted-text {
+  color: #666;
+} /* 대비 부족 */
+
+/* ✅ WCAG AA 기준 4.5:1 이상 대비 확보 */
+.dark .muted-text {
+  color: #94a3b8;
+} /* 슬레이트 400 */
+</code></pre>
+            <hr />
+            <h2 id="ai">AI 보조 컴포넌트 개발 검증</h2>
+            <p>
+              AI는 컴포넌트 코드, token migration, story, 접근성 테스트 후보를 빠르게 만들 수
+              있지만, public API와 접근성 계약은 사람이 검증합니다. 입력 구조와 민감정보 처리 기준은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 따릅니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">컴포넌트 초안</td>
+                    <td style="text-align: left">
+                      token contract, state, interaction, 접근성 패턴
+                    </td>
+                    <td style="text-align: left">component API, state별 markup, test 후보</td>
+                    <td style="text-align: left">keyboard/focus/name-role-value test</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">토큰 마이그레이션</td>
+                    <td style="text-align: left">기존 token, 사용처, 플랫폼 요구</td>
+                    <td style="text-align: left">primitive/semantic/component 분리안</td>
+                    <td style="text-align: left">token schema validation, visual diff</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Story/문서 생성</td>
+                    <td style="text-align: left">component props, states, edge cases</td>
+                    <td style="text-align: left">stories, usage note, controls</td>
+                    <td style="text-align: left">interaction test, a11y addon, snapshot diff</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">다크 모드 감사</td>
+                    <td style="text-align: left">
+                      rendered screenshot, token map, contrast report
+                    </td>
+                    <td style="text-align: left">hard-coded color 후보, 수정안</td>
+                    <td style="text-align: left">WCAG contrast, theme switch E2E</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              승인 조건은 명확합니다. AI 산출물은 token diff, 접근성 테스트, visual regression 중
+              최소 하나의 증거와 연결되어야 하고, public API 변경은 migration note를 남겨야 합니다.
+            </p>
+            <hr />
+            <h2 id="_11">체크리스트</h2>
+            <h3 id="_12">스타일링 기초</h3>
+            <ul>
+              <li>
+                [ ] 스타일이 CSS-first 방식의 <strong>Tailwind v4</strong> 표준을 따르고 있나요?
+              </li>
+              <li>
+                [ ] <code>tailwind.config.js</code> 대신 <code>@theme</code>, <code>@utility</code>,
+                <code>@variant</code>를 사용하나요?
+              </li>
+              <li>
+                [ ] v3에서 마이그레이션 시 <code>@tailwindcss/upgrade</code> 도구를 실행했나요?
+              </li>
+            </ul>
+            <h3 id="_13">디자인 토큰</h3>
+            <ul>
+              <li>
+                [ ] 토큰이 <strong>Primitive → Semantic → Component</strong> 3계층 구조를 따르나요?
+              </li>
+              <li>[ ] 하드코딩된 색상/간격/크기 값 없이 토큰만 사용하고 있나요?</li>
+              <li>
+                [ ] 토큰이 디자인 도구와 <strong>단일 소스(SSOT)</strong>로 동기화되어 있나요?
+              </li>
+              <li>[ ] 토큰 문서화(이름, 값, 용도, 다크 모드 값)가 완료되었나요?</li>
+            </ul>
+            <h3 id="_14">컴포넌트 설계</h3>
+            <ul>
+              <li>
+                [ ] 컴포넌트의 접근성이 <strong>Radix UI</strong>나 <strong>React Aria</strong>를
+                통해 보장되었나요?
+              </li>
+              <li>
+                [ ] 변형(Variant) 관리에 <strong>CVA</strong>를 도입하여 타입 안전성을 확보했나요?
+              </li>
+              <li>[ ] <code>cn()</code> 유틸리티로 클래스 병합 시 충돌을 방지하고 있나요?</li>
+              <li>[ ] 적절한 패턴(Compound, Render Props, Polymorphic)을 선택했나요?</li>
+            </ul>
+            <h3 id="_15">다크 모드</h3>
+            <ul>
+              <li>[ ] <strong>다크 모드</strong>가 토큰 레벨에서 구현되어 있나요?</li>
+              <li>
+                [ ] <code>prefers-color-scheme</code> 시스템 감지와 수동 토글을 모두 지원하나요?
+              </li>
+              <li>[ ] FOUC 방지 인라인 스크립트가 <code>&lt;head&gt;</code>에 포함되어 있나요?</li>
+              <li>[ ] 다크 모드에서 색상 대비(WCAG AA 4.5:1)가 확보되었나요?</li>
+            </ul>
+            <h3 id="_16">문서화 및 테스트</h3>
+            <ul>
+              <li>
+                [ ] 모든 공통 컴포넌트가 <strong>Storybook</strong>에 등록되어 시각적으로 확인
+                가능한가요?
+              </li>
+              <li>[ ] Storybook <strong>인터랙션 테스트</strong>가 핵심 동작을 검증하고 있나요?</li>
+              <li>
+                [ ] <strong>Chromatic</strong> 또는 동등 도구로 시각적 회귀 테스트가 CI에 연동되어
+                있나요?
+              </li>
+              <li>
+                [ ] <strong>a11y 애드온</strong>이 Storybook에 설치되어 접근성 자동 검사가
+                활성화되어 있나요?
+              </li>
+            </ul>
+            <h3 id="_17">반응형 및 아이콘</h3>
+            <ul>
+              <li>
+                [ ] <strong>Container Queries</strong>를 활용하여 컴포넌트 단위 반응형을 구현했나요?
+              </li>
+              <li>
+                [ ] <strong>Fluid Typography</strong>로 뷰포트 대응 타이포그래피를 적용했나요?
+              </li>
+              <li>
+                [ ] 아이콘이 <code>aria-hidden</code> 또는 적절한 <code>aria-label</code>로 접근성을
+                갖추고 있나요?
+              </li>
+            </ul>
+            <h3 id="_18">배포 및 운영</h3>
+            <ul>
+              <li>[ ] <strong>시맨틱 버저닝</strong>(SemVer)을 준수하고 있나요?</li>
+              <li>[ ] <strong>Changeset</strong>으로 변경 이력을 관리하고 있나요?</li>
+              <li>[ ] 패키지가 ESM/CJS 양쪽으로 빌드되고 타입 선언이 포함되어 있나요?</li>
+            </ul>
+            <hr />
+            <h2 id="12-component-api">12. 폼의 응집도와 Component API</h2>
+            <p>
+              디자인 시스템은 재사용성을 높이지만, 잘못 올린 feature 컴포넌트는 결합도를 키웁니다.
+            </p>
+            <h3 id="121">12.1 필드 단위와 폼 전체 단위를 구분한다</h3>
+            <ul>
+              <li>
+                이메일, 전화번호, 추천 코드처럼 독립 검증이 있고 여러 폼에서 재사용되는 입력은 field
+                component와 field validation을 함께 둡니다.
+              </li>
+              <li>
+                결제 정보, 배송 정보, wizard form처럼 필드 간 의존성이 큰 경우에는 form schema와
+                submit flow를 폼 전체 단위로 관리합니다.
+              </li>
+              <li>
+                field component를 디자인 시스템으로 올릴 때는 도메인 copy, API 호출, feature flag,
+                analytics를 제거합니다.
+              </li>
+            </ul>
+            <h3 id="122-props-drilling-api">12.2 Props Drilling을 줄이는 API를 설계한다</h3>
+            <ul>
+              <li>
+                compound component, slot, render prop, <code>children</code> composition으로 중간
+                컴포넌트가 사용하지 않는 prop 전달을 줄입니다.
+              </li>
+              <li>
+                Context API는 깊은 컴포넌트 트리에서 같은 상태를 직접 소비할 때만 사용하고, 단순한
+                값 전달을 숨기는 용도로 남용하지 않습니다.
+              </li>
+              <li>
+                public prop 이름은 변경 비용이 크므로 <code>firstName</code>처럼 도메인 구체명이
+                필요한지, <code>label</code>/<code>value</code> 같은 primitive 이름이 맞는지 먼저
+                결정합니다.
+              </li>
+            </ul>
+            <h3 id="123">12.3 중복 허용 기준</h3>
+            <ul>
+              <li>
+                두 feature의 UI가 현재 비슷해도 validation, copy, permission, logging이 달라질
+                가능성이 있으면 공통 컴포넌트로 올리지 않습니다.
+              </li>
+              <li>
+                세 번째 사용처가 생기고 변경 이유가 같다는 증거가 있을 때 shared 후보로 승격합니다.
+              </li>
+              <li>
+                승격 시 Storybook, interaction test, a11y test, migration note를 함께 추가합니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="_19">실무 적용 가이드</h2>
+            <h3 id="_20">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>화면마다 버튼, 입력, 간격, 색상 규칙이 다르게 구현될 때</li>
+              <li>공통 컴포넌트 변경이 여러 제품을 동시에 깨뜨릴 때</li>
+              <li>token과 component API migration 기준이 필요할 때</li>
+            </ul>
+            <h3 id="_21">적용 순서</h3>
+            <ol>
+              <li>토큰, primitive, composite, feature component를 구분한다.</li>
+              <li>primitive는 접근성 contract와 keyboard behavior를 먼저 고정한다.</li>
+              <li>token은 source of truth와 build output을 분리한다.</li>
+              <li>breaking change에는 codemod 또는 migration guide를 붙인다.</li>
+              <li>visual/a11y regression을 release gate로 둔다.</li>
+            </ol>
+            <h3 id="_22">함께 두는 파일</h3>
+            <ul>
+              <li>컴포넌트, story, test, token 사용 예시, migration note를 같은 package에 둔다.</li>
+              <li>feature 전용 컴포넌트는 디자인 시스템으로 올리지 않는다.</li>
+              <li>공통 primitive는 도메인 의존 없이 독립 배포 가능해야 한다.</li>
+            </ul>
+            <h3 id="_23">흔한 실수</h3>
+            <ul>
+              <li>디자인 시스템에 비즈니스 로직을 넣는다.</li>
+              <li>token 이름이 색상값이나 특정 화면을 그대로 드러낸다.</li>
+              <li>접근성 테스트 없는 headless primitive를 배포한다.</li>
+              <li>migration guide 없이 prop을 제거한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] token build가 통과한다.</li>
+              <li>[ ] story와 visual regression이 있다.</li>
+              <li>[ ] 접근성 contract가 테스트된다.</li>
+              <li>[ ] breaking change에 migration note가 있다.</li>
+            </ul>
+            <h2 id="_24">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — token, component API, migration plan 중 하나를 작은 변경
+                1건에 적용하고 증거(token diff)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 디자인 시스템 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — 중복 컴포넌트 수, token drift, visual regression 수
+                추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 디자인 시스템 오너가 증거와 철회 조건을 확인했다는 기록을
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_25">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : token, component API, migration plan 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(token diff, Storybook/visual test, migration
+                codemod 결과)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : 중복 컴포넌트 수, token drift, visual regression 수가
+                기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_26">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 컴포넌트 API가 특정 도메인 요구를 과하게 품지 않는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 디자인 시스템 오너가 영향 범위와 rollback 담당자를 적용
+                전에 확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : usage audit와 visual test가 통과하면 shared component로
+                승격한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 토큰 없이 색/간격이 직접 추가되면 배포를 멈추고 정리한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 사용처 수, breaking prop 수, visual diff 범위로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 디자인 시스템 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 디자인 시스템 작성자, 검토자, 운영 확인자를 분리해
+                기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 월 1회 token drift와 deprecated API를 정리한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

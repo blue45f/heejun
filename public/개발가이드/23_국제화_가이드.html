@@ -1,0 +1,1834 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 23 국제화 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="23">23. 국제화 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>번역 키는 기능 요구보다 먼저 만들어져야 유지보수가 쉬워집니다.</li>
+              <li>숫자/날짜/문장 길이까지 언어별 차이를 먼저 반영하면 QA 비용이 줄어듭니다.</li>
+              <li>릴리즈마다 누락 키를 회귀 검사하도록 자동화하세요.</li>
+            </ul>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 국제화는 "번역만 하면 끝"이 아닙니다. 문장 길이,
+                숫자/날짜 포맷, 방향성, SEO, 폰트, 캐시 키까지 영향을 받기 때문에, 나중에 추가하면
+                모든 화면을 재작업해야 하는 큰 부채가 됩니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 옷 사이즈 표기와 같습니다. S/M/L만 적은 옷은 한국에서는
+                통해도, 유럽에서는 cm와 inch를 함께 표기해야 환불률이 줄어듭니다. "한 번 잘 설계하면
+                모든 시장에서 통하는" 영역입니다.
+              </p>
+            </blockquote>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>국제화는 번역 품질뿐 아니라 운영까지 잡아야 하는 실무 주제입니다.</p>
+            <pre class="mermaid">
+flowchart LR
+  L[Locale 결정] --&gt; M[메시지 키 + ICU]
+  M --&gt; F[Fallback 규칙]
+  F --&gt; P[Pseudo-loc/RTL smoke]
+  P --&gt; S[SEO/hreflang]
+  S --&gt; O[운영 모니터링]</pre
+            >
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>locale</code></td>
+                    <td>지역/언어 설정 값(ko-KR 등)</td>
+                  </tr>
+                  <tr>
+                    <td><code>번역 키</code></td>
+                    <td>다국어 문자열을 찾는 고유 식별자</td>
+                  </tr>
+                  <tr>
+                    <td><code>placeholder</code></td>
+                    <td>변수 치환 부분 예: <code>{name}</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>RTL</code></td>
+                    <td>오른쪽에서 왼쪽으로 쓰는 언어 정렬 방향</td>
+                  </tr>
+                  <tr>
+                    <td><code>용어집</code></td>
+                    <td>품질을 맞추기 위해 통일한 번역 사전</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">제품 품질 &amp; 글로벌</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./19_웹_접근성_가이드.md">19. 접근성</a>,
+                      <a href="./24_SEO_메타데이터_가이드.md">24. SEO</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      locale routing, ICU message, 번역 QA, pseudo-localization, RTL, fallback, SEO
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                국제화 표준은 특정 번역 SaaS나 AI 모델 사용법이 아니라
+                <strong
+                  >언어, 지역, 방향성, 포맷, 검색 노출, 번역 품질을 제품 구조 안에서 지속 가능하게
+                  관리하는 방식</strong
+                >입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: locale
+                우선순위(<code>URL</code>/<code>쿠키</code>/<code>헤더</code>)와 fallback 규칙을
+                먼저 정합니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 번역 키 충돌/누락을 CI에서 잡고, 중요 문구는 번역 품질
+                샘플로 사전 검증하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: RTL, 통화/날짜 포맷은 지역별 테스터 계정으로 주기
+                점검합니다.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — locale routing, ICU message, fallback, RTL smoke 중 하나를
+                실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — message compile, placeholder diff, pseudo-loc screenshot,
+                hreflang 검사를 같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — missing key, overflow defect, locale SEO mismatch가 나아졌는지
+                30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : locale routing, ICU message, fallback, RTL smoke 적용 범위를
+                어느 화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : message compile, placeholder diff, pseudo-loc screenshot,
+                hreflang 검사 중 실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : missing key, overflow defect, locale SEO mismatch를 다시 볼
+                날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      locale 결정, message format, fallback, pseudo-localization
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">hreflang, canonical, localized metadata</td>
+                    <td style="text-align: left">
+                      <a href="./24_SEO_메타데이터_가이드.md">24. SEO 메타데이터</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">RTL, accessible name, 번역 후 UI 접근성</td>
+                    <td style="text-align: left">
+                      <a href="./19_웹_접근성_가이드.md">19. 웹 접근성</a>,
+                      <a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI 번역 사용과 민감정보/검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">공통 기준</th>
+                    <th style="text-align: left">검증 방법</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Locale 전략</strong></td>
+                    <td style="text-align: left">
+                      URL, 쿠키, 계정 설정, 브라우저 언어 우선순위 명시
+                    </td>
+                    <td style="text-align: left">routing test</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Message format</strong></td>
+                    <td style="text-align: left">
+                      변수, plural, select, date/number 포맷을 구조화
+                    </td>
+                    <td style="text-align: left">compile check</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Fallback</strong></td>
+                    <td style="text-align: left">
+                      누락 번역, 미지원 locale, 오래된 번역 fallback 정의
+                    </td>
+                    <td style="text-align: left">missing key report</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Pseudo-localization</strong></td>
+                    <td style="text-align: left">UI overflow와 hard-coded text 검출</td>
+                    <td style="text-align: left">visual smoke</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>RTL</strong></td>
+                    <td style="text-align: left">
+                      layout, icon direction, focus order, motion direction 검증
+                    </td>
+                    <td style="text-align: left">RTL test</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>SEO</strong></td>
+                    <td style="text-align: left">canonical, hreflang, localized metadata 관리</td>
+                    <td style="text-align: left">SEO audit</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>QA</strong></td>
+                    <td style="text-align: left">
+                      placeholder 보존, 용어집, tone, 길이, 접근성 검수
+                    </td>
+                    <td style="text-align: left">translation QA</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 국제화 처리 플로우</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[요청/라우트 진입] --&gt; B[Locale 판별]
+  B --&gt; C[메시지 키 로드 및 ICU 컴파일]
+  C --&gt; D{누락 키 또는 변수 불일치}
+  D --&gt;|있음| E[빌드 실패 + 번역 보강]
+  D --&gt;|없음| F[출력 렌더 및 날짜/숫자 포맷 적용]
+  F --&gt; G[Pseudo-localization + RTL smoke]
+  G --&gt; H{문장 길이/문맥 이슈}
+  H --&gt;|있음| I[UI 반영/번역 수정]
+  H --&gt;|없음| J[SEO/Hreflang/canonical 반영]
+  E --&gt; C
+  I --&gt; F
+  J --&gt; K[릴리즈 증적 및 locale KPI 모니터링]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      메시지는 ICU/plural/select 같은 구조화 format을 사용한다
+                    </td>
+                    <td style="text-align: left">Unicode CLDR/ICU MessageFormat</td>
+                    <td style="text-align: left">compile check, placeholder diff</td>
+                    <td style="text-align: left">번역 오류, locale-specific bug</td>
+                    <td style="text-align: left">단일 언어 또는 극소수 정적 copy만 다룰 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      URL locale, canonical, hreflang을 일관되게 관리한다
+                    </td>
+                    <td style="text-align: left">검색엔진/HTML link relation 문서</td>
+                    <td style="text-align: left">route SEO test, sitemap validation</td>
+                    <td style="text-align: left">indexed locale mismatch</td>
+                    <td style="text-align: left">검색 노출이 필요 없는 내부 도구일 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">pseudo-localization을 release smoke에 포함한다</td>
+                    <td style="text-align: left">i18n QA best practice</td>
+                    <td style="text-align: left">visual overflow test, hard-coded text scan</td>
+                    <td style="text-align: left">overflow defect, missing key count</td>
+                    <td style="text-align: left">번역 대상 UI가 아직 없을 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      RTL은 logical property와 컴포넌트 테스트로 검증한다
+                    </td>
+                    <td style="text-align: left">CSS logical properties, WAI/WCAG</td>
+                    <td style="text-align: left">RTL visual diff, keyboard navigation</td>
+                    <td style="text-align: left">RTL-only defect, support ticket</td>
+                    <td style="text-align: left">지원 locale에 RTL 언어가 없을 때</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Locale 추가</td>
+                    <td style="text-align: left">routing test, fallback rule, SEO metadata 확인</td>
+                    <td style="text-align: left">I18n owner</td>
+                    <td style="text-align: left">locale 비활성화 또는 제한 공개</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">메시지 변경</td>
+                    <td style="text-align: left">
+                      ICU compile, placeholder diff, missing key report
+                    </td>
+                    <td style="text-align: left">Content owner</td>
+                    <td style="text-align: left">이전 번역 복구 또는 fallback 적용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Pseudo/RTL smoke</td>
+                    <td style="text-align: left">
+                      overflow screenshot, hard-coded text scan, RTL keyboard test
+                    </td>
+                    <td style="text-align: left">QA owner</td>
+                    <td style="text-align: left">release 차단 또는 affected locale 제외</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SEO 국제화</td>
+                    <td style="text-align: left">canonical/hreflang/sitemap validation</td>
+                    <td style="text-align: left">SEO owner</td>
+                    <td style="text-align: left">sitemap 제외 또는 canonical rollback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="021-locale">0.2.1 Locale 공개 전 증거 흐름</h3>
+            <pre class="mermaid">
+flowchart LR
+  COPY[&quot;source copy 변경&quot;] --&gt; MSG[&quot;ICU message + placeholder&quot;]
+  MSG --&gt; COMPILE{&quot;compile/pass?&quot;}
+  COMPILE --&gt;|&quot;fail&quot;| FIX_COPY[&quot;키/placeholder 수정&quot;]
+  FIX_COPY --&gt; MSG
+  COMPILE --&gt;|&quot;pass&quot;| VISUAL[&quot;pseudo-loc screenshot&quot;]
+  VISUAL --&gt; RTL{&quot;RTL 또는 긴 문장&lt;br/&gt;영향 있음?&quot;}
+  RTL --&gt;|&quot;있음&quot;| LAYOUT[&quot;logical property/focus/motion 점검&quot;]
+  RTL --&gt;|&quot;없음&quot;| SEO
+  LAYOUT --&gt; SEO[&quot;localized metadata + hreflang&quot;]
+  SEO --&gt; FLAG{&quot;locale flag&lt;br/&gt;부분 공개 가능?&quot;}
+  FLAG --&gt;|&quot;예&quot;| CANARY[&quot;locale canary + KPI 모니터링&quot;]
+  FLAG --&gt;|&quot;아니오&quot;| HOLD[&quot;공개 보류&quot;]
+  CANARY --&gt; RELEASE[&quot;정식 공개&quot;]</pre
+            >
+            <hr />
+            <h2 id="1-locale">1. Locale 결정 규칙</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: locale 우선순위가 서버/클라이언트/SEO마다 다르면 한
+                사용자가 한 페이지에서 서로 다른 언어가 섞여 보입니다. hydration 불일치 버그의 가장
+                흔한 원인입니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">우선순위</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">1</td>
+                    <td style="text-align: left">사용자가 명시적으로 선택한 locale</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">2</td>
+                    <td style="text-align: left">로그인 사용자의 저장된 preference</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">3</td>
+                    <td style="text-align: left">URL path/domain의 locale</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">4</td>
+                    <td style="text-align: left">브라우저 <code>Accept-Language</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">5</td>
+                    <td style="text-align: left">제품 기본 locale</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              locale 결정 규칙은 서버 렌더링, 클라이언트 라우팅, API 호출, SEO metadata에서 동일하게
+              적용되어야 합니다.
+            </p>
+            <h3 id="11-locale">1.1 Locale 결정 의사결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  START([요청 진입]) --&gt; EXPLICIT{URL에&lt;br/&gt;locale switch?}
+  EXPLICIT --&gt;|예| USE_EXPLICIT[명시 선택 locale]
+  EXPLICIT --&gt;|아니오| LOGIN{로그인 사용자?}
+  LOGIN --&gt;|예| HAS_PREF{저장된&lt;br/&gt;preference 존재?}
+  HAS_PREF --&gt;|예| USE_PREF[저장된 preference]
+  HAS_PREF --&gt;|아니오| URL_CHECK
+  LOGIN --&gt;|아니오| URL_CHECK
+  URL_CHECK{URL path&lt;br/&gt;또는 domain에&lt;br/&gt;locale 표시?}
+  URL_CHECK --&gt;|예| USE_URL[URL locale]
+  URL_CHECK --&gt;|아니오| ACCEPT{Accept-Language&lt;br/&gt;헤더에 지원 locale?}
+  ACCEPT --&gt;|예| USE_ACCEPT[브라우저 우선 locale]
+  ACCEPT --&gt;|아니오| USE_DEFAULT[제품 기본 locale]
+  USE_EXPLICIT --&gt; RENDER[렌더링]
+  USE_PREF --&gt; RENDER
+  USE_URL --&gt; RENDER
+  USE_ACCEPT --&gt; RENDER
+  USE_DEFAULT --&gt; RENDER</pre
+            >
+            <h3 id="12">1.2 신규 언어/로케일 추가 시퀀스</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant PM as PM
+  participant DEV as Frontend Dev
+  participant TR as Translator
+  participant CI as CI Pipeline
+  participant SEO as SEO Owner
+  participant OPS as Ops
+
+  PM-&gt;&gt;DEV: 신규 locale ko-KR 추가 요청
+  DEV-&gt;&gt;DEV: locales/ko-KR 디렉토리 생성
+  DEV-&gt;&gt;DEV: 메시지 키 골격 복제 (en 기준)
+  DEV-&gt;&gt;TR: 번역 요청 + screenshot/context
+  TR-&gt;&gt;DEV: 번역 파일 PR
+  DEV-&gt;&gt;CI: PR 푸시
+  CI-&gt;&gt;CI: ICU compile + placeholder diff
+  CI-&gt;&gt;CI: missing key 검사
+  CI-&gt;&gt;CI: pseudo-loc + RTL smoke
+  CI--&gt;&gt;DEV: 모든 게이트 통과
+  DEV-&gt;&gt;SEO: hreflang/canonical/sitemap 추가
+  SEO-&gt;&gt;SEO: localized metadata 작성
+  DEV-&gt;&gt;OPS: locale 활성화 플래그 ON
+  OPS-&gt;&gt;OPS: locale별 KPI 대시보드 확인
+  OPS--&gt;&gt;PM: 신규 locale 정식 공개</pre
+            >
+            <p>
+              비유: 새 매장을 오픈하는 것과 같습니다. 메뉴판(번역) → 가격표(숫자/통화) → 간판(SEO) →
+              POS 시스템(라우팅) 순서로 준비해야 첫 손님이 헤매지 않습니다.
+            </p>
+            <hr />
+            <h2 id="2">2. 메시지 작성 원칙</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 문장 조각을 이어 붙이는 방식은 영어에서는
+                자연스러워도, 어순/조사/관사가 다른 언어에서는 문법이 깨집니다. ICU 같은 구조화
+                포맷을 처음부터 쓰는 것이 가장 저렴한 보험입니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">원칙</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">문장 단위</td>
+                    <td style="text-align: left">단어 조각을 이어 붙이지 않음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">변수 명확화</td>
+                    <td style="text-align: left">
+                      <code>{count}</code>, <code>{userName}</code>처럼 의미 있는 이름
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">plural/select 사용</td>
+                    <td style="text-align: left">수량과 성별/상태 분기를 문법적으로 처리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">HTML 분리</td>
+                    <td style="text-align: left">번역 문자열에 임의 HTML 삽입 금지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">문맥 제공</td>
+                    <td style="text-align: left">번역자에게 화면, 목적, 제한 길이 제공</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <pre><code class="language-json">{
+  &quot;cart.items&quot;: &quot;{count, plural, =0 {No items} one {# item} other {# items}}&quot;,
+  &quot;order.status&quot;: &quot;{status, select, paid {Paid} failed {Failed} pending {Pending} other {Unknown}}&quot;
+}
+</code></pre>
+            <h3 id="21-icu">2.1 ICU 메시지 처리 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  SRC[메시지 키 source] --&gt; COMPILE[ICU 컴파일러]
+  COMPILE --&gt;|문법 오류| FAIL_COMPILE[빌드 실패&lt;br/&gt;리뷰 차단]
+  COMPILE --&gt;|성공| AST[AST 산출]
+  AST --&gt; EXTRACT[placeholder 목록 추출]
+  EXTRACT --&gt; DIFF{소스 vs 번역&lt;br/&gt;placeholder 일치?}
+  DIFF --&gt;|불일치| FAIL_DIFF[CI 실패&lt;br/&gt;번역 수정 요청]
+  DIFF --&gt;|일치| RUNTIME[런타임 메시지 빌더]
+  RUNTIME --&gt; VARS{입력 변수 모두 제공?}
+  VARS --&gt;|아니오| FALLBACK[fallback 적용&lt;br/&gt;+ 모니터링 경고]
+  VARS --&gt;|예| RENDER[최종 렌더 문자열]
+  RENDER --&gt; INTL[Intl.NumberFormat&lt;br/&gt;Intl.DateTimeFormat 적용]
+  INTL --&gt; OUT[화면 출력]</pre
+            >
+            <p>
+              비유: 케이크 데코레이션 틀과 같습니다. 글자 한 줄을 직접 짜내는 게 아니라, "이 자리에
+              이름, 이 자리에 나이"라는 틀(ICU)에 맞춰 짜야 모든 케이크가 일관됩니다.
+            </p>
+            <hr />
+            <h2 id="3">3. 번역 키 구조</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">방식</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Domain 기반</td>
+                    <td style="text-align: left"><code>checkout.payment.submit</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Component 기반</td>
+                    <td style="text-align: left">재사용 컴포넌트 내부 label</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Error 기반</td>
+                    <td style="text-align: left"><code>error.network.timeout</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Metadata 기반</td>
+                    <td style="text-align: left"><code>seo.product.title</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              키 이름은 화면 위치보다 의미를 담아야 합니다. <code>button.submit</code>보다
+              <code>checkout.payment.submit</code>이 추적과 변경에 유리합니다.
+            </p>
+            <hr />
+            <h2 id="4-qa">4. 번역 QA</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">검사</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">누락 키</td>
+                    <td style="text-align: left">build 또는 CI에서 실패</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">미사용 키</td>
+                    <td style="text-align: left">주기적으로 정리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">placeholder</td>
+                    <td style="text-align: left">원문과 번역의 변수 목록 일치</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">ICU syntax</td>
+                    <td style="text-align: left">compile 단계에서 검증</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">길이</td>
+                    <td style="text-align: left">버튼, 탭, 카드, 표에서 overflow 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">용어집</td>
+                    <td style="text-align: left">제품 용어와 금지어 검사</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">접근성</td>
+                    <td style="text-align: left">번역 후 accessible name 의미 유지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              AI 번역을 사용하더라도 placeholder, plural, tone, legal copy는 자동 검증과 사람 검토가
+              필요합니다.
+            </p>
+            <hr />
+            <h2 id="5-pseudo-localization">5. Pseudo-localization</h2>
+            <p>Pseudo-localization은 실제 번역 전에 UI 구조 문제를 찾는 가장 저렴한 방법입니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">검출 대상</th>
+                    <th style="text-align: left">예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">hard-coded text</td>
+                    <td style="text-align: left">번역 파일을 거치지 않는 문자열</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">overflow</td>
+                    <td style="text-align: left">긴 문자열에서 버튼/카드 깨짐</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">concatenation</td>
+                    <td style="text-align: left">문법이 깨지는 문자열 조합</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">missing key</td>
+                    <td style="text-align: left">fallback text 노출</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">bidi 문제</td>
+                    <td style="text-align: left">RTL에서 punctuation/number 방향 문제</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>release 전 핵심 flow는 pseudo locale에서 한 번 이상 확인합니다.</p>
+            <hr />
+            <h2 id="6-rtl">6. RTL 지원</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 아랍어/히브리어 등 RTL 언어는 단순 텍스트 방향뿐
+                아니라 메뉴 위치, 아이콘 화살표, 모션 방향, 키보드 포커스 순서까지 영향을 줍니다.
+                뒤늦게 대응하면 거의 모든 컴포넌트를 재작업해야 합니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Layout</td>
+                    <td style="text-align: left">
+                      <code>left/right</code>보다 logical property 사용
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Icon</td>
+                    <td style="text-align: left">방향성이 있는 아이콘은 mirror 기준 정의</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Motion</td>
+                    <td style="text-align: left">slide/transition 방향 검토</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Focus</td>
+                    <td style="text-align: left">keyboard 이동 순서 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Data</td>
+                    <td style="text-align: left">전화번호, 날짜, 통화, 주소 포맷 locale별 처리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              RTL은 단순히 <code>dir="rtl"</code>을 붙이는 작업이 아닙니다. 디자인 시스템 토큰과
+              컴포넌트 레벨에서 지원해야 합니다.
+            </p>
+            <h3 id="61-rtl">6.1 RTL 전환 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  PAGE([페이지 진입]) --&gt; Q1{현재 locale이&lt;br/&gt;RTL 언어?}
+  Q1 --&gt;|아니오| LTR[dir=ltr 유지]
+  Q1 --&gt;|예| Q2{디자인 시스템이&lt;br/&gt;logical property 채택?}
+  Q2 --&gt;|아니오| BLOCK_RTL[RTL 비활성화&lt;br/&gt;+ 디자인 부채로 등록]
+  Q2 --&gt;|예| SET_DIR[html dir=rtl 적용]
+  SET_DIR --&gt; Q3{방향성 아이콘&lt;br/&gt;존재?}
+  Q3 --&gt;|예| MIRROR[mirror 규칙 적용&lt;br/&gt;화살표/back 버튼]
+  Q3 --&gt;|아니오| Q4
+  MIRROR --&gt; Q4{모션/슬라이드&lt;br/&gt;존재?}
+  Q4 --&gt;|예| FLIP_MOTION[방향 반전&lt;br/&gt;slide/transition]
+  Q4 --&gt;|아니오| Q5
+  FLIP_MOTION --&gt; Q5{숫자/날짜/통화&lt;br/&gt;locale별 포맷 적용?}
+  Q5 --&gt;|아니오| FORMAT[Intl API 적용]
+  Q5 --&gt;|예| KBD
+  FORMAT --&gt; KBD{키보드 포커스&lt;br/&gt;순서 검증?}
+  KBD --&gt;|아니오| TEST[RTL 키보드 테스트 추가]
+  KBD --&gt;|예| READY[RTL 정식 지원]
+  TEST --&gt; READY
+  LTR --&gt; READY</pre
+            >
+            <h3 id="62-i18n">6.2 i18n 상태 다이어그램</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; NotPlanned: 신규 기능
+  NotPlanned --&gt; KeyDraft: 메시지 키 추출
+  KeyDraft --&gt; SourceReady: en 기준 작성
+  SourceReady --&gt; Translating: 번역 요청 송부
+  Translating --&gt; ICUFail: ICU 오류
+  Translating --&gt; PlaceholderMismatch: placeholder 불일치
+  ICUFail --&gt; SourceReady: 수정
+  PlaceholderMismatch --&gt; SourceReady: 수정
+  Translating --&gt; Reviewed: 사람 번역 검수
+  Reviewed --&gt; PseudoSmoke: pseudo-loc 검사
+  PseudoSmoke --&gt; Overflow: UI 깨짐
+  Overflow --&gt; KeyDraft: 키/UI 조정
+  PseudoSmoke --&gt; RTLSmoke: RTL 대상이면
+  PseudoSmoke --&gt; Released: RTL 비대상이면
+  RTLSmoke --&gt; Released
+  Released --&gt; Deprecated: 키 미사용 90일+
+  Deprecated --&gt; [*]: 정리 PR</pre
+            >
+            <p>
+              비유: RTL 지원은 거울 방에서 작업하는 것과 같습니다. 좌우 개념을 직접 박지 말고,
+              "시작쪽(inline-start)/끝쪽(inline-end)"이라는 추상 좌표를 사용해야 거울 안에서도
+              의미가 유지됩니다.
+            </p>
+            <hr />
+            <h2 id="7-seo">7. SEO와 라우팅</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">URL</td>
+                    <td style="text-align: left">locale이 안정적으로 드러나는 URL 구조</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Canonical</td>
+                    <td style="text-align: left">중복 URL 정리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Hreflang</td>
+                    <td style="text-align: left">지역/언어 대체 페이지 연결</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Metadata</td>
+                    <td style="text-align: left">title, description, Open Graph 번역</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Sitemap</td>
+                    <td style="text-align: left">locale별 URL 포함</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Redirect</td>
+                    <td style="text-align: left">
+                      자동 redirect가 crawler 접근을 막지 않도록 설계
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              검색 노출이 중요한 페이지는 클라이언트에서만 번역하지 말고, 서버/빌드 단계에서
+              localized metadata를 제공해야 합니다.
+            </p>
+            <hr />
+            <h2 id="8">8. 성능 기준</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 글로벌 제품에서 locale 데이터는 가장 빠르게 비대해지는
+                자산입니다. 초기에 lazy 로딩 전략을 박지 않으면, locale 추가마다 LCP가 선형으로
+                악화됩니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">번역 번들</td>
+                    <td style="text-align: left">현재 locale과 route에 필요한 메시지만 로드</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">폰트</td>
+                    <td style="text-align: left">locale별 subset, fallback, preload 최소화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">날짜/숫자 포맷</td>
+                    <td style="text-align: left">표준 Intl API 우선</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">캐시</td>
+                    <td style="text-align: left">locale별 cache key와 fallback 명확화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">hydration</td>
+                    <td style="text-align: left">서버/클라이언트 locale 불일치 방지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>모든 locale 번역을 초기 번들에 넣으면 글로벌 제품일수록 성능이 급격히 나빠집니다.</p>
+            <h3 id="81">8.1 번역 번들 로딩 전략</h3>
+            <pre class="mermaid">
+flowchart LR
+  REQ[요청] --&gt; SSR[SSR locale 판별]
+  SSR --&gt; CORE[core 메시지&lt;br/&gt;nav/footer/error]
+  SSR --&gt; ROUTE[route별 메시지&lt;br/&gt;현재 경로만]
+  CORE --&gt; HYDRATE[hydration]
+  ROUTE --&gt; HYDRATE
+  HYDRATE --&gt; CLIENT[클라이언트 라우팅]
+  CLIENT --&gt;|새 경로 진입| LAZY[lazy chunk 로드]
+  LAZY --&gt; CACHE[(locale별 cache)]
+  CACHE -.fallback miss.-&gt; CORE</pre
+            >
+            <hr />
+            <h2 id="9">9. 체크리스트</h2>
+            <ul>
+              <li>[ ] locale 결정 우선순위가 문서화되어 있는가</li>
+              <li>[ ] 메시지가 plural/select/date/number 포맷을 지원하는가</li>
+              <li>[ ] 누락/미사용 키와 placeholder 불일치가 CI에서 잡히는가</li>
+              <li>[ ] pseudo-localization으로 overflow와 hard-coded text를 확인하는가</li>
+              <li>[ ] RTL locale에서 layout, icon, focus, motion을 검증하는가</li>
+              <li>[ ] hreflang/canonical/metadata/sitemap이 locale별로 생성되는가</li>
+              <li>[ ] AI 번역 결과를 용어집, placeholder, 사람 검토로 검증하는가</li>
+            </ul>
+            <hr />
+            <h2 id="10">10. 제외한 벤더 종속 항목</h2>
+            <p>
+              공통 개발 가이드에는 특정 번역 SaaS, 특정 AI 번역 모델, 특정 알림 도구, 특정 OTA 번역
+              SDK, 특정 배포 플랫폼의 워크플로우를 표준으로 포함하지 않습니다. 이 문서에는 어떤
+              국제화 도구를 쓰더라도 유지되어야 하는 locale, message format, QA, RTL, SEO, 성능
+              기준만 남깁니다.
+            </p>
+            <hr />
+            <h2 id="_7">실무 적용 가이드</h2>
+            <h3 id="_8">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>문자열 길이, 복수형, RTL, locale routing이 뒤늦게 문제될 때</li>
+              <li>AI 번역 결과가 placeholder나 법무 문구를 깨뜨릴 때</li>
+              <li>locale bundle이 성능을 악화시킬 때</li>
+            </ul>
+            <h3 id="_9">적용 순서</h3>
+            <ol>
+              <li>locale 결정 규칙과 fallback 순서를 정한다.</li>
+              <li>ICU message로 plural/select/placeholder를 구조화한다.</li>
+              <li>번역 키, source text, screenshot/context를 함께 관리한다.</li>
+              <li>pseudo-localization과 RTL smoke를 핵심 flow에 적용한다.</li>
+              <li>message compile, placeholder diff, locale SEO를 CI에서 확인한다.</li>
+            </ol>
+            <h3 id="_10">함께 두는 파일</h3>
+            <ul>
+              <li>feature별 메시지, screenshot context, test를 기능 폴더에 둔다.</li>
+              <li>전역 navigation/공통 컴포넌트 메시지만 shared i18n에 둔다.</li>
+              <li>locale route metadata는 SEO 문서와 연결한다.</li>
+            </ul>
+            <h3 id="_11">흔한 실수</h3>
+            <ul>
+              <li>문장 조각을 이어 붙인다.</li>
+              <li>placeholder 검증 없이 번역을 merge한다.</li>
+              <li>RTL에서 margin/padding 방향을 하드코딩한다.</li>
+              <li>모든 locale 메시지를 초기 번들에 넣는다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] message compile이 통과한다.</li>
+              <li>[ ] placeholder/plural 검증이 있다.</li>
+              <li>[ ] pseudo-loc/RTL 핵심 flow가 통과한다.</li>
+              <li>[ ] locale bundle 영향이 확인되었다.</li>
+            </ul>
+            <h2 id="_12">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — locale routing, ICU message, fallback, RTL smoke 중 하나를
+                작은 변경 1건에 적용하고 증거(message compile)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 국제화 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — missing key, overflow defect, locale SEO mismatch 추이를
+                보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — i18n 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_13">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : locale routing, ICU message, fallback, RTL smoke 적용
+                대상을 1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(message compile, placeholder diff, pseudo-loc
+                screenshot, hreflang 검사)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : missing key, overflow defect, locale SEO mismatch가
+                기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_14">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 번역 전에 변수, plural, fallback 규칙이 구조화됐는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : i18n 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : pseudo-loc/RTL smoke와 SEO metadata가 통과하면 locale을
+                공개한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : placeholder 깨짐이나 hard-coded text가 남으면 release를
+                막는다.
+              </li>
+              <li><code>리스크 점수</code> : 지원 locale 수, 법적 문구, RTL 여부로 산정한다.</li>
+              <li><code>리더 승인자</code> : 글로벌 UX 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 국제화 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li><code>재평가 주기</code> : locale 추가와 copy 변경 때마다 QA 샘플을 갱신한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

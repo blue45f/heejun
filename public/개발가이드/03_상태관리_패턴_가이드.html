@@ -1,0 +1,3013 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 03 상태관리 패턴 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="03">03. 상태 관리 패턴 가이드</h1>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              이 문서는 화면에 보이는 상태(입력값, 조회 결과, 로딩 등)를 어디에 둘지 정리합니다.
+            </p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>상태(state)</code></td>
+                    <td>지금 화면에서 중요한 현재 값</td>
+                  </tr>
+                  <tr>
+                    <td><code>캐시</code></td>
+                    <td>같은 값 재사용을 위해 잠깐 저장해 두는 보관소</td>
+                  </tr>
+                  <tr>
+                    <td><code>mutation</code></td>
+                    <td>서버에 데이터를 바꾸는 요청(저장/수정/삭제)</td>
+                  </tr>
+                  <tr>
+                    <td><code>rollback</code></td>
+                    <td>실패 시 변경 전 상태로 되돌리는 처리</td>
+                  </tr>
+                  <tr>
+                    <td><code>URL 상태</code></td>
+                    <td>주소창 파라미터로 관리되는 상태</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./02_React19_실무_가이드.md">02. React 19</a>,
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능 최적화</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      Server vs Client State, Slice Pattern, URL as State, TC39 Signals, Standard
+                      Schema
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong>"상태 관리는 어디에 저장할지가 아니라, 어떻게 동기화할지의 문제다."</strong>
+                본 가이드는 서버 상태(Server State)와 UI 상태(UI State)를 명확히 분리하고, 가장
+                효율적인 업데이트 라이프사이클을 설계하는 표준을 제시합니다.
+              </p>
+              <p><strong>현재 공식 문서 기준 라이브러리 버전</strong></p>
+              <ul>
+                <li>
+                  <strong>TanStack Query v5</strong> (안정): React Suspense 1급 시민,
+                  <code>streamedQuery</code>, 부분 dehydration, Pending Query 스트리밍(v5.40+)
+                </li>
+                <li>
+                  <strong>Zustand v5</strong> (안정, React 18+ 전용 / 네이티브
+                  <code>useSyncExternalStore</code> 사용)
+                </li>
+                <li>
+                  <strong>Jotai v2</strong> (안정): atom 캐싱/성능 개선,
+                  <code>atomWithStorage</code> 등 utils
+                </li>
+                <li>
+                  <strong>XState v5</strong> (안정): "actor" 중심 모델, <code>setup()</code> 패턴,
+                  <code>actor.select()</code> 추가
+                </li>
+                <li>
+                  <strong>TC39 Signals Proposal</strong>: 현재 공식 문서 기준
+                  <strong>Stage 1</strong> (Stage 2 진입 논의 중). 표준화 전까지는 라이브러리별
+                  Signal API 채택은 신중히.
+                </li>
+              </ul>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 상태는 <code>UI 상태</code>/<code>서버 상태</code>/<code
+                  >라우터 상태</code
+                >로 소유권을 먼저 나눕니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 캐시 무효화 기준과 rollback 조건을 한쪽으로 모아 팀 룰로
+                지정하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: <code>mutation</code> 실패 시 사용자 체감이 심한
+                경로부터 복원 버튼/토스트 UX를 먼저 운영하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — 서버 상태, URL state, UI state 분리 중 하나를 실제 PR이나
+                운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — 쿼리 키 목록, optimistic update 테스트, URL 복원 테스트를
+                같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — 상태 중복 수, stale cache 이슈, 뒤로가기 회귀가 나아졌는지
+                30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : 서버 상태, URL state, UI state 분리 적용 범위를 어느 화면,
+                패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : 쿼리 키 목록, optimistic update 테스트, URL 복원 테스트 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : 상태 중복 수, stale cache 이슈, 뒤로가기 회귀를 다시 볼
+                날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <p>이 문서를 급하게 훑어볼 때는 아래 세 가지만 먼저 기억하세요.</p>
+            <ol>
+              <li><strong>상태는 ‘누가 소유하는지’로 나눈다.</strong></li>
+              <li>
+                서버에서 온 데이터는 서버 상태로, 화면 조작은 UI 상태로, 공유가 필요한 값은 URL
+                상태로 분리합니다.
+              </li>
+              <li><strong>캐시는 빠름이 목적이 아니라 정합성이 목적이다.</strong></li>
+              <li>mutation이 성공/실패했을 때 어떤 캐시를 새로고침할지 미리 적어둡니다.</li>
+              <li><strong>실패 복구(rollback)가 없는 낙관적 업데이트는 위험하다.</strong></li>
+              <li>
+                사용자가 “저장됨”처럼 보이는 순간, 오류가 나면 원래 값으로 확실히 복구되어야 합니다.
+              </li>
+            </ol>
+            <h2 id="_7">쉬운 말로 보는 용어 정리 (이 문서 중심)</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>평소 말투로 바꿔 말하면</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>Server State</code></td>
+                    <td>API에서 들어온 데이터 상태</td>
+                  </tr>
+                  <tr>
+                    <td><code>UI State</code></td>
+                    <td>지금 화면 안에서 쓰이는 상태</td>
+                  </tr>
+                  <tr>
+                    <td><code>query key</code></td>
+                    <td>같은 종류의 데이터를 불러오고 관리하는 이름표</td>
+                  </tr>
+                  <tr>
+                    <td><code>cache invalidation</code></td>
+                    <td>예전 캐시를 지우고 새로 받는 행위</td>
+                  </tr>
+                  <tr>
+                    <td><code>optimistic update</code></td>
+                    <td>결과가 오기 전에 일단 화면을 먼저 바꾸는 방식</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      서버 상태, URL 상태, UI 상태, 전역 상태의 소유권 분류
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      query key, cache invalidation, optimistic rollback 기준
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>,
+                      <a href="./09_장애_대응_및_관측성_표준.md">09. 관측성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">상태 변경이 성능과 UX에 미치는 영향 검증</td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 제안한 상태 분리/통합안의 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <p>
+              상태 관리는 라이브러리 선택보다 <strong>상태의 소유권과 동기화 규칙</strong>을 먼저
+              표준화합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>상태 분류</strong></td>
+                    <td style="text-align: left">
+                      서버 상태, URL 상태, 폼 상태, 세션 상태, UI 상태를 구분하고 저장 위치를
+                      문서화합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>서버 상태 원칙</strong></td>
+                    <td style="text-align: left">
+                      서버에서 온 데이터는 전역 클라이언트 스토어에 복사하지 않고, Query cache 같은
+                      서버 상태 도구가 소유합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>URL 우선 원칙</strong></td>
+                    <td style="text-align: left">
+                      검색어, 필터, 정렬, 페이지 번호처럼 공유/복원되어야 하는 상태는 URL에 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>캐시 무효화 규칙</strong></td>
+                    <td style="text-align: left">
+                      mutation마다 영향을 받는 query key, 낙관적 업데이트, 실패 시 rollback을
+                      명시합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>전역 스토어 제한</strong></td>
+                    <td style="text-align: left">
+                      인증 세션, 앱 설정, cross-page UI처럼 진짜 전역인 상태만 전역 스토어에 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>관측 가능성</strong></td>
+                    <td style="text-align: left">
+                      상태 변경으로 인한 주요 장애는 로그/트레이스/사용자 행동 재현으로 추적할 수
+                      있어야 합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 상태 계층 분리 흐름</h3>
+            <pre class="mermaid">
+flowchart LR
+  A[사용자 동작] --&gt; B{상태 종류}
+  B --&gt;|URL 공유/복원 필요| C[URL State]
+  B --&gt;|서버 데이터| D[Server State Cache]
+  B --&gt;|폼/컴포넌트 로컬| E[UI State]
+  B --&gt;|인증/전역 설정| F[Global Store]
+  C --&gt; G[라우터 동기화]
+  D --&gt; H[QueryClient / 캐시]
+  H --&gt; I[컴포넌트 렌더]
+  E --&gt; I
+  F --&gt; I
+  I --&gt; J{실패/타임아웃}
+  J --&gt;|재시도| D
+  J --&gt;|복구 불가| E</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      서버 상태를 전역 클라이언트 스토어에 복사하지 않는다
+                    </td>
+                    <td style="text-align: left">
+                      서버 상태 라이브러리 공식 문서, React Suspense/캐시 정책
+                    </td>
+                    <td style="text-align: left">query key factory, mutation rollback 테스트</td>
+                    <td style="text-align: left">중복 fetch, stale UI, cache hit ratio</td>
+                    <td style="text-align: left">
+                      전역 스토어가 서버 원본보다 일관성을 더 잘 보장한다는 근거가 있을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">공유/복원 가능한 상태는 URL에 둔다</td>
+                    <td style="text-align: left">WHATWG URL/History, 라우터 공식 문서</td>
+                    <td style="text-align: left">deep link E2E, back/forward 테스트</td>
+                    <td style="text-align: left">검색/필터 이탈률, support ticket</td>
+                    <td style="text-align: left">
+                      개인정보/보안 정보가 URL에 노출될 위험이 있을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      mutation은 무효화 범위와 rollback을 함께 정의한다
+                    </td>
+                    <td style="text-align: left">데이터 동기화 도구 공식 문서</td>
+                    <td style="text-align: left">실패 시 optimistic rollback 테스트</td>
+                    <td style="text-align: left">mutation 실패율, 재시도 후 불일치율</td>
+                    <td style="text-align: left">
+                      서버가 idempotency와 conflict resolution을 보장하지 않을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Signals 계열 API는 표준화 전까지 실험으로 둔다</td>
+                    <td style="text-align: left">TC39 proposal stage, 프레임워크 공식 roadmap</td>
+                    <td style="text-align: left">adapter 격리, fallback 구현</td>
+                    <td style="text-align: left">re-render cost, migration cost</td>
+                    <td style="text-align: left">
+                      TC39 stage/브라우저/프레임워크 지원이 production baseline에 도달할 때
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">State classification gate</td>
+                    <td style="text-align: left">state inventory, owner map</td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">전역 store 변경 revert, local state 복원</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Query key gate</td>
+                    <td style="text-align: left">query key factory, invalidation test</td>
+                    <td style="text-align: left">API/FE owner</td>
+                    <td style="text-align: left">affected query invalidation 수동 추가</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Optimistic update gate</td>
+                    <td style="text-align: left">failure replay test, rollback assertion</td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">optimistic path flag off</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">URL state gate</td>
+                    <td style="text-align: left">deep link/back-forward E2E</td>
+                    <td style="text-align: left">Route owner</td>
+                    <td style="text-align: left">URL sync 제거 후 local state로 축소</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-tanstack-query-v5">1. 서버 상태 관리: TanStack Query v5</h2>
+            <h3 id="_8">왜 중요한가</h3>
+            <p>
+              서버 데이터는 로컬 스토어(Zustand 등)에 복사하지 마세요. 캐싱과 비동기 처리는 TanStack
+              Query에 전적으로 맡깁니다. 서버 상태의 특성(비동기, 공유, 캐시 만료 등)에 최적화된
+              전용 도구를 쓰는 것이 핵심입니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 도서관 사서가 있는데 굳이 책 사본을 자기 가방에도 들고
+                다니면 정보가 어긋납니다. 사서(서버)가 보유한 책(데이터)의 사본을 매번 끄집어내
+                가방(전역 store)에 넣지 말고, 사서에게 그때그때 요청(query)하세요.
+              </p>
+              <p>
+                <strong>v5 라인 핵심 변화</strong>: (1) Suspense 1급
+                지원(<code>useSuspenseQuery</code>/<code>useSuspenseInfiniteQuery</code>/<code>useSuspenseQueries</code>),
+                (2) API 단일 객체 인자로 통일, (3) Infinite Query <code>maxPages</code> 옵션, (4)
+                Pending Query를 dehydrate하여 SSR 스트리밍 가능 (v5.40+), (5)
+                <code>streamedQuery</code>로 ReadableStream/SSE를 캐시에 누적 가능.
+              </p>
+            </blockquote>
+            <h4 id="vs-vs-url">서버 vs 클라이언트 vs URL 상태 결정 트리</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[상태가 어디서 왔나?] --&gt; B{서버가 진실의 원천?}
+  B -- 예 --&gt; C[Server State&lt;br/&gt;TanStack Query 캐시]
+  B -- 아니오 --&gt; D{공유/북마크/뒤로가기가 필요?}
+  D -- 예 --&gt; E[URL State&lt;br/&gt;useSearchParams/nuqs]
+  D -- 아니오 --&gt; F{여러 라우트에서 공유?}
+  F -- 예 --&gt; G{진짜 전역?&lt;br/&gt;인증/테마/플래그}
+  G -- 예 --&gt; H[Global Store&lt;br/&gt;Zustand 슬라이스]
+  G -- 아니오 --&gt; I[Context 또는 부모 lift]
+  F -- 아니오 --&gt; J[Local UI State&lt;br/&gt;useState/useReducer]
+  C -. mutation .-&gt; K[invalidate + optimistic]
+  E -. 동기화 .-&gt; L[router push/replace]</pre
+            >
+            <h4 id="staletimegctime">staleTime/gcTime 상태 변화</h4>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Fetching: queryFn 실행
+  Fetching --&gt; Fresh: 성공 응답
+  Fresh --&gt; Stale: staleTime 경과
+  Stale --&gt; BackgroundRefetch: 마운트 또는 focus
+  BackgroundRefetch --&gt; Fresh: 새 데이터 도착
+  Fresh --&gt; Inactive: 컴포넌트 언마운트
+  Stale --&gt; Inactive: 컴포넌트 언마운트
+  Inactive --&gt; [*]: gcTime 경과&lt;br/&gt;(가비지 컬렉션)
+  Inactive --&gt; Fresh: 같은 key 재구독&lt;br/&gt;(아직 GC 전)
+  Fetching --&gt; ErrorState: 실패
+  ErrorState --&gt; Fetching: retry 또는 invalidate</pre
+            >
+            <h3 id="11-staletime-vs-gctime">1.1 staleTime vs gcTime 이해하기</h3>
+            <p>
+              이 두 값의 차이를 정확히 이해하면 불필요한 네트워크 요청과 메모리 낭비를 함께 줄일 수
+              있습니다.
+            </p>
+            <pre><code>시간 흐름 ──────────────────────────────────────────────────────►
+
+[쿼리 fetch 완료]
+  │
+  ├── staleTime (5분) ──────────────────┐
+  │   이 구간: 데이터가 &quot;fresh&quot; 상태     │
+  │   → 같은 queryKey로 요청해도        │
+  │     네트워크 요청 없이 캐시 반환      │
+  │                                      │
+  │                                      ▼
+  │                            데이터가 &quot;stale&quot; 상태로 전환
+  │                            → 컴포넌트 마운트 시 백그라운드 refetch 발생
+  │                            → 기존 캐시를 먼저 보여주고, 새 데이터로 교체
+  │
+  ├── gcTime (1시간) ─────────────────────────────────────────┐
+  │   이 구간: 캐시가 메모리에 유지됨                           │
+  │   → 컴포넌트 언마운트 후에도 캐시 보존                      │
+  │   → 다시 마운트하면 즉시 캐시 데이터 표시                    │
+  │                                                            ▼
+  │                                              캐시가 가비지 컬렉션됨
+  │                                              → 다음 요청 시 처음부터 fetch
+  └────────────────────────────────────────────────────────────┘
+</code></pre>
+            <p><strong>핵심 요약:</strong></p>
+            <ul>
+              <li>
+                <code>staleTime</code>: "얼마나 오래 신선한 것으로 간주할까?" → 네트워크 요청 빈도
+                제어
+              </li>
+              <li>
+                <code>gcTime</code>: "미사용 캐시를 메모리에 얼마나 유지할까?" → 메모리 사용량 제어
+              </li>
+              <li>
+                <code>staleTime &lt; gcTime</code> 관계를 유지합니다. 그렇지 않으면 gcTime이 의미를
+                잃습니다.
+              </li>
+            </ul>
+            <h3 id="12-global-cache-settings">1.2 전역 캐시 전략 (Global Cache Settings)</h3>
+            <pre><code class="language-typescript">// app/providers.tsx
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5분간 데이터를 '신선'하다고 간주
+      gcTime: 1000 * 60 * 60, // 1시간 후 미사용 캐시 삭제
+      retry: 1, // 실패 시 1회만 재시도
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+</code></pre>
+            <h3 id="13-querykey">1.3 queryKey 팩토리 패턴</h3>
+            <p>
+              queryKey를 문자열 배열로 직접 작성하면 오타, 불일치, 무효화 실수가 생깁니다. 팩토리
+              패턴으로 중앙 관리하세요.
+            </p>
+            <pre><code class="language-typescript">// queries/keys.ts — 도메인별 queryKey 팩토리
+export const productKeys = {
+  // 최상위 키: 상품 관련 모든 쿼리 무효화 시 사용
+  all: ['products'] as const,
+  // 목록 계열 키
+  lists: () =&gt; [...productKeys.all, 'list'] as const,
+  list: (filters: ProductFilters) =&gt; [...productKeys.lists(), filters] as const,
+  // 상세 계열 키
+  details: () =&gt; [...productKeys.all, 'detail'] as const,
+  detail: (id: string) =&gt; [...productKeys.details(), id] as const,
+}
+
+export const userKeys = {
+  all: ['users'] as const,
+  me: () =&gt; [...userKeys.all, 'me'] as const,
+  detail: (id: string) =&gt; [...userKeys.all, 'detail', id] as const,
+}
+</code></pre>
+            <p><strong>사용 예시:</strong></p>
+            <pre><code class="language-typescript">// 커스텀 훅에서 사용
+export function useProductDetail(productId: string) {
+  return useSuspenseQuery({
+    queryKey: productKeys.detail(productId),
+    queryFn: () =&gt; fetchProduct(productId),
+  })
+}
+
+export function useProductList(filters: ProductFilters) {
+  return useSuspenseQuery({
+    queryKey: productKeys.list(filters),
+    queryFn: () =&gt; fetchProductList(filters),
+  })
+}
+
+// 캐시 무효화 시 계층적으로 사용
+queryClient.invalidateQueries({ queryKey: productKeys.all }) // 상품 관련 전체 무효화
+queryClient.invalidateQueries({ queryKey: productKeys.lists() }) // 목록만 무효화
+queryClient.invalidateQueries({ queryKey: productKeys.detail('1') }) // 특정 상품만 무효화
+</code></pre>
+            <h4 id="querykey">queryKey 계층과 무효화 범위</h4>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 도서관 청구기호처럼
+                <code>[도서관][코너][책장][책]</code>으로 분류해 두면, "전체 도서관 정리" 한 번에
+                모든 책이 정리되고, "특정 코너 정리"는 그 코너만 정리됩니다. queryKey의 prefix
+                매칭도 같은 방식입니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 queryKey 팩토리에서 생성된 키들이 어떻게 부분 매칭되어 무효화 범위가
+              결정되는지 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Root[productKeys.all&lt;br/&gt;products]
+  Root --&gt; ListsRoot[productKeys.lists&lt;br/&gt;products, list]
+  Root --&gt; DetailsRoot[productKeys.details&lt;br/&gt;products, detail]
+  ListsRoot --&gt; L1[productKeys.list filterA&lt;br/&gt;products, list, A]
+  ListsRoot --&gt; L2[productKeys.list filterB&lt;br/&gt;products, list, B]
+  DetailsRoot --&gt; D1[productKeys.detail 1&lt;br/&gt;products, detail, 1]
+  DetailsRoot --&gt; D2[productKeys.detail 2&lt;br/&gt;products, detail, 2]
+
+  Inv1[invalidate all] -. matches .-&gt; Root
+  Inv1 -. cascade .-&gt; ListsRoot
+  Inv1 -. cascade .-&gt; DetailsRoot
+  Inv2[invalidate lists] -. matches .-&gt; ListsRoot
+  Inv2 -. cascade .-&gt; L1
+  Inv2 -. cascade .-&gt; L2
+  Inv3[invalidate detail 1] -. exact .-&gt; D1</pre
+            >
+            <h3 id="14-custom-hook">1.4 서버 상태 호출 패턴 (Custom Hook)</h3>
+            <pre><code class="language-typescript">export function useProductDetail(productId: string) {
+  return useSuspenseQuery({
+    queryKey: productKeys.detail(productId),
+    queryFn: () =&gt; fetchProduct(productId),
+  })
+}
+</code></pre>
+            <h3 id="15-usemutation-optimistic-update">
+              1.5 useMutation과 낙관적 업데이트 (Optimistic Update)
+            </h3>
+            <p>
+              서버에 데이터를 보내기 전에 UI를 먼저 업데이트하여 즉각적인 반응성을 제공합니다. 실패
+              시 자동 롤백됩니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 신용카드 결제는 일단 "승인 표시"부터 보여주고, 뒤에서
+                진짜 결제 처리를 합니다. 실패하면 영수증이 취소로 정정됩니다. 낙관적 업데이트도
+                동일한 신호 우선·정정 후행 패턴입니다.
+              </p>
+            </blockquote>
+            <h4 id="onmutate-onerror-onsettled">onMutate -&gt; onError -&gt; onSettled 시퀀스</h4>
+            <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant UI as 컴포넌트
+  participant QC as QueryClient
+  participant Cache as 캐시(detail)
+  participant API as 서버
+
+  UI-&gt;&gt;QC: mutate(updatedProduct)
+  QC-&gt;&gt;QC: onMutate 실행
+  QC-&gt;&gt;Cache: cancelQueries(detail)
+  QC-&gt;&gt;Cache: getQueryData (이전값 백업)
+  QC-&gt;&gt;Cache: setQueryData (낙관적 값)
+  QC--&gt;&gt;UI: 화면 즉시 갱신
+  QC-&gt;&gt;API: mutationFn 호출
+  alt 성공
+    API--&gt;&gt;QC: 응답 OK
+    QC-&gt;&gt;QC: onSuccess
+  else 실패
+    API--&gt;&gt;QC: 에러
+    QC-&gt;&gt;Cache: setQueryData(previous) — 롤백
+    QC-&gt;&gt;QC: onError 토스트/로그
+  end
+  QC-&gt;&gt;Cache: invalidateQueries(detail) (onSettled)
+  Cache-&gt;&gt;API: background refetch
+  API--&gt;&gt;Cache: 최신 데이터
+  Cache--&gt;&gt;UI: 최종 동기화</pre
+            >
+            <pre><code class="language-typescript">// hooks/useUpdateProduct.ts
+export function useUpdateProduct() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (updatedProduct: Product) =&gt;
+      api.put(`/products/${updatedProduct.id}`, updatedProduct),
+
+    // 1. 낙관적 업데이트: 서버 응답 전에 UI를 먼저 갱신
+    onMutate: async (updatedProduct) =&gt; {
+      // 진행 중인 refetch를 취소하여 낙관적 업데이트를 덮어쓰지 않도록 함
+      await queryClient.cancelQueries({
+        queryKey: productKeys.detail(updatedProduct.id),
+      })
+
+      // 현재 캐시 데이터를 백업 (롤백용)
+      const previousProduct = queryClient.getQueryData&lt;Product&gt;(
+        productKeys.detail(updatedProduct.id),
+      )
+
+      // 캐시를 낙관적으로 업데이트
+      queryClient.setQueryData(productKeys.detail(updatedProduct.id), updatedProduct)
+
+      // 롤백을 위한 context 반환
+      return { previousProduct }
+    },
+
+    // 2. 실패 시: 백업 데이터로 롤백
+    onError: (_error, updatedProduct, context) =&gt; {
+      if (context?.previousProduct) {
+        queryClient.setQueryData(productKeys.detail(updatedProduct.id), context.previousProduct)
+      }
+    },
+
+    // 3. 성공/실패 무관하게: 서버와 캐시 동기화 보장
+    onSettled: (_data, _error, updatedProduct) =&gt; {
+      queryClient.invalidateQueries({
+        queryKey: productKeys.detail(updatedProduct.id),
+      })
+    },
+  })
+}
+</code></pre>
+            <h3 id="16">1.6 에러 및 로딩 처리 패턴</h3>
+            <p>TanStack Query와 React Suspense/ErrorBoundary를 결합하면 선언적으로 처리합니다.</p>
+            <pre><code class="language-tsx">// 선언적 에러/로딩 처리 (권장)
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+
+function ProductPage({ productId }: { productId: string }) {
+  return (
+    &lt;ErrorBoundary
+      fallback={&lt;ErrorFallback /&gt;}
+      onReset={() =&gt; {
+        // 에러 복구 시 캐시 초기화
+        queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) })
+      }}
+    &gt;
+      &lt;Suspense fallback={&lt;ProductSkeleton /&gt;}&gt;
+        &lt;ProductDetail productId={productId} /&gt;
+      &lt;/Suspense&gt;
+    &lt;/ErrorBoundary&gt;
+  )
+}
+
+// ProductDetail 내부에서는 로딩/에러 분기 없이 데이터만 사용
+function ProductDetail({ productId }: { productId: string }) {
+  const { data: product } = useProductDetail(productId) // Suspense가 로딩 처리
+
+  return &lt;div&gt;{product.name}&lt;/div&gt;
+}
+</code></pre>
+            <pre><code class="language-tsx">// 명시적 에러/로딩 처리 (Suspense를 쓸 수 없는 경우)
+function ProductDetail({ productId }: { productId: string }) {
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: productKeys.detail(productId),
+    queryFn: () =&gt; fetchProduct(productId),
+  })
+
+  if (isLoading) return &lt;ProductSkeleton /&gt;
+  if (isError) return &lt;ErrorMessage error={error} onRetry={refetch} /&gt;
+
+  return &lt;div&gt;{data.name}&lt;/div&gt;
+}
+</code></pre>
+            <hr />
+            <h2 id="2-zustand">2. 클라이언트 상태 관리: Zustand 슬라이스 패턴</h2>
+            <p>
+              대규모 프로젝트에서는 하나의 거대한 스토어 대신, 도메인별로 <strong>Slice</strong>를
+              나누어 관리하는 것이 유지보수에 유리합니다.
+            </p>
+            <blockquote>
+              <p><strong>Zustand v5 변경점 (2024년 말 GA, 현재 공식 문서 기준 안정)</strong></p>
+              <ul>
+                <li>
+                  React 18+ 만 지원. 내부 <code>use-sync-external-store</code> shim을 제거하고 React
+                  내장 <code>useSyncExternalStore</code> 사용.
+                </li>
+                <li>
+                  셀렉터를 통한 객체 반환은 <strong>얕은 비교를 명시적으로 켜야 함</strong> →
+                  <code>useShallow</code> 사용을 강제(아래 4.2 참고).
+                </li>
+                <li>
+                  <code>createStore</code> (React 비종속 코어)와 <code>useStore</code>(훅) 분리가
+                  정착되어, <strong>vanilla 스토어 → React 어댑터</strong> 패턴이 권장됩니다.
+                </li>
+                <li>
+                  persist 미들웨어가 동시 rehydrate 시 race condition을 방지하도록 개선됨(v5.0.10).
+                </li>
+              </ul>
+            </blockquote>
+            <h3 id="21">2.1 왜 슬라이스 &gt; 모놀리스 스토어인가?</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 모놀리스 스토어는 모든 부서가 하나의 큰 사물함을
+                공유하는 사무실과 같습니다. 누가 무엇을 꺼냈는지 파악하기도 어렵고, 충돌도 잦습니다.
+                슬라이스 패턴은 각 부서별로 사물함을 나눠 쓰는 방식 — 누가 어디서 무엇을 쓰는지
+                분명하고, 정리도 쉽습니다.
+              </p>
+            </blockquote>
+            <h4 id="_9">슬라이스 스토어 의존성 도식</h4>
+            <p>
+              이 그림은 슬라이스 단위로 분리된 스토어가 어떻게 결합되어 하나의 통합 store를 이루는지
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  subgraph Slices [도메인별 슬라이스]
+    A[AuthSlice&lt;br/&gt;user, login, logout]
+    C[CartSlice&lt;br/&gt;items, addItem]
+    T[ThemeSlice&lt;br/&gt;theme, toggleTheme]
+    N[NotificationSlice&lt;br/&gt;messages, push]
+  end
+  subgraph Composition [통합 스토어]
+    B[useBoundStore&lt;br/&gt;AuthSlice + CartSlice + ThemeSlice + NotificationSlice]
+  end
+  A --&gt; B
+  C --&gt; B
+  T --&gt; B
+  N --&gt; B
+  B --&gt; X[컴포넌트 selector&lt;br/&gt;s -&gt; s.user]
+  B --&gt; Y[컴포넌트 selector&lt;br/&gt;s -&gt; s.items.length]
+  B --&gt; Z[컴포넌트 selector&lt;br/&gt;useShallow]</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">비교 항목</th>
+                    <th style="text-align: left">모놀리스 스토어</th>
+                    <th style="text-align: left">슬라이스 패턴</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>파일 크기</strong></td>
+                    <td style="text-align: left">하나의 파일이 수백 줄로 비대해짐</td>
+                    <td style="text-align: left">도메인별 50~100줄의 작은 파일</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>팀 협업</strong></td>
+                    <td style="text-align: left">머지 충돌 빈발</td>
+                    <td style="text-align: left">도메인별로 분리되어 충돌 최소화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>테스트</strong></td>
+                    <td style="text-align: left">전체 스토어를 모킹해야 함</td>
+                    <td style="text-align: left">슬라이스 단위로 독립 테스트 가능</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>타입 안전성</strong></td>
+                    <td style="text-align: left">타입이 복잡하게 얽힘</td>
+                    <td style="text-align: left">슬라이스별 인터페이스 명확</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>코드 삭제</strong></td>
+                    <td style="text-align: left">어떤 상태가 어디서 쓰이는지 추적 어려움</td>
+                    <td style="text-align: left">미사용 슬라이스를 통째로 제거 가능</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="22">2.2 스토어 슬라이스 구조화</h3>
+            <pre><code class="language-typescript">import { create, StateCreator } from 'zustand'
+
+// --- 슬라이스 인터페이스 정의 ---
+interface AuthSlice {
+  user: User | null
+  login: (user: User) =&gt; void
+  logout: () =&gt; void
+}
+
+interface CartSlice {
+  items: CartItem[]
+  addItem: (item: CartItem) =&gt; void
+  removeItem: (itemId: string) =&gt; void
+  clearCart: () =&gt; void
+}
+
+// --- StateCreator를 사용하여 슬라이스 정의 ---
+const createAuthSlice: StateCreator&lt;AuthSlice &amp; CartSlice, [], [], AuthSlice&gt; = (set) =&gt; ({
+  user: null,
+  login: (user) =&gt; set({ user }),
+  logout: () =&gt; set({ user: null }),
+})
+
+const createCartSlice: StateCreator&lt;AuthSlice &amp; CartSlice, [], [], CartSlice&gt; = (set) =&gt; ({
+  items: [],
+  addItem: (item) =&gt; set((state) =&gt; ({ items: [...state.items, item] })),
+  removeItem: (itemId) =&gt; set((state) =&gt; ({ items: state.items.filter((i) =&gt; i.id !== itemId) })),
+  clearCart: () =&gt; set({ items: [] }),
+})
+
+// --- 통합 스토어 생성 ---
+export const useBoundStore = create&lt;AuthSlice &amp; CartSlice&gt;()((...a) =&gt; ({
+  ...createAuthSlice(...a),
+  ...createCartSlice(...a),
+}))
+</code></pre>
+            <h3 id="23-persist-devtools">2.3 미들웨어 활용: persist, devtools</h3>
+            <p>
+              Zustand의 미들웨어를 사용하면 상태 영속화, 디버깅 등을 선언적으로 추가할 수 있습니다.
+            </p>
+            <pre><code class="language-typescript">import { create } from 'zustand'
+import { devtools, persist } from 'zustand/middleware'
+
+interface ThemeSlice {
+  theme: 'light' | 'dark'
+  toggleTheme: () =&gt; void
+}
+
+// persist: 새로고침 후에도 상태 유지 (localStorage 기본)
+// devtools: Redux DevTools에서 상태 변화 추적 가능
+export const useThemeStore = create&lt;ThemeSlice&gt;()(
+  devtools(
+    persist(
+      (set) =&gt; ({
+        theme: 'light',
+        toggleTheme: () =&gt;
+          set(
+            (state) =&gt; ({ theme: state.theme === 'light' ? 'dark' : 'light' }),
+            undefined,
+            'toggleTheme', // devtools에 표시될 액션 이름
+          ),
+      }),
+      {
+        name: 'theme-storage', // localStorage key 이름
+        // 특정 필드만 저장하고 싶을 때
+        partialize: (state) =&gt; ({ theme: state.theme }),
+      },
+    ),
+    { name: 'ThemeStore' }, // devtools에 표시될 스토어 이름
+  ),
+)
+</code></pre>
+            <h3 id="24-immer">2.4 Immer 통합: 복잡한 중첩 상태 업데이트</h3>
+            <p>
+              깊이 중첩된 객체를 불변성을 유지하며 업데이트하는 것은 번거롭습니다.
+              <code>immer</code> 미들웨어로 직관적인 뮤터블 구문을 사용하세요.
+            </p>
+            <pre><code class="language-typescript">import { create } from 'zustand'
+import { immer } from 'zustand/middleware/immer'
+
+interface OrderSlice {
+  orders: {
+    [orderId: string]: {
+      items: OrderItem[]
+      status: 'pending' | 'confirmed' | 'shipped'
+      address: {
+        city: string
+        street: string
+        zipCode: string
+      }
+    }
+  }
+  updateOrderAddress: (orderId: string, address: Partial&lt;OrderAddress&gt;) =&gt; void
+  addItemToOrder: (orderId: string, item: OrderItem) =&gt; void
+}
+
+export const useOrderStore = create&lt;OrderSlice&gt;()(
+  immer((set) =&gt; ({
+    orders: {},
+
+    // immer 덕분에 직접 수정하는 것처럼 작성 가능 (내부적으로 불변성 유지)
+    updateOrderAddress: (orderId, address) =&gt;
+      set((state) =&gt; {
+        Object.assign(state.orders[orderId].address, address)
+      }),
+
+    addItemToOrder: (orderId, item) =&gt;
+      set((state) =&gt; {
+        state.orders[orderId].items.push(item) // push 직접 사용 가능!
+      }),
+  })),
+)
+</code></pre>
+            <p><strong>immer 없이 동일한 코드를 작성하면:</strong></p>
+            <pre><code class="language-typescript">// 이렇게 깊은 스프레드가 필요 — 실수하기 쉽고 가독성 나쁨
+updateOrderAddress: (orderId, address) =&gt;
+  set((state) =&gt; ({
+    orders: {
+      ...state.orders,
+      [orderId]: {
+        ...state.orders[orderId],
+        address: { ...state.orders[orderId].address, ...address },
+      },
+    },
+  })),
+</code></pre>
+            <hr />
+            <h2 id="3-url-as-state">3. URL as State: 공유 가능한 상태 저장소</h2>
+            <h3 id="_10">왜 중요한가</h3>
+            <p>
+              정렬, 필터링, 검색어와 같은 상태는 URL 쿼리 파라미터에 저장하세요. 뒤로 가기, 페이지
+              새로고침, 링크 공유에서도 같은 상태가 복원됩니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 지도 앱에서 "이 위치 공유"를 누르면 URL에 좌표가 담겨
+                전달됩니다. 친구가 그 링크를 열면 같은 위치가 바로 보입니다. URL 상태는 그런 "복사
+                가능한 화면 좌표"입니다.
+              </p>
+            </blockquote>
+            <h4 id="url">URL 상태 동기화 흐름</h4>
+            <pre class="mermaid">
+flowchart LR
+  A[사용자 인터랙션&lt;br/&gt;필터/정렬/검색어 변경] --&gt; B[setFilters / setSearchParams]
+  B --&gt; C[Router push or replace]
+  C --&gt; D[브라우저 URL 갱신]
+  D --&gt; E[useSearchParams / useQueryStates 변경 감지]
+  E --&gt; F[리렌더링: filters 새 값]
+  F --&gt; G[queryKey 변경 감지]
+  G --&gt; H[TanStack Query 재요청]
+  H --&gt; I[목록/상세 데이터 갱신]
+  D -. 외부 진입 .-&gt; J[뒤로가기/북마크/공유 링크]
+  J --&gt; E</pre
+            >
+            <h3 id="31-usesearchparams">3.1 기본: useSearchParams 활용</h3>
+            <pre><code class="language-tsx">import { useSearchParams } from 'react-router-dom'
+
+function SearchPanel() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentQuery = searchParams.get('q') ?? ''
+
+  const handleSearch = (newQuery: string) =&gt; {
+    // 로컬 state가 아닌 URL을 직접 조작합니다.
+    setSearchParams({ q: newQuery }, { replace: true })
+  }
+
+  return &lt;input value={currentQuery} onChange={(e) =&gt; handleSearch(e.target.value)} /&gt;
+}
+</code></pre>
+            <h3 id="32-nuqs-url">3.2 nuqs: 타입 안전한 URL 상태 관리 라이브러리</h3>
+            <p>
+              <code>nuqs</code>(Next.js URL Query State)는 URL 파라미터를 <code>useState</code>처럼
+              다룰 수 있게 해주는 모던 라이브러리입니다. Next.js App Router에 최적화되어 있으며,
+              파서를 통한 타입 안전성이 핵심 장점입니다.
+            </p>
+            <pre><code class="language-tsx">import { useQueryState, parseAsInteger, parseAsStringEnum } from 'nuqs'
+
+// 단일 파라미터: useState와 동일한 API
+function SearchPage() {
+  const [query, setQuery] = useQueryState('q', { defaultValue: '' })
+  // URL: ?q=검색어
+  // query의 타입: string (자동 추론)
+
+  return &lt;input value={query} onChange={(e) =&gt; setQuery(e.target.value)} /&gt;
+}
+
+// 파서를 활용한 타입 안전한 파라미터
+function ProductListPage() {
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1))
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsStringEnum(['price', 'name', 'date']).withDefault('date'),
+  )
+  // page의 타입: number (string이 아님!)
+  // sort의 타입: 'price' | 'name' | 'date'
+
+  return (
+    &lt;div&gt;
+      &lt;span&gt;현재 페이지: {page}&lt;/span&gt;
+      &lt;button onClick={() =&gt; setPage(page + 1)}&gt;다음 페이지&lt;/button&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <h3 id="33-url">3.3 복합 필터/정렬/페이지네이션 URL 상태 예시</h3>
+            <p>실무에서는 여러 필터 조건을 동시에 URL로 관리합니다.</p>
+            <pre><code class="language-tsx">import {
+  useQueryStates,
+  parseAsInteger,
+  parseAsStringEnum,
+  parseAsArrayOf,
+  parseAsString,
+} from 'nuqs'
+
+// 여러 파라미터를 하나의 훅으로 묶어 관리
+const searchParamsConfig = {
+  q: parseAsString.withDefault(''),
+  page: parseAsInteger.withDefault(1),
+  size: parseAsInteger.withDefault(20),
+  sort: parseAsStringEnum(['price_asc', 'price_desc', 'newest', 'popular']).withDefault('newest'),
+  categories: parseAsArrayOf(parseAsString, ',').withDefault([]),
+  minPrice: parseAsInteger,
+  maxPrice: parseAsInteger,
+}
+
+function ProductSearchPage() {
+  const [filters, setFilters] = useQueryStates(searchParamsConfig)
+  // URL 예: ?q=노트북&amp;page=2&amp;sort=price_asc&amp;categories=전자기기,컴퓨터&amp;minPrice=500000
+
+  // 필터 변경 시 page를 1로 리셋하는 패턴
+  const handleCategoryChange = (category: string) =&gt; {
+    const newCategories = filters.categories.includes(category)
+      ? filters.categories.filter((c) =&gt; c !== category)
+      : [...filters.categories, category]
+
+    setFilters({
+      categories: newCategories,
+      page: 1, // 필터 변경 시 첫 페이지로 이동
+    })
+  }
+
+  // TanStack Query와 결합: URL 파라미터를 queryKey에 직접 사용
+  const { data } = useSuspenseQuery({
+    queryKey: productKeys.list(filters),
+    queryFn: () =&gt; fetchProductList(filters),
+  })
+
+  return (
+    &lt;div&gt;
+      &lt;FilterPanel filters={filters} onCategoryChange={handleCategoryChange} /&gt;
+      &lt;ProductGrid products={data.items} /&gt;
+      &lt;Pagination
+        current={filters.page}
+        total={data.totalPages}
+        onChange={(page) =&gt; setFilters({ page })}
+      /&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="4-selective-subscription">4. 성능 최적화: Selective Subscription</h2>
+            <p>
+              Zustand 사용 시 전체 스토어를 구독하지 말고, 필요한 값만 선택(Select)하여 구독하세요.
+            </p>
+            <h3 id="41">4.1 기본 셀렉터</h3>
+            <pre><code class="language-tsx">// ❌ 나쁜 예: 스토어의 다른 값이 바뀌어도 이 컴포넌트가 리렌더링됩니다.
+const state = useBoundStore()
+
+// ✅ 좋은 예: items가 바뀔 때만 리렌더링됩니다.
+const items = useBoundStore((state) =&gt; state.items)
+</code></pre>
+            <h3 id="42-useshallow">4.2 useShallow: 여러 값을 동시에 선택할 때</h3>
+            <p>
+              여러 값을 한 번에 선택하면 매 렌더링마다 새로운 객체가 생성되어 불필요한 리렌더링이
+              발생합니다. <code>useShallow</code>로 얕은 비교를 활성화하세요.
+            </p>
+            <pre><code class="language-tsx">import { useShallow } from 'zustand/react/shallow'
+
+// ❌ 나쁜 예: 매번 새로운 객체를 반환하므로 항상 리렌더링
+const { user, items } = useBoundStore((state) =&gt; ({
+  user: state.user,
+  items: state.items,
+}))
+
+// ✅ 좋은 예: useShallow로 얕은 비교 — user나 items가 실제로 바뀔 때만 리렌더링
+const { user, items } = useBoundStore(
+  useShallow((state) =&gt; ({
+    user: state.user,
+    items: state.items,
+  })),
+)
+</code></pre>
+            <h3 id="43">4.3 성능 비교 요약</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">패턴</th>
+                    <th style="text-align: left">리렌더링 조건</th>
+                    <th style="text-align: left">적합한 경우</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>useBoundStore()</code></td>
+                    <td style="text-align: left">스토어의 <strong>어떤 값이든</strong> 변경 시</td>
+                    <td style="text-align: left">사용 금지 (디버깅 시에만 허용)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>useBoundStore(s =&gt; s.items)</code></td>
+                    <td style="text-align: left"><code>items</code>가 변경될 때만</td>
+                    <td style="text-align: left">단일 값 구독</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <code>useBoundStore(useShallow(s =&gt; ({...})))</code>
+                    </td>
+                    <td style="text-align: left">
+                      선택된 값 중 하나가 <strong>실제로</strong> 변경될 때
+                    </td>
+                    <td style="text-align: left">여러 값 동시 구독</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="5">5. 상태 분류 의사결정 트리</h2>
+            <h3 id="_11">왜 중요한가</h3>
+            <p>
+              같은 데이터를 두 곳에 저장하면 어느 쪽이 진실인지 모호해지고, 동기화 코드가
+              늘어납니다. 시작 시점에 "어디에 저장할 것인가"를 결정하면 이후 캐시 무효화, 공유 링크,
+              영속화 정책이 자연스럽게 따라옵니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 우편물을 받았을 때 어떤 서랍에 넣을지(공과금, 영수증,
+                영구보관) 처음부터 정해두면 나중에 찾기 쉽습니다. 상태도 처음 분류가 가장
+                중요합니다.
+              </p>
+            </blockquote>
+            <h4 id="mermaid">Mermaid 의사결정 트리</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[새 상태 도입 필요] --&gt; B{서버가 진실 원천?}
+  B -- 예 --&gt; C[TanStack Query]
+  B -- 아니오 --&gt; D{URL에 반영 필요?&lt;br/&gt;북마크/공유/뒤로가기}
+  D -- 예 --&gt; E[URL State&lt;br/&gt;nuqs/useSearchParams]
+  D -- 아니오 --&gt; F{여러 컴포넌트가 공유?}
+  F -- 아니오 --&gt; G[useState / useReducer]
+  F -- 예 --&gt; H{범위는?}
+  H -- 앱 전역 --&gt; I{새로고침 후도 유지?}
+  I -- 예 --&gt; J[Zustand + persist]
+  I -- 아니오 --&gt; K[Zustand 인메모리]
+  H -- 특정 서브트리 --&gt; L[Context 또는&lt;br/&gt;Compound 패턴]
+  C -. mutate .-&gt; M[invalidate + optimistic]
+  E -. 변경 .-&gt; N[Router push/replace]
+  J -. version 충돌 .-&gt; O[migrate 함수 정의]</pre
+            >
+            <p>새로운 상태를 추가할 때 "어디에 저장할 것인가?"를 체계적으로 결정하세요.</p>
+            <pre><code>상태를 추가해야 한다
+  │
+  ├─ 서버에서 온 데이터인가?
+  │   ├─ YES → TanStack Query (서버 상태)
+  │   │         캐시/재검증/무효화를 Query가 관리
+  │   │         절대로 Zustand에 복사하지 말 것!
+  │   │
+  │   └─ NO → 클라이언트 전용 상태
+  │       │
+  │       ├─ URL에 반영되어야 하는가?
+  │       │   (뒤로 가기, 새로고침, 링크 공유 시 유지 필요?)
+  │       │   ├─ YES → URL State (nuqs / useSearchParams)
+  │       │   │         예: 검색어, 필터, 페이지, 정렬 기준, 탭 선택
+  │       │   │
+  │       │   └─ NO → 다음 질문으로
+  │       │
+  │       ├─ 여러 컴포넌트가 공유하는가?
+  │       │   ├─ YES → 얼마나 넓은 범위?
+  │       │   │   ├─ 앱 전역 → Zustand 스토어
+  │       │   │   │   예: 로그인 사용자, 테마, 사이드바 열림/닫힘
+  │       │   │   │
+  │       │   │   └─ 특정 서브트리만 → Context 또는 Compound Component 패턴
+  │       │   │       예: 폼 Step 상태, 아코디언 열림 상태
+  │       │   │
+  │       │   └─ NO → useState / useReducer
+  │       │       예: 모달 열림, 입력값, 토글, 로컬 카운터
+  │       │
+  │       └─ 새로고침 후에도 유지해야 하는가?
+  │           ├─ YES → Zustand + persist 미들웨어
+  │           │         예: 최근 본 상품, 다크모드 설정
+  │           │
+  │           └─ NO → 위의 분류 결과대로 사용
+</code></pre>
+            <p><strong>경험 법칙:</strong></p>
+            <ol>
+              <li>기본은 <code>useState</code>로 시작하세요. 필요할 때만 상위로 올리세요.</li>
+              <li>
+                서버 데이터는 캐시/동기화가 필요하면 TanStack Query 같은 서버 상태 도구를 우선
+                검토하세요.
+              </li>
+              <li>공유 가능한 URL이 필요하면 URL State.</li>
+              <li>그 외 전역 UI 상태만 Zustand.</li>
+            </ol>
+            <hr />
+            <h2 id="6-tanstack-query">6. TanStack Query 고급 패턴</h2>
+            <h3 id="_12">왜 중요한가</h3>
+            <p>
+              기본 패턴만으로는 부족한 상황(SSR 스트리밍, 무한 스크롤, 의존 쿼리, 실시간 스트림)을
+              위한 고급 도구입니다. 같은 queryKey 팩토리 위에서 캐시 무효화 범위를 정확히 그리는
+              것이 핵심입니다.
+            </p>
+            <h4 id="querykey_1">queryKey 계층적 캐시 무효화 트리</h4>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;productKeys.all = ['products']&quot;] --&gt; B[&quot;productKeys.lists()&lt;br/&gt;['products','list']&quot;]
+  A --&gt; C[&quot;productKeys.details()&lt;br/&gt;['products','detail']&quot;]
+  B --&gt; D[&quot;productKeys.list(filtersA)&quot;]
+  B --&gt; E[&quot;productKeys.list(filtersB)&quot;]
+  C --&gt; F[&quot;productKeys.detail(id1)&quot;]
+  C --&gt; G[&quot;productKeys.detail(id2)&quot;]
+  H[mutation 발생] --&gt;|invalidate detail id1| F
+  H --&gt;|invalidate lists 전체| B
+  H --&gt;|invalidate all 상품| A
+  style A fill:#fef3c7
+  style B fill:#dbeafe
+  style C fill:#dbeafe
+  style F fill:#fee2e2</pre
+            >
+            <blockquote>
+              <p>
+                <strong>읽는 법</strong>: 상위 키를 무효화하면 그 아래의 모든 키가 함께
+                무효화됩니다. mutation의 영향 범위를 가장 좁게 잡되, 안전을 위해 한 단계 위까지
+                명시하는 것이 일반적입니다.
+              </p>
+            </blockquote>
+            <h3 id="61-prefetching">6.1 Prefetching: 사용자가 클릭하기 전에 데이터 준비</h3>
+            <p>다음 페이지나 hover 대상의 데이터를 미리 캐시에 넣어 체감 속도를 높입니다.</p>
+            <pre><code class="language-typescript">// 라우터 loader에서 prefetch (React Router v7 / TanStack Router)
+export const productDetailLoader =
+  (queryClient: QueryClient) =&gt;
+  async ({ params }: { params: { id: string } }) =&gt; {
+    // 캐시에 데이터가 없거나 stale이면 미리 fetch
+    await queryClient.ensureQueryData({
+      queryKey: productKeys.detail(params.id),
+      queryFn: () =&gt; fetchProduct(params.id),
+    });
+    return null;
+  };
+
+// hover 시 prefetch — 목록 → 상세 이동 시 로딩 없음
+function ProductCard({ product }: { product: Product }) {
+  const queryClient = useQueryClient();
+
+  const handleMouseEnter = () =&gt; {
+    queryClient.prefetchQuery({
+      queryKey: productKeys.detail(product.id),
+      queryFn: () =&gt; fetchProduct(product.id),
+      staleTime: 1000 * 60 * 5, // 5분간 재요청 방지
+    });
+  };
+
+  return (
+    &lt;Link to={`/products/${product.id}`} onMouseEnter={handleMouseEnter}&gt;
+      {product.name}
+    &lt;/Link&gt;
+  );
+}
+</code></pre>
+            <h3 id="62-infinite-query">6.2 Infinite Query: 무한 스크롤 / 더보기</h3>
+            <pre><code class="language-typescript">export function useProductInfiniteList(filters: ProductFilters) {
+  return useSuspenseInfiniteQuery({
+    queryKey: productKeys.list(filters),
+    queryFn: ({ pageParam }) =&gt;
+      fetchProductList({ ...filters, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    // 다음 페이지 커서 추출 — 없으면 undefined 반환하여 hasNextPage = false
+    getNextPageParam: (lastPage) =&gt; lastPage.nextCursor ?? undefined,
+  });
+}
+
+// 사용하는 컴포넌트
+function InfiniteProductList() {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useProductInfiniteList({ sort: 'newest' });
+
+  // 모든 페이지의 items를 하나의 배열로 합침
+  const allProducts = data.pages.flatMap((page) =&gt; page.items);
+
+  return (
+    &lt;div&gt;
+      {allProducts.map((product) =&gt; (
+        &lt;ProductCard key={product.id} product={product} /&gt;
+      ))}
+      {hasNextPage &amp;&amp; (
+        &lt;button onClick={() =&gt; fetchNextPage()} disabled={isFetchingNextPage}&gt;
+          {isFetchingNextPage ? '로딩 중...' : '더보기'}
+        &lt;/button&gt;
+      )}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+            <h3 id="63-streamedquery-sse-readablestream">
+              6.3 <code>streamedQuery</code>: SSE / ReadableStream을 캐시에 누적
+            </h3>
+            <p>
+              LLM 응답, 실시간 로그, AsyncIterable 등
+              <strong>여러 청크가 시간차로 도착하는 데이터</strong>를 단일 쿼리에 자연스럽게
+              누적하는 v5 신규 API입니다. 매 청크마다 <code>data</code>가 갱신되어 컴포넌트가
+              점진적으로 렌더링됩니다.
+            </p>
+            <pre><code class="language-typescript">import { streamedQuery, useQuery } from '@tanstack/react-query';
+
+export function useChatStream(threadId: string) {
+  return useQuery({
+    queryKey: ['chat', threadId, 'stream'],
+    queryFn: streamedQuery({
+      streamFn: async ({ signal }) =&gt; {
+        const res = await fetch(`/api/chat/${threadId}/stream`, { signal });
+        // ReadableStream → AsyncIterable로 변환된 청크 시퀀스를 반환
+        return parseSSE(res.body!);
+      },
+      // refetch 시 기존 데이터 폐기 여부
+      refetchMode: 'reset',
+    }),
+  });
+}
+
+// 사용처에서는 일반 useQuery와 동일
+function ChatThread({ threadId }: { threadId: string }) {
+  const { data, isFetching } = useChatStream(threadId);
+  return (
+    &lt;div&gt;
+      {data?.map((chunk, i) =&gt; &lt;span key={i}&gt;{chunk.text}&lt;/span&gt;)}
+      {isFetching &amp;&amp; &lt;Dot animated /&gt;}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+            <h3 id="64-pending-query-dehydration-v540-ssr">
+              6.4 Pending Query Dehydration (v5.40+): SSR 스트리밍
+            </h3>
+            <p>
+              서버에서 <code>prefetch</code>를 시작하되,
+              <strong>데이터가 준비되기 전에 일단 HTML을 흘려보내고</strong> Suspense 경계가
+              해소되는 대로 클라이언트 캐시로 스트리밍합니다. Next.js 16+/15 App Router, TanStack
+              Start, Remix 등에서 활용할 수 있습니다.
+            </p>
+            <pre><code class="language-tsx">// Next.js App Router 예시 (app/products/page.tsx)
+import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query'
+
+export default async function ProductsPage() {
+  const queryClient = new QueryClient()
+
+  // 결과를 await하지 않고 prefetch만 시작 → 'pending' 상태로 dehydrate
+  queryClient.prefetchQuery({
+    queryKey: productKeys.lists(),
+    queryFn: fetchProductList,
+  })
+
+  return (
+    // 클라이언트는 일단 셸을 받고, 데이터가 도착하면 스트림으로 hydrate
+    &lt;HydrationBoundary state={dehydrate(queryClient)}&gt;
+      &lt;Suspense fallback={&lt;ProductListSkeleton /&gt;}&gt;
+        &lt;ProductList /&gt;
+      &lt;/Suspense&gt;
+    &lt;/HydrationBoundary&gt;
+  )
+}
+</code></pre>
+            <blockquote>
+              <p>
+                React 19.2의 <strong>Partial Pre-rendering</strong> 과 결합하면, 정적 셸은 즉시
+                CDN에서 응답되고 동적 영역은 위 패턴으로 채워 넣을 수 있습니다.
+              </p>
+            </blockquote>
+            <h3 id="65-dependent-query">6.5 Dependent Query: 의존적 쿼리 체이닝</h3>
+            <p>하나의 쿼리 결과가 다른 쿼리의 파라미터가 되는 경우입니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 학생증 발급 절차와 유사합니다. 먼저 신분증을 확인해야
+                학번을 발급하고, 학번이 있어야 강의 등록으로 넘어갑니다. 앞 단계가 끝나기 전에는 뒤
+                단계를 시작할 수 없습니다.
+              </p>
+            </blockquote>
+            <h4 id="_13">의존 쿼리 체이닝 시퀀스</h4>
+            <p>
+              이 그림은 한 쿼리의 결과가 다음 쿼리의 enabled 조건이 되어 순차적으로 실행되는 흐름을
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant UI as MyOrdersPage
+  participant Q1 as useCurrentUser
+  participant Q2 as useUserOrders userId
+  participant API as 백엔드
+
+  UI-&gt;&gt;Q1: mount
+  Q1-&gt;&gt;API: GET /users/me
+  Note over Q2: enabled = false (userId 없음)
+  API--&gt;&gt;Q1: user 응답
+  Q1--&gt;&gt;UI: user state
+  UI-&gt;&gt;Q2: rerender with user.id
+  Note over Q2: enabled = true 전환
+  Q2-&gt;&gt;API: GET /orders userId
+  API--&gt;&gt;Q2: orders 응답
+  Q2--&gt;&gt;UI: orders 렌더
+  alt user fetch 실패
+    API--&gt;&gt;Q1: 401/500
+    Q1--&gt;&gt;UI: error -- Q2는 영구히 enabled=false
+  end</pre
+            >
+            <pre><code class="language-typescript">// 1단계: 현재 사용자 정보 가져오기
+function useCurrentUser() {
+  return useQuery({
+    queryKey: userKeys.me(),
+    queryFn: fetchCurrentUser,
+  });
+}
+
+// 2단계: 사용자의 주문 목록 가져오기 (사용자 ID가 있어야 요청 가능)
+function useUserOrders(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['orders', { userId }],
+    queryFn: () =&gt; fetchOrdersByUser(userId!),
+    // userId가 없으면 쿼리 자체를 실행하지 않음
+    enabled: !!userId,
+  });
+}
+
+// 컴포넌트에서 조합
+function MyOrdersPage() {
+  const { data: user } = useCurrentUser();
+  const { data: orders, isLoading } = useUserOrders(user?.id);
+  // user가 로드되면 자동으로 orders 쿼리가 활성화됨
+
+  if (isLoading) return &lt;OrdersSkeleton /&gt;;
+  return &lt;OrderList orders={orders ?? []} /&gt;;
+}
+</code></pre>
+            <hr />
+            <h2 id="7-vs-context-vs-props-drilling">
+              7. 전역 상태 vs Context vs Props Drilling 비교
+            </h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">Props Drilling</th>
+                    <th style="text-align: left">React Context</th>
+                    <th style="text-align: left">Zustand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>설정 비용</strong></td>
+                    <td style="text-align: left">없음</td>
+                    <td style="text-align: left">낮음 (Provider 생성)</td>
+                    <td style="text-align: left">낮음 (create 호출)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>적합 깊이</strong></td>
+                    <td style="text-align: left">1~2단계</td>
+                    <td style="text-align: left">3단계 이상의 서브트리</td>
+                    <td style="text-align: left">앱 전역</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>리렌더링 범위</strong></td>
+                    <td style="text-align: left">해당 컴포넌트만</td>
+                    <td style="text-align: left">Provider 하위 모든 소비자</td>
+                    <td style="text-align: left">셀렉터로 구독한 컴포넌트만</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>성능 최적화</strong></td>
+                    <td style="text-align: left">자연스럽게 최적</td>
+                    <td style="text-align: left"><code>useMemo</code>/분리 필요</td>
+                    <td style="text-align: left"><code>useShallow</code>/셀렉터로 쉽게 최적화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>React 외부 접근</strong></td>
+                    <td style="text-align: left">불가</td>
+                    <td style="text-align: left">불가</td>
+                    <td style="text-align: left"><code>getState()</code>로 가능</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>DevTools</strong></td>
+                    <td style="text-align: left">없음</td>
+                    <td style="text-align: left">React DevTools</td>
+                    <td style="text-align: left">Redux DevTools 연동</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>SSR 호환</strong></td>
+                    <td style="text-align: left">높음</td>
+                    <td style="text-align: left">높음</td>
+                    <td style="text-align: left">주의 필요 (hydration)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h4 id="_14">전달 방식 선택 결정 트리</h4>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 가족에게 물건을 전달하는 방식과 비슷합니다. 옆방의
+                자녀라면 직접 건네주면 되고(props), 거실에 둔 공용 물건은 모두가 가져갈 수 있어야
+                하며(Context), 회사 전체가 쓰는 비품은 비품실(전역 store)에서 관리합니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 컴포넌트 트리의 깊이와 공유 범위에 따라 어떤 전달 방식을 선택해야 하는지
+              단계별 의사결정을 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[상태를 어떻게 전달할까] --&gt; Q1{공유 범위는}
+  Q1 -- 부모-자식 1~2단계 --&gt; Props[Props Drilling&lt;br/&gt;props로 직접 전달]
+  Q1 -- 특정 서브트리 --&gt; Q2{리렌더링 비용 우려}
+  Q2 -- 없음 --&gt; Ctx[React Context&lt;br/&gt;Provider로 묶기]
+  Q2 -- 있음 --&gt; Q3{Context 분리로 충분}
+  Q3 -- 예 --&gt; CtxSplit[Context 분리&lt;br/&gt;state와 dispatch 별도 Provider]
+  Q3 -- 아니오 --&gt; ZuSubtree[Zustand store&lt;br/&gt;Provider 안에서 createStore]
+  Q1 -- 앱 전역 --&gt; Q4{새로고침 후 유지}
+  Q4 -- 예 --&gt; ZuPersist[Zustand + persist]
+  Q4 -- 아니오 --&gt; ZuPlain[Zustand 인메모리]
+  Q1 -- 라우트 간 공유&lt;br/&gt;북마크/링크 가능 --&gt; URL[URL State&lt;br/&gt;nuqs/useSearchParams]</pre
+            >
+            <h3 id="_15">언제 어떤 것을 선택하는가?</h3>
+            <p><strong>Props Drilling이 충분한 경우:</strong></p>
+            <pre><code class="language-tsx">// 부모 → 자식 1~2단계: 그냥 props를 전달하세요.
+// 불필요한 추상화는 복잡성만 증가시킵니다.
+function Parent() {
+  const [isOpen, setIsOpen] = useState(false)
+  return &lt;Modal isOpen={isOpen} onClose={() =&gt; setIsOpen(false)} /&gt;
+}
+</code></pre>
+            <p><strong>Context가 적합한 경우:</strong></p>
+            <pre><code class="language-tsx">// 특정 서브트리 내에서만 공유되는 상태
+// 예: 폼 위자드의 스텝 상태, 테이블의 선택 상태
+const FormContext = createContext&lt;FormContextType | null&gt;(null)
+
+function FormWizard() {
+  const [step, setStep] = useState(0)
+  return (
+    &lt;FormContext.Provider value={{ step, setStep }}&gt;
+      &lt;FormStepIndicator /&gt; {/* 깊이 3 */}
+      &lt;FormContent /&gt; {/* 깊이 2 */}
+      &lt;FormNavigation /&gt; {/* 깊이 2 */}
+    &lt;/FormContext.Provider&gt;
+  )
+}
+</code></pre>
+            <p><strong>Zustand가 적합한 경우:</strong></p>
+            <pre><code class="language-typescript">// 앱 전역에서 접근해야 하고, 세밀한 구독 제어가 필요한 경우
+// 예: 인증 상태, 테마, 사이드바 상태, 알림 설정
+const useSidebarStore = create&lt;SidebarSlice&gt;()((set) =&gt; ({
+  isOpen: true,
+  toggle: () =&gt; set((s) =&gt; ({ isOpen: !s.isOpen })),
+}))
+
+// 어떤 컴포넌트에서든 Provider 없이 바로 사용 가능
+const isOpen = useSidebarStore((s) =&gt; s.isOpen)
+</code></pre>
+            <hr />
+            <h2 id="8">8. 상태 관리 라이브러리 지형도</h2>
+            <h3 id="81">8.1 라이브러리별 포지셔닝 요약</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">라이브러리</th>
+                    <th style="text-align: left">핵심 모델</th>
+                    <th style="text-align: left">권장 사용처</th>
+                    <th style="text-align: left">비고</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>TanStack Query v5</strong></td>
+                    <td style="text-align: left">서버 상태 캐시</td>
+                    <td style="text-align: left">API 응답 / RSC 스트리밍</td>
+                    <td style="text-align: left">원격 데이터 캐시와 재검증에 우선 검토</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Zustand v5</strong></td>
+                    <td style="text-align: left">외부 store + selector</td>
+                    <td style="text-align: left">전역 UI 상태, 인증, 테마</td>
+                    <td style="text-align: left">React 18+ 전용. SSR 시 hydration 주의</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Jotai v2</strong></td>
+                    <td style="text-align: left">상향식 atom 그래프</td>
+                    <td style="text-align: left">미세 의존 그래프, 폼/캔버스</td>
+                    <td style="text-align: left">
+                      <code>useState</code> 대체에 가까움. 광역 store보다는 컴포넌트-친화
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Redux Toolkit + RTK Query</strong></td>
+                    <td style="text-align: left">flux + listenerMiddleware</td>
+                    <td style="text-align: left">대형 엔터프라이즈, 강한 디버깅 요구</td>
+                    <td style="text-align: left">
+                      <code>createListenerMiddleware</code>로 saga 대체
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>XState v5</strong></td>
+                    <td style="text-align: left">actor / statechart</td>
+                    <td style="text-align: left">결제, 위자드, 멀티스텝 협상 로직</td>
+                    <td style="text-align: left">"암묵적 상태 머신"을 명시적으로</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>TC39 Signals (Stage 1)</strong></td>
+                    <td style="text-align: left">표준 reactive primitive</td>
+                    <td style="text-align: left">표준화 후 등장 예정</td>
+                    <td style="text-align: left">
+                      현재 공식 문서 기준 <strong>아직 1Spec 도입 시기 아님</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="82-jotai-v2">8.2 Jotai v2 핵심 패턴</h3>
+            <p>
+              <code>Jotai</code>는 <strong>atom = 단위 상태</strong>를 컴포지션하는 모델입니다.
+              Zustand가 "store에 selector를 거는" 방식이라면, Jotai는
+              <strong>상태 그래프를 컴포넌트 트리와 독립적으로 모듈화</strong>합니다.
+            </p>
+            <pre><code class="language-typescript">import { atom, useAtom, useAtomValue } from 'jotai';
+
+// 원시 atom
+const countAtom = atom(0);
+
+// 파생 atom (자동 무효화)
+const doubledAtom = atom((get) =&gt; get(countAtom) * 2);
+
+// 쓰기 가능한 파생 atom
+const upperNameAtom = atom(
+  (get) =&gt; get(nameAtom).toUpperCase(),
+  (_get, set, newName: string) =&gt; set(nameAtom, newName.trim()),
+);
+
+function Counter() {
+  const [count, setCount] = useAtom(countAtom);
+  const doubled = useAtomValue(doubledAtom);
+  return &lt;button onClick={() =&gt; setCount((c) =&gt; c + 1)}&gt;{count} → {doubled}&lt;/button&gt;;
+}
+</code></pre>
+            <p>
+              권장 사용처: <strong>상태 노드 수가 많고 의존 관계가 명시적인 영역</strong> (디자인
+              툴의 캔버스, 폼 빌더, 트리 편집기 등).
+            </p>
+            <h3 id="83-xstate-v5-actor">8.3 XState v5: 명시적 상태 머신 / Actor 모델</h3>
+            <p>
+              v5의 핵심은 <strong>"모든 것이 actor"</strong> 라는 추상화 통일과
+              <code>setup({ actors, actions, guards })</code> 패턴입니다. 결제, 다단계 폼, 외부
+              시스템 협상처럼 <strong>잘못 다루면 if-else가 폭발하는 영역</strong>에 적합합니다.
+            </p>
+            <pre><code class="language-typescript">import { setup, assign, createMachine } from 'xstate'
+
+const checkoutMachine = setup({
+  types: {} as { context: { items: number; error?: string } },
+  actions: {
+    notifyFail: ({ context }) =&gt; console.error(context.error),
+  },
+  guards: {
+    hasItems: ({ context }) =&gt; context.items &gt; 0,
+  },
+}).createMachine({
+  id: 'checkout',
+  context: { items: 0 },
+  initial: 'cart',
+  states: {
+    cart: {
+      on: { CHECKOUT: { target: 'paying', guard: 'hasItems' } },
+    },
+    paying: {
+      invoke: {
+        src: 'payActor', // setup의 actors에서 주입
+        onDone: 'success',
+        onError: { target: 'cart', actions: 'notifyFail' },
+      },
+    },
+    success: { type: 'final' },
+  },
+})
+</code></pre>
+            <p>
+              v5에서는 <code>actor.select(selector, equalityFn?)</code> 로 React 외부에서도 안전하게
+              파생 값을 구독합니다.
+            </p>
+            <h3 id="84-tc39-signals">8.4 TC39 Signals: 현재 위치</h3>
+            <p>
+              표준 Signals 제안은 <strong>현재 공식 문서 기준 TC39 Stage 1</strong>에 머물러
+              있습니다. 여러 프레임워크에서 자체 구현체가 활발하지만,
+              <strong>React 본체는 공식적으로 Signal을 채택하지 않았습니다.</strong> React
+              코드베이스에서는 표준화 전까지 Signal API를 전면 도입하지 않고 adapter 경계 안에서
+              실험합니다.
+            </p>
+            <p><strong>실무 권장 전략</strong>:</p>
+            <ol>
+              <li>신규 코드는 <strong>Zustand/Jotai/TanStack Query</strong> 조합을 유지.</li>
+              <li>
+                Signal 호환 API는 라이브러리 레벨에서 시도(예: <code>@preact/signals-react</code>)는
+                가능하지만 프로덕션 전면 도입은 표준 Stage 2 진입 후로 미룹니다.
+              </li>
+              <li>
+                표준화 시 마이그레이션이 쉬워지도록 <strong>상태 접근을 hook 뒤에 캡슐화</strong>해
+                두는 것이 안전합니다.
+              </li>
+            </ol>
+            <hr />
+            <h2 id="9">9. 주의사항 및 흔한 실수</h2>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 안티패턴 검출은 건강 검진의 문진표와 같습니다. 증상별로
+                분기를 따라가면 의심되는 원인이 자연스럽게 좁혀집니다.
+              </p>
+            </blockquote>
+            <h4 id="_16">안티패턴 자가 진단 결정 트리</h4>
+            <p>
+              이 그림은 코드 리뷰 시 자주 발견되는 안티패턴 후보를 증상별로 추적하는 방법을
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[코드에서 의심되는 패턴 발견] --&gt; Q1{서버 응답을 어디에 저장}
+  Q1 -- Zustand/useState --&gt; A1[안티패턴 #1&lt;br/&gt;서버 상태 복사&lt;br/&gt;TanStack Query로 이전]
+  Q1 -- Query 캐시 --&gt; Q2{useEffect로 fetch}
+  Q2 -- 예 --&gt; A2[안티패턴 #2&lt;br/&gt;useEffect fetch&lt;br/&gt;useQuery로 변경]
+  Q2 -- 아니오 --&gt; Q3{queryKey 문자열 하드코딩}
+  Q3 -- 예 --&gt; A3[안티패턴 #3&lt;br/&gt;queryKey 불일치&lt;br/&gt;팩토리 패턴 도입]
+  Q3 -- 아니오 --&gt; Q4{전체 store 구독}
+  Q4 -- 예 --&gt; A4[안티패턴 #4&lt;br/&gt;셀렉터 미사용&lt;br/&gt;useShallow 또는 selector 도입]
+  Q4 -- 아니오 --&gt; Q5{파생값을 별도 상태로}
+  Q5 -- 예 --&gt; A5[안티패턴 #5&lt;br/&gt;중복 상태&lt;br/&gt;selector로 계산]
+  Q5 -- 아니오 --&gt; Q6{검색/필터/페이지를 useState}
+  Q6 -- 예 --&gt; A6[안티패턴 #6&lt;br/&gt;URL 상태 누락&lt;br/&gt;nuqs 도입]
+  Q6 -- 아니오 --&gt; Ok[합격 -- 다른 가이드 절도 함께 확인]</pre
+            >
+            <h3 id="91">9.1 안티패턴 모음</h3>
+            <p><strong>1. 서버 상태를 Zustand에 복사하기</strong></p>
+            <pre><code class="language-typescript">// ❌ 절대 이렇게 하지 마세요
+const useProductStore = create((set) =&gt; ({
+  products: [],
+  fetchProducts: async () =&gt; {
+    const data = await api.get('/products')
+    set({ products: data }) // 서버 데이터를 로컬 스토어에 복사
+  },
+}))
+// 문제: 캐시 무효화, 백그라운드 갱신, 에러 처리를 전부 직접 구현해야 함
+// 해결: TanStack Query 사용
+</code></pre>
+            <p><strong>2. useEffect + setState로 서버 데이터 동기화</strong></p>
+            <pre><code class="language-typescript">// ❌ &quot;useEffect fetch&quot; 패턴은 2024년 이후 안티패턴
+function ProductList() {
+  const [products, setProducts] = useState&lt;Product[]&gt;([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() =&gt; {
+    fetchProducts().then((data) =&gt; {
+      setProducts(data)
+      setLoading(false)
+    })
+  }, [])
+  // 문제: race condition, 메모리 누수, 중복 요청, 캐시 없음
+  // 해결: TanStack Query의 useQuery 사용
+}
+</code></pre>
+            <p><strong>3. queryKey 불일치로 인한 캐시 미스</strong></p>
+            <pre><code class="language-typescript">// ❌ queryKey를 문자열로 직접 작성하면 오타와 불일치 발생
+useQuery({ queryKey: ['products', 'detial', id], ... }); // 'detial' 오타!
+useMutation({
+  onSuccess: () =&gt; {
+    queryClient.invalidateQueries({ queryKey: ['product', 'detail', id] }); // 'product' 단수형!
+  },
+});
+// 해결: queryKey 팩토리 패턴 사용 (1.3절 참고)
+</code></pre>
+            <p><strong>4. Zustand 셀렉터 미사용</strong></p>
+            <pre><code class="language-typescript">// ❌ 전체 스토어 구독
+function CartIcon() {
+  const store = useBoundStore(); // user가 바뀌어도 리렌더링됨!
+  return &lt;Badge count={store.items.length} /&gt;;
+}
+
+// ✅ 필요한 값만 구독
+function CartIcon() {
+  const itemCount = useBoundStore((s) =&gt; s.items.length);
+  return &lt;Badge count={itemCount} /&gt;;
+}
+</code></pre>
+            <p><strong>5. 파생 상태를 별도로 저장하기</strong></p>
+            <pre><code class="language-typescript">// ❌ 계산 가능한 값을 상태로 관리
+const useCartStore = create((set) =&gt; ({
+  items: [],
+  totalPrice: 0, // items에서 계산 가능한 값!
+  addItem: (item) =&gt;
+    set((state) =&gt; {
+      const newItems = [...state.items, item]
+      return {
+        items: newItems,
+        totalPrice: newItems.reduce((sum, i) =&gt; sum + i.price, 0), // 매번 동기화 필요
+      }
+    }),
+}))
+
+// ✅ 파생 상태는 셀렉터로 계산
+const totalPrice = useBoundStore((s) =&gt; s.items.reduce((sum, item) =&gt; sum + item.price, 0))
+</code></pre>
+            <p><strong>6. URL State로 관리해야 할 것을 useState로 관리하기</strong></p>
+            <pre><code class="language-typescript">// ❌ 검색/필터를 로컬 상태로 관리
+function SearchPage() {
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('newest')
+  // 문제: 새로고침하면 상태 소실, 링크 공유 불가, 뒤로 가기 동작 안 함
+}
+
+// ✅ URL로 관리
+function SearchPage() {
+  const [query, setQuery] = useQueryState('q', { defaultValue: '' })
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsStringEnum(['newest', 'popular']).withDefault('newest'),
+  )
+}
+</code></pre>
+            <h3 id="92">9.2 흔한 실수 정리표</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">실수</th>
+                    <th style="text-align: left">증상</th>
+                    <th style="text-align: left">해결</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">staleTime을 0으로 둠</td>
+                    <td style="text-align: left">매번 백그라운드 refetch 발생</td>
+                    <td style="text-align: left">데이터 특성에 맞게 설정 (1~5분)</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">gcTime &lt; staleTime</td>
+                    <td style="text-align: left">캐시가 stale 되기 전에 사라짐</td>
+                    <td style="text-align: left">gcTime &gt; staleTime 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">persist에 민감한 정보 저장</td>
+                    <td style="text-align: left">localStorage에 토큰/개인정보 노출</td>
+                    <td style="text-align: left">인증 토큰은 httpOnly 쿠키로</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Zustand에서 비동기 작업</td>
+                    <td style="text-align: left">에러/로딩 처리가 복잡해짐</td>
+                    <td style="text-align: left">비동기는 TanStack Query에 위임</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Context를 전역 상태로 남용</td>
+                    <td style="text-align: left">불필요한 리렌더링 폭탄</td>
+                    <td style="text-align: left">전역은 Zustand, 서브트리만 Context</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="ai">AI 보조 상태 설계 검증</h2>
+            <p>
+              AI 사용 정책과 검증 책임은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 따릅니다. 상태
+              설계 초안은 저장 위치보다 동기화 실패와 rollback 가능성을 먼저 검증합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">상태 분류</td>
+                    <td style="text-align: left">상태 목록, 공유/복원/보안 요구사항</td>
+                    <td style="text-align: left">URL/server/client/form/UI 분류표</td>
+                    <td style="text-align: left">deep link E2E, 민감정보 노출 점검</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">낙관적 업데이트</td>
+                    <td style="text-align: left">mutation 계약, 실패 응답 fixture</td>
+                    <td style="text-align: left">optimistic path + rollback 후보</td>
+                    <td style="text-align: left">실패 재생 테스트, cache invalidation 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">전역 store 축소</td>
+                    <td style="text-align: left">store slice, consumer graph</td>
+                    <td style="text-align: left">local/query/url state 이동 후보</td>
+                    <td style="text-align: left">render count, consumer smoke</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Signals/experimental API</td>
+                    <td style="text-align: left">사용 후보와 fallback</td>
+                    <td style="text-align: left">adapter 격리안</td>
+                    <td style="text-align: left">flag off E2E, migration ADR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="_17">체크리스트</h2>
+            <p><strong>서버 상태 (TanStack Query v5)</strong></p>
+            <ul>
+              <li>[ ] 서버 데이터(API 응답)를 Zustand나 useState에 중복 저장하고 있지 않은가?</li>
+              <li>[ ] queryKey 팩토리 패턴을 사용하여 키를 중앙 관리하고 있는가?</li>
+              <li>[ ] staleTime과 gcTime을 데이터 특성에 맞게 설정했는가?</li>
+              <li>[ ] useMutation의 onSettled에서 관련 쿼리를 invalidate하고 있는가?</li>
+              <li>[ ] 에러/로딩 상태를 Suspense + ErrorBoundary로 선언적 처리하고 있는가?</li>
+              <li>[ ] 목록 → 상세 이동 시 prefetch를 활용하고 있는가?</li>
+              <li>[ ] SSE/스트리밍 응답은 <code>streamedQuery</code>로 누적하고 있는가?</li>
+              <li>
+                [ ] SSR 환경에서 Pending Query Dehydration(v5.40+)으로 셸을 먼저 흘려보내고 있는가?
+              </li>
+            </ul>
+            <p><strong>클라이언트 상태 (Zustand)</strong></p>
+            <ul>
+              <li>[ ] Zustand 스토어를 도메인별 슬라이스로 분리했는가?</li>
+              <li>[ ] 스토어 접근 시 셀렉터 함수를 사용하여 구독 범위를 좁혔는가?</li>
+              <li>[ ] 여러 값을 동시 구독할 때 <code>useShallow</code>를 사용하고 있는가?</li>
+              <li>[ ] 중첩 상태 업데이트에 immer 미들웨어를 활용하고 있는가?</li>
+              <li>[ ] 영속화가 필요한 상태에만 persist 미들웨어를 적용했는가?</li>
+              <li>[ ] 파생 상태를 별도 저장하지 않고 셀렉터에서 계산하고 있는가?</li>
+            </ul>
+            <p><strong>URL 상태</strong></p>
+            <ul>
+              <li>
+                [ ] 검색어, 필터, 정렬, 페이지 등 공유 가능한 상태를 URL 파라미터로 관리하는가?
+              </li>
+              <li>[ ] 필터 변경 시 page를 1로 리셋하는 로직이 있는가?</li>
+              <li>[ ] URL 파라미터에 타입 파서를 적용하여 타입 안전성을 확보했는가?</li>
+            </ul>
+            <p><strong>일반</strong></p>
+            <ul>
+              <li>
+                [ ] 폼 입력값과 같은 휘발성 상태는 <code>useState</code>로 충분한데 스토어에 넣고
+                있지 않은가?
+              </li>
+              <li>[ ] 상태 추가 시 의사결정 트리(5장)를 따라 저장 위치를 결정했는가?</li>
+              <li>[ ] Context를 전역 상태 대용으로 남용하고 있지 않은가?</li>
+            </ul>
+            <p>**라이브러리 선택 **</p>
+            <ul>
+              <li>
+                [ ] 결제/위자드 같은 명시적 상태 머신 영역은 <strong>XState v5</strong> 도입을
+                검토했는가?
+              </li>
+              <li>
+                [ ] 의존 그래프가 복잡한 폼/캔버스 영역에는 <strong>Jotai v2</strong> 가 더
+                자연스러운지 검토했는가?
+              </li>
+              <li>[ ] TC39 Signals는 Stage 1임을 인지하고, 프로덕션 도입을 보류했는가?</li>
+              <li>[ ] Zustand v5의 <code>useShallow</code> 강제 정책을 따르고 있는가?</li>
+            </ul>
+            <hr />
+            <h2 id="10-hook">10. 상태 Hook 책임 분리 규칙</h2>
+            <p>
+              상태 관리는 "어떤 라이브러리를 쓰는가"보다 "수정 영향 범위가 어디까지 퍼지는가"가
+              먼저입니다.
+            </p>
+            <h3 id="101-usepagestate">
+              10.1 <code>usePageState</code>를 기본 패턴으로 만들지 않는다
+            </h3>
+            <ul>
+              <li>
+                페이지 전체 URL query, 필터, pagination, selected id, date range를 하나의 hook에서
+                반환하면 작은 변경도 전체 페이지 리렌더링과 테스트 범위를 넓힙니다.
+              </li>
+              <li>
+                <code>useCardIdQueryParam</code>, <code>useStatementDateRange</code>,
+                <code>useStatusFilter</code>처럼 쿼리 파라미터별 hook으로 나눠 변경 단위와 읽기
+                단위를 맞춥니다.
+              </li>
+              <li>
+                여러 hook을 다시 묶는 facade는 route entry에서만 사용하고, leaf component에는 필요한
+                값만 전달합니다.
+              </li>
+            </ul>
+            <h3 id="102">10.2 상태 종류가 아니라 변경 책임으로 나눈다</h3>
+            <ul>
+              <li>
+                URL state, form state, server state라는 기술 분류만으로 파일을 나누지 않습니다.
+              </li>
+              <li>
+                같은 기능에서 함께 수정되는 query key, URL param parser, mutation, optimistic
+                rollback은 가까이에 둡니다.
+              </li>
+              <li>
+                query param 하나가 바뀌어도 관련 없는 컴포넌트가 리렌더링되면 hook 책임이 너무
+                넓다는 신호입니다.
+              </li>
+            </ul>
+            <h3 id="103">10.3 반환 계약은 같은 계열끼리 통일한다</h3>
+            <ul>
+              <li>
+                server state hook은 query object 반환, derived data 반환, tuple 반환 중 하나를 팀
+                규칙으로 고정합니다.
+              </li>
+              <li>
+                mutation hook은 <code>mutate</code>, <code>mutateAsync</code>, optimistic rollback,
+                error type을 일관되게 노출합니다.
+              </li>
+              <li>
+                hook 이름에 <code>WithAuth</code>, <code>Tracked</code>, <code>Persisted</code>처럼
+                추가 동작이 있으면 이름으로 드러냅니다.
+              </li>
+            </ul>
+            <hr />
+            <h2 id="_18">실무 적용 가이드</h2>
+            <h3 id="_19">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>서버 상태와 화면 상태가 한 store에 섞여 stale bug가 생길 때</li>
+              <li>URL에 남겨야 할 상태와 내부 UI 상태를 구분해야 할 때</li>
+              <li>optimistic update 후 실패 복구가 불명확할 때</li>
+            </ul>
+            <h3 id="_20">적용 순서</h3>
+            <ol>
+              <li>상태를 server, form, URL, UI, persisted state로 분류한다.</li>
+              <li>server state는 query key와 invalidation 규칙을 먼저 정한다.</li>
+              <li>공유가 필요 없는 UI state는 컴포넌트 가까이에 둔다.</li>
+              <li>URL state는 뒤로가기, 공유 링크, 새로고침 기준으로 결정한다.</li>
+              <li>mutation에는 optimistic path와 rollback path를 함께 테스트한다.</li>
+            </ol>
+            <h3 id="_21">함께 두는 파일</h3>
+            <ul>
+              <li>feature의 query key, mutation hook, schema, mock, test를 같은 폴더에 둔다.</li>
+              <li>전역 store는 기능별 slice와 owner가 있을 때만 허용한다.</li>
+              <li>persist storage adapter는 보안/만료 정책과 함께 둔다.</li>
+            </ul>
+            <h3 id="_22">흔한 실수</h3>
+            <ul>
+              <li>모든 상태를 global store에 넣는다.</li>
+              <li>query key를 문자열로 흩뿌린다.</li>
+              <li>서버 응답 캐시와 form draft를 같은 객체로 다룬다.</li>
+              <li>URL state를 쓰면서 기본값과 invalid value 처리를 빼먹는다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] 상태 분류표가 있다.</li>
+              <li>[ ] query invalidation과 rollback 테스트가 있다.</li>
+              <li>[ ] persist되는 값에 민감정보가 없다.</li>
+              <li>[ ] 상태 관련 파일이 기능 폴더 안에 모여 있다.</li>
+            </ul>
+            <h2 id="_23">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — 서버 상태, URL state, UI state 분리 중 하나를 작은 변경
+                1건에 적용하고 증거(쿼리 키 목록)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 상태 흐름 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — 상태 중복 수, stale cache 이슈, 뒤로가기 회귀 추이를 보고
+                기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 상태 관리 오너가 증거와 철회 조건을 확인했다는 기록을
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_24">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : 서버 상태, URL state, UI state 분리 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(쿼리 키 목록, optimistic update 테스트, URL 복원
+                테스트)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : 상태 중복 수, stale cache 이슈, 뒤로가기 회귀가 기준
+                안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_25">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 상태의 소유자가 서버, URL, 컴포넌트 중 어디인지 먼저
+                적는다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 상태 관리 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 복원/동기화 테스트가 통과하면 같은 패턴을 다음 화면에
+                적용한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 하나의 상태가 세 위치에서 동시에 수정되면 구조를 다시
+                나눈다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 공유 상태 수, mutation 수, cache invalidation 범위로
+                산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 프론트엔드 아키텍트가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 상태 흐름 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 핵심 flow 변경 때마다 상태 소유권 표를 갱신한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

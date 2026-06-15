@@ -1,0 +1,3926 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 27 다중 개발 서버 구축 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="27">27. 다중 개발 서버 구축 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>다중 환경은 공유 자원 경합을 줄이는 운영 규칙에서 출발합니다.</li>
+              <li>PR/브랜치마다 고유한 라우팅과 접근 권한을 고정해 둡니다.</li>
+              <li>사용 종료 시 클린업 규칙을 자동화하면 비용과 혼선을 줄일 수 있습니다.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              여러 환경 배포는 “동시에 돌려도 서로 간섭하지 않게” 운영 순서를 고정하는 게
+              핵심입니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 다중 개발 서버는 호텔 운영과 비슷합니다. 같은
+                건물(인프라)에 여러 객실(환경)이 있고, 손님(PR/branch)마다 별도 룸(URL)이
+                배정됩니다. 체크인(배포)과 체크아웃(cleanup)이 자동이어야 하고, 청소(권한 분리) 없이
+                다음 손님이 들어오면 안 됩니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>preview</code></td>
+                    <td>PR/브랜치 별 임시 배포 주소</td>
+                  </tr>
+                  <tr>
+                    <td><code>멀티 환경</code></td>
+                    <td>dev/stg/prod처럼 배포 대상 환경 분리</td>
+                  </tr>
+                  <tr>
+                    <td><code>클린업</code></td>
+                    <td>불필요한 임시 환경/리소스 제거</td>
+                  </tr>
+                  <tr>
+                    <td><code>도메인 라우팅</code></td>
+                    <td>어떤 URL이 어떤 환경으로 가는지 설정</td>
+                  </tr>
+                  <tr>
+                    <td><code>권한 분리</code></td>
+                    <td>환경별 접근 범위를 나눠 권한을 제한</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_3">환경 계층 한눈에 보기</h3>
+            <pre class="mermaid">
+flowchart LR
+  L[&quot;local&lt;br/&gt;(개발자 PC)&quot;] --&gt;|push| PR[&quot;PR preview&lt;br/&gt;(PR마다 1개)&quot;]
+  PR --&gt;|merge to dev| BR[&quot;branch dev&lt;br/&gt;(팀 검증)&quot;]
+  BR --&gt;|merge to develop| INT[&quot;integration&lt;br/&gt;(통합 검증)&quot;]
+  INT --&gt;|RC 승인| ST[&quot;staging&lt;br/&gt;(production 유사)&quot;]
+  ST --&gt;|release 승인| PROD[&quot;production&lt;br/&gt;(실 사용자)&quot;]
+  PR -.PR close.-&gt; CL[&quot;자동 cleanup&quot;]
+  BR -.branch delete.-&gt; CL</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">인프라 &amp; 배포</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./10_인프라_IaC_가이드.md">10. 인프라</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>,
+                      <a href="./22_모노레포_운영_가이드.md">22. 모노레포</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">AWS 예시, 원칙은 벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      Multi-Environment, PR preview, branch deploy, Amplify Hosting, S3 artifact,
+                      GitHub Actions, OIDC, rollback
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">공식 문서 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                다중 개발 서버는 "개발 서버를 많이 만드는 것"이 아니라
+                <strong
+                  >PR, branch, staging, production의 검증 목적을 분리하고, 검증된 artifact를
+                  안전하게 공유·승격·폐기하는 운영 체계</strong
+                >입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_4">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 환경별 도메인/라우팅 매핑표를 먼저 만들고 preview 주소를
+                일원화하세요.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 브랜치·PR 빌드 자원은 TTL/자동 정리 정책으로 비용 누수를
+                막습니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 배포 실패 시 공유 artifact 기반으로 재배포/롤백을 표준
+                절차화하세요.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — preview, staging, production 환경과 cleanup 중 하나를 실제
+                PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — preview URL, OIDC role, deployment log, cleanup dry-run를
+                같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — orphan 환경, preview 비용, smoke failure, branch drift가
+                나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_6">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : preview, staging, production 환경과 cleanup 적용 범위를 어느
+                화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : preview URL, OIDC role, deployment log, cleanup dry-run 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : orphan 환경, preview 비용, smoke failure, branch drift를
+                다시 볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_7">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">개발·검증·preview·staging·production 환경 모델</td>
+                    <td style="text-align: left">
+                      <a href="./10_인프라_IaC_가이드.md">10. 인프라</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      GitHub Actions로 build, artifact, deploy, smoke를 연결하는 방식
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      Amplify Hosting, S3, CloudFront를 이용한 프론트엔드 배포 예시
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">OIDC, 장기 키 금지, preview 접근 제어</td>
+                    <td style="text-align: left">
+                      <a href="./06_웹_보안_심화_가이드.md">06. 보안</a>,
+                      <a href="./16_AI_협업_코드리뷰_가이드.md">16. 코드리뷰</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">공통 기준</th>
+                    <th style="text-align: left">검증 방법</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>환경 목적 분리</strong></td>
+                    <td style="text-align: left">
+                      local, PR preview, branch dev, staging, production의 데이터·도메인·권한을 분리
+                    </td>
+                    <td style="text-align: left">환경 매트릭스, domain map</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>고유 URL</strong></td>
+                    <td style="text-align: left">
+                      PR/branch별 공유 가능한 URL을 생성하고 PR에 연결
+                    </td>
+                    <td style="text-align: left">preview URL comment, deployment record</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>검증 후 배포</strong></td>
+                    <td style="text-align: left">
+                      lint/type/test/build/security를 통과한 artifact만 배포
+                    </td>
+                    <td style="text-align: left">CI required checks</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>임시 권한</strong></td>
+                    <td style="text-align: left">GitHub Actions는 OIDC로 AWS 역할을 AssumeRole</td>
+                    <td style="text-align: left"><code>id-token: write</code>, trust policy</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>자동 정리</strong></td>
+                    <td style="text-align: left">
+                      PR close, branch delete, TTL 만료 시 preview를 삭제 또는 접근 차단
+                    </td>
+                    <td style="text-align: left">cleanup workflow, orphan report</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>캐시 계약</strong></td>
+                    <td style="text-align: left">
+                      HTML은 짧게, hash asset은 길게, rollback 시 entry와 cache purge를 함께 처리
+                    </td>
+                    <td style="text-align: left"><code>Cache-Control</code>, invalidation log</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>비밀 보호</strong></td>
+                    <td style="text-align: left">
+                      client bundle에 secret을 넣지 않고 public runtime config와 secret을 분리
+                    </td>
+                    <td style="text-align: left">secret scan, bundle grep</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 다중 서버 배포 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[PR/Branch Push] --&gt; B{대상 환경 판정}
+  B --&gt;|PR| C[Preview URL 생성]
+  B --&gt;|branch| D[Branch 환경 생성]
+  B --&gt;|release| E[staging/production 승인]
+  C --&gt; F[Artifact 업로드 + checksum]
+  D --&gt; F
+  E --&gt; F
+  F --&gt; G[정적/서버형 배포]
+  G --&gt; H[Smoke Test]
+  H --&gt; I{검증 통과?}
+  I --&gt;|Fail| J[재배포/롤백]
+  I --&gt;|Pass| K[PR/환경에 결과 공유]
+  J --&gt; F
+  K --&gt; L[모니터링 + 만료/cleanup]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">PR preview는 고유 URL을 가진다</td>
+                    <td style="text-align: left">Amplify Web previews, GitHub Deployments</td>
+                    <td style="text-align: left">PR deployment URL, smoke result</td>
+                    <td style="text-align: left">QA lead time, review defect 감소</td>
+                    <td style="text-align: left">
+                      quota 초과 또는 보안 위험 시 branch preview로 축소
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch pattern은 자동 생성/삭제된다</td>
+                    <td style="text-align: left">Amplify branch autodetection</td>
+                    <td style="text-align: left">branch pattern 설정, cleanup log</td>
+                    <td style="text-align: left">orphan branch count</td>
+                    <td style="text-align: left">자동 삭제가 실패하면 TTL cleanup workflow 추가</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CI는 장기 AWS key를 저장하지 않는다</td>
+                    <td style="text-align: left">GitHub OIDC for AWS, aws-actions credentials</td>
+                    <td style="text-align: left">OIDC role assumption log</td>
+                    <td style="text-align: left">leaked key inventory 감소</td>
+                    <td style="text-align: left">예외는 만료일 있는 ADR 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">static export는 정적 hosting에만 사용한다</td>
+                    <td style="text-align: left">Next.js static export</td>
+                    <td style="text-align: left">
+                      <code>output: 'export'</code>, unsupported feature check
+                    </td>
+                    <td style="text-align: left">SSR/API route 장애 없음</td>
+                    <td style="text-align: left">
+                      SSR, API Routes, Middleware 필요 시 compute/runtime 배포로 전환
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">S3 artifact는 checksum과 release id를 가진다</td>
+                    <td style="text-align: left">S3 sync, Amplify start-deployment</td>
+                    <td style="text-align: left">artifact path, checksum, source revision</td>
+                    <td style="text-align: left">rollback 성공률</td>
+                    <td style="text-align: left">
+                      artifact 재사용이 불가능하면 build once 원칙 위반으로 중단
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">환경 생성</td>
+                    <td style="text-align: left">environment matrix, DNS/URL, access policy</td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">preview 삭제 또는 domain detach</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR preview deploy</td>
+                    <td style="text-align: left">CI run, preview URL, smoke result</td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">preview redeploy 또는 PR block</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch/staging deploy</td>
+                    <td style="text-align: left">
+                      artifact checksum, deployment record, environment approval
+                    </td>
+                    <td style="text-align: left">Release owner</td>
+                    <td style="text-align: left">이전 artifact redeploy</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">production release</td>
+                    <td style="text-align: left">approval, canary health, rollback path</td>
+                    <td style="text-align: left">Release manager</td>
+                    <td style="text-align: left">flag off, artifact rollback, cache purge</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup</td>
+                    <td style="text-align: left">
+                      PR close event, branch delete event, TTL report
+                    </td>
+                    <td style="text-align: left">Infra owner</td>
+                    <td style="text-align: left">orphan resource 수동 삭제 후 자동화 보강</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="03">0.3 공개 자료와 경험 기반 해석</h3>
+            <p>
+              공개 문서로 확인할 수 있는 것은 AWS Amplify Hosting의 PR preview, pattern-based branch
+              deployment, S3 기반 manual deployment, GitHub Actions의 environment/concurrency/OIDC,
+              Next.js의 static export와 SSR 지원 범위입니다. 특정 조직의 내부 계정 구조, 권한 정책,
+              도메인 이름, 배포 승인 흐름은 외부에서 검증할 수 없으므로 단정하지 않습니다.
+            </p>
+            <p>
+              이 가이드는 경험적으로 좋았던 "PR마다 빠르게 볼 수 있는 URL", "검증된 artifact만
+              승격", "개발자가 AWS 콘솔을 열지 않아도 되는 흐름", "닫힌 PR의 환경 자동 정리"를 재현
+              가능한 reference architecture로 정리합니다.
+            </p>
+            <h3 id="04-aws">0.4 AWS 서비스별 책임 매핑</h3>
+            <p>
+              AWS에서 다중 개발 서버를 만들 때 가장 흔한 실패는 Amplify, S3, CloudFront, Route 53,
+              GitHub Actions가 서로 어떤 책임을 갖는지 정하지 않은 채 섞는 것입니다. 아래 표를 먼저
+              고정하고 구현합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">서비스</th>
+                    <th style="text-align: left">맡길 책임</th>
+                    <th style="text-align: left">맡기지 않을 책임</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify Hosting</td>
+                    <td style="text-align: left">
+                      Git branch/PR preview, managed SSR/SSG hosting, branch access control, custom
+                      domain association
+                    </td>
+                    <td style="text-align: left">
+                      GitHub Actions 품질 게이트 전체, artifact provenance의 단일 출처
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">S3 artifact bucket</td>
+                    <td style="text-align: left">
+                      build output 보관, checksum 기준 rollback source, preview prefix 저장
+                    </td>
+                    <td style="text-align: left">production public serving 직접 노출</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudFront</td>
+                    <td style="text-align: left">
+                      정적 앱 CDN, OAC 기반 S3 origin 보호, cache behavior, invalidation
+                    </td>
+                    <td style="text-align: left">SSR compute 실행</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Route 53</td>
+                    <td style="text-align: left">
+                      preview/staging/production subdomain, Amplify automatic subdomain, CloudFront
+                      alias
+                    </td>
+                    <td style="text-align: left">환경별 권한 판단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">ACM</td>
+                    <td style="text-align: left">custom domain TLS certificate</td>
+                    <td style="text-align: left">branch/PR 수명 관리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">IAM + STS</td>
+                    <td style="text-align: left">
+                      GitHub OIDC role assumption, environment별 최소 권한
+                    </td>
+                    <td style="text-align: left">장기 access key 운영</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">GitHub Actions</td>
+                    <td style="text-align: left">
+                      install/test/build/artifact/deploy/smoke/comment/cleanup orchestration
+                    </td>
+                    <td style="text-align: left">AWS 리소스의 최종 소유권</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudWatch</td>
+                    <td style="text-align: left">Amplify/SSR/runtime log와 alarm</td>
+                    <td style="text-align: left">PR별 검증 결과의 유일한 기록</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="05-aws">0.5 AWS 구축 순서 요약</h3>
+            <p>
+              아래 순서대로 진행하면 콘솔에서 임의로 만든 preview와 IaC로 만든 환경이 섞이는 문제를
+              줄일 수 있습니다.
+            </p>
+            <ol>
+              <li>
+                <strong>환경 이름을 고정합니다</strong>: <code>preview</code>,
+                <code>branch-dev</code>, <code>integration</code>, <code>staging</code>,
+                <code>production</code>.
+              </li>
+              <li>
+                <strong>도메인 전략을 정합니다</strong>: Amplify managed URL만 쓸지,
+                <code>pr-123.preview.example.com</code> 같은 Route 53 subdomain을 쓸지 선택합니다.
+              </li>
+              <li>
+                <strong>앱 유형을 판정합니다</strong>: static export인지, Amplify Hosting compute가
+                필요한 Next.js SSR인지, container/runtime server가 필요한지 결정합니다.
+              </li>
+              <li>
+                <strong>artifact 단일 출처를 정합니다</strong>: GitHub Actions artifact, S3 prefix,
+                Amplify Git build 중 하나를 release evidence로 삼습니다.
+              </li>
+              <li>
+                <strong>OIDC 역할을 나눕니다</strong>: preview/staging/production role을 분리하고
+                GitHub environment claim으로 제한합니다.
+              </li>
+              <li>
+                <strong>PR preview 배포를 붙입니다</strong>: URL, revision, smoke result, expiry를
+                PR에 남깁니다.
+              </li>
+              <li>
+                <strong>cleanup부터 자동화합니다</strong>: PR close와 schedule cleanup을 첫 버전부터
+                넣습니다.
+              </li>
+              <li>
+                <strong>운영 증거를 남깁니다</strong>: deployment record, checksum, CloudFront
+                invalidation id, cleanup dry-run 결과를 저장합니다.
+              </li>
+            </ol>
+            <hr />
+            <h2 id="1">1. 목표 아키텍처</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 다중 환경 구축은 "기능을 보여주는 URL"이 아니라
+                "검증된 artifact를 안전하게 승격하는 흐름"을 설계하는 일입니다. URL만 만들고
+                권한·정리·롤백을 미루면 비용과 사고가 같이 쌓입니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 화물 운송에 비유하면, GitHub Actions가 포장(빌드)과 품질
+                검사(테스트)를 담당하고, S3가 창고(artifact)에 패키지를 보관하며,
+                Amplify/CloudFront가 배송 트럭(전달)을 맡습니다. 각자가 자기 일만 해야 사고가
+                줄어듭니다.
+              </p>
+            </blockquote>
+            <h3 id="pr-preview">PR Preview 라이프사이클</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Dev as 개발자
+  participant GH as GitHub
+  participant CI as GitHub Actions
+  participant S3 as S3 Artifact Bucket
+  participant Amp as Amplify/CloudFront
+  participant QA as 리뷰어/QA
+  Dev-&gt;&gt;GH: PR 생성 (push)
+  GH-&gt;&gt;CI: pull_request 이벤트
+  CI-&gt;&gt;CI: lint + typecheck + test
+  CI-&gt;&gt;CI: build
+  CI-&gt;&gt;S3: artifact 업로드 (checksum 포함)
+  CI-&gt;&gt;Amp: start-deployment (preview branch)
+  Amp--&gt;&gt;CI: deployment URL
+  CI-&gt;&gt;CI: smoke test on URL
+  CI-&gt;&gt;GH: PR comment (URL, revision, expiry)
+  QA-&gt;&gt;Amp: preview URL 접속 검증
+  Dev-&gt;&gt;GH: PR close 또는 merge
+  GH-&gt;&gt;CI: pull_request closed 이벤트
+  CI-&gt;&gt;S3: preview prefix 삭제
+  CI-&gt;&gt;Amp: preview branch 삭제
+  CI--&gt;&gt;Dev: cleanup 완료</pre
+            >
+            <h3 id="11">1.1 전체 흐름</h3>
+            <pre><code class="language-text">developer push
+  -&gt; GitHub Actions
+      -&gt; install / lint / type / test / build
+      -&gt; artifact upload with checksum
+      -&gt; deploy preview or branch environment
+      -&gt; smoke test against deployed URL
+      -&gt; comment deployment URL to PR
+  -&gt; reviewer / QA validation
+  -&gt; merge
+  -&gt; staging deploy
+  -&gt; production approval
+  -&gt; production deploy or release flag on
+</code></pre>
+            <p>
+              Amplify를 Git provider와 직접 연결하면 branch/PR preview를 빠르게 얻을 수 있습니다.
+              GitHub Actions를 앞단 orchestrator로 두면 품질 게이트, OIDC, artifact provenance,
+              smoke test, 승인 정책을 더 세밀하게 통제할 수 있습니다. S3는 static output 또는 deploy
+              bundle의 artifact registry 역할을 맡습니다.
+            </p>
+            <h3 id="12">1.2 환경 계층</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 환경 계층은 영화 제작 단계와 같습니다. 로컬은 콘티
+                스케치, PR preview는 스토리보드 시연, integration은 리허설, staging은 시사회,
+                production은 정식 개봉입니다. 각 단계에서 다른 사람이 보고, 다른 기준으로
+                통과시킵니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 한 코드 변경이 환경 계층을 어떻게 타고 올라가며, 각 환경이 무엇을
+              공유/격리하는지를 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  subgraph Local[&quot;로컬&quot;]
+    L1[&quot;localhost&lt;br/&gt;MSW/fixture&quot;]
+  end
+  subgraph PR[&quot;PR preview&quot;]
+    P1[&quot;pr-123 URL&lt;br/&gt;sandbox API&quot;]
+  end
+  subgraph Branch[&quot;branch dev&quot;]
+    B1[&quot;feature URL&lt;br/&gt;dev API&quot;]
+  end
+  subgraph Integ[&quot;integration&quot;]
+    I1[&quot;integration URL&lt;br/&gt;통합 테스트 DB&quot;]
+  end
+  subgraph Stg[&quot;staging&quot;]
+    S1[&quot;staging URL&lt;br/&gt;production-like 데이터&lt;br/&gt;(민감정보 마스킹)&quot;]
+  end
+  subgraph Prod[&quot;production&quot;]
+    Pr1[&quot;www URL&lt;br/&gt;실 사용자 데이터&quot;]
+  end
+  L1 --&gt;|push| P1
+  P1 --&gt;|merge branch| B1
+  B1 --&gt;|merge develop| I1
+  I1 --&gt;|release cut| S1
+  S1 --&gt;|approval| Pr1</pre
+            >
+            <blockquote>
+              <p>
+                <strong>격리 원칙</strong>: production secret과 production 쓰기 권한은 staging
+                이하에 절대 전달하지 않습니다. preview/branch는 mock 또는 sandbox만 사용합니다. 환경
+                수명은 트리거에 묶입니다 — PR이 닫히면 preview는 자동 폐기, branch가 삭제되면 branch
+                dev도 사라집니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">환경</th>
+                    <th style="text-align: left">트리거</th>
+                    <th style="text-align: left">URL</th>
+                    <th style="text-align: left">데이터</th>
+                    <th style="text-align: left">권한</th>
+                    <th style="text-align: left">수명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">local</td>
+                    <td style="text-align: left">개발자 실행</td>
+                    <td style="text-align: left"><code>localhost</code></td>
+                    <td style="text-align: left">MSW/fixture</td>
+                    <td style="text-align: left">개인</td>
+                    <td style="text-align: left">수동</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR preview</td>
+                    <td style="text-align: left"><code>pull_request</code></td>
+                    <td style="text-align: left">
+                      <code>pr-123.preview.example.com</code> 또는 Amplify URL
+                    </td>
+                    <td style="text-align: left">mock, sandbox, read-only API</td>
+                    <td style="text-align: left">PR 참여자</td>
+                    <td style="text-align: left">PR close까지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch dev</td>
+                    <td style="text-align: left">
+                      <code>feature/*</code>, <code>dev/*</code> push
+                    </td>
+                    <td style="text-align: left"><code>feature-name.dev.example.com</code></td>
+                    <td style="text-align: left">dev API 또는 sandbox</td>
+                    <td style="text-align: left">팀</td>
+                    <td style="text-align: left">branch delete까지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">integration</td>
+                    <td style="text-align: left">
+                      <code>develop</code> 또는 <code>main</code> merge 전
+                    </td>
+                    <td style="text-align: left"><code>integration.example.com</code></td>
+                    <td style="text-align: left">통합 테스트 데이터</td>
+                    <td style="text-align: left">팀/QA</td>
+                    <td style="text-align: left">상시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">staging</td>
+                    <td style="text-align: left">release candidate</td>
+                    <td style="text-align: left"><code>staging.example.com</code></td>
+                    <td style="text-align: left">production 유사, 민감정보 제거</td>
+                    <td style="text-align: left">승인된 팀</td>
+                    <td style="text-align: left">상시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">production</td>
+                    <td style="text-align: left">release approval</td>
+                    <td style="text-align: left"><code>www.example.com</code></td>
+                    <td style="text-align: left">production</td>
+                    <td style="text-align: left">운영 권한</td>
+                    <td style="text-align: left">상시</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="13">1.3 빠른 개발 검증 서버의 조건</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">조건</th>
+                    <th style="text-align: left">설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">생성이 자동이다</td>
+                    <td style="text-align: left">PR 생성 또는 branch push만으로 URL이 생깁니다.</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">공유가 쉽다</td>
+                    <td style="text-align: left">
+                      PR comment, GitHub deployment, Slack 알림 중 하나로 URL을 찾을 수 있습니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">실패가 빠르다</td>
+                    <td style="text-align: left">type/test/build가 실패하면 배포하지 않습니다.</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">안전하다</td>
+                    <td style="text-align: left">
+                      production secret, production 쓰기 권한, 실제 사용자 데이터가 들어가지
+                      않습니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">정리가 자동이다</td>
+                    <td style="text-align: left">
+                      PR close, branch delete, TTL 만료가 cleanup trigger입니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">추적 가능하다</td>
+                    <td style="text-align: left">
+                      URL이 commit SHA, PR number, artifact id와 연결됩니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="14-aws-reference-architecture-3">1.4 AWS reference architecture 3종</h3>
+            <blockquote>
+              <p>
+                <strong>선택 기준 한눈에 보기</strong>: 아래 다이어그램은 세 가지 패턴이 자원을
+                어떻게 사용하는지 비교한 것입니다. SSR 필요 여부와 CI 통제 수준이 1차 선택
+                기준입니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TB
+  subgraph A[&quot;Pattern A: Amplify managed&quot;]
+    GH1[GitHub Repo] --&gt; Amp1[Amplify Hosting]
+    Amp1 --&gt; URL1[preview URL]
+  end
+  subgraph B[&quot;Pattern B: GitHub Actions + S3 + Amplify manual&quot;]
+    GH2[GitHub Repo] --&gt; CI2[GitHub Actions]
+    CI2 --&gt; S3B[S3 artifact]
+    S3B --&gt; Amp2[Amplify manual deploy]
+    Amp2 --&gt; URL2[preview URL]
+  end
+  subgraph C[&quot;Pattern C: GitHub Actions + S3 + CloudFront direct&quot;]
+    GH3[GitHub Repo] --&gt; CI3[GitHub Actions]
+    CI3 --&gt; S3C[S3 bucket]
+    S3C --&gt; CF[CloudFront + OAC]
+    CF --&gt; URL3[preview URL]
+  end</pre
+            >
+            <h4 id="141-amplify-managed-preview">1.4.1 Amplify managed preview</h4>
+            <pre><code class="language-text">GitHub PR
+  -&gt; Amplify GitHub App
+  -&gt; Amplify branch build
+  -&gt; Amplify preview URL or Route 53 automatic subdomain
+  -&gt; optional temporary backend for private repositories
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">구성 요소</th>
+                    <th style="text-align: left">설정</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify app</td>
+                    <td style="text-align: left">Git repository와 연결</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch</td>
+                    <td style="text-align: left">
+                      <code>main</code>, <code>develop</code>, <code>release/*</code>,
+                      <code>feature/*</code> pattern
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR preview</td>
+                    <td style="text-align: left">base branch별 enable</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">access control</td>
+                    <td style="text-align: left">feature branch password 또는 private URL</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">domain</td>
+                    <td style="text-align: left">
+                      default <code>amplifyapp.com</code> 또는 Route 53 custom domain
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup</td>
+                    <td style="text-align: left">
+                      PR close 시 preview URL과 연결 branch/subdomain 삭제 확인
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              이 방식은 구축 속도가 빠릅니다. 다만 Amplify가 build를 수행하므로 GitHub Actions에서
+              만든 artifact를 그대로 승격하는 구조는 아닙니다. 품질 게이트가 강해야 하는 팀은
+              Amplify build 앞에 required check를 두거나, Pattern B로 넘어갑니다.
+            </p>
+            <h4 id="142-github-actions-orchestrated-static-preview">
+              1.4.2 GitHub Actions orchestrated static preview
+            </h4>
+            <pre><code class="language-text">GitHub PR
+  -&gt; GitHub Actions quality gate
+  -&gt; static build
+  -&gt; S3 artifact prefix
+  -&gt; Amplify manual deployment or S3/CloudFront deploy
+  -&gt; URL smoke
+  -&gt; PR comment
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">구성 요소</th>
+                    <th style="text-align: left">설정</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">S3 artifact bucket</td>
+                    <td style="text-align: left">
+                      <code
+                        >s3://frontend-artifacts/&lt;service&gt;/&lt;env&gt;/&lt;revision&gt;/</code
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Amplify manual deploy</td>
+                    <td style="text-align: left">static output만 사용, SSR 앱 제외</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudFront</td>
+                    <td style="text-align: left">OAC로 S3 origin 보호, HTML과 asset cache 분리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">GitHub deployment</td>
+                    <td style="text-align: left">environment URL과 smoke 결과 기록</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup</td>
+                    <td style="text-align: left">
+                      S3 prefix delete, Amplify branch delete, CloudFront invalidation 제한
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              이 방식은 "검증한 artifact를 배포한다"는 원칙을 가장 명확하게 만들 수 있습니다. 정적
+              앱, Storybook, admin SPA, Next.js static export에 적합합니다.
+            </p>
+            <h4 id="143-runtime-server-preview">1.4.3 Runtime server preview</h4>
+            <pre><code class="language-text">GitHub PR
+  -&gt; container build or server bundle
+  -&gt; ECR / artifact registry
+  -&gt; App Runner, ECS, Lambda adapter, or Amplify Hosting compute
+  -&gt; ALB/CloudFront/Route 53 preview URL
+  -&gt; smoke and cleanup
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">구성 요소</th>
+                    <th style="text-align: left">설정</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">runtime</td>
+                    <td style="text-align: left">
+                      App Runner, ECS service, Lambda adapter, Amplify compute 중 선택
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">image/artifact</td>
+                    <td style="text-align: left">revision tag와 checksum</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">network</td>
+                    <td style="text-align: left">
+                      preview API 접근 범위, VPC egress, secret source
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">URL</td>
+                    <td style="text-align: left">
+                      <code>pr-123.preview.example.com</code> 또는 runtime service URL
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup</td>
+                    <td style="text-align: left">
+                      service scale-down/delete, image retention, DNS record delete
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              SSR, API Routes, Middleware, long-running server logic이 필요한 앱은 정적 hosting으로
+              맞추지 않습니다. preview 수가 많아지는 경우 runtime preview는 비용이 커지므로 branch
+              pattern과 TTL을 강하게 둡니다.
+            </p>
+            <hr />
+            <h2 id="2">2. 구현 패턴 선택</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 어떤 패턴을 고르냐에 따라 운영 비용, CI 통제, SSR 가능
+                여부, 마이그레이션 난이도가 전부 달라집니다. 패턴은 한 번 정해지면 바꾸기 비싸므로
+                사전 의사결정 트리가 필수입니다.
+              </p>
+            </blockquote>
+            <h3 id="_8">패턴 선택 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start[&quot;다중 환경 구축 시작&quot;] --&gt; Q1{&quot;SSR, API Routes,&lt;br/&gt;Middleware 필요?&quot;}
+  Q1 --&gt;|예| Q2{&quot;Amplify compute로 충분?&quot;}
+  Q1 --&gt;|&quot;아니오 (static)&quot;| Q3{&quot;CI에서 강한&lt;br/&gt;품질 게이트 필요?&quot;}
+  Q2 --&gt;|예| A[&quot;Pattern A&lt;br/&gt;Amplify Git 연결형&lt;br/&gt;(SSR 지원)&quot;]
+  Q2 --&gt;|&quot;아니오 (container 필요)&quot;| D[&quot;Pattern D&lt;br/&gt;Runtime server&lt;br/&gt;(ECS/App Runner)&quot;]
+  Q3 --&gt;|&quot;아니오 (속도 우선)&quot;| A
+  Q3 --&gt;|예| Q4{&quot;콘솔 의존&lt;br/&gt;줄이고 싶나?&quot;}
+  Q4 --&gt;|&quot;예 (cache/권한 직접)&quot;| C[&quot;Pattern C&lt;br/&gt;S3/CloudFront direct&quot;]
+  Q4 --&gt;|&quot;아니오 (Amplify 유지)&quot;| B[&quot;Pattern B&lt;br/&gt;GH Actions + S3&lt;br/&gt;+ Amplify manual&quot;]</pre
+            >
+            <h3 id="21-pattern-a-amplify-git">2.1 Pattern A: Amplify Git 연결형</h3>
+            <p>
+              Amplify Hosting이 repository branch를 직접 빌드하고 배포합니다. 초기 구축이 빠르고
+              branch autodetection, PR preview, custom domain, basic auth, SSR hosting을 콘솔에서
+              쉽게 연결할 수 있습니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">적합한 경우</th>
+                    <th style="text-align: left">주의할 점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">빠르게 PR별 preview URL이 필요함</td>
+                    <td style="text-align: left">build gate가 Amplify buildspec에 묶이기 쉬움</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      Next.js SSR/SSG를 Amplify Hosting compute로 운영함
+                    </td>
+                    <td style="text-align: left">SSR Compute role 권한을 branch별로 제한해야 함</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      GitFlow 또는 release branch를 그대로 URL로 보고 싶음
+                    </td>
+                    <td style="text-align: left">
+                      app당 branch quota와 orphan branch를 관리해야 함
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AWS 콘솔 중심 운영을 받아들일 수 있음</td>
+                    <td style="text-align: left">
+                      배포 승인, provenance, custom smoke는 별도 CI와 연결 필요
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>권장 설정:</p>
+            <ul>
+              <li>
+                branch autodetection pattern은 <code>feature/*</code>, <code>dev/*</code>,
+                <code>release/*</code>처럼 제한합니다.
+              </li>
+              <li>
+                public repository에서 IAM service role이 필요한 preview는 보수적으로 다룹니다.
+              </li>
+              <li>PR preview에는 basic auth 또는 branch-level access control을 둡니다.</li>
+              <li>
+                branch 삭제 시 Amplify branch와 subdomain이 함께 삭제되는지 주기적으로 확인합니다.
+              </li>
+            </ul>
+            <h3 id="22-pattern-b-github-actions-build-s3-artifact-amplify-start-deployment">
+              2.2 Pattern B: GitHub Actions build + S3 artifact + Amplify start-deployment
+            </h3>
+            <p>
+              GitHub Actions에서 빌드와 검증을 완료한 뒤, 산출물을 S3에 올리고 Amplify manual
+              deployment를 시작합니다. "CI가 검증한 artifact"를 그대로 배포할 수 있어 품질 게이트와
+              증적을 강하게 유지할 수 있습니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">적합한 경우</th>
+                    <th style="text-align: left">주의할 점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      GitHub Actions에서 테스트, 보안, provenance를 통제하고 싶음
+                    </td>
+                    <td style="text-align: left">
+                      Amplify manual deploy는 SSR 앱에 맞지 않습니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">build once, deploy many가 중요함</td>
+                    <td style="text-align: left">
+                      환경별 build-time env가 섞이지 않게 설계해야 합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      artifact registry와 rollback artifact를 남기고 싶음
+                    </td>
+                    <td style="text-align: left">
+                      zip 또는 bucket prefix 구조를 표준화해야 합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AWS 콘솔 접근 없이 배포하고 싶음</td>
+                    <td style="text-align: left">
+                      Amplify app id, branch name, S3 prefix 관리가 필요합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>배포 흐름:</p>
+            <pre><code class="language-text">next build
+  -&gt; static output or hosting bundle
+  -&gt; s3://frontend-artifacts/&lt;service&gt;/&lt;sha&gt;/
+  -&gt; aws amplify start-deployment
+      --source-url-type BUCKET_PREFIX
+      --source-url s3://frontend-artifacts/&lt;service&gt;/&lt;sha&gt;/
+</code></pre>
+            <h3 id="23-pattern-c-github-actions-build-s3cloudfront-direct-deploy">
+              2.3 Pattern C: GitHub Actions build + S3/CloudFront direct deploy
+            </h3>
+            <p>
+              Next.js static export, Vite, CRA, Storybook, 정적 문서처럼 HTML/CSS/JS만 있으면 S3
+              bucket과 CloudFront distribution으로 직접 운영할 수 있습니다. Amplify보다 더 명시적인
+              cache, origin, invalidation, domain 제어가 가능합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">적합한 경우</th>
+                    <th style="text-align: left">주의할 점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">정적 hosting만 필요함</td>
+                    <td style="text-align: left">
+                      Next.js SSR, API Routes, Middleware가 필요한 경우 부적합
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      cache-control과 CloudFront behavior를 직접 설계하고 싶음
+                    </td>
+                    <td style="text-align: left">
+                      SPA fallback, 404, directory routing을 직접 구성해야 함
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">preview를 S3 prefix로 많이 만들고 싶음</td>
+                    <td style="text-align: left">
+                      prefix cleanup과 domain routing 자동화가 필요함
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">비용과 권한을 낮게 유지하고 싶음</td>
+                    <td style="text-align: left">
+                      production bucket public access와 OAC/OAI 정책을 정확히 설계해야 함
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="24-pattern-d-runtime-server">2.4 Pattern D: Runtime server 배포</h3>
+            <p>
+              Next.js SSR, API Routes, Middleware, ISR, image optimization, server action 같은
+              런타임 기능이 핵심이면 정적 hosting이 아니라 Amplify Hosting compute, container, App
+              Runner, ECS, Lambda adapter 등 runtime server가 필요합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">질문</th>
+                    <th style="text-align: left">선택</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>output: 'export'</code>로 빌드 가능한가</td>
+                    <td style="text-align: left">S3/CloudFront 또는 Amplify static</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SSR, API Routes, Middleware가 필요한가</td>
+                    <td style="text-align: left">Amplify Hosting compute 또는 server runtime</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">preview마다 backend도 분리해야 하는가</td>
+                    <td style="text-align: left">
+                      Amplify fullstack branch, sandbox backend, ephemeral stack
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      production과 같은 artifact를 staging에서 검증해야 하는가
+                    </td>
+                    <td style="text-align: left">GitHub Actions artifact 중심</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="25-aws">2.5 AWS 공식 제약 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">확인 내용</th>
+                    <th style="text-align: left">설계 영향</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify PR preview quota</td>
+                    <td style="text-align: left">
+                      PR preview는 Amplify app의 branch quota를 사용합니다.
+                    </td>
+                    <td style="text-align: left">오래된 PR close와 cleanup report가 필요합니다.</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">public repository + service role</td>
+                    <td style="text-align: left">
+                      public repo에서 IAM service role이 필요한 backend/WEB_COMPUTE preview는
+                      제한됩니다.
+                    </td>
+                    <td style="text-align: left">
+                      public repo는 static preview 또는 branch-level role 검토가 필요합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Amplify manual deploy</td>
+                    <td style="text-align: left">
+                      S3/URL/zip 기반 manual deploy는 SSR 앱에 맞지 않습니다.
+                    </td>
+                    <td style="text-align: left">
+                      SSR은 Amplify Git 연결형 또는 runtime server로 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">manual zip size</td>
+                    <td style="text-align: left">
+                      zip manual deploy는 S3 copy 제약으로 큰 artifact에 한계가 있습니다.
+                    </td>
+                    <td style="text-align: left">
+                      큰 앱은 <code>BUCKET_PREFIX</code> 또는 direct S3/CloudFront를 검토합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>start-deployment</code> timing</td>
+                    <td style="text-align: left">
+                      <code>create-deployment</code> 후 <code>start-deployment</code>까지 허용
+                      시간이 제한됩니다.
+                    </td>
+                    <td style="text-align: left">
+                      create/start를 한 job에서 처리하거나 source URL 직접 start를 씁니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Amplify env var secret</td>
+                    <td style="text-align: left">
+                      Amplify 환경 변수는 설정값 용도이고 secret 저장소로 쓰지 않습니다.
+                    </td>
+                    <td style="text-align: left">
+                      secret은 Amplify Secret, SSM Parameter Store, GitHub environment secret로
+                      분리합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Next.js support</td>
+                    <td style="text-align: left">
+                      Amplify Hosting compute는 Next.js SSR 기능 중 일부 미지원 항목이 있습니다.
+                    </td>
+                    <td style="text-align: left">
+                      streaming, Edge API Routes, On-Demand ISR 필요 여부를 사전에 확인합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudFront OAC</td>
+                    <td style="text-align: left">S3 REST origin 보호에는 OAC가 권장됩니다.</td>
+                    <td style="text-align: left">
+                      S3 website endpoint와 OAC는 같은 방식으로 쓰지 않습니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="3-nextjs-react">3. Next.js와 React 앱 배포 기준</h2>
+            <h3 id="31-static-export">3.1 Static export 기준</h3>
+            <p>정적 hosting을 쓰려면 Next.js 설정에서 static export가 가능한지 먼저 확인합니다.</p>
+            <pre><code class="language-ts">// next.config.ts
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  output: 'export',
+}
+
+export default nextConfig
+</code></pre>
+            <p>
+              정적 export는 HTML/CSS/JS를 서빙하는 모든 hosting에 배포할 수 있지만, 서버 기능이
+              필요한 route는 사용할 수 없습니다. <code>getServerSideProps</code>, API Routes,
+              Middleware, dynamic server function, 기본 image optimization, ISR 같은 기능이 필요하면
+              static export를 억지로 맞추지 말고 runtime hosting으로 전환합니다.
+            </p>
+            <h3 id="32-amplify-nextjs">3.2 Amplify Next.js 기준</h3>
+            <p>
+              Amplify Hosting은 Next.js SSR 앱을 compute provider로 배포할 수 있습니다. 빌드 설정은
+              앱 형태에 따라 달라집니다.
+            </p>
+            <pre><code class="language-yaml"># amplify.yml, SSR/SSG 혼합 Next.js 예시
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - corepack enable
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+</code></pre>
+            <p>
+              정적 export output을 S3/CloudFront로 직접 배포하는 경우에는 <code>out</code> 또는
+              프로젝트에서 정한 output directory를 artifact root로 삼습니다.
+            </p>
+            <h3 id="33">3.3 환경 변수 분리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">구분</th>
+                    <th style="text-align: left">예시</th>
+                    <th style="text-align: left">원칙</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">build-time public</td>
+                    <td style="text-align: left"><code>NEXT_PUBLIC_API_BASE_URL</code></td>
+                    <td style="text-align: left">client bundle에 박히므로 secret 금지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">runtime server</td>
+                    <td style="text-align: left">
+                      <code>API_INTERNAL_URL</code>, <code>SESSION_SECRET</code>
+                    </td>
+                    <td style="text-align: left">server runtime에서만 읽음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">runtime public config</td>
+                    <td style="text-align: left">
+                      <code>/config/env.json</code>, edge response header
+                    </td>
+                    <td style="text-align: left">같은 artifact를 여러 환경에 승격할 때 사용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CI deployment config</td>
+                    <td style="text-align: left">
+                      <code>AWS_ROLE_ARN</code>, <code>AMPLIFY_APP_ID</code>
+                    </td>
+                    <td style="text-align: left">GitHub environment variable 또는 secret로 관리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              다중 개발 서버를 고도화하려면 "환경별로 다시 빌드"보다 "하나의 artifact + runtime
+              public config"가 더 안전합니다. 다만 Next.js static export는 public 환경 값이 build
+              output에 포함되기 쉬우므로, 환경별 build가 필요하다면 artifact 이름에 environment와
+              source revision을 포함하고 검증 증거를 분리합니다.
+            </p>
+            <hr />
+            <h2 id="4-github-actions">4. GitHub Actions 파이프라인 설계</h2>
+            <h3 id="41">4.1 이벤트와 동시성</h3>
+            <pre><code class="language-yaml">name: frontend-preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        options: [preview, staging, production]
+
+concurrency:
+  group: frontend-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+</code></pre>
+            <p>
+              동시성 그룹은 같은 PR 또는 같은 branch에 오래된 배포가 겹치지 않게 막습니다.
+              production 배포는 <code>environment: production</code>을 사용해 reviewer, branch rule,
+              secret 접근을 제한합니다.
+            </p>
+            <h3 id="42-oidc">4.2 OIDC 권한</h3>
+            <pre><code class="language-yaml">permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+</code></pre>
+            <p>
+              장기 <code>AWS_ACCESS_KEY_ID</code>와 <code>AWS_SECRET_ACCESS_KEY</code>를 repository
+              secret에 저장하는 방식은 피합니다. AWS IAM trust policy는 repository, branch,
+              environment claim을 조건으로 제한합니다.
+            </p>
+            <h3 id="43-build-artifact">4.3 Build와 artifact</h3>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: build-once, deploy-many는 한 번 만든 도시락(artifact)을
+                여러 식당(환경)에 그대로 배달하는 것과 같습니다. 식당마다 다시 요리하지 않으니
+                맛(런타임 동작)이 똑같이 보장됩니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 한 commit이 들어왔을 때 install → checks → build → package → upload로 흐르는
+              단일 빌드 파이프라인을 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  Push[&quot;commit push&quot;] --&gt; Setup[&quot;setup-node + cache&quot;]
+  Setup --&gt; Inst[&quot;pnpm install --frozen-lockfile&quot;]
+  Inst --&gt; Par1[&quot;pnpm lint&quot;]
+  Inst --&gt; Par2[&quot;pnpm typecheck&quot;]
+  Inst --&gt; Par3[&quot;pnpm test&quot;]
+  Par1 --&gt; Gate{&quot;모든 게이트 통과?&quot;}
+  Par2 --&gt; Gate
+  Par3 --&gt; Gate
+  Gate --&gt;|아니오| Fail[&quot;빌드 실패&lt;br/&gt;(배포 안 함)&quot;]
+  Gate --&gt;|예| Build[&quot;pnpm build&quot;]
+  Build --&gt; Pack[&quot;tar.gz + sha256&quot;]
+  Pack --&gt; Upload[&quot;upload-artifact&lt;br/&gt;(frontend-{SHA})&quot;]
+  Upload --&gt; Deploy1[&quot;preview deploy&quot;]
+  Upload --&gt; Deploy2[&quot;staging deploy&lt;br/&gt;(동일 artifact)&quot;]
+  Upload --&gt; Deploy3[&quot;production deploy&lt;br/&gt;(동일 artifact)&quot;]</pre
+            >
+            <blockquote>
+              <p>
+                <strong>핵심 규칙</strong>: ① lint/typecheck/test는 build 이전에 실패해야
+                한다(쓰레기 artifact 방지). ② 한 번 만든 artifact는 환경별로 재빌드하지 않는다. ③
+                checksum을 함께 업로드해 무결성을 보장한다.
+              </p>
+            </blockquote>
+            <pre><code class="language-yaml">- uses: actions/setup-node@v6
+  with:
+    node-version-file: .nvmrc
+    cache: pnpm
+
+- run: corepack enable
+- run: pnpm install --frozen-lockfile
+- run: pnpm lint
+- run: pnpm typecheck
+- run: pnpm test
+- run: pnpm build
+
+- name: Package static output
+  run: |
+    tar -czf app.tar.gz -C out .
+    shasum -a 256 app.tar.gz &gt; app.tar.gz.sha256
+
+- uses: actions/upload-artifact@v6
+  with:
+    name: frontend-${{ github.sha }}
+    path: |
+      app.tar.gz
+      app.tar.gz.sha256
+</code></pre>
+            <p>
+              배포 job은 이 artifact를 다운로드해서 사용합니다. staging과 production에서 다시
+              빌드하지 않습니다.
+            </p>
+            <h3 id="44-pr-preview-workflow">4.4 PR preview workflow 전체 뼈대</h3>
+            <p>
+              아래 workflow는 static export 또는 Vite/SPA처럼 <code>out</code> 또는
+              <code>dist</code>를 S3/Amplify manual deploy로 올릴 수 있는 앱을 기준으로 합니다. SSR
+              앱은 이 workflow의 build/test/comment 구조만 가져가고 배포 단계는 Amplify Git branch
+              또는 runtime server로 바꿉니다.
+            </p>
+            <pre><code class="language-yaml">name: frontend-preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  deployments: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  SERVICE_NAME: web
+  OUTPUT_DIR: out
+
+jobs:
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Delete preview prefix
+        run: |
+          aws s3 rm &quot;s3://${{ vars.ARTIFACT_BUCKET }}/${SERVICE_NAME}/pr-${{ github.event.pull_request.number }}/&quot; \
+            --recursive
+      - name: Delete Amplify branch when used
+        continue-on-error: true
+        run: |
+          aws amplify delete-branch \
+            --app-id &quot;${{ vars.AMPLIFY_APP_ID }}&quot; \
+            --branch-name &quot;pr-${{ github.event.pull_request.number }}&quot;
+
+  deploy:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy-url.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      - name: Write deployment metadata
+        run: |
+          mkdir -p &quot;${OUTPUT_DIR}&quot;
+          printf '%s\n' \
+            '{' \
+            '  &quot;service&quot;: &quot;'&quot;${SERVICE_NAME}&quot;'&quot;,' \
+            '  &quot;environment&quot;: &quot;preview&quot;,' \
+            '  &quot;pullRequest&quot;: '${{ github.event.pull_request.number }}',' \
+            '  &quot;sourceRevision&quot;: &quot;'&quot;${GITHUB_SHA}&quot;'&quot;' \
+            '}' &gt; &quot;${OUTPUT_DIR}/deployment.json&quot;
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Upload immutable assets
+        run: |
+          PREFIX=&quot;${SERVICE_NAME}/pr-${{ github.event.pull_request.number }}/${GITHUB_SHA}&quot;
+          aws s3 sync &quot;${OUTPUT_DIR}&quot; &quot;s3://${{ vars.ARTIFACT_BUCKET }}/${PREFIX}/&quot; \
+            --delete \
+            --cache-control &quot;public,max-age=31536000,immutable&quot; \
+            --exclude &quot;index.html&quot; \
+            --exclude &quot;deployment.json&quot; \
+            --exclude &quot;env.json&quot;
+          aws s3 cp &quot;${OUTPUT_DIR}/index.html&quot; &quot;s3://${{ vars.ARTIFACT_BUCKET }}/${PREFIX}/index.html&quot; \
+            --cache-control &quot;no-cache,max-age=0&quot;
+          aws s3 cp &quot;${OUTPUT_DIR}/deployment.json&quot; &quot;s3://${{ vars.ARTIFACT_BUCKET }}/${PREFIX}/deployment.json&quot; \
+            --cache-control &quot;no-cache,max-age=0&quot;
+
+      - name: Start Amplify manual deployment
+        if: vars.AMPLIFY_APP_ID != ''
+        run: |
+          aws amplify start-deployment \
+            --app-id &quot;${{ vars.AMPLIFY_APP_ID }}&quot; \
+            --branch-name &quot;pr-${{ github.event.pull_request.number }}&quot; \
+            --source-url-type BUCKET_PREFIX \
+            --source-url &quot;s3://${{ vars.ARTIFACT_BUCKET }}/${SERVICE_NAME}/pr-${{ github.event.pull_request.number }}/${GITHUB_SHA}/&quot;
+
+      - id: deploy-url
+        run: |
+          echo &quot;url=https://pr-${{ github.event.pull_request.number }}.preview.example.com&quot; &gt;&gt; &quot;$GITHUB_OUTPUT&quot;
+
+      - name: Smoke test
+        run: pnpm exec playwright test tests/smoke --project=chromium
+        env:
+          BASE_URL: ${{ steps.deploy-url.outputs.url }}
+
+      - name: Comment preview URL
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = [
+              'Preview deployed',
+              '',
+              `URL: ${{ steps.deploy-url.outputs.url }}`,
+              `Revision: ${process.env.GITHUB_SHA}`,
+              `Expires: PR close or scheduled cleanup`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+</code></pre>
+            <p>
+              운영용 workflow에서는 PR comment 중복을 줄이기 위해 기존 bot comment를 찾아
+              update하고, <code>aws amplify get-job</code> 또는 CloudFront URL smoke 결과를
+              deployment status로 남깁니다.
+            </p>
+            <hr />
+            <h2 id="5-amplify-s3-artifact">5. Amplify + S3 artifact 배포 예시</h2>
+            <h3 id="51-s3-prefix">5.1 S3 prefix 구조</h3>
+            <pre><code class="language-text">s3://frontend-artifacts/
+  web/
+    pr-123/
+      9f1a2b3/
+        index.html
+        _next/
+        deployment.json
+    staging/
+      9f1a2b3/
+    production/
+      9f1a2b3/
+</code></pre>
+            <p>
+              <code>deployment.json</code>에는 최소한 source revision, build time, package manager,
+              artifact checksum, environment, PR number를 기록합니다.
+            </p>
+            <pre><code class="language-json">{
+  &quot;service&quot;: &quot;web&quot;,
+  &quot;environment&quot;: &quot;preview&quot;,
+  &quot;sourceRevision&quot;: &quot;9f1a2b3&quot;,
+  &quot;artifactSha256&quot;: &quot;sha256-value&quot;,
+  &quot;pullRequest&quot;: 123
+}
+</code></pre>
+            <h3 id="52-s3-amplify-start-deployment">5.2 S3 업로드와 Amplify start-deployment</h3>
+            <pre><code class="language-yaml">- name: Upload artifact prefix
+  run: |
+    aws s3 sync out &quot;s3://${ARTIFACT_BUCKET}/web/pr-${PR_NUMBER}/${GITHUB_SHA}/&quot; \
+      --delete \
+      --cache-control &quot;public,max-age=31536000,immutable&quot; \
+      --exclude &quot;index.html&quot; \
+      --exclude &quot;deployment.json&quot;
+    aws s3 cp out/index.html &quot;s3://${ARTIFACT_BUCKET}/web/pr-${PR_NUMBER}/${GITHUB_SHA}/index.html&quot; \
+      --cache-control &quot;no-cache,max-age=0&quot;
+    aws s3 cp deployment.json &quot;s3://${ARTIFACT_BUCKET}/web/pr-${PR_NUMBER}/${GITHUB_SHA}/deployment.json&quot; \
+      --cache-control &quot;no-cache,max-age=0&quot;
+
+- name: Start Amplify deployment
+  id: deploy
+  run: |
+    aws amplify start-deployment \
+      --app-id &quot;${AMPLIFY_APP_ID}&quot; \
+      --branch-name &quot;pr-${PR_NUMBER}&quot; \
+      --source-url-type BUCKET_PREFIX \
+      --source-url &quot;s3://${ARTIFACT_BUCKET}/web/pr-${PR_NUMBER}/${GITHUB_SHA}/&quot;
+</code></pre>
+            <p>
+              이 방식은 static site 또는 Amplify manual deployment가 지원하는 앱에 적합합니다. SSR
+              앱은 Amplify Git 연결형 또는 compute/runtime 배포로 처리합니다.
+            </p>
+            <h3 id="53-pr-comment-smoke">5.3 PR comment와 smoke</h3>
+            <pre><code class="language-yaml">- name: Smoke test preview
+  run: |
+    pnpm exec playwright test tests/smoke.spec.ts \
+      --project=chromium \
+      --grep @preview
+  env:
+    BASE_URL: ${{ steps.deploy.outputs.url }}
+</code></pre>
+            <p>PR comment에는 URL만 남기지 말고 다음 정보를 같이 남깁니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">preview URL</td>
+                    <td style="text-align: left">reviewer와 QA가 바로 접근</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">source revision</td>
+                    <td style="text-align: left">어떤 commit이 배포됐는지 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">smoke result</td>
+                    <td style="text-align: left">배포 URL 기준 검증 여부</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">artifact checksum</td>
+                    <td style="text-align: left">rollback과 감사 추적</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">expires at</td>
+                    <td style="text-align: left">정리 시점 예측</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="6-amplify-branchpr-preview">6. Amplify branch/PR preview 설정</h2>
+            <h3 id="61-branch-autodetection">6.1 Branch autodetection</h3>
+            <p>
+              Amplify branch autodetection은 지정한 pattern과 맞는 branch를 자동 연결할 수 있습니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">pattern</th>
+                    <th style="text-align: left">의미</th>
+                    <th style="text-align: left">권장 사용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>feature/*</code></td>
+                    <td style="text-align: left">기능 branch preview</td>
+                    <td style="text-align: left">짧은 수명 branch</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>dev/*</code></td>
+                    <td style="text-align: left">개발자 또는 squad 검증 branch</td>
+                    <td style="text-align: left">팀 내부 공유</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>release/*</code></td>
+                    <td style="text-align: left">release candidate branch</td>
+                    <td style="text-align: left">QA 또는 regression</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>*</code></td>
+                    <td style="text-align: left">모든 branch</td>
+                    <td style="text-align: left">작은 repo에서만 제한적으로 사용</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              자동 생성 branch는 access control, environment variable, stage, PR preview 여부를 함께
+              설정합니다. branch가 삭제됐는데 Amplify branch와 subdomain이 남으면 cleanup workflow로
+              제거합니다.
+            </p>
+            <h3 id="62-pr-preview">6.2 PR preview</h3>
+            <p>
+              Amplify PR preview는 PR마다 고유 URL을 만들고, PR이 닫히면 preview URL과 임시
+              backend를 삭제할 수 있습니다.
+            </p>
+            <p>운영 기준:</p>
+            <ul>
+              <li>
+                PR preview는 <code>main</code> 또는 <code>develop</code> 같은 base branch별로
+                켭니다.
+              </li>
+              <li>
+                private repository에서는 temporary backend를 만들 수 있지만, 데이터와 권한 범위를
+                명확히 제한합니다.
+              </li>
+              <li>
+                public repository에서 service role이 필요한 SSR/compute preview는 branch-level
+                role과 제한된 preview 정책을 사용합니다.
+              </li>
+              <li>app당 branch quota를 monitoring하고, 닫히지 않은 오래된 PR을 정리합니다.</li>
+            </ul>
+            <h3 id="63-cloudformation">6.3 CloudFormation 예시</h3>
+            <pre><code class="language-yaml">PreviewBranch:
+  Type: AWS::Amplify::Branch
+  Properties:
+    AppId: !Ref AmplifyAppId
+    BranchName: develop
+    Stage: DEVELOPMENT
+    EnableAutoBuild: true
+    EnablePullRequestPreview: true
+    EnvironmentVariables:
+      - Name: NEXT_PUBLIC_STAGE
+        Value: preview
+</code></pre>
+            <p>
+              자동 branch 생성을 IaC로 관리할 때는 <code>AutoBranchCreationConfig</code>에 pattern,
+              stage, PR preview, environment variables를 선언합니다.
+            </p>
+            <pre><code class="language-yaml">AutoBranchCreationConfig:
+  EnableAutoBranchCreation: true
+  AutoBranchCreationPatterns:
+    - feature/*
+    - release/*
+  EnableAutoBuild: true
+  EnablePullRequestPreview: true
+  Stage: PULL_REQUEST
+</code></pre>
+            <hr />
+            <h2 id="7-s3-cloudfront">7. S3 + CloudFront 직접 배포</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 정적 hosting을 S3/CloudFront로 직접 운영하면 cache,
+                origin, invalidation, 보안 헤더를 코드로 모두 통제할 수 있습니다. 대신 SPA
+                fallback이나 404 처리 같은 라우팅 문제를 직접 풀어야 합니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: Amplify가 "관리형 서비스 패키지 여행"이라면,
+                S3/CloudFront 직접 운영은 "직접 차량을 빌려 다니는 자유 여행"입니다. 더 싸고
+                유연하지만 도로 표지(routing)와 주유(cache invalidation)를 직접 챙겨야 합니다.
+              </p>
+            </blockquote>
+            <h3 id="s3-cloudfront">S3 + CloudFront 데이터 흐름</h3>
+            <pre class="mermaid">
+flowchart LR
+  Dev[&quot;개발자/PR&quot;] --&gt;|CI build| CI[&quot;GitHub Actions&quot;]
+  CI --&gt;|aws s3 sync| S3[&quot;S3 Bucket&lt;br/&gt;(versioning + lifecycle)&quot;]
+  S3 -.OAC signed.-&gt; CF[&quot;CloudFront Distribution&quot;]
+  CF --&gt;|invalidation| Inv[&quot;entry/config path만&quot;]
+  CF --&gt; User[&quot;사용자 브라우저&quot;]
+  subgraph Cache[&quot;캐시 정책&quot;]
+    HTML[&quot;index.html&lt;br/&gt;no-cache, max-age=0&quot;]
+    Hash[&quot;hash JS/CSS&lt;br/&gt;max-age=31536000, immutable&quot;]
+    Env[&quot;env.json&lt;br/&gt;no-cache&quot;]
+  end
+  CF -.behavior.-&gt; HTML
+  CF -.behavior.-&gt; Hash
+  CF -.behavior.-&gt; Env
+  R53[&quot;Route 53&quot;] --&gt;|alias| CF
+  ACM[&quot;ACM 인증서&quot;] --&gt;|HTTPS| CF</pre
+            >
+            <h3 id="71-bucket-prefix">7.1 Bucket과 prefix 전략</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">전략</th>
+                    <th style="text-align: left">설명</th>
+                    <th style="text-align: left">적합한 경우</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">environment별 bucket</td>
+                    <td style="text-align: left">
+                      <code>web-preview</code>, <code>web-staging</code>,
+                      <code>web-production</code>
+                    </td>
+                    <td style="text-align: left">계정/권한 분리 중시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">environment별 prefix</td>
+                    <td style="text-align: left"><code>s3://web-artifacts/preview/pr-123</code></td>
+                    <td style="text-align: left">preview 수가 많음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">release별 immutable prefix</td>
+                    <td style="text-align: left"><code>s3://web-releases/&lt;sha&gt;</code></td>
+                    <td style="text-align: left">rollback과 감사 중시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">current pointer</td>
+                    <td style="text-align: left">
+                      <code>s3://web-current/index.html</code>만 갱신
+                    </td>
+                    <td style="text-align: left">빠른 entry 전환 필요</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              production bucket은 직접 public access보다 CloudFront OAC를 기본으로 검토합니다.
+              static website endpoint가 필요한 구조라면 공개 범위와 보안 header를 별도로 점검합니다.
+            </p>
+            <h3 id="72-cache-control">7.2 Cache-Control 기준</h3>
+            <pre><code class="language-bash">aws s3 sync out s3://web-preview/pr-123/ \
+  --delete \
+  --cache-control &quot;public,max-age=31536000,immutable&quot; \
+  --exclude &quot;index.html&quot; \
+  --exclude &quot;*.json&quot;
+
+aws s3 cp out/index.html s3://web-preview/pr-123/index.html \
+  --cache-control &quot;no-cache,max-age=0&quot;
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">파일</th>
+                    <th style="text-align: left">cache 기준</th>
+                    <th style="text-align: left">이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>index.html</code></td>
+                    <td style="text-align: left"><code>no-cache,max-age=0</code></td>
+                    <td style="text-align: left">release entry가 자주 바뀜</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">hash JS/CSS</td>
+                    <td style="text-align: left"><code>public,max-age=31536000,immutable</code></td>
+                    <td style="text-align: left">파일명이 바뀌면 새 asset</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>env.json</code></td>
+                    <td style="text-align: left"><code>no-cache,max-age=0</code></td>
+                    <td style="text-align: left">runtime public config</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">image/font</td>
+                    <td style="text-align: left">파일명 hash가 있으면 long cache</td>
+                    <td style="text-align: left">bandwidth 절감</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="73-invalidation">7.3 Invalidation 기준</h3>
+            <p>
+              CloudFront invalidation path는 API/CLI에서 leading slash가 필요합니다. 전체
+              invalidation은 비용과 전파 시간을 고려해 제한하고, 일반적으로 entry와 runtime config만
+              invalidate합니다.
+            </p>
+            <pre><code class="language-bash">aws cloudfront create-invalidation \
+  --distribution-id &quot;$DISTRIBUTION_ID&quot; \
+  --paths &quot;/index.html&quot; &quot;/env.json&quot;
+</code></pre>
+            <p>
+              문제가 생겨 전체 entry와 SPA fallback을 즉시 갱신해야 할 때만 <code>"/*"</code>를
+              사용합니다.
+            </p>
+            <h3 id="74-cloudfront-oac-spa-fallback-iac">
+              7.4 CloudFront OAC와 SPA fallback IaC 예시
+            </h3>
+            <p>
+              S3 origin을 CloudFront 뒤에 둘 때는 public bucket보다 Origin Access Control(OAC)을
+              기본 선택지로 둡니다. CloudFront OAC는 S3 REST endpoint origin과 함께 쓰며, S3 static
+              website endpoint를 custom origin으로 쓰는 구조와는 다릅니다. SPA fallback이 필요하면
+              CloudFront custom error response 또는 edge function에서 <code>/index.html</code>로
+              보냅니다.
+            </p>
+            <pre><code class="language-yaml">PreviewBucket:
+  Type: AWS::S3::Bucket
+  Properties:
+    BucketName: !Sub '${ServiceName}-preview-${AWS::AccountId}-${AWS::Region}'
+    PublicAccessBlockConfiguration:
+      BlockPublicAcls: true
+      BlockPublicPolicy: true
+      IgnorePublicAcls: true
+      RestrictPublicBuckets: true
+    VersioningConfiguration:
+      Status: Enabled
+    LifecycleConfiguration:
+      Rules:
+        - Id: DeletePreviewObjects
+          Status: Enabled
+          Prefix: preview/
+          ExpirationInDays: 14
+
+PreviewOAC:
+  Type: AWS::CloudFront::OriginAccessControl
+  Properties:
+    OriginAccessControlConfig:
+      Name: !Sub '${ServiceName}-preview-oac'
+      OriginAccessControlOriginType: s3
+      SigningBehavior: always
+      SigningProtocol: sigv4
+
+PreviewDistribution:
+  Type: AWS::CloudFront::Distribution
+  Properties:
+    DistributionConfig:
+      Enabled: true
+      DefaultRootObject: index.html
+      Origins:
+        - Id: PreviewS3Origin
+          DomainName: !GetAtt PreviewBucket.RegionalDomainName
+          S3OriginConfig: {}
+          OriginAccessControlId: !Ref PreviewOAC
+      DefaultCacheBehavior:
+        TargetOriginId: PreviewS3Origin
+        ViewerProtocolPolicy: redirect-to-https
+        AllowedMethods: [GET, HEAD, OPTIONS]
+        CachedMethods: [GET, HEAD]
+        Compress: true
+        ForwardedValues:
+          QueryString: false
+      CustomErrorResponses:
+        - ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+        - ErrorCode: 404
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+
+PreviewBucketPolicy:
+  Type: AWS::S3::BucketPolicy
+  Properties:
+    Bucket: !Ref PreviewBucket
+    PolicyDocument:
+      Version: '2012-10-17'
+      Statement:
+        - Sid: AllowCloudFrontRead
+          Effect: Allow
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Action: s3:GetObject
+          Resource: !Sub '${PreviewBucket.Arn}/*'
+          Condition:
+            StringEquals:
+              AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${PreviewDistribution}'
+</code></pre>
+            <p>
+              운영에서는 HTML, <code>env.json</code>, hash asset의 cache behavior를 분리하는 것이
+              좋습니다. CloudFront managed cache policy를 쓰거나 별도 cache policy를 만들고, entry
+              파일만 짧은 TTL을 적용합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">behavior</th>
+                    <th style="text-align: left">path pattern</th>
+                    <th style="text-align: left">cache</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">HTML entry</td>
+                    <td style="text-align: left">
+                      <code>/</code>, <code>/index.html</code>, route fallback
+                    </td>
+                    <td style="text-align: left">짧은 TTL 또는 revalidate</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">runtime config</td>
+                    <td style="text-align: left">
+                      <code>/env.json</code>, <code>/deployment.json</code>
+                    </td>
+                    <td style="text-align: left">짧은 TTL</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">hash asset</td>
+                    <td style="text-align: left">
+                      <code>/_next/static/*</code>, <code>/assets/*</code>
+                    </td>
+                    <td style="text-align: left">긴 TTL, immutable</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">source map</td>
+                    <td style="text-align: left"><code>*.map</code></td>
+                    <td style="text-align: left">public 배포 제외 또는 접근 제어</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="8-backend-api">8. Backend와 API 연결</h2>
+            <h3 id="81-api-target">8.1 API target 선택</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">preview 유형</th>
+                    <th style="text-align: left">API 연결</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">UI-only PR</td>
+                    <td style="text-align: left">MSW, fixture</td>
+                    <td style="text-align: left">backend 변경 없음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">frontend + stable API</td>
+                    <td style="text-align: left">dev API read-only</td>
+                    <td style="text-align: left">데이터 변형 위험 낮음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">contract 변경 PR</td>
+                    <td style="text-align: left">ephemeral API 또는 sandbox backend</td>
+                    <td style="text-align: left">schema/API 변경 검증 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">release candidate</td>
+                    <td style="text-align: left">staging API</td>
+                    <td style="text-align: left">production 유사 검증</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              다중 개발 서버가 유용하려면 frontend URL만 많아서는 부족합니다. 해당 URL이 어떤 API,
+              feature flag, analytics, auth redirect, cookie domain을 쓰는지 한눈에 보여야 합니다.
+            </p>
+            <h3 id="82-runtime-config-endpoint">8.2 Runtime config endpoint</h3>
+            <p>
+              정적 배포에서 환경별 API URL이 필요하면 build-time env 대신 runtime public config를 둘
+              수 있습니다.
+            </p>
+            <pre><code class="language-json">{
+  &quot;stage&quot;: &quot;preview&quot;,
+  &quot;apiBaseUrl&quot;: &quot;https://api-preview.example.com&quot;,
+  &quot;sentryEnvironment&quot;: &quot;preview&quot;,
+  &quot;featureFlagClientKey&quot;: &quot;public-client-key&quot;
+}
+</code></pre>
+            <p>
+              이 파일은 public 정보만 포함합니다. secret, internal token, service credential은 절대
+              넣지 않습니다.
+            </p>
+            <h3 id="83-auth-redirect-cookie">8.3 Auth redirect와 cookie</h3>
+            <p>
+              preview URL이 많아지면 auth callback URL, CORS, cookie domain 설정이 장애 지점이
+              됩니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">OAuth callback</td>
+                    <td style="text-align: left">
+                      wildcard callback이 가능한지, 불가능하면 preview auth를 mock 또는 staging
+                      auth로 제한
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Cookie domain</td>
+                    <td style="text-align: left">
+                      production cookie와 preview cookie가 섞이지 않게 분리
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CORS</td>
+                    <td style="text-align: left">
+                      preview subdomain pattern만 허용하고 <code>*</code>와 credential 조합 금지
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CSRF</td>
+                    <td style="text-align: left">
+                      preview도 production과 같은 SameSite/Secure 정책 사용
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="9">9. 권한과 보안 설계</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 장기 AWS access key를 repo에 두면 단 한 번의 유출로
+                전체 인프라가 위험해집니다. OIDC는 키를 저장하지 않고 매 워크플로 실행 시 단기
+                토큰을 받는 방식이라, 유출 위험이 구조적으로 줄어듭니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 장기 키는 "1년짜리 마스터키"이고, OIDC는 "오늘 단 한 번
+                출입 허용 게스트 카드"입니다. 잃어버려도 다음 날이면 무용지물입니다.
+              </p>
+            </blockquote>
+            <h3 id="github-oidc-aws">GitHub OIDC ↔ AWS 인증 흐름</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Workflow as GitHub Actions Workflow
+  participant OIDC as GitHub OIDC Provider
+  participant STS as AWS STS
+  participant IAM as IAM Trust Policy
+  participant AWS as AWS 리소스 (S3/Amplify)
+  Workflow-&gt;&gt;OIDC: id-token: write로 JWT 요청
+  OIDC--&gt;&gt;Workflow: 서명된 OIDC JWT&lt;br/&gt;(repo, environment, ref 정보 포함)
+  Workflow-&gt;&gt;STS: AssumeRoleWithWebIdentity(JWT)
+  STS-&gt;&gt;IAM: trust policy 검증&lt;br/&gt;(sub claim, aud claim 매칭)
+  IAM--&gt;&gt;STS: 검증 통과
+  STS--&gt;&gt;Workflow: 단기 자격증명 (1시간 유효)
+  Workflow-&gt;&gt;AWS: aws s3 sync / amplify start-deployment
+  AWS--&gt;&gt;Workflow: 결과
+  Note over Workflow,AWS: 워크플로 종료 시 자격증명 자동 만료&lt;br/&gt;장기 access key 저장 없음</pre
+            >
+            <h3 id="_9">환경별 역할 분리</h3>
+            <pre class="mermaid">
+flowchart LR
+  WF[&quot;GitHub Actions Workflow&quot;] --&gt;|environment: preview| RP[&quot;preview role&lt;br/&gt;(reviewer 없음)&quot;]
+  WF --&gt;|environment: staging| RS[&quot;staging role&lt;br/&gt;(QA 승인)&quot;]
+  WF --&gt;|environment: production| RR[&quot;production role&lt;br/&gt;(release manager 승인)&quot;]
+  RP --&gt; SP[&quot;S3 preview prefix&lt;br/&gt;amplify pr-* branch&quot;]
+  RS --&gt; SS[&quot;S3 staging&lt;br/&gt;amplify staging branch&quot;]
+  RR --&gt; SR[&quot;S3 production&lt;br/&gt;CloudFront prod&quot;]
+  RP -.write 차단.-&gt; SS
+  RP -.write 차단.-&gt; SR
+  RS -.write 차단.-&gt; SR</pre
+            >
+            <h3 id="91-aws-iam">9.1 AWS IAM 역할 분리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">역할</th>
+                    <th style="text-align: left">허용 action</th>
+                    <th style="text-align: left">범위</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">preview deploy role</td>
+                    <td style="text-align: left">
+                      <code>s3:PutObject</code>, <code>s3:DeleteObject</code>,
+                      <code>amplify:StartDeployment</code>
+                    </td>
+                    <td style="text-align: left">preview bucket/prefix, preview branch</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">staging deploy role</td>
+                    <td style="text-align: left">artifact read, staging deploy</td>
+                    <td style="text-align: left">staging app/branch</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">production deploy role</td>
+                    <td style="text-align: left">
+                      artifact read, production deploy, limited invalidation
+                    </td>
+                    <td style="text-align: left">protected environment approval 후</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup role</td>
+                    <td style="text-align: left">preview branch delete, preview prefix delete</td>
+                    <td style="text-align: left">TTL 만료 resource</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              IAM policy는 wildcard resource를 피하고 service, environment, branch naming
+              convention으로 좁힙니다.
+            </p>
+            <h3 id="92-oidc-trust-policy">9.2 OIDC trust policy 기준</h3>
+            <p>trust policy는 최소한 repository와 environment를 제한합니다.</p>
+            <pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Federated&quot;: &quot;arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRoleWithWebIdentity&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringEquals&quot;: {
+          &quot;token.actions.githubusercontent.com:aud&quot;: &quot;sts.amazonaws.com&quot;
+        },
+        &quot;StringLike&quot;: {
+          &quot;token.actions.githubusercontent.com:sub&quot;: &quot;repo:OWNER/REPO:environment:preview&quot;
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+            <p>
+              계정 ID와 role name은 실제 문서나 PR에 그대로 노출하지 않고 예시 값으로 대체합니다.
+            </p>
+            <h3 id="93-preview">9.3 Preview 접근 제어</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">환경</th>
+                    <th style="text-align: left">접근 정책</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">PR preview</td>
+                    <td style="text-align: left">
+                      basic auth, SSO, allowlist, 또는 private preview URL
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch dev</td>
+                    <td style="text-align: left">팀 계정 접근</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">staging</td>
+                    <td style="text-align: left">QA/운영 승인 사용자</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">production</td>
+                    <td style="text-align: left">public</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              preview에 실제 데이터가 노출되지 않더라도 기능 플래그, 미출시 화면, source map, debug
+              log가 보일 수 있습니다. source map은 public artifact에 올리지 않거나 접근 제어된 오류
+              수집 도구에만 업로드합니다.
+            </p>
+            <h3 id="94-preview-deploy-role">9.4 preview deploy role 최소 정책 예시</h3>
+            <p>
+              아래 정책은 static preview를 S3 prefix에 업로드하고 Amplify manual deployment를
+              시작하는 역할의 예시입니다. 실제 계정에서는 <code>Resource</code>를 bucket, app id,
+              branch naming convention에 맞게 더 좁힙니다.
+            </p>
+            <pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Sid&quot;: &quot;WritePreviewArtifacts&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;s3:PutObject&quot;, &quot;s3:DeleteObject&quot;, &quot;s3:GetObject&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:s3:::frontend-artifacts/web/pr-*/*&quot;
+    },
+    {
+      &quot;Sid&quot;: &quot;ListPreviewPrefixes&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;s3:ListBucket&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:s3:::frontend-artifacts&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringLike&quot;: {
+          &quot;s3:prefix&quot;: [&quot;web/pr-*&quot;]
+        }
+      }
+    },
+    {
+      &quot;Sid&quot;: &quot;DeployPreviewBranch&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [
+        &quot;amplify:StartDeployment&quot;,
+        &quot;amplify:GetJob&quot;,
+        &quot;amplify:CreateBranch&quot;,
+        &quot;amplify:DeleteBranch&quot;
+      ],
+      &quot;Resource&quot;: &quot;arn:aws:amplify:ap-northeast-2:123456789012:apps/dexample/branches/pr-*&quot;
+    },
+    {
+      &quot;Sid&quot;: &quot;LimitedInvalidation&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;cloudfront:CreateInvalidation&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:cloudfront::123456789012:distribution/EDFDVBD6EXAMPLE&quot;
+    }
+  ]
+}
+</code></pre>
+            <p>
+              production role은 preview role보다 좁아야 합니다. production은 write 가능한 S3
+              prefix를 <code>releases/&lt;sha&gt;</code> 또는 <code>current/</code>처럼 제한하고,
+              GitHub <code>environment: production</code> reviewer 승인 후에만 AssumeRole 되게
+              합니다.
+            </p>
+            <h3 id="95-github-oidc-trust-policy">9.5 GitHub OIDC trust policy 설계</h3>
+            <p>
+              GitHub OIDC trust policy는 repository뿐 아니라 environment까지 제한합니다. preview,
+              staging, production role을 분리하면 PR workflow가 production role을 얻는 사고를 줄일
+              수 있습니다.
+            </p>
+            <pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Federated&quot;: &quot;arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRoleWithWebIdentity&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringEquals&quot;: {
+          &quot;token.actions.githubusercontent.com:aud&quot;: &quot;sts.amazonaws.com&quot;
+        },
+        &quot;StringLike&quot;: {
+          &quot;token.actions.githubusercontent.com:sub&quot;: [&quot;repo:OWNER/REPO:environment:preview&quot;]
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">역할</th>
+                    <th style="text-align: left"><code>sub</code> 조건</th>
+                    <th style="text-align: left">GitHub environment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">preview role</td>
+                    <td style="text-align: left">
+                      <code>repo:OWNER/REPO:environment:preview</code>
+                    </td>
+                    <td style="text-align: left">reviewer 없음, 낮은 권한</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">staging role</td>
+                    <td style="text-align: left">
+                      <code>repo:OWNER/REPO:environment:staging</code>
+                    </td>
+                    <td style="text-align: left">QA 또는 release owner 승인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">production role</td>
+                    <td style="text-align: left">
+                      <code>repo:OWNER/REPO:environment:production</code>
+                    </td>
+                    <td style="text-align: left">protected branch + reviewer</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="10-cleanup">10. Cleanup과 비용 운영</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 다중 환경의 가장 큰 운영 리스크는 "끝났는데 안 끝난
+                리소스"입니다. 닫힌 PR의 preview, 삭제된 브랜치의 Amplify branch, 오래된 S3 prefix가
+                누적되면 비용·보안·도메인 quota가 동시에 타격을 입습니다.
+              </p>
+              <p>
+                <strong>일상 비유</strong>: 호텔 객실 청소 시스템 같습니다. 손님이 체크아웃했는데
+                청소가 안 들어가면 다음 손님이 못 들어오고, 그게 누적되면 전체 객실 가동률이
+                떨어집니다.
+              </p>
+            </blockquote>
+            <h3 id="cleanup">Cleanup 트리거와 처리 흐름</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Active: PR 생성 / branch push
+  Active --&gt; Idle: 마지막 변경 후 미사용
+  Active --&gt; CleanupNeeded: PR closed
+  Active --&gt; CleanupNeeded: branch deleted
+  Idle --&gt; CleanupNeeded: TTL 만료 (스케줄)
+  CleanupNeeded --&gt; Cleaning: cleanup workflow 실행
+  Cleaning --&gt; Deleted: S3 prefix + Amplify branch + DNS 삭제
+  Cleaning --&gt; OrphanReport: 삭제 실패 시 리포트
+  OrphanReport --&gt; ManualCleanup: 운영자 수동 처리
+  ManualCleanup --&gt; Deleted
+  Deleted --&gt; [*]</pre
+            >
+            <h3 id="101-cleanup-trigger">10.1 Cleanup trigger</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이벤트</th>
+                    <th style="text-align: left">조치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">PR closed</td>
+                    <td style="text-align: left">
+                      preview branch, subdomain, S3 prefix 접근 차단 또는 삭제
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">branch deleted</td>
+                    <td style="text-align: left">Amplify branch disconnect, S3 prefix lifecycle</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">TTL expired</td>
+                    <td style="text-align: left">preview URL disable, artifact archive</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">release completed</td>
+                    <td style="text-align: left">오래된 staging artifact 정리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              GitHub Actions cleanup job은 <code>pull_request.closed</code>와 schedule을 둘 다
+              사용합니다. webhook 누락이나 실패를 schedule job이 보완합니다.
+            </p>
+            <pre><code class="language-yaml">on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: '0 18 * * *'
+</code></pre>
+            <h3 id="102">10.2 비용 지표</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">지표</th>
+                    <th style="text-align: left">경보 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">active preview count</td>
+                    <td style="text-align: left">팀이 정한 상한 초과</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">orphan S3 prefix</td>
+                    <td style="text-align: left">PR/branch가 없는 prefix 발견</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">build minutes</td>
+                    <td style="text-align: left">주간 평균 대비 급증</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudFront invalidation count</td>
+                    <td style="text-align: left">반복 전체 invalidation</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SSR compute usage</td>
+                    <td style="text-align: left">preview에서 예상보다 높은 요청</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              비용을 줄이기 위해 preview를 무작정 제한하기보다, 기본 TTL, branch pattern 제한, smoke
+              실패 시 배포 중단, 오래된 preview 자동 정리부터 적용합니다.
+            </p>
+            <h3 id="103-cleanup-workflow-dry-run">10.3 cleanup workflow와 dry-run</h3>
+            <p>
+              cleanup은 실제 삭제 job과 dry-run report job을 분리합니다. 삭제 job은 PR close처럼
+              소유자가 명확한 이벤트에서 실행하고, schedule job은 먼저 orphan 후보를 보고한 뒤
+              제한된 범위만 삭제합니다.
+            </p>
+            <pre><code class="language-yaml">name: cleanup-preview
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v6
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_CLEANUP_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Find closed PR preview prefixes
+        run: |
+          mkdir -p cleanup-report
+          aws s3 ls &quot;s3://${{ vars.ARTIFACT_BUCKET }}/web/&quot; &gt; cleanup-report/s3-prefixes.txt
+          gh pr list --state open --json number --jq '.[].number' &gt; cleanup-report/open-prs.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Delete current PR preview
+        if: github.event_name == 'pull_request'
+        run: |
+          PR_NUMBER=&quot;${{ github.event.pull_request.number }}&quot;
+          aws s3 rm &quot;s3://${{ vars.ARTIFACT_BUCKET }}/web/pr-${PR_NUMBER}/&quot; --recursive
+          aws amplify delete-branch \
+            --app-id &quot;${{ vars.AMPLIFY_APP_ID }}&quot; \
+            --branch-name &quot;pr-${PR_NUMBER}&quot; || true
+
+      - name: Upload cleanup report
+        uses: actions/upload-artifact@v6
+        with:
+          name: cleanup-preview-report
+          path: cleanup-report
+</code></pre>
+            <p>
+              삭제 job에서 <code>aws s3 rm --recursive</code>를 쓸 때는 prefix가 비어 있거나 변수
+              치환에 실패해 상위 경로를 지우지 않도록 guard를 둡니다.
+            </p>
+            <pre><code class="language-bash">case &quot;$PREFIX&quot; in
+  web/pr-[0-9]*/*) ;;
+  *) echo &quot;refuse to delete unsafe prefix: $PREFIX&quot;; exit 1 ;;
+esac
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: cleanup 결정은 우체국의 분실물 처리 규정과 같습니다.
+                주인이 있는 짐(open PR)은 절대 건드리지 않고, 주인이 사라진 짐(closed PR, deleted
+                branch)도 곧바로 폐기하지 않고 일정 기간(grace period)을 둔 뒤, 안전한 식별자
+                패턴(<code>pr-숫자/</code>)이 맞는지 한 번 더 확인한 다음에야 폐기합니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 cleanup workflow가 한 prefix를 만났을 때 "지울까 둘까"를 판정하는 결정
+              트리입니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Prefix[&quot;S3 prefix 발견&lt;br/&gt;예: web/pr-123/&quot;] --&gt; Q1{&quot;이름 패턴이&lt;br/&gt;web/pr-[0-9]+/?&quot;}
+  Q1 --&gt;|아니오| Refuse[&quot;삭제 거부&lt;br/&gt;(상위 경로 보호)&quot;]
+  Q1 --&gt;|예| Q2{&quot;PR 번호 매핑&lt;br/&gt;open PR 목록에 있나?&quot;}
+  Q2 --&gt;|예| Keep[&quot;보존&lt;br/&gt;(active preview)&quot;]
+  Q2 --&gt;|아니오| Q3{&quot;PR 상태가 closed&lt;br/&gt;또는 branch deleted?&quot;}
+  Q3 --&gt;|예| Q4{&quot;closed_at 이후&lt;br/&gt;grace period 지났나?&quot;}
+  Q4 --&gt;|아니오| Wait[&quot;보존 + 다음 schedule 재확인&quot;]
+  Q4 --&gt;|예| Q5{&quot;실행 모드?&quot;}
+  Q5 --&gt;|dry-run| Report[&quot;삭제 후보로만 리포트&quot;]
+  Q5 --&gt;|실제 삭제| Q6{&quot;PR 이벤트 트리거?&quot;}
+  Q6 --&gt;|예| Delete[&quot;즉시 삭제 + Amplify branch 삭제&quot;]
+  Q6 --&gt;|아니오, schedule| Throttle[&quot;일일 삭제 한도 내에서만 처리&quot;]
+  Throttle --&gt; Delete
+  Refuse --&gt; End[종료]
+  Keep --&gt; End
+  Wait --&gt; End
+  Report --&gt; End
+  Delete --&gt; End</pre
+            >
+            <blockquote>
+              <p>
+                <strong>운영 안전망</strong>: ① 실제 삭제는 PR close처럼 소유자가 명확한 이벤트에서
+                우선 처리, ② schedule job은 dry-run 리포트를 먼저 출력하고 사람이 검토, ③ 일일 삭제
+                한도를 두어 버그가 발생해도 폭발적 삭제가 일어나지 않게 합니다.
+              </p>
+            </blockquote>
+            <h3 id="104-lifecycle-quota">10.4 lifecycle와 quota 관리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">대상</th>
+                    <th style="text-align: left">관리 방법</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify PR preview</td>
+                    <td style="text-align: left">PR close 자동 삭제, 50 branch quota 모니터링</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">S3 preview artifact</td>
+                    <td style="text-align: left">
+                      lifecycle rule로 <code>preview/</code> prefix 만료
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudFront invalidation</td>
+                    <td style="text-align: left">
+                      entry/config path만 사용, <code>"/*"</code> 사용 사유 기록
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">ECR image</td>
+                    <td style="text-align: left">preview tag 만료 rule</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Route 53 record</td>
+                    <td style="text-align: left">branch delete/PR close cleanup에서 삭제</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CloudWatch log group</td>
+                    <td style="text-align: left">
+                      retention days를 preview와 production에 다르게 설정
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="11-runbook">11. 운영 Runbook</h2>
+            <blockquote>
+              <p>
+                <strong>왜 중요한가</strong>: 사고 상황에서 모든 사람이 같은 절차를 알고 있어야
+                빠르고 안전하게 복구됩니다. Runbook은 "장애 시 어떻게 행동할지"를 미리 합의해 둔
+                문서입니다.
+              </p>
+            </blockquote>
+            <h3 id="_10">롤백 결정 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  Inc[&quot;프로덕션 장애 감지&quot;] --&gt; Sev{&quot;심각도?&quot;}
+  Sev --&gt;|crit| Imm[&quot;즉시 롤백 결정&quot;]
+  Sev --&gt;|high| Q1{&quot;hotfix &lt; 15분?&quot;}
+  Sev --&gt;|low| Mon[&quot;모니터링 + 다음 릴리즈&quot;]
+  Q1 --&gt;|예| HF[&quot;hotfix 배포&quot;]
+  Q1 --&gt;|아니오| Imm
+  Imm --&gt; M{&quot;배포 방식?&quot;}
+  M --&gt;|Amplify Git| RB1[&quot;이전 commit redeploy&lt;br/&gt;or revert&quot;]
+  M --&gt;|Amplify S3 manual| RB2[&quot;이전 S3 prefix&lt;br/&gt;start-deployment&quot;]
+  M --&gt;|S3/CloudFront direct| RB3[&quot;current pointer 복구&lt;br/&gt;+ invalidation&quot;]
+  M --&gt;|Runtime server| RB4[&quot;이전 image&lt;br/&gt;deployment rollback&quot;]
+  RB1 --&gt; Ver[&quot;smoke + 사용자 영향 확인&quot;]
+  RB2 --&gt; Ver
+  RB3 --&gt; Ver
+  RB4 --&gt; Ver
+  HF --&gt; Ver
+  Ver --&gt; Note[&quot;release note + post-mortem 기록&quot;]</pre
+            >
+            <h3 id="111">11.1 새 서비스에 다중 개발 서버 붙이기</h3>
+            <ol>
+              <li>서비스 이름, owner, repository, main branch를 정합니다.</li>
+              <li>
+                환경 매트릭스에 local, preview, staging, production의 API, auth, data, domain을
+                적습니다.
+              </li>
+              <li>Next.js static export 가능 여부를 확인합니다.</li>
+              <li>
+                static이면 S3/CloudFront 또는 Amplify static, SSR이면 Amplify compute 또는 runtime
+                server를 선택합니다.
+              </li>
+              <li>
+                GitHub environment를 <code>preview</code>, <code>staging</code>,
+                <code>production</code>으로 나누고 OIDC role을 연결합니다.
+              </li>
+              <li>PR preview workflow를 만들고 smoke test를 배포 URL 기준으로 실행합니다.</li>
+              <li>
+                PR comment 또는 deployment UI에 URL, revision, smoke result, expiry를 남깁니다.
+              </li>
+              <li>cleanup workflow와 orphan report를 켭니다.</li>
+            </ol>
+            <h3 id="112-preview">11.2 Preview 장애 대응</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">증상</th>
+                    <th style="text-align: left">확인 순서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">URL 404</td>
+                    <td style="text-align: left">
+                      branch/prefix 존재, CloudFront behavior, Amplify job status
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">오래된 화면</td>
+                    <td style="text-align: left">
+                      <code>index.html</code> cache-control, invalidation, service worker
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">asset 403</td>
+                    <td style="text-align: left">S3 prefix 권한, CloudFront OAC, upload root</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">API CORS 실패</td>
+                    <td style="text-align: left">
+                      runtime config, allowed origin, cookie credential
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SSR preview 실패</td>
+                    <td style="text-align: left">
+                      branch-level compute role, environment variable, CloudWatch logs
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="113-rollback">11.3 Rollback</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">배포 방식</th>
+                    <th style="text-align: left">rollback 방법</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify Git 연결</td>
+                    <td style="text-align: left">이전 commit redeploy 또는 revert commit</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Amplify S3 manual</td>
+                    <td style="text-align: left">
+                      이전 S3 prefix로 <code>start-deployment</code> 재실행
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">S3/CloudFront direct</td>
+                    <td style="text-align: left">
+                      current prefix를 이전 artifact로 되돌리고 entry invalidation
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">runtime server</td>
+                    <td style="text-align: left">이전 image/artifact로 deployment rollback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              rollback 시 source revision, artifact checksum, rollback owner, cache purge 결과를
+              release note에 남깁니다.
+            </p>
+            <hr />
+            <h2 id="12_1">12. 고도화 단계</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">단계</th>
+                    <th style="text-align: left">목표</th>
+                    <th style="text-align: left">완료 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">1</td>
+                    <td style="text-align: left">PR마다 URL 자동 생성</td>
+                    <td style="text-align: left">PR comment에 preview URL과 smoke 결과 표시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">2</td>
+                    <td style="text-align: left">branch pattern과 cleanup</td>
+                    <td style="text-align: left">branch delete/PR close 시 자동 정리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">3</td>
+                    <td style="text-align: left">OIDC와 environment approval</td>
+                    <td style="text-align: left">장기 AWS key 제거, production reviewer 적용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">4</td>
+                    <td style="text-align: left">artifact registry</td>
+                    <td style="text-align: left">checksum, provenance, rollback artifact 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">5</td>
+                    <td style="text-align: left">backend sandbox</td>
+                    <td style="text-align: left">API/schema 변경 PR에 ephemeral backend 연결</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">6</td>
+                    <td style="text-align: left">observability 분리</td>
+                    <td style="text-align: left">
+                      preview/staging/production별 error/RUM dashboard
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">7</td>
+                    <td style="text-align: left">비용 자동화</td>
+                    <td style="text-align: left">orphan report, TTL, budget alert</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="13_1">13. 다른 구현 방식 비교</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">방식</th>
+                    <th style="text-align: left">장점</th>
+                    <th style="text-align: left">한계</th>
+                    <th style="text-align: left">선택 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Amplify Git branch</td>
+                    <td style="text-align: left">빠른 구축, PR preview, SSR 지원</td>
+                    <td style="text-align: left">세밀한 CI 증적은 별도 보강</td>
+                    <td style="text-align: left">속도와 관리형 hosting 우선</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Amplify S3 manual</td>
+                    <td style="text-align: left">CI artifact 중심, 콘솔 의존 감소</td>
+                    <td style="text-align: left">SSR manual deploy 부적합</td>
+                    <td style="text-align: left">static output과 build once 중시</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">S3/CloudFront direct</td>
+                    <td style="text-align: left">비용/캐시/권한 명시적 제어</td>
+                    <td style="text-align: left">routing, auth, cleanup 직접 구현</td>
+                    <td style="text-align: left">정적 앱, 많은 preview</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Vercel/Netlify preview</td>
+                    <td style="text-align: left">preview UX가 강함</td>
+                    <td style="text-align: left">AWS 내부망/권한과 분리될 수 있음</td>
+                    <td style="text-align: left">SaaS preview가 조직 정책에 맞음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Kubernetes namespace</td>
+                    <td style="text-align: left">backend까지 완전 분리</td>
+                    <td style="text-align: left">운영 복잡도와 비용 증가</td>
+                    <td style="text-align: left">fullstack ephemeral 환경 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Docker Compose remote dev</td>
+                    <td style="text-align: left">통합 테스트 편함</td>
+                    <td style="text-align: left">public URL/리뷰 UX 약함</td>
+                    <td style="text-align: left">내부 QA와 API contract 검증</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              팀이 이미 AWS와 GitHub Actions를 쓰고 있다면 Amplify Git branch로 시작하고, 품질
+              게이트와 artifact 증적이 중요해지는 시점에 GitHub Actions orchestrated deploy로
+              확장하는 경로가 현실적입니다.
+            </p>
+            <hr />
+            <h2 id="14-pr">14. PR 완료 기준 확장</h2>
+            <p>다중 개발 서버 변경 PR에는 아래 증거를 추가합니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">변경</th>
+                    <th style="text-align: left">증거</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">새 preview 환경</td>
+                    <td style="text-align: left">URL, owner, TTL, 접근 제어</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">배포 workflow</td>
+                    <td style="text-align: left">OIDC role, environment, concurrency, rollback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">runtime config</td>
+                    <td style="text-align: left">public/secret 구분, bundle secret grep</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cache 정책</td>
+                    <td style="text-align: left">HTML/asset/env config header 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cleanup</td>
+                    <td style="text-align: left">PR close 또는 schedule cleanup dry-run</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">smoke test</td>
+                    <td style="text-align: left">deployed URL 기준 Playwright 또는 HTTP check</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="15">15. 제외한 항목</h2>
+            <p>
+              이 문서는 특정 조직의 내부 AWS 계정 구조, 도메인 이름, IAM role ARN, 배포 승인자 목록,
+              비용 수치, private repository 설정을 표준으로 포함하지 않습니다. 팀별 실제 값은
+              service runbook과 IaC 변수로 관리하고, 공통 가이드에는 환경 모델과 검증 계약만
+              남깁니다.
+            </p>
+            <hr />
+            <h2 id="_11">실무 적용 가이드</h2>
+            <h3 id="_12">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>PR마다 QA나 기획자가 확인할 수 있는 URL이 필요할 때</li>
+              <li>
+                <code>develop</code>, <code>staging</code>, <code>production</code> 외에 기능별 검증
+                서버가 필요할 때
+              </li>
+              <li>AWS Amplify와 S3, GitHub Actions를 함께 쓰면서 책임 경계가 흐려질 때</li>
+              <li>배포한 artifact와 검증한 artifact가 다를 때</li>
+              <li>preview가 쌓여 비용, 권한, 도메인 정리가 어려워질 때</li>
+            </ul>
+            <h3 id="_13">적용 순서</h3>
+            <ol>
+              <li>
+                환경 매트릭스에 local, PR preview, branch dev, staging, production의 목적과 데이터를
+                적는다.
+              </li>
+              <li>Next.js static export 가능 여부와 SSR/API route 필요 여부를 확인한다.</li>
+              <li>
+                Amplify Git branch, Amplify S3 manual, S3/CloudFront direct, runtime server 중
+                하나를 선택한다.
+              </li>
+              <li>GitHub environment와 OIDC role을 preview/staging/production으로 분리한다.</li>
+              <li>
+                PR workflow에 install, lint, type, test, build, artifact upload, deploy, smoke
+                순서를 둔다.
+              </li>
+              <li>preview URL, source revision, smoke result, expiry를 PR에 남긴다.</li>
+              <li>PR close, branch delete, schedule cleanup을 모두 연결한다.</li>
+              <li>cache-control, invalidation, rollback artifact를 배포 runbook에 기록한다.</li>
+            </ol>
+            <h3 id="_14">함께 두는 파일</h3>
+            <ul>
+              <li>
+                <code>.github/workflows/preview.yml</code>,
+                <code>.github/workflows/deploy.yml</code>,
+                <code>.github/workflows/cleanup-preview.yml</code>
+              </li>
+              <li><code>infra/frontend-environments.ts</code> 또는 환경별 IaC module</li>
+              <li>
+                <code>apps/web/amplify.yml</code>, <code>apps/web/next.config.ts</code>,
+                <code>apps/web/env.schema.ts</code>
+              </li>
+              <li>
+                <code>apps/web/public/env.preview.json</code>,
+                <code>apps/web/public/env.staging.json</code> 같은 public runtime config template
+              </li>
+              <li><code>apps/web/tests/smoke/preview.spec.ts</code>와 URL 기반 smoke test</li>
+              <li><code>docs/runbooks/frontend-preview.md</code>와 rollback 절차</li>
+            </ul>
+            <h3 id="_15">흔한 실수</h3>
+            <ul>
+              <li>production API와 production cookie를 preview URL에서 그대로 사용한다.</li>
+              <li>PR preview는 만들지만 PR close cleanup을 만들지 않는다.</li>
+              <li><code>index.html</code>과 hash asset에 같은 cache-control을 적용한다.</li>
+              <li>GitHub Actions에 장기 AWS access key를 저장한다.</li>
+              <li>환경별로 다시 빌드하면서 artifact checksum과 검증 증거를 잃는다.</li>
+              <li>Next.js SSR 기능을 쓰면서 static export 배포로 맞추려고 한다.</li>
+              <li>preview URL은 만들었지만 smoke test를 배포 URL 기준으로 돌리지 않는다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] 환경 매트릭스와 선택한 배포 패턴이 PR에 적혀 있다.</li>
+              <li>[ ] GitHub Actions가 OIDC role로 AWS에 접근하고 장기 키를 사용하지 않는다.</li>
+              <li>[ ] preview URL, source revision, artifact checksum, smoke 결과가 남는다.</li>
+              <li>[ ] HTML, asset, runtime config의 cache-control 기준이 확인됐다.</li>
+              <li>[ ] PR close 또는 branch delete cleanup이 검증됐다.</li>
+              <li>[ ] rollback은 이전 artifact 또는 이전 commit으로 재현 가능하다.</li>
+              <li>
+                [ ] secret이 client bundle, build log, source map, public runtime config에 들어가지
+                않는다.
+              </li>
+            </ul>
+            <h2 id="_16">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — preview, staging, production 환경과 cleanup 중 하나를 작은
+                변경 1건에 적용하고 증거(preview URL)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 다중 개발 서버 기준을 팀 템플릿, 체크리스트, CI 중 한
+                곳에 고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — orphan 환경, preview 비용, smoke failure, branch drift
+                추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 환경 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_17">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : preview, staging, production 환경과 cleanup 적용
+                대상을 1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(preview URL, OIDC role, deployment log, cleanup
+                dry-run)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : orphan 환경, preview 비용, smoke failure, branch
+                drift가 기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_18">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 환경별 secret, role, URL, cleanup 책임을 먼저 분리한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 환경 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : preview smoke와 cleanup dry-run이 통과하면
+                staging/production 흐름에 연결한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 임시 환경 삭제 조건이나 OIDC 최소 권한이 없으면 생성을
+                막는다.
+              </li>
+              <li><code>리스크 점수</code> : 동시 preview 수, 권한 범위, 비용 노출로 산정한다.</li>
+              <li><code>리더 승인자</code> : DevOps 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 다중 개발 서버 작성자, 검토자, 운영 확인자를 분리해
+                기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 주 1회 orphan 환경과 비용을 확인한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

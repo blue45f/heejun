@@ -1,0 +1,1772 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 13 브라우저 호환성 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="13">13. 브라우저 호환성 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>
+                모든 브라우저를 같은 동작으로 보기보다 <code>지원 대상</code>을 먼저 고정하세요.
+              </li>
+              <li>모던 API는 폴리필 정책으로 안전망을 만들고, 위험한 구문은 점진 교체하세요.</li>
+              <li>자동화된 브라우저 테스트를 최소 2개 엔진에서 실행해 회귀를 줄이세요.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              브라우저가 다르므로 "기능이 꼭 필요한 곳만" 안정적으로 노출시키는 접근이 중요합니다.
+            </p>
+            <blockquote>
+              <p>
+                일상 비유: 여러 종류의 차에 같은 부품을 끼우는 정비소와 같습니다. 모든 차에 똑같은
+                부품(최신 API)을 강제하면 일부 차종은 못 굴러갑니다. 차종별(브라우저별)로 사용
+                가능한 부품을 분류하고, 필요하면 어댑터(polyfill)를 끼우거나 다른 길(fallback)을
+                안내해야 합니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>브라우저 호환성</code></td>
+                    <td>어떤 브라우저에서 동작 보장하는 범위</td>
+                  </tr>
+                  <tr>
+                    <td><code>feature detection</code></td>
+                    <td>기능이 있는지 실행 전 확인하는 방식</td>
+                  </tr>
+                  <tr>
+                    <td><code>polyfill</code></td>
+                    <td>없는 기능을 보완하는 코드</td>
+                  </tr>
+                  <tr>
+                    <td><code>fallback</code></td>
+                    <td>기능이 안 되면 대체로 보여줄 동작</td>
+                  </tr>
+                  <tr>
+                    <td><code>지원 tier</code></td>
+                    <td>지원을 약속한 브라우저 조합</td>
+                  </tr>
+                  <tr>
+                    <td><code>Baseline</code></td>
+                    <td>web.dev 기준 모든 주요 엔진 지원 여부 분류</td>
+                  </tr>
+                  <tr>
+                    <td><code>progressive enhancement</code></td>
+                    <td>기본 동작은 모두에게, 추가 기능은 지원되는 곳에만</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="tier">지원 tier 한눈에 보기</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 모든 브라우저를 똑같이 지원하려 하면 비용이 폭발합니다. 사용자 데이터
+                기반으로 등급을 나눠야 검증·테스트 자원을 합리적으로 배분할 수 있습니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart LR
+  T1[&quot;Tier 1\n핵심 사용자/매출 영향&quot;] --&gt; A1[&quot;모든 핵심 flow 자동/수동 검증&quot;]
+  T2[&quot;Tier 2\n낮은 비중 but 지원 필요&quot;] --&gt; A2[&quot;주요 flow smoke + graceful fallback&quot;]
+  U[&quot;Unsupported\nEOL/극소수&quot;] --&gt; A3[&quot;안내 페이지 또는 기능 제한&quot;]</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">품질 &amp; 사용자 환경</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./19_웹_접근성_가이드.md">19. 접근성</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      지원 범위, feature detection, polyfill allowlist, progressive enhancement,
+                      cross-browser CI
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                브라우저 호환성 표준은 특정 브라우저 취향이 아니라
+                <strong>지원 범위, 감지 방식, fallback, 테스트 매트릭스</strong>를 명문화하는 품질
+                계약입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 지원 브라우저 tier를 먼저 고정하고 테스트 매트릭스에
+                넣습니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 기능 탐지 + 폴리필 전략을 레이어별로 정리해 유지 비용을
+                낮춥니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 크로스 브라우저 회귀는 자동화되고 실패 이슈는 PR
+                템플릿으로 추적하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — Baseline, feature detection, polyfill 전략 중 하나를 실제
+                PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — browser matrix, smoke run, feature support 링크를 같은 작업
+                기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — unsupported feature 수, polyfill KB, browser-specific bug가
+                나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : Baseline, feature detection, polyfill 전략 적용 범위를 어느
+                화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : browser matrix, smoke run, feature support 링크 중 실제로 남긴
+                항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : unsupported feature 수, polyfill KB, browser-specific bug를
+                다시 볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      지원 tier, browserslist, feature detection, polyfill allowlist
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      cross-browser smoke와 real device evidence 기준
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./09_장애_대응_및_관측성_표준.md">09. 관측성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">접근성/RTL/motion 호환성 검증</td>
+                    <td style="text-align: left">
+                      <a href="./19_웹_접근성_가이드.md">19. 웹 접근성</a>,
+                      <a href="./23_국제화_가이드.md">23. 국제화</a>,
+                      <a href="./25_웹_애니메이션_모션_가이드.md">25. 웹 애니메이션</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">디자인 시스템 컴포넌트의 브라우저 지원 기준</td>
+                    <td style="text-align: left">
+                      <a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">공통 기준</th>
+                    <th style="text-align: left">검증 방법</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>지원 tier</strong></td>
+                    <td style="text-align: left">Tier 1, Tier 2, unsupported browser를 명시</td>
+                    <td style="text-align: left">실제 사용자 분포 + 제품 요구</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>browserslist</strong></td>
+                    <td style="text-align: left">코드 변환/폴리필/테스트 기준을 repo에 고정</td>
+                    <td style="text-align: left">CI에서 출력 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Feature detection</strong></td>
+                    <td style="text-align: left">
+                      UA sniffing보다 <code>@supports</code>, capability check 우선
+                    </td>
+                    <td style="text-align: left">fallback test</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Polyfill allowlist</strong></td>
+                    <td style="text-align: left">필요한 API만 조건부 로드, 공급망 위험 검토</td>
+                    <td style="text-align: left">bundle audit</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Cross-browser CI</strong></td>
+                    <td style="text-align: left">
+                      핵심 flow는 Chromium/Firefox/WebKit 계열에서 smoke
+                    </td>
+                    <td style="text-align: left">E2E matrix</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Fallback UX</strong></td>
+                    <td style="text-align: left">미지원 기능은 기능 축소, 안내, 대체 flow 제공</td>
+                    <td style="text-align: left">manual QA</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Real device evidence</strong></td>
+                    <td style="text-align: left">
+                      모바일/터치/저성능 환경 이슈는 실제 기기 증적 확보
+                    </td>
+                    <td style="text-align: left">screenshot/trace</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 브라우저 호환성 처리 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[새 기능/스타일 변경] --&gt; B{영향받는 브라우저 tier 분석}
+  B --&gt;|미지원 위험 큼| C[Baseline/Limited/Newly/Widely 상태 점검]
+  B --&gt;|호환성 리스크 낮음| D[기본 기능 채택]
+  C --&gt; E{필수 기능인가?}
+  E --&gt;|예| F[Feature detection + fallback 정의]
+  E --&gt;|아니오| G[Polyfill allowlist 점검 후 보류]
+  F --&gt; H[Cross-browser smoke 계획 수립]
+  D --&gt; H
+  G --&gt; H
+  H --&gt; I{테스트 증적 생성}
+  I --&gt;|Pass| J[실제 기기/로그 증적 첨부]
+  I --&gt;|Fail| K[지원 tier/UA 정책 재정의]
+  J --&gt; L[릴리즈 Gate 승인]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Baseline 기반 기능 채택</td>
+                    <td style="text-align: left">web.dev/MDN Baseline 상태</td>
+                    <td style="text-align: left">feature detection test, browser smoke</td>
+                    <td style="text-align: left">browser-specific error rate</td>
+                    <td style="text-align: left">Tier 1 실패 시 fallback 필수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Polyfill allowlist</td>
+                    <td style="text-align: left">Web API/TC39/W3C 상태</td>
+                    <td style="text-align: left">conditional import test, bundle diff</td>
+                    <td style="text-align: left">long task, load time</td>
+                    <td style="text-align: left">지원률 상승 시 polyfill 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">지원 tier</td>
+                    <td style="text-align: left">실제 사용자 분석 + 제품 요구</td>
+                    <td style="text-align: left">browserslist output, E2E matrix</td>
+                    <td style="text-align: left">unsupported traffic share</td>
+                    <td style="text-align: left">사용률/계약 변동 시 tier 재검토</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">지원 범위 변경</td>
+                    <td style="text-align: left">browser usage, 제품 요구, browserslist diff</td>
+                    <td style="text-align: left">FE owner</td>
+                    <td style="text-align: left">기존 tier 유지 또는 fallback 제공</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Feature adoption</td>
+                    <td style="text-align: left">feature detection test, unsupported smoke</td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">capability check 기반 no-op/fallback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Polyfill allowlist</td>
+                    <td style="text-align: left">bundle diff, 공급망 검토, 조건부 로드 테스트</td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">polyfill 제거 또는 lazy loading 전환</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Cross-browser smoke</td>
+                    <td style="text-align: left">Chromium/Firefox/WebKit 핵심 flow report</td>
+                    <td style="text-align: left">QA owner</td>
+                    <td style="text-align: left">release 차단 또는 tier별 제한 공지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h3 id="03-baseline">0.3 Baseline 단계별 채택 기준</h3>
+            <blockquote>
+              <p>
+                일상 비유: 새로 출시된 약을 떠올려 보세요. 임상시험 중인 약(Limited)은 제한된
+                환자에게만, 시판된 지 얼마 안 된 약(Newly)은 부작용을 모니터링하며, 오래 검증된
+                약(Widely)은 안심하고 처방합니다.
+              </p>
+            </blockquote>
+            <p>
+              web.dev Baseline은 기능을 <code>Limited availability</code>,
+              <code>Newly available</code>, <code>Widely available</code>로 구분합니다. 이 문서는 그
+              상태를 그대로 표준화하지 않고, 제품 tier와 fallback 비용을 함께 봅니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Baseline 상태</th>
+                    <th style="text-align: left">기본 등급</th>
+                    <th style="text-align: left">production 채택 조건</th>
+                    <th style="text-align: left">테스트/폴리필 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Limited availability</td>
+                    <td style="text-align: left">Experimental Watch</td>
+                    <td style="text-align: left">
+                      핵심 flow가 아니고 capability check와 대체 UX가 있을 때만 허용
+                    </td>
+                    <td style="text-align: left">feature flag, Tier 1 smoke, fallback 필수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Newly available</td>
+                    <td style="text-align: left">Conditional 또는 Recommended</td>
+                    <td style="text-align: left">
+                      Tier 1 사용자가 모두 지원하고, 실패 시 기능 축소가 가능한 경우
+                    </td>
+                    <td style="text-align: left">
+                      <code>@supports</code>/runtime check, WebKit/Firefox smoke
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Widely available</td>
+                    <td style="text-align: left">Baseline</td>
+                    <td style="text-align: left">
+                      제품 지원 tier와 browserslist가 모두 만족할 때 기본 사용 가능
+                    </td>
+                    <td style="text-align: left">polyfill 제거 후보, regression test 유지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              새 기능을 채택할 때는 Baseline 상태, MDN/Can I Use 지원표, 실제 사용자 브라우저 분포,
+              접근성 영향, 번들/INP 비용을 한 PR에 함께 남깁니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  L[&quot;Limited\n일부 엔진만&quot;] --&gt; N[&quot;Newly\n주요 엔진 모두 최근 지원&quot;]
+  N --&gt; W[&quot;Widely\n30개월+ 안정 지원&quot;]
+  L --&gt; LR[&quot;사용 금지 기본, 실험만&quot;]
+  N --&gt; NR[&quot;조건부 사용 + fallback&quot;]
+  W --&gt; WR[&quot;기본 사용 가능&quot;]</pre
+            >
+            <h3 id="04-baseline">0.4 Baseline 라이프사이클 상태도</h3>
+            <blockquote>
+              <p>
+                비유: 신메뉴 -&gt; 인기 메뉴 -&gt; 스테디셀러로 옮겨가는 음식점 메뉴판처럼, 기능도
+                채택 등급이 시간이 지나면서 자연스럽게 이동합니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Experimental: 사양/엔진 도입
+  Experimental --&gt; LimitedAvailable: 주요 엔진 일부 지원
+  LimitedAvailable --&gt; NewlyAvailable: 모든 주요 엔진 지원
+  NewlyAvailable --&gt; WidelyAvailable: 30개월 이상 안정 지원
+  WidelyAvailable --&gt; Deprecated: 후속 표준 도입
+  Deprecated --&gt; [*]
+  Experimental --&gt; Dropped: 표준 폐기/엔진 미채택
+  Dropped --&gt; [*]</pre
+            >
+            <hr />
+            <h2 id="1">1. 지원 범위 정의</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Tier</th>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">지원 수준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Tier 1</strong></td>
+                    <td style="text-align: left">
+                      핵심 사용자 비중이 높고 매출/업무 영향이 큰 브라우저
+                    </td>
+                    <td style="text-align: left">모든 핵심 flow 자동/수동 검증</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Tier 2</strong></td>
+                    <td style="text-align: left">
+                      사용자 비중은 낮지만 지원 필요성이 있는 브라우저
+                    </td>
+                    <td style="text-align: left">주요 flow smoke와 graceful fallback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Unsupported</strong></td>
+                    <td style="text-align: left">
+                      보안 업데이트 종료, 사용률 매우 낮음, 기술적 제약 큼
+                    </td>
+                    <td style="text-align: left">안내 페이지 또는 기능 제한</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              지원 범위는 개발팀 선호가 아니라 실제 사용자 데이터, 법적/계약 요구, 제품 전략,
+              유지보수 비용으로 결정합니다.
+            </p>
+            <hr />
+            <h2 id="2-feature-detection">2. Feature Detection</h2>
+            <p>기능 지원 여부는 브라우저 이름보다 실제 capability로 판단합니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 우산을 챙길 때 일기예보 사이트 이름(UA)을 보는 것이
+                아니라 "지금 비가 오는가"(capability)를 직접 묻는 방식입니다. 예보 사이트가 오답을
+                내도, 실제 날씨를 보면 틀릴 일이 줄어듭니다.
+              </p>
+            </blockquote>
+            <p>
+              이 그림은 화면 진입 시 capability check를 거쳐 모던 구현, fallback, 비노출로 분기하는
+              흐름을 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  REQ([화면/컴포넌트 진입]) --&gt; CAP{capability check}
+  CAP --&gt;|지원| NEW[모던 API 구현 실행]
+  CAP --&gt;|미지원| ALT{대체 가능?}
+  ALT --&gt;|예| FB[fallback UI/로직 실행]
+  ALT --&gt;|아니오| NOOP[기능 비노출 + 사용자 안내]
+  NEW --&gt; LOG[성능/오류 계측]
+  FB --&gt; LOG
+  NOOP --&gt; LOG
+  LOG --&gt; END([렌더 완료])</pre
+            >
+            <pre><code class="language-typescript">export function supportsViewTransition(): boolean {
+  return typeof document !== 'undefined' &amp;&amp; 'startViewTransition' in document
+}
+
+export function supportsContainerQuery(): boolean {
+  return typeof CSS !== 'undefined' &amp;&amp; CSS.supports('container-type', 'inline-size')
+}
+</code></pre>
+            <pre><code class="language-css">@supports (container-type: inline-size) {
+  .card-list {
+    container-type: inline-size;
+  }
+}
+
+@supports not (container-type: inline-size) {
+  .card-list {
+    display: grid;
+  }
+}
+</code></pre>
+            <p>
+              UA sniffing은 분석, 특정 알려진 엔진 버그 우회, 임시 hotfix처럼 제한된 경우에만
+              사용하고 만료일을 둡니다.
+            </p>
+            <hr />
+            <h2 id="3-polyfill">3. Polyfill 원칙</h2>
+            <blockquote>
+              <p>
+                일상 비유: 콘센트 어댑터처럼 꼭 필요한 곳에서만 끼우고, 표준 콘센트가 보급되면 다시
+                빼야 합니다. 늘 들고 다니면 가방이 무거워집니다(bundle 비용).
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">원칙</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">조건부 로드</td>
+                    <td style="text-align: left">네이티브 지원 시 다운로드하지 않음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">최소 범위</td>
+                    <td style="text-align: left">전체 polyfill bundle보다 필요한 API만</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">공급망 검토</td>
+                    <td style="text-align: left">
+                      외부 CDN 임의 로드 금지, lockfile/해시/자체 호스팅 검토
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">성능 측정</td>
+                    <td style="text-align: left">polyfill 추가 전후 bundle size와 INP/LCP 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">제거 계획</td>
+                    <td style="text-align: left">
+                      browserslist 변경 시 더 이상 필요 없는 polyfill 제거
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="31-polyfill">3.1 polyfill 채택 결정 트리</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 모든 사용자에게 일괄로 polyfill을 넣는 습관은 모던 브라우저
+                사용자에게도 불필요한 다운로드를 강요합니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TD
+  Need[해당 API가 핵심 flow에 필요한가] --&gt;|아니오| Skip[사용 보류 + fallback UX]
+  Need --&gt;|예| Tier{Tier 1 사용자가 모두 지원하는가}
+  Tier --&gt;|예| Native[그대로 사용]
+  Tier --&gt;|아니오| FB[fallback으로 충분한가]
+  FB --&gt;|예| Det[feature detection + fallback]
+  FB --&gt;|아니오| Q1{공급망 검토 통과}
+  Q1 --&gt;|아니오| Reject[채택 보류 + RFC 검토]
+  Q1 --&gt;|예| Q2{번들 영향 &lt; 예산}
+  Q2 --&gt;|아니오| Lazy[lazy/conditional 로드 시도]
+  Q2 --&gt;|예| Add[allowlist 등록 + 만료일]
+  Lazy --&gt; Add</pre
+            >
+            <pre><code class="language-typescript">export async function ensureIntlSegmenter(): Promise&lt;void&gt; {
+  if ('Segmenter' in Intl) return
+  await import('./polyfills/intl-segmenter')
+}
+</code></pre>
+            <hr />
+            <h2 id="4-css">4. CSS 호환성 기준</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기능</th>
+                    <th style="text-align: left">적용 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">최신 layout 기능</td>
+                    <td style="text-align: left">fallback layout을 함께 제공</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">애니메이션</td>
+                    <td style="text-align: left"><code>prefers-reduced-motion</code> 준수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">색상/테마</td>
+                    <td style="text-align: left">forced-colors, contrast mode 확인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">form control</td>
+                    <td style="text-align: left">native behavior와 keyboard 접근성 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">viewport units</td>
+                    <td style="text-align: left">모바일 주소창 변화 대응</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              새 CSS 기능은 design system primitive에서 먼저 흡수하고, 제품 화면마다 개별 fallback을
+              만들지 않습니다.
+            </p>
+            <hr />
+            <h2 id="5-cross-browser">5. Cross-Browser 테스트 매트릭스</h2>
+            <blockquote>
+              <p>
+                왜 중요한가: 테스트 범위가 좁으면 특정 엔진에서만 깨지는 회귀를 놓치고, 너무 넓으면
+                CI 시간이 폭발합니다. 빈도와 범위는 다르게 두는 것이 핵심입니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">테스트</th>
+                    <th style="text-align: left">브라우저 범위</th>
+                    <th style="text-align: left">빈도</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Unit/DOM</td>
+                    <td style="text-align: left">기본 런타임</td>
+                    <td style="text-align: left">PR마다</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Component smoke</td>
+                    <td style="text-align: left">주요 렌더링 엔진 1개 이상</td>
+                    <td style="text-align: left">PR마다</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">핵심 E2E</td>
+                    <td style="text-align: left">Chromium/Firefox/WebKit 계열</td>
+                    <td style="text-align: left">PR 또는 merge 전</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">접근성 keyboard</td>
+                    <td style="text-align: left">Tier 1 브라우저</td>
+                    <td style="text-align: left">release 전</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">실제 기기 QA</td>
+                    <td style="text-align: left">모바일/터치 주요 조합</td>
+                    <td style="text-align: left">주요 release 전</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              모든 테스트를 모든 브라우저에서 돌리는 것은 비용이 큽니다. 핵심 flow와 호환성 위험이
+              높은 영역을 우선합니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  PR[&quot;PR 단위&quot;] --&gt; U1[&quot;Unit/DOM\n기본 런타임&quot;]
+  PR --&gt; U2[&quot;Component smoke\n1+ 엔진&quot;]
+  Merge[&quot;merge 전&quot;] --&gt; E[&quot;E2E\nChromium+Firefox+WebKit&quot;]
+  Rel[&quot;release 전&quot;] --&gt; A[&quot;A11y keyboard\nTier 1&quot;]
+  Rel --&gt; D[&quot;실기기 QA\n모바일/터치&quot;]</pre
+            >
+            <p>
+              이 그림은 PR이 머지되어 릴리즈에 이르기까지 cross-browser smoke가 어떤 순서로 실행되고
+              결과가 누구에게 전달되는지를 보여줍니다.
+            </p>
+            <pre class="mermaid">
+sequenceDiagram
+  participant Dev as 개발자
+  participant CI as CI runner
+  participant Chr as Chromium 엔진
+  participant FF as Firefox 엔진
+  participant WK as WebKit 엔진
+  participant QA as QA 오너
+  Dev-&gt;&gt;CI: PR push
+  CI-&gt;&gt;Chr: 핵심 E2E 실행
+  CI-&gt;&gt;FF: 핵심 E2E 실행
+  CI-&gt;&gt;WK: 핵심 E2E 실행
+  Chr--&gt;&gt;CI: pass/fail + trace
+  FF--&gt;&gt;CI: pass/fail + trace
+  WK--&gt;&gt;CI: pass/fail + trace
+  alt 모든 엔진 pass
+    CI--&gt;&gt;Dev: 머지 가능 표시
+    CI-&gt;&gt;QA: release 전 a11y/실기기 큐 등록
+  else 엔진별 실패
+    CI--&gt;&gt;Dev: 실패 엔진/스크린샷/trace 첨부
+    Dev-&gt;&gt;Dev: fallback 또는 polyfill 결정
+  end</pre
+            >
+            <hr />
+            <h2 id="6-triage">6. 호환성 이슈 triage</h2>
+            <blockquote>
+              <p>
+                일상 비유: 응급실 환자 분류와 비슷합니다. 증상이 어디서, 누구에게, 얼마나 심각하게
+                나타나는지를 확인해 우선순위와 처치(폴리필/폴백/RFC)를 결정합니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">질문</th>
+                    <th style="text-align: left">판단</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">특정 브라우저에서만 실패하는가</td>
+                    <td style="text-align: left">호환성 또는 엔진 버그 가능성</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">동일 브라우저의 특정 버전만 실패하는가</td>
+                    <td style="text-align: left">버전별 미구현/버그 가능성</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">polyfill 추가로 해결되는가</td>
+                    <td style="text-align: left">API 미지원 가능성</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CSS fallback으로 해결되는가</td>
+                    <td style="text-align: left">progressive enhancement 적용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">제품 핵심 flow를 막는가</td>
+                    <td style="text-align: left">P0/P1로 승격</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              이슈에는 브라우저 버전, OS, 기기, 스크린샷, trace, 최소 재현 코드, fallback 방안을
+              함께 남깁니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Bug[버그 리포트] --&gt; Q1{어디서 발생}
+  Q1 --&gt;|모든 브라우저| Q2[제품 로직 버그]
+  Q1 --&gt;|특정 엔진만| Q3[엔진 호환성/버그]
+  Q1 --&gt;|특정 버전만| Q4[버전별 회귀]
+  Q3 --&gt; S1{polyfill로 해결}
+  S1 --&gt;|예| P1[조건부 polyfill 추가]
+  S1 --&gt;|아니오| S2{CSS/JS fallback 가능}
+  S2 --&gt;|예| P2[progressive enhancement]
+  S2 --&gt;|아니오| P3[기능 축소 + 안내]
+  Q4 --&gt; V[버전 분포 확인 후 우선순위 결정]
+  P1 --&gt; Sev{핵심 flow 차단 여부}
+  P2 --&gt; Sev
+  P3 --&gt; Sev
+  Sev --&gt;|차단| Hot[P0/P1 승격]
+  Sev --&gt;|차단 없음| Norm[일반 백로그]</pre
+            >
+            <hr />
+            <h2 id="7">7. 체크리스트</h2>
+            <ul>
+              <li>[ ] repo에 browserslist 또는 동등한 지원 범위 정의가 있는가</li>
+              <li>[ ] Tier 1/2/unsupported 기준이 사용자 데이터와 연결되어 있는가</li>
+              <li>[ ] 최신 Web API 사용 시 feature detection이 있는가</li>
+              <li>
+                [ ] Limited/Newly/Widely available 상태에 따라 채택 등급과 fallback을 기록했는가
+              </li>
+              <li>[ ] polyfill이 allowlist 방식으로 관리되는가</li>
+              <li>[ ] 외부 polyfill CDN을 무검증으로 로드하지 않는가</li>
+              <li>[ ] 핵심 flow가 주요 렌더링 엔진에서 자동 검증되는가</li>
+              <li>[ ] 미지원 브라우저 사용자에게 fallback 또는 안내가 제공되는가</li>
+              <li>[ ] 실제 기기 이슈는 screenshot/trace 증적이 남는가</li>
+            </ul>
+            <hr />
+            <h2 id="8">8. 제외한 벤더 종속 항목</h2>
+            <p>
+              공통 개발 가이드에는 특정 브라우저 테스트 SaaS, 특정 디바이스 클라우드, 특정 브라우저
+              벤더의 콘솔 절차, 특정 상용 호환성 리포트 사용법을 표준으로 포함하지 않습니다. 이
+              문서는 어떤 테스트 인프라를 쓰더라도 유지되어야 하는 지원 범위, feature detection,
+              polyfill, fallback, 테스트 매트릭스 기준만 남깁니다.
+            </p>
+            <hr />
+            <h2 id="_7">실무 적용 가이드</h2>
+            <h3 id="_8">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>새 Web API를 쓰고 싶지만 일부 브라우저 지원이 불확실할 때</li>
+              <li>polyfill이 bundle size를 크게 늘릴 때</li>
+              <li>특정 브라우저에서만 핵심 flow가 깨질 때</li>
+            </ul>
+            <h3 id="_9">적용 순서</h3>
+            <ol>
+              <li>지원 browser tier와 사용자 비중을 정한다.</li>
+              <li>Baseline, MDN, 공식 문서로 API 상태를 확인한다.</li>
+              <li>feature detection과 fallback을 먼저 구현한다.</li>
+              <li>polyfill은 allowlist와 bundle budget 안에서만 추가한다.</li>
+              <li>Playwright matrix 또는 실제 기기 smoke 결과를 남긴다.</li>
+            </ol>
+            <h3 id="_10">함께 두는 파일</h3>
+            <ul>
+              <li>feature detection helper는 사용 feature 가까이에 둔다.</li>
+              <li>공통 browser capability util은 테스트와 함께 shared로 둔다.</li>
+              <li>fallback UI와 E2E는 기능 폴더에 둔다.</li>
+            </ul>
+            <h3 id="_11">흔한 실수</h3>
+            <ul>
+              <li>UA sniffing만으로 분기한다.</li>
+              <li>지원하지 않는 브라우저에서 기능이 조용히 실패한다.</li>
+              <li>polyfill 비용을 route별로 보지 않는다.</li>
+              <li>접근성 보조기술 조합을 브라우저 테스트에서 제외한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] 지원 tier가 명시되어 있다.</li>
+              <li>[ ] feature detection/fallback 테스트가 있다.</li>
+              <li>[ ] polyfill bundle diff가 확인되었다.</li>
+              <li>[ ] 핵심 flow cross-browser smoke가 있다.</li>
+            </ul>
+            <h2 id="_12">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — Baseline, feature detection, polyfill 전략 중 하나를 작은
+                변경 1건에 적용하고 증거(browser matrix)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 브라우저 호환성 기준을 팀 템플릿, 체크리스트, CI 중 한
+                곳에 고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — unsupported feature 수, polyfill KB, browser-specific bug
+                추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 호환성 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_13">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : Baseline, feature detection, polyfill 전략 적용 대상을
+                1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(browser matrix, smoke run, feature support
+                링크)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : unsupported feature 수, polyfill KB, browser-specific
+                bug가 기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_14">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : Limited availability 기능은 fallback과 측정 범위를 먼저
+                둔다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 호환성 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 지원 브라우저 smoke가 통과하면 기능 사용 범위를 넓힌다.
+              </li>
+              <li>
+                <code>정지 조건</code> : feature detection 없이 UA 분기만 늘어나면 적용을 멈춘다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 사용자 브라우저 비중, polyfill 무게, fallback 품질로
+                산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 프론트엔드 플랫폼 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 브라우저 호환성 작성자, 검토자, 운영 확인자를 분리해
+                기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 분기마다 Baseline 상태와 지원 matrix를 갱신한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

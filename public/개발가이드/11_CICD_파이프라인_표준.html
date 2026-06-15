@@ -1,0 +1,2855 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 11 CICD 파이프라인 표준.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="11-cicd">11. CI/CD 파이프라인 표준</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>CI는 변경 검증, CD는 배포/확장 규칙을 지키게 하는 게이트입니다.</li>
+              <li>테스트 실패/보안 실패/품질 규칙은 자동으로 배포를 막게 설계하세요.</li>
+              <li>배포 실패시 자동 롤백 경로가 준비되어 있어야 합니다.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>CI/CD는 "자동으로 검증하고, 위험이 보이면 멈추는" 라인입니다.</p>
+            <blockquote>
+              <p>
+                일상 비유: 공장의 컨베이어 벨트와 같습니다. 각 검사 구역(게이트)에서 불량을 발견하면
+                라인을 멈추고, 통과한 제품(아티팩트)만 포장 단계로 보냅니다. 같은 라인을 매번 똑같이
+                통과하므로 결과를 신뢰할 수 있습니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>파이프라인</code></td>
+                    <td>커밋 후 실행되는 자동 검증/배포 단계</td>
+                  </tr>
+                  <tr>
+                    <td><code>아티팩트</code></td>
+                    <td>빌드 결과물(배포 가능한 산출물)</td>
+                  </tr>
+                  <tr>
+                    <td><code>빌드 게이트</code></td>
+                    <td>실패하면 배포를 막는 필수 검사</td>
+                  </tr>
+                  <tr>
+                    <td><code>브랜치 정책</code></td>
+                    <td>어떤 브랜치에서 어떤 동작을 허용할지 규칙</td>
+                  </tr>
+                  <tr>
+                    <td><code>원복</code></td>
+                    <td>배포 실패 시 이전 상태로 되돌리는 절차</td>
+                  </tr>
+                  <tr>
+                    <td><code>SBOM</code></td>
+                    <td>빌드 산출물에 들어간 의존성/버전 명세</td>
+                  </tr>
+                  <tr>
+                    <td><code>provenance</code></td>
+                    <td>어떤 commit·workflow에서 만들어졌는지 증명</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="-">빠른 실패 -&gt; 느린 검증 단계 한눈에</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 비싼 검증을 일찍 실행하면 피드백 시간이 길어집니다. 비용이 낮은 검사를
+                앞에 두면 개발자가 더 빨리 수정할 수 있습니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart LR
+  S1[&quot;1. install\n초&quot;] --&gt; S2[&quot;2. lint/type\n수십 초&quot;]
+  S2 --&gt; S3[&quot;3. unit/integration\n수 분&quot;]
+  S3 --&gt; S4[&quot;4. build + SBOM\n수 분&quot;]
+  S4 --&gt; S5[&quot;5. security/license\n수 분&quot;]
+  S5 --&gt; S6[&quot;6. preview deploy\n분 단위&quot;]
+  S6 --&gt; S7[&quot;7. e2e/accessibility/perf smoke\n분 단위&quot;]
+  S7 --&gt; S8[&quot;8. canary/release\n분~수십 분&quot;]</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">인프라 &amp; 배포</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./10_인프라_IaC_가이드.md">10. 인프라</a>,
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>,
+                      <a href="./27_다중_개발_서버_구축_가이드.md">27. 다중 개발 서버</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      재현 가능한 빌드, 품질 게이트, 보안 검사, artifact, approval, 배포 자동화
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                CI/CD 표준은 특정 자동화 플랫폼의 YAML이 아니라
+                <strong
+                  >변경이 안전하게 통합되고, 검증된 artifact만 승격되며, 배포와 릴리즈가 통제되는
+                  흐름</strong
+                >입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 최소 하나의 실패 게이트를 정해 merge/deploy 조건으로
+                만듭니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: artifact 무결성(SBOM/체크섬) 점검을 필수 단계로
+                추가합니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 롤백 시나리오는 배포 전 dry run로 한 번 확인해 실제 장애
+                대응 시간을 단축하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — deterministic install, quality aggregator, branch protection
+                중 하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — workflow run, required check 목록, artifact attestation를
+                같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — CI 대기 시간, flaky job, bypass merge 수가 나아졌는지 30일
+                안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : deterministic install, quality aggregator, branch protection
+                적용 범위를 어느 화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : workflow run, required check 목록, artifact attestation 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : CI 대기 시간, flaky job, bypass merge 수를 다시 볼 날짜와
+                담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      install/lint/type/test/build/security/artifact 품질 게이트
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./06_웹_보안_심화_가이드.md">06. 보안</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      artifact provenance, SBOM, checksum, environment approval
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./10_인프라_IaC_가이드.md">10. 인프라</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">cache, CDN, preview deploy와 release 증적</td>
+                    <td style="text-align: left">
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./09_장애_대응_및_관측성_표준.md">09. 관측성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      PR preview, branch environment, S3 artifact deploy workflow
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./27_다중_개발_서버_구축_가이드.md">27. 다중 개발 서버</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CI 예외와 flaky gate의 리뷰/승인 기준</td>
+                    <td style="text-align: left">
+                      <a href="./16_AI_협업_코드리뷰_가이드.md">16. 코드리뷰</a>,
+                      <a href="./15_RFC_의사결정_프로세스.md">15. 의사결정</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">단계</th>
+                    <th style="text-align: left">최소 기준</th>
+                    <th style="text-align: left">실패 시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>Install</strong></td>
+                    <td style="text-align: left">lockfile 기반 frozen install, 런타임 버전 고정</td>
+                    <td style="text-align: left">즉시 실패</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Static check</strong></td>
+                    <td style="text-align: left">format, lint, type check, import boundary</td>
+                    <td style="text-align: left">merge 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Test</strong></td>
+                    <td style="text-align: left">unit, integration, contract, 핵심 E2E smoke</td>
+                    <td style="text-align: left">merge 또는 deploy 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Build</strong></td>
+                    <td style="text-align: left">
+                      production build, sourcemap 정책, bundle budget
+                    </td>
+                    <td style="text-align: left">deploy 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Security</strong></td>
+                    <td style="text-align: left">
+                      secret scan, dependency audit, license policy, SBOM/attestation
+                    </td>
+                    <td style="text-align: left">severity 기준 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Artifact</strong></td>
+                    <td style="text-align: left">
+                      immutable artifact 생성, checksum, 보관 기간 명시
+                    </td>
+                    <td style="text-align: left">deploy 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Deploy</strong></td>
+                    <td style="text-align: left">환경별 승인, canary/preview, rollback path</td>
+                    <td style="text-align: left">자동 중단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Evidence</strong></td>
+                    <td style="text-align: left">
+                      테스트 결과, trace, coverage, accessibility/performance report 보관
+                    </td>
+                    <td style="text-align: left">감사 불가 시 실패</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 파이프라인 순환 고리</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 파이프라인은 일회성 검사가 아니라 회고를 거쳐 다음 PR에 다시 적용되는
+                순환 구조입니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;개발자 변경&quot;] --&gt; B[&quot;Install / Lint / Type&quot;]
+  B --&gt; C[&quot;테스트 / 보안 / 품질 게이트&quot;]
+  C --&gt; D{&quot;게이트 통과&quot;}
+  D --&gt;|미통과| E[&quot;수정 후 재요청&quot;]
+  D --&gt;|통과| F[&quot;artifact 생성&quot;]
+  F --&gt; G[&quot;checksum/SBOM/Provenance&quot;]
+  G --&gt; H[&quot;환경 승인(preview/canary/release)&quot;]
+  H --&gt; I[&quot;배포/롤백 경로 검증&quot;]
+  I --&gt; J[&quot;관측성 handoff&quot;]
+  J --&gt; K[&quot;성능/안정성 회고&quot;]
+  K --&gt; A
+  E --&gt; B</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Artifact provenance</td>
+                    <td style="text-align: left">SLSA specification</td>
+                    <td style="text-align: left">SBOM/provenance 생성, checksum 검증</td>
+                    <td style="text-align: left">배포 artifact 추적성</td>
+                    <td style="text-align: left">
+                      provenance 없는 artifact는 production 승격 금지
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Frozen install</td>
+                    <td style="text-align: left">package manager 공식 lockfile 정책</td>
+                    <td style="text-align: left">frozen install CI</td>
+                    <td style="text-align: left">dependency drift incident</td>
+                    <td style="text-align: left">emergency patch는 lockfile PR 필수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Quality gate</td>
+                    <td style="text-align: left">각 도구 공식 CLI와 팀 위험 모델</td>
+                    <td style="text-align: left">lint/type/test/build report</td>
+                    <td style="text-align: left">escaped defect, rollback rate</td>
+                    <td style="text-align: left">flaky gate는 owner/expiry로 격리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">품질 검증</td>
+                    <td style="text-align: left">lint, type, test, build, security report</td>
+                    <td style="text-align: left">CI owner</td>
+                    <td style="text-align: left">merge/deploy 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Artifact provenance</td>
+                    <td style="text-align: left">checksum, SBOM, provenance, source revision</td>
+                    <td style="text-align: left">Release owner</td>
+                    <td style="text-align: left">artifact 폐기와 재빌드</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">환경 승격</td>
+                    <td style="text-align: left">approval record, environment policy</td>
+                    <td style="text-align: left">Release manager</td>
+                    <td style="text-align: left">promotion 중단 또는 이전 환경으로 회귀</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Flaky gate 관리</td>
+                    <td style="text-align: left">retry log, quarantine issue, 만료일</td>
+                    <td style="text-align: left">QA owner</td>
+                    <td style="text-align: left">owner 없는 quarantine 해제와 gate 복구</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h3 id="03">0.3 공급망 증적 계약</h3>
+            <blockquote>
+              <p>
+                일상 비유: 식품 포장에 원산지·유통기한·제조번호가 적혀 있어야 안심하고 먹을 수 있는
+                것과 같습니다. 코드도 어떤 commit에서 누가 어느 도구로 만들었는지 라벨이 붙어야
+                안전하게 배포할 수 있습니다.
+              </p>
+            </blockquote>
+            <p>
+              CI/CD의 공급망 보안은 "취약점 스캔을 실행했다"가 아니라, 소스에서 artifact까지
+              이어지는 증거 체인을 남기는 것입니다. SLSA v1.2는 provenance와 artifact 검증을, NIST
+              SSDF는 secure SDLC 활동을 구조화하는 기준으로 사용합니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  Src[&quot;source\ncommit SHA&quot;] --&gt; Inst[&quot;install\nlockfile hash&quot;]
+  Inst --&gt; Build[&quot;build\nartifact digest&quot;]
+  Build --&gt; SBOM[&quot;SBOM\n의존성 목록&quot;]
+  Build --&gt; Prov[&quot;provenance\nworkflow id&quot;]
+  SBOM --&gt; Store[&quot;artifact 저장소\nchecksum&quot;]
+  Prov --&gt; Store
+  Store --&gt; Verify[&quot;deploy 전 검증&quot;]
+  Verify --&gt; Release[&quot;release\napprover + env&quot;]</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">증적</th>
+                    <th style="text-align: left">필수 필드</th>
+                    <th style="text-align: left">생성 시점</th>
+                    <th style="text-align: left">검증 시점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Source revision</td>
+                    <td style="text-align: left">
+                      commit SHA, branch/tag, author/reviewer, protected status
+                    </td>
+                    <td style="text-align: left">merge</td>
+                    <td style="text-align: left">build 시작 전</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Dependency evidence</td>
+                    <td style="text-align: left">
+                      lockfile hash, package manager version, audit/signature result
+                    </td>
+                    <td style="text-align: left">install</td>
+                    <td style="text-align: left">PR과 release</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SBOM</td>
+                    <td style="text-align: left">
+                      package name/version/license, transitive dependency, artifact id
+                    </td>
+                    <td style="text-align: left">build 직후</td>
+                    <td style="text-align: left">release 승인, incident triage</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Provenance/attestation</td>
+                    <td style="text-align: left">
+                      source repository, workflow id, runner/builder, subject digest
+                    </td>
+                    <td style="text-align: left">artifact 생성 직후</td>
+                    <td style="text-align: left">deploy 승격 전</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Checksum</td>
+                    <td style="text-align: left">artifact digest, signing/attestation reference</td>
+                    <td style="text-align: left">artifact 업로드</td>
+                    <td style="text-align: left">rollback/download 전</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Deployment evidence</td>
+                    <td style="text-align: left">
+                      environment, approver, release id, rollback artifact
+                    </td>
+                    <td style="text-align: left">promotion</td>
+                    <td style="text-align: left">incident/postmortem</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">통제</th>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">실패 시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">최소 권한 token</td>
+                    <td style="text-align: left">
+                      job별 <code>contents: read</code>, 필요한 경우에만
+                      <code>id-token: write</code>, <code>attestations: write</code>
+                    </td>
+                    <td style="text-align: left">workflow permission 축소 전 merge 보류</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">OIDC</td>
+                    <td style="text-align: left">장기 cloud key 대신 job 단위 short-lived token</td>
+                    <td style="text-align: left">secret 기반 배포는 만료일 있는 예외로만 허용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Action/재사용 workflow 고정</td>
+                    <td style="text-align: left">
+                      mutable ref 대신 SHA pin 또는 검증된 immutable release 정책
+                    </td>
+                    <td style="text-align: left">high-risk workflow는 실행 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Artifact 검증</td>
+                    <td style="text-align: left">
+                      deploy job이 checksum/provenance를 검증한 artifact만 사용
+                    </td>
+                    <td style="text-align: left">artifact 폐기와 재빌드</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h3 id="04-pr">0.4 PR 리뷰 게이트 계약</h3>
+            <blockquote>
+              <p>
+                일상 비유: 출고 전 마지막 검사자는 이전 제품을 승인한 기록이 아니라, 지금 컨베이어
+                위에 올라온 바로 그 제품을 확인해야 합니다. PR도 최신 commit에 대한 리뷰 증거가
+                필요합니다.
+              </p>
+            </blockquote>
+            <p>
+              CodeRabbit 같은 AI 리뷰 도구를 도입한 저장소는 리뷰를 "참고 코멘트"로만 두지 말고
+              merge gate로 연결합니다. 핵심은 PR에 CodeRabbit 리뷰가 하나 있었는지가 아니라,
+              <strong>현재 PR head SHA에 달린 최신 CodeRabbit 리뷰가 승인 상태인지</strong> 확인하는
+              것입니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  PR[&quot;pull_request opened / synchronize&quot;] --&gt; CI[&quot;lint / type / test / build&quot;]
+  PR --&gt; CR[&quot;CodeRabbit review gate&quot;]
+  CR --&gt; Head{&quot;리뷰 commit_id == PR head SHA&quot;}
+  Head --&gt;|아니오| Wait[&quot;최신 리뷰 대기 또는 @coderabbitai review&quot;]
+  Head --&gt;|예| State{&quot;latest state&quot;}
+  State --&gt;|APPROVED| Green[&quot;required status check 통과&quot;]
+  State --&gt;|CHANGES_REQUESTED| Fix[&quot;리뷰 반영 후 새 commit push&quot;]
+  State --&gt;|COMMENTED / DISMISSED / 기타| ReReview[&quot;재리뷰 요청&quot;]
+  CI --&gt; Merge{&quot;required checks 모두 통과&quot;}
+  Green --&gt; Merge
+  Merge --&gt;|통과| MergeReady[&quot;merge 가능&quot;]
+  Merge --&gt;|실패| Hold[&quot;merge 차단&quot;]
+  Fix --&gt; PR
+  Wait --&gt; PR
+  ReReview --&gt; PR</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">실패 시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">CodeRabbit 설정</td>
+                    <td style="text-align: left">
+                      <code>.coderabbit.yaml</code>이 있는 저장소만 리뷰 게이트를 둔다
+                    </td>
+                    <td style="text-align: left">
+                      미설치 저장소에 게이트만 추가하면 PR이 영구적으로 막힐 수 있음
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">최신성</td>
+                    <td style="text-align: left">
+                      <code>pulls.listReviews</code> 결과 중 CodeRabbit 리뷰의
+                      <code>commit_id</code>가 PR <code>head.sha</code>와 같아야 함
+                    </td>
+                    <td style="text-align: left">새 commit push 후 과거 approve 재사용 금지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">상태</td>
+                    <td style="text-align: left">
+                      최신 head SHA의 CodeRabbit 리뷰 state가 <code>APPROVED</code>여야 함
+                    </td>
+                    <td style="text-align: left">
+                      <code>CHANGES_REQUESTED</code>, <code>COMMENTED</code>,
+                      <code>DISMISSED</code>는 merge 차단
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">브랜치 보호</td>
+                    <td style="text-align: left">
+                      required status check에 <code>CodeRabbit review gate</code>와 저장소의 quality
+                      aggregator 체크를 추가하고 required conversation resolution을 켠다
+                    </td>
+                    <td style="text-align: left">
+                      workflow 파일만 있으면 실패 체크나 미해결 리뷰 스레드를 무시하고 merge할 수
+                      있음
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR 템플릿</td>
+                    <td style="text-align: left">
+                      <code>CodeRabbit review gate</code> 통과 여부와 finding disposition을 기록
+                    </td>
+                    <td style="text-align: left">accept/reject/follow-up 근거 없이 merge 금지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">자동 머지</td>
+                    <td style="text-align: left">
+                      Dependabot은 safe bump 정책으로, 일반 PR은 <code>automerge</code>/<code
+                        >auto-merge</code
+                      >
+                      라벨로만 auto-merge 후보로 둔다
+                    </td>
+                    <td style="text-align: left">
+                      production dependency major나 명시적 의도 없는 일반 PR 자동 병합 금지
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <pre><code class="language-yaml">name: CodeRabbit review gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review-gate:
+    name: CodeRabbit review gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+</code></pre>
+            <p>
+              자동 머지는 이 게이트와 충돌하지 않게 설계합니다. Dependabot PR은 patch/minor, GitHub
+              Actions 업데이트, direct development major처럼 blast radius가 낮은 범위만 auto-merge
+              후보로 둡니다. 일반 PR은 <code>automerge</code>/<code>auto-merge</code> 라벨이 붙은
+              경우에만 후보로 두고, 실제 병합은 브랜치 보호의 required checks와 conversation
+              resolution이 모두 통과할 때만 일어나게 합니다. production dependency major나 아키텍처
+              변경 PR은 CodeRabbit과 사람 reviewer가 모두 확인한 뒤 수동 병합합니다.
+            </p>
+            <p>
+              CodeRabbit을 쓰는 저장소는 수동 실행용
+              <code>.github/workflows/branch-protection.yml</code>을 둡니다. 이 워크플로우는
+              <code>GH_ADMIN_TOKEN</code> 시크릿이 있을 때만 실행되며, GitHub Branch Protection
+              API로 아래 조건을 적용합니다.
+            </p>
+            <ul>
+              <li>
+                required status checks: 저장소별 quality aggregator,
+                <code>CodeRabbit review gate</code>
+              </li>
+              <li><code>strict: true</code>: base branch 최신화 후 merge</li>
+              <li>
+                <code>required_conversation_resolution: true</code>: 미해결 리뷰 스레드가 있으면
+                merge 대기
+              </li>
+              <li>
+                <code>required_approving_review_count</code>: 기본 <code>0</code>, 사람 승인까지
+                강제하려면 workflow dispatch 입력값으로 <code>1</code> 이상 지정
+              </li>
+              <li>
+                GitHub Branch Protection API에는 <code>required_status_checks.contexts</code>만
+                넣는다. <code>contexts</code>와 <code>checks</code>를 동시에 넣으면 일부 API
+                schema에서 422가 발생할 수 있다.
+              </li>
+            </ul>
+            <hr />
+            <h3 id="05-github-actions">0.5 GitHub Actions 운영 표준</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: CI는 "돌아가는 YAML"보다 "반복 가능한 운영 계약"이어야 합니다. timeout,
+                concurrency, permission, required check 이름이 저장소마다 흔들리면 같은 실패도 다른
+                방식으로 처리되어 merge 정책이 약해집니다.
+              </p>
+            </blockquote>
+            <p>워크스페이스 하위 git 프로젝트는 아래 공통 규칙을 따른다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">표준</th>
+                    <th style="text-align: left">이유</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">실행 진입점</td>
+                    <td style="text-align: left">
+                      package 프로젝트는 <code>pnpm run verify</code>를 로컬/CI 공통 검증 명령으로
+                      둔다
+                    </td>
+                    <td style="text-align: left">개발자와 CI가 같은 계약을 실행</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">설치</td>
+                    <td style="text-align: left">
+                      lockfile 기반 <code>pnpm install --frozen-lockfile</code>
+                    </td>
+                    <td style="text-align: left">dependency drift 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">권한</td>
+                    <td style="text-align: left">
+                      workflow 또는 job에 <code>permissions</code>를 명시하고 기본은
+                      <code>contents: read</code>
+                    </td>
+                    <td style="text-align: left"><code>GITHUB_TOKEN</code> 최소 권한 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">동시성</td>
+                    <td style="text-align: left">
+                      모든 workflow에 top-level <code>concurrency</code>를 둔다
+                    </td>
+                    <td style="text-align: left">오래된 PR 실행 취소, deploy race 방지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">시간 제한</td>
+                    <td style="text-align: left">모든 job에 <code>timeout-minutes</code>를 둔다</td>
+                    <td style="text-align: left">무한 대기와 runner 비용 누수 차단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">lint</td>
+                    <td style="text-align: left">
+                      CI용 <code>lint</code>는 검사만 하고 자동 수정은 <code>lint:fix</code>로 분리
+                    </td>
+                    <td style="text-align: left">CI가 PR 소스를 몰래 바꾸지 않게 함</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Action 버전</td>
+                    <td style="text-align: left">
+                      검증된 최신 major를 쓰고, 구버전 major가 남으면 audit에서 실패시킨다
+                    </td>
+                    <td style="text-align: left">deprecated runtime/보안 경고 조기 제거</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">자동 머지</td>
+                    <td style="text-align: left">
+                      Dependabot safe bump 또는 명시적 <code>automerge</code>/<code
+                        >auto-merge</code
+                      >
+                      라벨만 사용
+                    </td>
+                    <td style="text-align: left">의도 없는 일반 PR 자동 병합 방지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>현재 표준화한 GitHub Actions 버전 baseline은 다음과 같다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">용도</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">checkout</td>
+                    <td style="text-align: left"><code>actions/checkout@v6</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Node.js</td>
+                    <td style="text-align: left"><code>actions/setup-node@v6</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">pnpm</td>
+                    <td style="text-align: left"><code>pnpm/action-setup@v6</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">artifact</td>
+                    <td style="text-align: left"><code>actions/upload-artifact@v7</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">GitHub API script</td>
+                    <td style="text-align: left"><code>actions/github-script@v9</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CodeQL</td>
+                    <td style="text-align: left"><code>github/codeql-action@v4</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Dependabot metadata</td>
+                    <td style="text-align: left"><code>dependabot/fetch-metadata@v3</code></td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Docker build/publish</td>
+                    <td style="text-align: left">
+                      <code>docker/setup-qemu-action@v4</code>,
+                      <code>docker/setup-buildx-action@v4</code>,
+                      <code>docker/login-action@v4</code>, <code>docker/metadata-action@v6</code>,
+                      <code>docker/build-push-action@v7</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Google Cloud deploy</td>
+                    <td style="text-align: left">
+                      <code>google-github-actions/auth@v3</code>,
+                      <code>google-github-actions/setup-gcloud@v3</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>공통 workflow 파일은 저장소군별로 아래처럼 배치한다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">파일</th>
+                    <th style="text-align: left">대상</th>
+                    <th style="text-align: left">역할</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      <code>.github/workflows/dependabot-auto-merge.yml</code>
+                    </td>
+                    <td style="text-align: left">모든 git 프로젝트</td>
+                    <td style="text-align: left">Dependabot safe bump만 auto-merge 후보로 등록</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <code>.github/workflows/coderabbit-gate.yml</code>
+                    </td>
+                    <td style="text-align: left"><code>.coderabbit.yaml</code>이 있는 프로젝트</td>
+                    <td style="text-align: left">
+                      최신 PR head SHA의 CodeRabbit <code>APPROVED</code> 리뷰를 required check로
+                      노출
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <code>.github/workflows/auto-merge-on-green.yml</code>
+                    </td>
+                    <td style="text-align: left"><code>.coderabbit.yaml</code>이 있는 프로젝트</td>
+                    <td style="text-align: left">
+                      <code>automerge</code>/<code>auto-merge</code> 라벨이 붙은 일반 PR에
+                      auto-merge 활성화
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      <code>.github/workflows/branch-protection.yml</code>
+                    </td>
+                    <td style="text-align: left"><code>.coderabbit.yaml</code>이 있는 프로젝트</td>
+                    <td style="text-align: left">
+                      <code>GH_ADMIN_TOKEN</code>으로 required checks와 conversation resolution 적용
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              브랜치 보호 워크플로우는 저장소별 quality aggregator 이름을 정확히 사용해야 한다.
+              required check 이름이 실제 job 이름과 다르면 GitHub가 영구 대기 상태로 남길 수 있다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">저장소</th>
+                    <th style="text-align: left">required status checks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>PromptMarket</code></td>
+                    <td style="text-align: left">
+                      <code>Quality gate</code>, <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>spa-seo-gateway</code></td>
+                    <td style="text-align: left">
+                      <code>Quality gate</code>, <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>orbit-ui</code></td>
+                    <td style="text-align: left">
+                      <code>빌드 및 테스트</code>, <code>린트</code>,
+                      <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>remote-devtools</code></td>
+                    <td style="text-align: left">
+                      <code>CI pass gate</code>, <code>enforce-pr-checklist</code>,
+                      <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>pettography</code></td>
+                    <td style="text-align: left">
+                      <code>Frontend verify</code>, <code>Backend verify</code>,
+                      <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>react-boilerplates</code></td>
+                    <td style="text-align: left">
+                      <code>Verify</code>, <code>CodeRabbit review gate</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Dependabot 자동 머지는 아래 조건 중 하나만 만족할 때 auto-merge를 활성화한다.</p>
+            <ul>
+              <li><code>version-update:semver-patch</code></li>
+              <li><code>version-update:semver-minor</code></li>
+              <li><code>package-ecosystem == github_actions</code></li>
+              <li>
+                <code>version-update:semver-major</code> 이면서
+                <code>dependency-type == direct:development</code>
+              </li>
+            </ul>
+            <p>
+              production dependency major는 자동 머지하지 않는다. breaking change, migration,
+              runtime risk를 PR 본문에 남기고 사람 reviewer가 확인한 뒤 병합한다.
+            </p>
+            <hr />
+            <h3 id="06">0.6 파이프라인 상태 기계도</h3>
+            <p>
+              빌드/검증/배포 각 단계의 실패 포인트를 도식으로 고정하면 변경 승인 기준이 더
+              명확해집니다.
+            </p>
+            <pre><code class="language-text">개발자 push
+   |
+   v
+[코드 통합]
+   |-- lint/type/lint boundary -- 실패 시 merge hold
+   |
+   v
+[테스트]
+   |-- unit/integration -&gt; 실패: 수정 후 재푸시
+   |-- e2e/smoke -&gt; 실패: 테스트 보강 + 재검증
+   |
+   v
+[아티팩트 생성]
+   |-- checksum / SBOM / provenance
+   |-- artifact immutable 저장
+   |
+   v
+[보안/품질 게이트]
+   |-- secret/dependency/audit pass
+   |
+   v
+[승격]
+   |-- preview 배포 -&gt; canary -&gt; release
+   |-- 각 단계에서 지표/알림/이력 보존
+   |
+   v
+[완료]
+   ├─ 성공: release note + monitoring handoff
+   └─ 실패: rollback/rebuild + 증적 보강
+</code></pre>
+            <pre><code class="language-text">승격 실패 시 기본 되돌림 우선순위
+
+문제 발생
+  → 증적 미비 → artifact 재검토
+ → 증적 충분/문제 재현 → 테스트나 보안 게이트 보강
+  → 모두 통과 후 release candidate 승인
+</code></pre>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;개발자 push&quot;] --&gt; B[&quot;코드 통합\nlint/type/boundary&quot;]
+  B --&gt; C[&quot;테스트\nunit/integration/e2e&quot;]
+  C --&gt;|실패| C1[&quot;수정 후 재푸시&quot;]
+  C --&gt;|통과| D[&quot;아티팩트 생성\nchecksum/SBOM/provenance&quot;]
+  D --&gt; E[&quot;보안/품질 게이트\nsecret/dependency/audit&quot;]
+  E --&gt; F[&quot;승격\npreview -&gt; canary -&gt; release&quot;]
+  F --&gt;|실패| G[&quot;rollback/rebuild + 증적 보강&quot;]
+  F --&gt;|성공| H[&quot;release note + monitoring handoff&quot;]
+  G --&gt; I[&quot;문제 범주 정리\n증적 미비/테스트 미비/보안 미통과&quot;]
+  I --&gt; C</pre
+            >
+            <pre class="mermaid">
+flowchart LR
+  A2[&quot;문제 발생&quot;] --&gt; B2[&quot;증적 미비&quot;] --&gt; C2[&quot;artifact 재검토&quot;]
+  A2 --&gt; D2[&quot;문제 재현&quot;] --&gt; E2[&quot;테스트/보안 게이트 보강&quot;]
+  C2 --&gt; F2[&quot;release candidate 승인&quot;]
+  E2 --&gt; F2</pre
+            >
+            <h2 id="1">1. 파이프라인 구조</h2>
+            <p>권장 순서는 빠른 실패에서 느린 검증으로 이동합니다.</p>
+            <pre><code class="language-text">change
+  -&gt; install
+  -&gt; lint / type / unit
+  -&gt; integration / contract
+  -&gt; build artifact
+  -&gt; security / license / SBOM
+  -&gt; preview deploy
+  -&gt; E2E / accessibility / performance smoke
+  -&gt; staging or canary
+  -&gt; production release
+</code></pre>
+            <p>
+              <code>build once, deploy many</code>를 원칙으로 합니다. 환경별로 다시 빌드하면 "검증한
+              코드"와 "배포한 코드"가 달라질 수 있습니다.
+            </p>
+            <hr />
+            <h2 id="2">2. 재현성 기준</h2>
+            <blockquote>
+              <p>
+                왜 중요한가: 같은 commit이 어제는 통과했는데 오늘은 실패한다면, 그것은 코드가 아니라
+                환경의 문제입니다. 재현성은 디버깅 시간을 가장 크게 줄여 줍니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">항목</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">런타임</td>
+                    <td style="text-align: left">Node/Bun/pnpm 등 실행 버전을 파일로 고정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">의존성</td>
+                    <td style="text-align: left">
+                      lockfile 변경은 리뷰 대상, install은 frozen 모드
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">환경 변수</td>
+                    <td style="text-align: left">build-time과 runtime 변수를 분리</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">캐시</td>
+                    <td style="text-align: left">lockfile, OS, 런타임 버전을 cache key에 포함</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">산출물</td>
+                    <td style="text-align: left">checksum, build metadata, source revision 포함</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">시간 의존성</td>
+                    <td style="text-align: left">테스트에서 현재 시간, locale, timezone 고정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="21">2.1 캐시 키 결정 트리</h3>
+            <blockquote>
+              <p>
+                비유: 도서관 분류 라벨과 같습니다. 너무 좁으면 새 책마다 라벨이 달라져 캐시가 거의
+                비고, 너무 넓으면 다른 책끼리 같은 라벨이 붙어 잘못된 책을 꺼냅니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TD
+  Q1{lockfile이 변경되었는가}
+  Q1 --&gt;|예| New[새 키 생성]
+  Q1 --&gt;|아니오| Q2{OS/아키텍처가 다른가}
+  Q2 --&gt;|예| New
+  Q2 --&gt;|아니오| Q3{런타임 버전이 다른가}
+  Q3 --&gt;|예| New
+  Q3 --&gt;|아니오| Q4{빌드 설정 파일 hash가 다른가}
+  Q4 --&gt;|예| New
+  Q4 --&gt;|아니오| Reuse[기존 키 재사용]
+  New --&gt; Save[캐시 저장 + 메타 기록]
+  Reuse --&gt; Hit[캐시 hit -&gt; 시간 단축]</pre
+            >
+            <hr />
+            <h2 id="3">3. 품질 게이트</h2>
+            <blockquote>
+              <p>
+                일상 비유: 병원에서 수술 전 체크리스트와 같습니다. 의사가 외워서 챙기는 게 아니라,
+                통과해야 다음 단계로 넘어가는 강제 절차여야 환자 안전이 보장됩니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">게이트</th>
+                    <th style="text-align: left">최소 요구사항</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Type</td>
+                    <td style="text-align: left">
+                      <code>tsc --noEmit</code> 또는 동등한 type check 통과
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Lint</td>
+                    <td style="text-align: left">
+                      React Hooks/Compiler, 접근성, import boundary 규칙 포함
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Unit</td>
+                    <td style="text-align: left">핵심 유틸, hooks, reducers, domain logic</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Integration</td>
+                    <td style="text-align: left">API mocking, form validation, error handling</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Contract</td>
+                    <td style="text-align: left">OpenAPI/GraphQL/schema breaking change 검출</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">E2E</td>
+                    <td style="text-align: left">
+                      로그인, 탐색, 주요 전환, 결제/저장 등 핵심 flow
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Accessibility</td>
+                    <td style="text-align: left">자동 검사 + 핵심 flow keyboard smoke</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Performance</td>
+                    <td style="text-align: left">
+                      bundle budget, Core Web Vitals smoke, Lighthouse/trace budget
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              게이트는 "권장"이 아니라 merge/deploy 조건이어야 합니다. 예외는 owner, 만료일, 보완
+              계획이 있는 RFC로만 허용합니다.
+            </p>
+            <pre class="mermaid">
+flowchart LR
+  In[PR 생성] --&gt; G1[Type]
+  G1 --&gt;|fail| Block[merge 차단]
+  G1 --&gt;|pass| G2[Lint]
+  G2 --&gt;|fail| Block
+  G2 --&gt;|pass| G3[Unit]
+  G3 --&gt;|fail| Block
+  G3 --&gt;|pass| G4[Integration]
+  G4 --&gt;|fail| Block
+  G4 --&gt;|pass| G5[Contract]
+  G5 --&gt;|fail| Block
+  G5 --&gt;|pass| G6[E2E smoke]
+  G6 --&gt;|fail| Block
+  G6 --&gt;|pass| G7[A11y/Perf 예산]
+  G7 --&gt;|fail| Block
+  G7 --&gt;|pass| Pass[merge 가능]</pre
+            >
+            <hr />
+            <h2 id="4">4. 리액트 빌드 도입 가이드</h2>
+            <p>
+              React 앱을 새로 열거나 major 업그레이드를 할 때는 릴리스보다 먼저 아래 체크리스트를
+              고정합니다.
+            </p>
+            <h3 id="41">4.1 스크립트 표준</h3>
+            <h4 id="411">4.1.1 앱 패키지 기본 스크립트</h4>
+            <pre><code class="language-json">{
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsc -b &amp;&amp; vite build&quot;,
+    &quot;typecheck&quot;: &quot;tsc -b --noEmit&quot;,
+    &quot;preview&quot;: &quot;vite preview&quot;,
+    &quot;lint&quot;: &quot;eslint .&quot;,
+    &quot;test&quot;: &quot;vitest run&quot;,
+    &quot;build-storybook&quot;: &quot;storybook build&quot;
+  }
+}
+</code></pre>
+            <ul>
+              <li>
+                앱/서비스 패키지는 <code>build</code>와 <code>typecheck</code>를 같은 커밋 기준에서
+                함께 운영합니다.
+              </li>
+              <li>
+                라이브러리 패키지는 <code>build</code>를 먼저, <code>typecheck</code>(<code
+                  >tsc --noEmit</code
+                >
+                또는 <code>tsc -b</code>)를 다음 단계로 분리해 잡아둡니다.
+              </li>
+              <li>
+                Storybook 10이 있는 리포지토리는 <code>build-storybook</code>을 PR 게이트에서
+                <code>build</code>와 분리 실행합니다.
+              </li>
+            </ul>
+            <h4 id="412">4.1.2 라이브러리/컴포넌트 패키지 기본 스크립트</h4>
+            <pre><code class="language-json">{
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsc -b&quot;,
+    &quot;typecheck&quot;: &quot;tsc -b --noEmit&quot;,
+    &quot;lint&quot;: &quot;eslint .&quot;,
+    &quot;test&quot;: &quot;vitest run&quot;,
+    &quot;build-storybook&quot;: &quot;storybook build&quot;
+  }
+}
+</code></pre>
+            <ul>
+              <li>
+                라이브러리는 <code>build</code> 산출물의 품질 검증을 위해 <code>typecheck</code>를
+                독립 job 또는 단계로 둡니다.
+              </li>
+              <li>
+                Storybook이 의존성 캐시를 크게 쓰는 모노레포에서는 <code>storybook</code> 관련
+                의존성 캐시를 앱 캐시와 분리합니다.
+              </li>
+              <li>
+                <code>build-storybook</code>은 <code>--webpack-stats-json</code> 또는
+                <code>--ci</code> 플래그를 프로젝트 정책에 맞춰 고정하고, 실패 로그를 artifact로
+                남깁니다.
+              </li>
+            </ul>
+            <h4 id="413-monorepo">4.1.3 monorepo 실행 패턴</h4>
+            <pre><code class="language-bash"># 앱/라이브러리 타입 혼합 monorepo
+pnpm --filter @scope/app run lint
+pnpm --filter @scope/app run typecheck
+pnpm --filter @scope/app run build
+pnpm --filter @scope/storybook run build-storybook
+pnpm --filter @scope/app run test
+</code></pre>
+            <ul>
+              <li>
+                <code>--filter</code>는 변경 영향 범위를 좁히되, 실패 시 어떤 패키지가 첫 실패인지
+                바로 추적 가능하게 합니다.
+              </li>
+              <li>
+                <code>build</code>와 <code>build-storybook</code>는 서로 다른 캐시
+                키(<code>hashOfFiles</code>)로 분리해 분쟁 없이 재시도합니다.
+              </li>
+              <li>
+                공통 번들러/TS 설정을 바꾸면 <code>pnpm install --force</code>를 먼저 실행해
+                lockfile 동기화를 맞춥니다.
+              </li>
+            </ul>
+            <h4 id="414-storybook-10">4.1.4 Storybook 10 고정 규칙</h4>
+            <ul>
+              <li>
+                Storybook runtime은 <code>storybook</code> 10 기반으로 고정하고
+                <code>framework: "@storybook/react-vite"</code>를 앱 런타임과 동일한
+                <code>react</code>/<code>vite</code> 버전 선에서 관리합니다.
+              </li>
+              <li>
+                CI에서 storybook 빌드 실패는 <strong>컴포넌트 호환성 이슈</strong>와
+                <strong>번들러/alias 이슈</strong>를 각각 분리해 라벨링합니다.
+              </li>
+              <li>
+                Storybook 타입 오류는 앱 타입스크립트 설정(<code>types</code>, <code>paths</code>,
+                <code>baseUrl</code>)과 동일한 경로 규칙을 적용한 뒤 재시도합니다.
+              </li>
+            </ul>
+            <p>
+              <code
+                >bash # Storybook 10 + React + Vite 템플릿 기준 최소 명령 pnpm install pnpm lint
+                pnpm typecheck pnpm build pnpm build-storybook</code
+              >
+            </p>
+            <h3 id="42-pr">4.2 PR 제출 표준</h3>
+            <p>리액트 변경 PR은 아래 네 증거를 <code>PR 설명</code>에 포함합니다.</p>
+            <ul>
+              <li>
+                <code>pnpm lint</code>, <code>pnpm typecheck</code>, <code>pnpm build</code> 로그
+              </li>
+              <li>Storybook이 있으면 <code>pnpm build-storybook</code> 로그</li>
+              <li>실패 시 <code>rollback</code> 포인트(플래그/경로)와 복원 계획</li>
+              <li><code>dist/</code> 또는 <code>storybook-static/</code> 산출물 위치</li>
+            </ul>
+            <h3 id="43">4.3 도입 순서</h3>
+            <ol>
+              <li>루트 빌드 가드 정비</li>
+              <li>
+                <code>lint</code> → <code>typecheck</code> → <code>test</code> →
+                <code>build</code> 순서를 PR 필수 단계로 둡니다.
+              </li>
+              <li>프로젝트별 적용</li>
+              <li>
+                앱 패키지는 최소 <code>build</code>,<code>typecheck</code>,<code>preview</code>를
+                맞춥니다.
+              </li>
+              <li>
+                monorepo 패키지는 의존 관계 순서대로
+                <code>pnpm --filter &lt;pkg&gt; run build</code> 형태로 분해합니다.
+              </li>
+              <li>증거 수집</li>
+              <li>
+                번들 산출물 크기/수명, Storybook 빌드 결과, 실패 로그를 함께 저장해 공유합니다.
+              </li>
+            </ol>
+            <h3 id="44-ci">4.4 CI 권장 파이프라인 (분리 실행)</h3>
+            <pre><code class="language-yaml">jobs:
+  build:
+    name: React Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  build_storybook:
+    name: Storybook Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build-storybook
+</code></pre>
+            <ul>
+              <li>앱 빌드와 Storybook 빌드를 분리하면 회귀 원인을 빨리 가릴 수 있습니다.</li>
+              <li>
+                실패가 잦은 프로젝트는 Storybook job에 별도 <code>--quiet</code>/<code
+                  >--output-dir</code
+                >
+                정책을 두고 로그 보존 기간을 늘립니다.
+              </li>
+              <li>
+                <code>build</code>는 릴리스 승격 경로의 유일한 입력으로 쓰이고, Storybook은
+                문서/컴포넌트 공유 경로로만 취급합니다.
+              </li>
+            </ul>
+            <pre><code class="language-bash"># 예시: 프로젝트별 단계 실행
+pnpm --filter @scope/app run typecheck
+pnpm --filter @scope/app run build
+pnpm --filter @scope/app run build-storybook
+</code></pre>
+            <h3 id="45">4.5 리액트 빌드 실제 도입 체크리스트</h3>
+            <p>아래 체크리스트는 리액트가 있는 패키지로 확장되는 프로젝트에 공통 적용합니다.</p>
+            <ul>
+              <li>
+                [ ] <code>build</code>, <code>typecheck</code>, <code>lint</code> 스크립트가 변경
+                패키지 기준으로 모두 존재한다.
+              </li>
+              <li>
+                [ ] Storybook이 있는 패키지는 <code>storybook</code>/<code>build-storybook</code>가
+                함께 존재하고, 실행 시 <code>@storybook/react</code> 계열을 10.x로 맞췄다.
+              </li>
+              <li>
+                [ ] 루트 CI에서 <code>pnpm install --frozen-lockfile</code> 후
+                <code>lint -&gt; typecheck -&gt; test -&gt; build</code>가 기본 게이트로 실행된다.
+              </li>
+              <li>
+                [ ] <code>build</code>와 <code>build-storybook</code>는 실패 원인 추적을 위해 별도
+                job/job step으로 실행한다.
+              </li>
+              <li>
+                [ ] PR 본문에 <code>dist/</code>, <code>storybook-static/</code> 산출물 경로와 실패
+                재현 명령을 남긴다.
+              </li>
+            </ul>
+            <pre><code class="language-bash"># 실제 적용 시점 권장 순서
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm build-storybook   # 필요한 경우만
+</code></pre>
+            <ul>
+              <li>
+                릴리스용 빌드 산출물은 항상 <code>dist/</code>를 단일 기준으로 고정하고, Storybook
+                산출물은 증적 보조 자료로만 활용한다.
+              </li>
+              <li>
+                실패가 빈번한 프로젝트는 <code>storybook</code> job을 따로 분리해 재시도 회복
+                탄력성을 높인다.
+              </li>
+            </ul>
+            <h3 id="46">4.6 신규/마이그레이션 프로젝트용 도입 템플릿</h3>
+            <p>
+              React 리포지토리를 처음 열 때는 다음 3단계 템플릿으로 시작하세요.<br />
+              <code>react + vite + react-router + storybook + vitest</code>를 기준으로 작성했습니다.
+            </p>
+            <ol>
+              <li><strong>빌드 레이어 고정</strong></li>
+            </ol>
+            <pre><code class="language-json">{
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsc -b &amp;&amp; vite build&quot;,
+    &quot;typecheck&quot;: &quot;tsc -p tsconfig.app.json --noEmit&quot;,
+    &quot;lint&quot;: &quot;eslint .&quot;,
+    &quot;lint:security&quot;: &quot;eslint . --max-warnings=0 &amp;&amp; pnpm lint:secrets &amp;&amp; pnpm audit:security&quot;,
+    &quot;test&quot;: &quot;vitest run&quot;,
+    &quot;test:e2e&quot;: &quot;playwright test&quot;,
+    &quot;storybook&quot;: &quot;storybook dev -p 6006&quot;,
+    &quot;build-storybook&quot;: &quot;storybook build&quot;,
+    &quot;preview&quot;: &quot;vite preview&quot;,
+    &quot;verify&quot;: &quot;pnpm format:check &amp;&amp; pnpm lint &amp;&amp; pnpm typecheck &amp;&amp; pnpm test &amp;&amp; pnpm build &amp;&amp; pnpm build-storybook&quot;,
+    &quot;prepare&quot;: &quot;husky&quot;
+  }
+}
+</code></pre>
+            <ul>
+              <li>
+                <code>verify</code>는 로컬/CI에서 같은 순서를 사용해 “로컬 통과 = CI 통과”를
+                맞춥니다.
+              </li>
+              <li>
+                라이브러리 패키지는 <code>build</code>를 <code>tsc -b</code>로 시작하고, 앱은
+                <code>vite build</code>와 함께 쓰는 것을 기본값으로 둡니다.
+              </li>
+              <li>
+                <p>
+                  Storybook은 <code>build</code>와 분리 실행하고, 실패 시
+                  <code>storybook build</code> 로그를 artifact에 붙입니다.
+                </p>
+              </li>
+              <li>
+                <p><strong>루트 CI/훅 계약 정합성</strong></p>
+              </li>
+            </ul>
+            <pre><code class="language-yaml">jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v6
+      - run: corepack pnpm --version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm build-storybook
+</code></pre>
+            <ul>
+              <li>예시 훅:</li>
+              <li><code>.husky/pre-commit</code>: <code>pnpm exec lint-staged</code></li>
+              <li>
+                <p><code>.husky/commit-msg</code>: <code>pnpm exec commitlint --edit "$1"</code></p>
+              </li>
+              <li>
+                <p>
+                  CI는 lockfile 고정, <code>frozen-lockfile</code>, <code>verify</code> 흐름이
+                  핵심입니다.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Husky <code>pre-commit</code>, <code>commit-msg</code>는 빠른 피드백을 책임지고,
+                  전체 검증은 CI가 책임집니다.
+                </p>
+              </li>
+              <li>
+                <p><strong>도입 완료 판정</strong></p>
+              </li>
+              <li>
+                <p><code>dist/</code> 경로가 단일 release 기준인지 확인한다.</p>
+              </li>
+              <li>
+                <code>storybook-static/</code> 산출물의 경로, 용량 제한, 업로드 정책을 정의한다.
+              </li>
+              <li>
+                새로 추가한 <code>build</code>/<code>typecheck</code>/<code>lint</code>/<code
+                  >build-storybook</code
+                >
+                로그를 PR 본문에 첨부한다.
+              </li>
+              <li>
+                회귀가 잦은 패키지는 job 분리 후 <code>timeout-minutes</code>,
+                <code>concurrency</code>, <code>retry-on-fail</code> 정책을 추가한다.
+              </li>
+            </ul>
+            <p>
+              이 템플릿은 모든 React 패키지에서 동일 순서를 유지하면 PR 검증 재현성에 가장
+              유리합니다.
+            </p>
+            <pre><code class="language-bash"># 도입 완료 후 팀 공통 실행 커맨드
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm build-storybook   # Storybook 사용 시만
+pnpm verify            # 위 명령을 한 번에 점검
+</code></pre>
+            <p>필요시 프로젝트 운영팀 문서에 “성공 기준 임계치”를 추가해 PR 기준을 고정하세요.</p>
+            <blockquote>
+              <p>
+                기준 임계치 예시: <code>vite build</code> 실패 0건, storybook build 실패 0건, 5분
+                이상 걸리는 빌드는 성능 리스크 리뷰.
+              </p>
+            </blockquote>
+            <h3 id="47-pr-repository">4.7 PR 룰(Repository 공통 규약)</h3>
+            <p>팀/프로젝트 공통으로 PR을 같은 방식으로 처리하기 위해 아래 규약을 적용합니다.</p>
+            <h4 id="471-pr">4.7.1 PR 템플릿 강제 규약</h4>
+            <ul>
+              <li>
+                PR 본문은 <code>.github/PULL_REQUEST_TEMPLATE.md</code>의 체크리스트를 모두 완료해야
+                합니다.
+              </li>
+              <li>PR 제목은 Conventional Commits 규칙을 지킵니다.</li>
+              <li>
+                문서/코드 변경이 함께 있으면 <code>기능</code>, <code>영향 범위</code>,
+                <code>회귀 대응</code>을 한 번에 정리합니다.
+              </li>
+            </ul>
+            <h4 id="472-pr">4.7.2 PR 제출 전 증빙 규약</h4>
+            <ul>
+              <li>
+                <code>pnpm run verify</code> 또는 저장소별 최소 게이트가 통과했는지 PR 본문에
+                증빙합니다.
+              </li>
+              <li>
+                변경 증거(<code>pnpm lint</code>, <code>pnpm typecheck</code>,
+                <code>pnpm build</code> 또는 패키지별 게이트 실행 결과)를 남깁니다.
+              </li>
+              <li>
+                회귀 대응: 실패 시 재현 명령, 롤백 포인트, <code>dist/</code> /
+                <code>storybook-static/</code> 보유 여부를 기록합니다.
+              </li>
+              <li>동일 PR에서 <code>skipped</code> 상태가 있으면 병합을 보류합니다.</li>
+            </ul>
+            <h4 id="473">4.7.3 리뷰 게이트 규약</h4>
+            <ul>
+              <li>
+                CodeRabbit이 설치된 저장소는 <code>CodeRabbit review gate</code>가 최신 head SHA
+                기준 <code>APPROVED</code> 상태여야 합니다.
+              </li>
+              <li>CodeRabbit이 없는 저장소는 최소 1명의 사람 리뷰 승인으로 병합을 진행합니다.</li>
+              <li>
+                병합 전 <code>required_conversation_resolution</code> 및
+                <code>required_status_checks</code>가 동작하도록 브랜치 보호 규칙을 맞춥니다.
+              </li>
+            </ul>
+            <h4 id="474">4.7.4 라벨 기반 자동 병합 규약</h4>
+            <ul>
+              <li>
+                <code>automerge</code> / <code>auto-merge</code> 라벨은 명시적 동의가 있을 때만
+                사용합니다.
+              </li>
+              <li>
+                <code>dependabot</code>은 patch/minor/CI 업데이트처럼 blast radius가 낮은 항목만
+                자동 병합 대상으로 둡니다.
+              </li>
+              <li>
+                production major, migration, runtime risk 변경은 라벨 자동 병합에서 제외하고 사람
+                승인으로 처리합니다.
+              </li>
+            </ul>
+            <h4 id="475-ci">4.7.5 CI 상태 체크 최소 항목(예시)</h4>
+            <ul>
+              <li>
+                필수 체크 예시: <code>Quality gate</code>, <code>CI pass gate</code>,
+                <code>CodeRabbit review gate</code>, <code>enforce-pr-checklist</code>
+              </li>
+              <li>
+                저장소별 필수 체크는 브랜치 보호에서 <code>required_status_checks.contexts</code>로
+                고정하고, 이름 변경은 템플릿/스크립트와 동시에 수행합니다.
+              </li>
+              <li>
+                동일 PR에서 코드/문서/리뷰 체크 항목이 누락되면 “병합 보류” 상태로 관리합니다.
+              </li>
+            </ul>
+            <blockquote>
+              <p>
+                운영상 예외가 필요하면 해당 PR에 <code>skip</code> 사유와 보완 plan을 기록하고,
+                처리일자/담당자를 남겨 추후 삭제합니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="5">5. 보안과 공급망</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Secret</td>
+                    <td style="text-align: left">
+                      commit, build log, artifact, client bundle에 secret 노출 금지
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Dependency</td>
+                    <td style="text-align: left">
+                      심각도와 exploitability 기준으로 차단 정책 운영
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SBOM</td>
+                    <td style="text-align: left">production artifact와 함께 생성 및 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Provenance</td>
+                    <td style="text-align: left">
+                      artifact가 어떤 commit과 workflow에서 나왔는지 증명
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Permission</td>
+                    <td style="text-align: left">CI token은 job별 최소 권한</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">OIDC</td>
+                    <td style="text-align: left">
+                      장기 cloud key 대신 임시 workload identity 사용
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              보안 검사는 가장 늦은 production 직전에 처음 돌리면 비용이 큽니다. PR 단계에서 빠른
+              secret/dependency scan을 먼저 실행합니다.
+            </p>
+            <h3 id="51-provenance">5.1 provenance 검증 예시</h3>
+            <p>
+              아래 예시는 특정 플랫폼 문법을 표준으로 강제하기 위한 것이 아니라, 어떤 CI에서도
+              필요한 permission과 검증 흐름을 보여주기 위한 참고입니다.
+            </p>
+            <p>
+              React 빌드 도입 가이드는
+              <a
+                href="./02_React19_실무_가이드.md#13-%EB%A6%AC%EC%95%A1%ED%8A%B8-%EB%B9%8C%EB%93%9C-%EB%8F%84%EC%9E%85-%EA%B0%80%EC%9D%B4%EB%93%9C"
+                >02. React 19 실무 가이드의 13. 리액트 빌드 도입 가이드</a
+              >도 함께 참조하세요.
+            </p>
+            <pre><code class="language-yaml">permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+steps:
+  - run: build-command
+  - run: sha256sum dist/app.tar.gz &gt; dist/app.sha256
+  - name: Generate artifact attestation
+    uses: actions/attest@v4
+    with:
+      subject-path: dist/app.tar.gz
+  - name: Verify artifact attestation before deploy
+    run: gh attestation verify dist/app.tar.gz -R ORG/REPO
+</code></pre>
+            <p>
+              배포 job은 build job에서 생성한 artifact를 다운로드하고, checksum과 provenance를
+              확인한 뒤에만 환경 승격을 수행합니다. 환경별 재빌드는 금지합니다.
+            </p>
+            <hr />
+            <h2 id="6-branch-release">6. Branch와 Release 전략</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">전략</th>
+                    <th style="text-align: left">기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Trunk-based</td>
+                    <td style="text-align: left">작은 PR, feature flag, 빠른 통합</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Release branch</td>
+                    <td style="text-align: left">규제/검증 기간이 긴 제품에서만 제한적으로 사용</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Feature flag</td>
+                    <td style="text-align: left">deploy와 release 분리, kill switch 필수</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Canary</td>
+                    <td style="text-align: left">일부 사용자/트래픽/환경에서 지표 확인 후 확대</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Rollback</td>
+                    <td style="text-align: left">artifact rollback과 flag off를 모두 준비</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              긴 수명 feature branch는 merge conflict와 테스트 공백을 만들기 쉽습니다. 큰 기능은
+              작은 PR과 feature flag로 나눕니다.
+            </p>
+            <hr />
+            <h2 id="7-artifact">7. Artifact 보관</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">산출물</th>
+                    <th style="text-align: left">보관 기준</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Build output</td>
+                    <td style="text-align: left">release와 rollback 기간 동안 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Test report</td>
+                    <td style="text-align: left">실패 원인 분석 가능한 기간 동안 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">E2E trace/video</td>
+                    <td style="text-align: left">실패 시 항상 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Coverage</td>
+                    <td style="text-align: left">추세 분석 목적의 요약 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">SBOM/provenance</td>
+                    <td style="text-align: left">감사 요구 기간에 맞춰 보관</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Source map</td>
+                    <td style="text-align: left">접근 제한, 업로드 후 public 노출 금지</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              artifact 보관 기간은 비용과 감사 요구의 균형으로 정하되, rollback 가능한 기간보다
+              짧아서는 안 됩니다.
+            </p>
+            <hr />
+            <h2 id="8">8. 배포 승인</h2>
+            <blockquote>
+              <p>
+                왜 중요한가: 승인 단계가 단순한 "관습"이 되면 사고 후 원인 파악이 어렵습니다. 어떤
+                증적을 보고 결정했는지가 책임 추적의 핵심입니다.
+              </p>
+            </blockquote>
+            <p>production 배포는 자동화되어야 하지만 자동 승인까지 요구하지는 않습니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">조건</th>
+                    <th style="text-align: left">승인 정책</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">낮은 위험</td>
+                    <td style="text-align: left">모든 게이트 통과 시 자동 승격</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">중간 위험</td>
+                    <td style="text-align: left">reviewer 또는 release owner 승인</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">높은 위험</td>
+                    <td style="text-align: left">RFC/ADR, rollback drill, 변경 창 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">긴급 hotfix</td>
+                    <td style="text-align: left">사후 리뷰와 postmortem 필수</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>승인은 "누가 버튼을 눌렀는가"보다 "어떤 증적을 보고 승인했는가"가 중요합니다.</p>
+            <pre class="mermaid">
+flowchart TD
+  Risk{변경 위험도 평가}
+  Risk --&gt;|낮음| Auto[자동 승격]
+  Risk --&gt;|중간| Rev[리뷰어/Release Owner 승인]
+  Risk --&gt;|높음| Rfc[RFC/ADR + rollback drill]
+  Risk --&gt;|긴급 hotfix| Hot[사후 리뷰/postmortem]
+  Auto --&gt; Evid[증적 기록: artifact id, gate report]
+  Rev --&gt; Evid
+  Rfc --&gt; Evid
+  Hot --&gt; Evid
+  Evid --&gt; Deploy[환경 승격]</pre
+            >
+            <hr />
+            <h2 id="9">9. 체크리스트</h2>
+            <ul>
+              <li>[ ] lockfile 기반 frozen install을 강제하는가</li>
+              <li>[ ] lint/type/unit이 PR마다 빠르게 실행되는가</li>
+              <li>[ ] 핵심 flow E2E와 preview smoke가 있는가</li>
+              <li>[ ] secret scan과 dependency audit이 merge 전에 실행되는가</li>
+              <li>[ ] build artifact가 immutable이고 재사용되는가</li>
+              <li>[ ] deploy job이 checksum과 provenance/attestation을 검증하는가</li>
+              <li>[ ] 장기 cloud key 대신 OIDC 기반 short-lived credential을 사용하는가</li>
+              <li>[ ] sourcemap이 public artifact에 노출되지 않는가</li>
+              <li>[ ] production 배포에는 승인 조건과 rollback 경로가 있는가</li>
+              <li>[ ] 실패 trace, test report, SBOM, provenance가 보관되는가</li>
+            </ul>
+            <hr />
+            <h2 id="10">10. 제외한 벤더 종속 항목</h2>
+            <p>
+              공통 개발 가이드에는 특정 CI 플랫폼의 action 이름, 특정 패키지 매니저만을 전제로 한
+              캐시 설정, 특정 알림 도구, 특정 secret manager, 특정 클라우드 배포 명령을 표준으로
+              포함하지 않습니다. 이 문서는 어떤 자동화 플랫폼에서도 구현 가능한 파이프라인 단계,
+              게이트, 증적, 승인 기준만 남깁니다.
+            </p>
+            <hr />
+            <h2 id="11-hook-commit-gate">11. 로컬 Hook과 Commit Gate</h2>
+            <p>
+              로컬 hook은 CI를 대체하지 않습니다. 개발자가 push 전에 빠르게 알 수 있는 오류만 잡고,
+              권위 있는 판정은 CI가 담당합니다.
+            </p>
+            <h3 id="111-husky">11.1 Husky 기본 설정</h3>
+            <pre><code class="language-bash">pnpm add --save-dev husky lint-staged @commitlint/cli @commitlint/config-conventional secretlint @secretlint/secretlint-rule-preset-recommend
+pnpm exec husky init
+</code></pre>
+            <p>
+              Husky <code>init</code>은 <code>.husky/pre-commit</code>을 만들고
+              <code>package.json</code>의 <code>prepare</code> script를 갱신합니다. hook에는 POSIX
+              shell에서 동작하는 짧은 명령만 둡니다.
+            </p>
+            <pre><code class="language-sh"># .husky/pre-commit
+pnpm exec lint-staged
+pnpm exec secretlint &quot;**/*&quot;
+</code></pre>
+            <pre><code class="language-sh"># .husky/commit-msg
+pnpm exec commitlint --edit &quot;$1&quot;
+</code></pre>
+            <h3 id="112-commitlint">11.2 commitlint 기준</h3>
+            <pre><code class="language-javascript">export default {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['feat', 'fix', 'docs', 'refactor', 'test', 'chore', 'ci', 'perf', 'revert'],
+    ],
+  },
+}
+</code></pre>
+            <ul>
+              <li>
+                commitlint 설정 파일은 <code>commitlint.config.js</code>,
+                <code>commitlint.config.mjs</code>, <code>.commitlintrc.*</code> 중 하나로 둡니다.
+              </li>
+              <li>
+                <code>export default</code> 형식은 <code>type: "module"</code> 프로젝트의
+                <code>commitlint.config.js</code> 또는 <code>commitlint.config.mjs</code>로 둡니다.
+                CommonJS 프로젝트는 <code>commitlint.config.cjs</code>와
+                <code>module.exports</code>를 사용해 Node 로딩 차이를 피합니다.
+              </li>
+              <li>
+                squash merge를 쓰더라도 PR title과 merge commit message가 같은 규칙을 통과해야
+                release note 자동화가 안정적입니다.
+              </li>
+            </ul>
+            <h3 id="113-hook-ci">11.3 hook에 넣을 것과 CI에 둘 것</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">위치</th>
+                    <th style="text-align: left">넣을 작업</th>
+                    <th style="text-align: left">제외할 작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>pre-commit</code></td>
+                    <td style="text-align: left">
+                      staged lint/format, secretlint, 빠른 타입 단서 검사
+                    </td>
+                    <td style="text-align: left">전체 build, 전체 E2E, 외부 API 의존 테스트</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>commit-msg</code></td>
+                    <td style="text-align: left">commitlint</td>
+                    <td style="text-align: left">branch policy, PR title 검증</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">PR CI</td>
+                    <td style="text-align: left">
+                      frozen install, lint, type, unit, MSW integration, build, secret scan
+                    </td>
+                    <td style="text-align: left">개인 환경에만 있는 editor task</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">protected branch</td>
+                    <td style="text-align: left">required checks, review approval, provenance</td>
+                    <td style="text-align: left">로컬 hook 성공 여부</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              <code>HUSKY=0</code>으로 hook을 우회한 commit은 PR 본문에 이유와 CI 결과를 남깁니다.
+              반복 우회가 생기면 hook이 너무 느리거나 noisy하다는 신호로 보고 명령을 재조정합니다.
+            </p>
+            <hr />
+            <h2 id="_7">실무 적용 가이드</h2>
+            <h3 id="_8">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>로컬에서는 되는데 CI나 배포 환경에서만 깨질 때</li>
+              <li>검증한 artifact와 배포한 artifact가 다를 때</li>
+              <li>보안/성능/접근성 검사가 배포 직전에야 실패할 때</li>
+            </ul>
+            <h3 id="_9">적용 순서</h3>
+            <ol>
+              <li>런타임과 package manager 버전을 고정한다.</li>
+              <li>
+                frozen install, lint, type, unit, integration, build 순서로 빠르게 실패하게 만든다.
+              </li>
+              <li>build once, deploy many 원칙으로 immutable artifact를 만든다.</li>
+              <li>SBOM/provenance/checksum을 artifact에 연결한다.</li>
+              <li>preview와 canary에서 핵심 flow smoke를 실행한다.</li>
+            </ol>
+            <h3 id="_10">함께 두는 파일</h3>
+            <ul>
+              <li>서비스별 pipeline 설정과 검증 명령은 서비스 폴더의 package script와 맞춘다.</li>
+              <li>공통 reusable workflow는 입력/출력 계약과 함께 관리한다.</li>
+              <li>테스트 fixture와 CI artifact 경로는 기능/서비스 단위로 추적 가능해야 한다.</li>
+            </ul>
+            <h3 id="_11">흔한 실수</h3>
+            <ul>
+              <li>환경별로 다시 빌드한다.</li>
+              <li>lockfile 변경을 리뷰하지 않는다.</li>
+              <li>flaky gate를 조용히 retry로 숨긴다.</li>
+              <li>artifact provenance 없이 production에 승격한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] frozen install과 quality gate가 통과한다.</li>
+              <li>[ ] artifact checksum/provenance가 있다.</li>
+              <li>[ ] preview smoke 결과가 있다.</li>
+              <li>[ ] rollback 가능한 이전 artifact가 있다.</li>
+            </ul>
+            <h2 id="_12">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — deterministic install, quality aggregator, branch
+                protection 중 하나를 작은 변경 1건에 적용하고 증거(workflow run)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — CI/CD 게이트 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — CI 대기 시간, flaky job, bypass merge 수 추이를 보고
+                기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — CI 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_13">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : deterministic install, quality aggregator, branch
+                protection 적용 대상을 1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(workflow run, required check 목록, artifact
+                attestation)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : CI 대기 시간, flaky job, bypass merge 수가 기준 안에
+                들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_14">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : required check가 실제 branch protection에 연결됐는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : CI 오너가 영향 범위와 rollback 담당자를 적용 전에 확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 최신 head SHA 기준 모든 required check가 통과하면 merge를
+                허용한다.
+              </li>
+              <li>
+                <code>정지 조건</code> : workflow만 있고 branch protection 강제력이 없으면 표준
+                적용으로 보지 않는다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : required job 수, secret 권한, 배포 자동화 범위로
+                산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 릴리스 엔지니어가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : CI/CD 게이트 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li>
+                <code>재평가 주기</code> : workflow 변경 때마다 branch protection을 재동기화한다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,4112 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 25 웹 애니메이션 모션 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="25">25. 웹 애니메이션 &amp; 모션 가이드</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>모션은 기능 전달을 돕는 선에서만 사용하면 효과가 큽니다.</li>
+              <li>과도한 애니메이션은 지연/피로를 키우므로 기본값은 짧고 안정적으로 둡니다.</li>
+              <li>사용자가 움직임을 줄이겠다는 설정에 반응하도록 배려하세요.</li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>
+              모션은 예쁘기만 하면 좋은 것이 아니라, 사용자의 작업 흐름을 돕는 범위에서만 써야
+              합니다.
+            </p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>easing</code></td>
+                    <td>애니메이션 속도 곡선(느리게/빠르게 변화)</td>
+                  </tr>
+                  <tr>
+                    <td><code>duration</code></td>
+                    <td>애니메이션 지속 시간</td>
+                  </tr>
+                  <tr>
+                    <td><code>motion budget</code></td>
+                    <td>전체 화면에서 애니메이션이 허용되는 양</td>
+                  </tr>
+                  <tr>
+                    <td><code>reduced-motion</code></td>
+                    <td>애니메이션을 줄여달라는 사용자 선호 설정</td>
+                  </tr>
+                  <tr>
+                    <td><code>interrupt</code></td>
+                    <td>애니메이션 도중 다른 동작으로 중단되는 처리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">핵심 기술</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      View Transitions, Scroll-driven Animations, reduced motion, 성능, motion token
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"좋은 애니메이션은 사용자가 인식하지 못하지만, 없으면 즉시 어색함을 느끼는 보이지
+                  않는 UX다."</strong
+                >
+                본 가이드는 특정 애니메이션 라이브러리보다
+                <strong>브라우저 표준, 접근성, 성능 예산, motion token, 점진적 향상</strong>을
+                우선합니다. 라이브러리는 복잡한 timeline, gesture, physics가 표준 API보다 명확한
+                이점을 줄 때 선택합니다.
+              </p>
+              <p><strong>현재 5월 핵심 변화 요약</strong></p>
+              <ul>
+                <li>
+                  <strong>View Transitions</strong>: same-document View Transitions는 Baseline
+                  2025로 넓어졌지만, cross-document와 framework 통합은 브라우저별 호환성을 계속
+                  확인합니다.
+                </li>
+                <li>
+                  <strong>Scroll-driven Animations</strong>: scroll/view timeline은 JS scroll
+                  handler를 줄일 수 있으나, 미지원 브라우저에는 IntersectionObserver 또는 no-motion
+                  fallback을 둡니다.
+                </li>
+                <li>
+                  <strong>CSS-first motion</strong>: <code>linear()</code>, <code>@property</code>,
+                  transform/opacity 중심 animation으로 main-thread 비용을 낮춥니다.
+                </li>
+                <li>
+                  <strong>Reduced motion 기본값</strong>: <code>prefers-reduced-motion</code>은 선택
+                  옵션이 아니라 모든 motion system의 필수 분기입니다.
+                </li>
+                <li>
+                  <strong>Library conditional</strong>: motion library, timeline library, Lottie
+                  renderer는 공식 release/라이선스/번들 크기/접근성 대응을 확인한 뒤 채택합니다.
+                </li>
+              </ul>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: motion을 쓰는 요소만 골라 <code>duration</code>과
+                easing을 토큰화합니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: reduced motion 사용자 대응은 기본 동작으로 먼저
+                적용하세요.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: 전환/애니메이션은 성능 지표(프레임 드랍)와 사용자 회의감
+                기준으로만 확장하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — interaction motion, reduced motion, animation budget 중
+                하나를 실제 PR이나 운영 이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — motion spec, perf trace, reduced-motion capture, visual
+                diff를 같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — INP 악화, long task, motion sickness complaint, dropped
+                frames가 나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : interaction motion, reduced motion, animation budget 적용 범위를
+                어느 화면, 패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : motion spec, perf trace, reduced-motion capture, visual diff 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : INP 악화, long task, motion sickness complaint, dropped
+                frames를 다시 볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      motion 목적성, token, duration/easing, reduced-motion 분기
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템</a>,
+                      <a href="./19_웹_접근성_가이드.md">19. 접근성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">animation 성능 예산과 회귀 측정</td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">브라우저 표준 API 채택과 fallback</td>
+                    <td style="text-align: left">
+                      <a href="./13_브라우저_호환성_가이드.md">13. 브라우저 호환성</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI가 만든 모션 코드 초안 검증</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>목적성</strong></td>
+                    <td style="text-align: left">
+                      motion은 상태 변화, 공간 이동, 피드백, 주의 유도처럼 명확한 UX 목적이 있을
+                      때만 사용합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>성능 예산</strong></td>
+                    <td style="text-align: left">
+                      transform/opacity 중심, long task/INP 악화 없음, animation frame drop 기준을
+                      둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>접근성</strong></td>
+                    <td style="text-align: left">
+                      <code>prefers-reduced-motion</code>, keyboard/focus visibility, vestibular
+                      trigger 회피를 기본으로 둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>토큰화</strong></td>
+                    <td style="text-align: left">
+                      duration, easing, delay, distance, choreography를 디자인 시스템 token으로
+                      관리합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>점진적 향상</strong></td>
+                    <td style="text-align: left">
+                      표준 API 미지원 브라우저에서도 기능은 동작하고 motion만 생략됩니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 모션 설계·적용 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[UX 목적 정의] --&gt; B[Motion token + 기간/곡선 선택]
+  B --&gt; C{prefers-reduced-motion}
+  C --&gt;|Reduce| D[Static/최소 motion fallback]
+  C --&gt;|No Preference| E[기술 선택: CSS/WAAPI/ViewTransition]
+  E --&gt; F[성능 예산 검토]
+  F --&gt; G{INP/Frame Drop 위반?}
+  G --&gt;|Yes| H[라이브러리/오디오그래프 단순화]
+  G --&gt;|No| I[접근성/키보드 smoke]
+  H --&gt; E
+  I --&gt; J{문제 없음}
+  J --&gt;|Pass| K[Release gate 통과]
+  J --&gt;|Fail| L[동작 범위/회귀 테스트 수정]
+  K --&gt; M[운영 지표 모니터링]
+  L --&gt; F</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      View Transitions는 Baseline/compat 확인 후 progressive enhancement로 둔다
+                    </td>
+                    <td style="text-align: left">MDN Baseline, CSS View Transitions spec</td>
+                    <td style="text-align: left">feature detection, fallback E2E</td>
+                    <td style="text-align: left">navigation error, transition skip rate</td>
+                    <td style="text-align: left">핵심 기능이 transition에 의존하게 될 때</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      scroll animation은 CSS timeline 우선, JS는 fallback/고급 제어에 한정한다
+                    </td>
+                    <td style="text-align: left">CSS Scroll-driven Animations spec/MDN</td>
+                    <td style="text-align: left">no-JS path, IntersectionObserver fallback</td>
+                    <td style="text-align: left">scroll jank, INP, dropped frame</td>
+                    <td style="text-align: left">
+                      대상 브라우저가 CSS timeline을 충분히 지원하지 않을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      reduced motion은 모든 motion component의 필수 분기다
+                    </td>
+                    <td style="text-align: left">WCAG/WAI, OS media query 문서</td>
+                    <td style="text-align: left">reduced-motion visual test</td>
+                    <td style="text-align: left">motion-related complaint, accessibility issue</td>
+                    <td style="text-align: left">
+                      사용자 설정을 무시해야 하는 안전/업무상 필수 motion일 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      외부 animation library는 bundle/license/a11y 검토 후 채택한다
+                    </td>
+                    <td style="text-align: left">라이브러리 공식 release/license</td>
+                    <td style="text-align: left">bundle diff, tree-shaking check</td>
+                    <td style="text-align: left">client JS size, runtime error</td>
+                    <td style="text-align: left">
+                      CSS/WAAPI로 동일 UX를 더 단순히 구현할 수 있을 때
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Motion token gate</td>
+                    <td style="text-align: left">token diff, design review, usage lint</td>
+                    <td style="text-align: left">Design system owner</td>
+                    <td style="text-align: left">
+                      token 이전 값 복원 또는 component override 제거
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Performance gate</td>
+                    <td style="text-align: left">INP/long task comparison, frame drop trace</td>
+                    <td style="text-align: left">FE owner</td>
+                    <td style="text-align: left">motion flag off, simpler CSS transition</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Reduced-motion gate</td>
+                    <td style="text-align: left">screenshot/video evidence, keyboard smoke</td>
+                    <td style="text-align: left">Accessibility owner</td>
+                    <td style="text-align: left">motion 제거 또는 static fallback</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Library adoption gate</td>
+                    <td style="text-align: left">bundle diff, license check, a11y fallback</td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">library 제거 후 CSS/WAAPI 구현으로 대체</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-ai">1. AI 기반 애니메이션 자동화</h2>
+            <p>
+              이 섹션의 AI 입력 구조, 민감정보 제거, 검증 책임은
+              <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>를 단일 출처로
+              따릅니다. 여기서는 모션 설계, 성능, 접근성 검증에 필요한 도메인별 질문만 다룹니다.
+            </p>
+            <p>
+              <strong>일상 비유</strong>: 요리 레시피 초안을 AI에게 받아도, 손님
+              알레르기(접근성)·주방 화구 수(성능 예산)·식자재 보관 기준(브라우저 호환)을 셰프가 직접
+              검수해야 손님상에 낼 수 있다.
+            </p>
+            <p>
+              이 그림은 AI 모션 초안이 어떤 게이트를 거쳐 PR에 머지되는지 의사결정 흐름을
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Idea[모션 요구사항/UX 의도] --&gt; AI[AI 초안&lt;br/&gt;코드/토큰 후보]
+  AI --&gt; RM{prefers-reduced-motion&lt;br/&gt;분기 포함?}
+  RM --&gt;|No| Fix1[reduced fallback 추가]
+  Fix1 --&gt; RM
+  RM --&gt;|Yes| Prop{transform/opacity&lt;br/&gt;중심?}
+  Prop --&gt;|No| Fix2[GPU 안전 속성으로 교체]
+  Fix2 --&gt; Prop
+  Prop --&gt;|Yes| Perf{INP/long task&lt;br/&gt;예산 통과?}
+  Perf --&gt;|No| Tune[duration 축소/&lt;br/&gt;composite 최적화]
+  Tune --&gt; Perf
+  Perf --&gt;|Yes| A11y[접근성 smoke&lt;br/&gt;focus/keyboard]
+  A11y --&gt; Merge[PR Merge]</pre
+            >
+            <p>
+              AI는 모션 코드 초안, 성능 개선 후보, 접근성 검증 항목을 빠르게 제안할 수 있다. 최종
+              모션 언어, 성능 예산, <code>prefers-reduced-motion</code> 대응은 디자인 시스템과 실제
+              브라우저 측정으로 검증한다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">시나리오</th>
+                    <th style="text-align: left">입력</th>
+                    <th style="text-align: left">AI 산출물</th>
+                    <th style="text-align: left">필수 검증</th>
+                    <th style="text-align: left">승인 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">컴포넌트 motion 초안</td>
+                    <td style="text-align: left">컴포넌트 코드, 상태 전이, motion token</td>
+                    <td style="text-align: left">CSS/Web Animations/motion library 후보</td>
+                    <td style="text-align: left">interaction test, reduced-motion snapshot</td>
+                    <td style="text-align: left">motion이 기능 이해를 보조하고 방해하지 않음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">성능 최적화</td>
+                    <td style="text-align: left">animation code, DevTools trace, INP/LCP</td>
+                    <td style="text-align: left">transform/opacity 전환, layout thrash 제거안</td>
+                    <td style="text-align: left">long task, dropped frame, INP 비교</td>
+                    <td style="text-align: left">성능 예산 악화 없음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">View Transitions</td>
+                    <td style="text-align: left">route/state transition, browser target</td>
+                    <td style="text-align: left">progressive enhancement 패턴</td>
+                    <td style="text-align: left">feature detection, fallback E2E</td>
+                    <td style="text-align: left">미지원 브라우저에서 기능 저하 없음</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Scroll animation</td>
+                    <td style="text-align: left">scroll trigger, content hierarchy</td>
+                    <td style="text-align: left">
+                      CSS scroll timeline 또는 IntersectionObserver 패턴
+                    </td>
+                    <td style="text-align: left">scroll jank, accessibility smoke</td>
+                    <td style="text-align: left">scroll 없이도 콘텐츠 접근 가능</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Lottie/vector motion</td>
+                    <td style="text-align: left">asset size, renderer, fallback image</td>
+                    <td style="text-align: left">최적화 후보, lazy load 전략</td>
+                    <td style="text-align: left">
+                      bundle report, render cost, reduced-motion fallback
+                    </td>
+                    <td style="text-align: left">핵심 경로를 막지 않음</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>모션 PR의 hard gate는 다음입니다.</p>
+            <ul>
+              <li><code>prefers-reduced-motion</code>에서 불필요한 이동/반복 motion 제거</li>
+              <li>transform/opacity 외 속성 animation은 성능 근거 필요</li>
+              <li>layout shift 또는 focus visibility 회귀 없음</li>
+              <li>motion token을 우회하는 임의 duration/easing 최소화</li>
+            </ul>
+            <h2 id="2">2. 환경별 모션 실험 및 검증</h2>
+            <h3 id="21-preview">2.1 Preview 환경에서 모션 변형 검증</h3>
+            <pre><code class="language-typescript">// src/shared/lib/motion-ab-test.ts
+import { useFeatureFlag } from '@/shared/lib/feature-flags'
+import { envConfig } from '@/shared/config/environment'
+
+type MotionVariant = 'default' | 'variant-a' | 'variant-b'
+
+interface MotionABTestConfig {
+  flagKey: string
+  variants: Record&lt;MotionVariant, MotionPreset&gt;
+}
+
+interface MotionPreset {
+  duration: number
+  ease: string
+  stagger: number
+  type: 'spring' | 'tween'
+  spring?: { stiffness: number; damping: number }
+}
+
+const MOTION_PRESETS: Record&lt;MotionVariant, MotionPreset&gt; = {
+  default: {
+    duration: 0.3,
+    ease: 'easeOut',
+    stagger: 0.05,
+    type: 'tween',
+  },
+  'variant-a': {
+    duration: 0.4,
+    ease: 'easeInOut',
+    stagger: 0.08,
+    type: 'spring',
+    spring: { stiffness: 300, damping: 30 },
+  },
+  'variant-b': {
+    duration: 0.2,
+    ease: 'linear',
+    stagger: 0.03,
+    type: 'tween',
+  },
+}
+
+export function useMotionVariant(flagKey: string): MotionPreset {
+  const variant = useFeatureFlag(flagKey, false)
+  const variantB = useFeatureFlag(`${flagKey}-b`, false)
+
+  if (variantB) return MOTION_PRESETS['variant-b']
+  if (variant) return MOTION_PRESETS['variant-a']
+  return MOTION_PRESETS['default']
+}
+
+// Preview 환경 전용: 모든 모션 변형을 나란히 비교
+export function useMotionComparison(): {
+  enabled: boolean
+  variants: Record&lt;MotionVariant, MotionPreset&gt;
+} {
+  return {
+    enabled: envConfig.deployEnv === 'preview',
+    variants: MOTION_PRESETS,
+  }
+}
+</code></pre>
+            <pre><code class="language-tsx">// src/shared/ui/MotionComparisonPanel.tsx
+// Preview 환경에서만 렌더링되는 모션 비교 패널
+
+import { type ReactNode } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import { useMotionComparison } from '@/shared/lib/motion-ab-test'
+
+interface MotionComparisonPanelProps {
+  children: (preset: { duration: number; ease: string; stagger: number }) =&gt; ReactNode
+}
+
+export function MotionComparisonPanel({ children }: MotionComparisonPanelProps): ReactNode {
+  const { enabled, variants } = useMotionComparison()
+
+  if (!enabled) return null
+
+  return (
+    &lt;div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'rgba(0,0,0,0.9)',
+        padding: '16px',
+        zIndex: 9999,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '16px',
+      }}
+    &gt;
+      {Object.entries(variants).map(([name, preset]) =&gt; (
+        &lt;div key={name} style={{ border: '1px solid #444', padding: '8px', borderRadius: '8px' }}&gt;
+          &lt;p style={{ color: '#fff', fontSize: '12px', marginBottom: '8px' }}&gt;
+            {name} (duration: {preset.duration}s, ease: {preset.ease})
+          &lt;/p&gt;
+          &lt;AnimatePresence mode=&quot;wait&quot;&gt;{children(preset)}&lt;/AnimatePresence&gt;
+        &lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <h3 id="22-feature-flag-onoff">2.2 Feature Flag로 모션 on/off</h3>
+            <pre><code class="language-typescript">// src/shared/lib/motion-feature-flags.ts
+import { useFeatureFlag } from '@/shared/lib/feature-flags'
+
+interface MotionConfig {
+  /** 전체 애니메이션 활성화 여부 */
+  animationsEnabled: boolean
+  /** 페이지 전환 애니메이션 */
+  pageTransitions: boolean
+  /** 마이크로 인터랙션 (hover, tap) */
+  microInteractions: boolean
+  /** 스크롤 애니메이션 */
+  scrollAnimations: boolean
+  /** Lottie 애니메이션 */
+  lottieAnimations: boolean
+  /** 로딩 스켈레톤 애니메이션 */
+  skeletonAnimations: boolean
+}
+
+export function useMotionConfig(): MotionConfig {
+  const animationsEnabled = useFeatureFlag('motion-enabled', true)
+  const pageTransitions = useFeatureFlag('motion-page-transitions', true)
+  const microInteractions = useFeatureFlag('motion-micro-interactions', true)
+  const scrollAnimations = useFeatureFlag('motion-scroll-animations', true)
+  const lottieAnimations = useFeatureFlag('motion-lottie', true)
+  const skeletonAnimations = useFeatureFlag('motion-skeleton', true)
+
+  return {
+    animationsEnabled,
+    pageTransitions: animationsEnabled &amp;&amp; pageTransitions,
+    microInteractions: animationsEnabled &amp;&amp; microInteractions,
+    scrollAnimations: animationsEnabled &amp;&amp; scrollAnimations,
+    lottieAnimations: animationsEnabled &amp;&amp; lottieAnimations,
+    skeletonAnimations: animationsEnabled &amp;&amp; skeletonAnimations,
+  }
+}
+
+// Feature Flag 연동 모션 래퍼
+export function useConditionalMotion(
+  flagKey: keyof MotionConfig,
+  animateProps: Record&lt;string, unknown&gt;,
+  initialProps: Record&lt;string, unknown&gt; = {},
+): Record&lt;string, unknown&gt; {
+  const config = useMotionConfig()
+
+  if (!config[flagKey]) {
+    // 애니메이션 비활성화: 최종 상태를 즉시 적용
+    return { ...initialProps, ...animateProps, transition: { duration: 0 } }
+  }
+
+  return animateProps
+}
+</code></pre>
+            <h3 id="23-reduced-motion">2.3 환경별 reduced-motion 테스트</h3>
+            <pre><code class="language-typescript">// src/shared/lib/reduced-motion.ts
+import { useEffect, useState } from 'react'
+import { envConfig } from '@/shared/config/environment'
+
+/**
+ * reduced-motion 감지 훅
+ * Preview 환경에서는 URL 파라미터로 강제 토글 가능
+ * ?reduced-motion=true 또는 ?reduced-motion=false
+ */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+
+  useEffect(() =&gt; {
+    // 1. Preview 환경: URL 파라미터 우선
+    if (envConfig.deployEnv === 'preview') {
+      const params = new URLSearchParams(window.location.search)
+      const forced = params.get('reduced-motion')
+      if (forced !== null) {
+        setReduced(forced === 'true')
+        return
+      }
+    }
+
+    // 2. 시스템 설정 감지
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduced(mql.matches)
+
+    const handler = (e: MediaQueryListEvent): void =&gt; setReduced(e.matches)
+    mql.addEventListener('change', handler)
+    return () =&gt; mql.removeEventListener('change', handler)
+  }, [])
+
+  return reduced
+}
+
+/**
+ * reduced-motion 테스트 유틸 (Preview 환경 전용)
+ * 화면에 토글 버튼을 표시하여 수동 테스트 가능
+ */
+export function useReducedMotionDebug(): {
+  isReduced: boolean
+  toggle: () =&gt; void
+  setReduced: (value: boolean) =&gt; void
+} {
+  const [overridden, setOverridden] = useState&lt;boolean | null&gt;(null)
+  const systemReduced = useReducedMotion()
+
+  const isReduced = overridden ?? systemReduced
+
+  return {
+    isReduced,
+    toggle: () =&gt; setOverridden((prev) =&gt; !(prev ?? systemReduced)),
+    setReduced: (value: boolean) =&gt; setOverridden(value),
+  }
+}
+</code></pre>
+            <pre><code class="language-tsx">// src/shared/ui/ReducedMotionDebugPanel.tsx
+// Preview 환경에서만 표시되는 reduced-motion 테스트 패널
+
+import { type ReactNode } from 'react'
+import { envConfig } from '@/shared/config/environment'
+import { useReducedMotionDebug } from '@/shared/lib/reduced-motion'
+
+export function ReducedMotionDebugPanel(): ReactNode {
+  const { isReduced, toggle } = useReducedMotionDebug()
+
+  if (envConfig.deployEnv !== 'preview') return null
+
+  return (
+    &lt;div
+      style={{
+        position: 'fixed',
+        top: 8,
+        right: 8,
+        zIndex: 10000,
+        background: isReduced ? '#ef4444' : '#22c55e',
+        color: '#fff',
+        padding: '6px 12px',
+        borderRadius: '6px',
+        fontSize: '12px',
+        cursor: 'pointer',
+        fontFamily: 'monospace',
+      }}
+      onClick={toggle}
+    &gt;
+      Motion: {isReduced ? 'REDUCED' : 'FULL'}
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="3">3. 애니메이션 기술 비교</h2>
+            <p>
+              <strong>일상 비유</strong>: 카페에서 컵 그림을 그리는 방법과 같다. 칠판에 분필(CSS)은
+              빠르고 손쉽고, 종이에 펜(WAAPI)은 정밀 제어가 가능하며, 디지털 태블릿(GSAP/Timeline)은
+              정교한 시퀀스가 가능하지만 장비가 무겁다. 인스타용 짧은 영상(Lottie)은 사전 렌더링된
+              결과물에 가깝다.
+            </p>
+            <p>
+              이 그림은 사용 목적에 따라 어떤 애니메이션 기술을 골라야 하는지 결정 트리로
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[애니메이션 도입 결정] --&gt; Q1{스크롤 연동?}
+  Q1 --&gt;|Yes| Q1a{Baseline&lt;br/&gt;CSS Scroll-Driven 지원?}
+  Q1a --&gt;|Yes| CSS_SD[CSS Scroll-Driven]
+  Q1a --&gt;|No| IO[IntersectionObserver fallback]
+  Q1 --&gt;|No| Q2{페이지/라우트 전환?}
+  Q2 --&gt;|Yes| VT[View Transitions API&lt;br/&gt;+ fallback]
+  Q2 --&gt;|No| Q3{React 컴포넌트&lt;br/&gt;진입/퇴장?}
+  Q3 --&gt;|Yes| Q3a{복잡한 시퀀스/SVG?}
+  Q3a --&gt;|Yes| GSAP[Timeline lib&lt;br/&gt;GSAP/Motion]
+  Q3a --&gt;|No| Motion[React motion lib]
+  Q3 --&gt;|No| Q4{단순 호버/전환?}
+  Q4 --&gt;|Yes| CSSA[CSS Animations/Transitions]
+  Q4 --&gt;|No| WAAPI[Web Animations API]</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>기술</th>
+                    <th>적합 용도</th>
+                    <th>번들 크기</th>
+                    <th>성능</th>
+                    <th>접근성</th>
+                    <th>학습 곡선</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>CSS Animations</strong></td>
+                    <td>간단한 전환, 호버</td>
+                    <td>0 KB</td>
+                    <td>최고</td>
+                    <td>기본 지원</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>CSS <code>linear()</code> easing</strong>
+                    </td>
+                    <td>스프링 물리 곡선</td>
+                    <td>0 KB</td>
+                    <td>최고</td>
+                    <td>기본 지원</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Web Animations API</strong></td>
+                    <td>JS 제어 필요한 경우</td>
+                    <td>0 KB</td>
+                    <td>높음</td>
+                    <td>수동</td>
+                    <td>중간</td>
+                  </tr>
+                  <tr>
+                    <td><strong>React motion library</strong></td>
+                    <td>React 컴포넌트 애니메이션</td>
+                    <td>라이브러리별 상이</td>
+                    <td>높음</td>
+                    <td>훅 제공 여부 확인</td>
+                    <td>중간</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Timeline library</strong></td>
+                    <td>복잡한 타임라인, SVG, 정밀 제어</td>
+                    <td>라이브러리별 상이</td>
+                    <td>높음</td>
+                    <td>수동</td>
+                    <td>높음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>View Transitions L1</strong></td>
+                    <td>SPA 페이지 전환</td>
+                    <td>0 KB</td>
+                    <td>높음</td>
+                    <td>브라우저 내장</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>View Transitions L2 (MPA)</strong></td>
+                    <td>다중 페이지 전환 (cross-document)</td>
+                    <td>0 KB</td>
+                    <td>높음</td>
+                    <td>브라우저 내장</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Vector animation renderer</strong></td>
+                    <td>일러스트/아이콘 애니메이션</td>
+                    <td>렌더러별 상이</td>
+                    <td>중간</td>
+                    <td>수동</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Lightweight timeline library</strong></td>
+                    <td>경량 타임라인</td>
+                    <td>라이브러리별 상이</td>
+                    <td>높음</td>
+                    <td>수동</td>
+                    <td>낮음</td>
+                  </tr>
+                  <tr>
+                    <td><strong>CSS Scroll-Driven</strong></td>
+                    <td>스크롤 연동 (Baseline 2025)</td>
+                    <td>0 KB</td>
+                    <td>최고</td>
+                    <td>기본 지원</td>
+                    <td>중간</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_7">선택 가이드</h3>
+            <p>
+              <strong>일상 비유</strong>: 시계의 째깍 소리(CSS)는 기계가 자동으로 내고, 음악
+              메트로놈(JS)은 사람이 박자를 직접 조절한다. 같은 60bpm을 내더라도 자동(CSS)이
+              배터리(메인스레드)를 덜 쓴다. 단, 사람이 박자를 도중에 바꾸려면 메트로놈(JS)이
+              필요하다.
+            </p>
+            <p>이 그림은 CSS와 JS 애니메이션을 어떤 기준으로 나눠 쓸지 보여줍니다.</p>
+            <pre class="mermaid">
+flowchart LR
+  Trigger[애니메이션 트리거] --&gt; Q1{사용자 입력에&lt;br/&gt;실시간 반응?}
+  Q1 --&gt;|Yes| Q2{값을 도중에&lt;br/&gt;변경/일시정지?}
+  Q1 --&gt;|No| Q3{상태 전환만?}
+  Q2 --&gt;|Yes| JS[Web Animations API&lt;br/&gt;또는 motion lib]
+  Q2 --&gt;|No| Q3
+  Q3 --&gt;|Yes| CSS[CSS transition/animation]
+  Q3 --&gt;|No| Q4{스크롤/뷰포트?}
+  Q4 --&gt;|Yes| ScrollCSS[CSS scroll/view timeline]
+  Q4 --&gt;|No| CSS
+  JS --&gt; Budget[INP/long task 예산 검증]
+  CSS --&gt; Budget
+  ScrollCSS --&gt; Budget</pre
+            >
+            <pre><code>간단한 호버/전환 → CSS Animations (JS 불필요)
+React 컴포넌트 진입/퇴장 → React motion library
+페이지 전환 → View Transitions API (+ fallback)
+스크롤 기반 → CSS scroll() / IntersectionObserver fallback
+복잡한 시퀀스 → Timeline library
+일러스트 애니메이션 → Vector animation renderer
+스크롤 연동 (JS 없이) → CSS Scroll-Driven Animations
+</code></pre>
+            <h3 id="css-animations">CSS Animations 기본 패턴</h3>
+            <pre><code class="language-css">/* GPU 가속 속성만 사용하는 애니메이션 */
+
+/* 1. fadeInUp - 가장 범용적인 진입 애니메이션 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+/* 2. 스켈레톤 로딩 - 콘텐츠 로드 전 시각적 피드백 */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* 3. 스핀 로더 - transform만 사용하여 GPU 가속 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* 4. 펄스 효과 - 주의를 끄는 인터랙션 */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 5. reduced-motion 대응 - 반드시 포함 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</code></pre>
+            <h3 id="web-animations-api">Web Animations API 패턴</h3>
+            <pre><code class="language-typescript">// src/shared/lib/web-animations.ts
+// 네이티브 Web Animations API 유틸리티 (번들 0KB)
+
+interface AnimationOptions {
+  duration?: number
+  easing?: string
+  fill?: FillMode
+  delay?: number
+}
+
+/** fadeInUp 애니메이션 - 가장 범용적인 진입 효과 */
+export function fadeInUp(element: HTMLElement, options: AnimationOptions = {}): Animation {
+  const { duration = 300, easing = 'ease-out', fill = 'forwards', delay = 0 } = options
+
+  return element.animate(
+    [
+      { opacity: 0, transform: 'translateY(20px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ],
+    { duration, easing, fill, delay },
+  )
+}
+
+/** stagger 패턴 - 자식 요소를 순차적으로 등장시킴 */
+export function staggerChildren(
+  container: HTMLElement,
+  selector: string,
+  options: AnimationOptions &amp; { stagger?: number } = {},
+): Animation[] {
+  const { stagger = 50, ...animOptions } = options
+  const children = container.querySelectorAll&lt;HTMLElement&gt;(selector)
+
+  return Array.from(children).map((child, i) =&gt;
+    fadeInUp(child, { ...animOptions, delay: i * stagger }),
+  )
+}
+
+/** IntersectionObserver 연동: 뷰포트 진입 시 애니메이션 실행 */
+export function animateOnScroll(
+  elements: HTMLElement[],
+  animationFn: (el: HTMLElement) =&gt; Animation,
+  threshold: number = 0.2,
+): () =&gt; void {
+  const observer = new IntersectionObserver(
+    (entries) =&gt; {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          animationFn(entry.target as HTMLElement)
+          observer.unobserve(entry.target)
+        }
+      }
+    },
+    { threshold },
+  )
+
+  for (const el of elements) observer.observe(el)
+
+  // 클린업 함수 반환
+  return () =&gt; observer.disconnect()
+}
+
+/**
+ * 키프레임 체이닝 - 복수 애니메이션을 순차 실행
+ * Web Animations API의 finished Promise를 활용
+ */
+export async function chainAnimations(
+  element: HTMLElement,
+  keyframeSequence: Keyframe[][],
+  options: AnimationOptions = {},
+): Promise&lt;void&gt; {
+  for (const keyframes of keyframeSequence) {
+    const anim = element.animate(keyframes, {
+      duration: options.duration ?? 300,
+      easing: options.easing ?? 'ease-out',
+      fill: 'forwards',
+    })
+    await anim.finished // 이전 애니메이션 완료 후 다음 실행
+  }
+}
+</code></pre>
+            <h3 id="react-motion-library">React motion library 실전 패턴</h3>
+            <blockquote>
+              <p>
+                <strong>채택 기준</strong>: 특정 라이브러리를 표준으로 고정하지 않습니다. 공식
+                release note, 라이선스, 번들 크기, React/프레임워크 호환성, reduced motion 지원,
+                SSR/RSC 호환성을 확인한 뒤 프로젝트별로 선택합니다.
+              </p>
+            </blockquote>
+            <pre><code class="language-bash"># 예시: 선택한 motion library를 route-level로 지연 로드
+pnpm add &lt;motion-library&gt;
+</code></pre>
+            <pre><code class="language-tsx">// src/shared/ui/AnimatedList.tsx
+// 리스트 아이템 stagger 진입/퇴장 애니메이션
+
+import { motion, AnimatePresence, type Variants } from 'motion/react'
+import { type ReactNode } from 'react'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+import { useMotionConfig } from '@/shared/lib/motion-feature-flags'
+
+// 컨테이너: stagger로 자식 순차 등장
+const containerVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.05 },
+  },
+  exit: {},
+}
+
+// 아이템: fadeInUp 진입 + fadeOut 퇴장
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: 'easeOut' },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.2 },
+  },
+}
+
+// reduced-motion 사용자: opacity만 즉시 변경
+const reducedVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.01 } },
+  exit: { opacity: 0, transition: { duration: 0.01 } },
+}
+
+interface AnimatedListProps&lt;T&gt; {
+  items: T[]
+  keyExtractor: (item: T) =&gt; string
+  renderItem: (item: T) =&gt; ReactNode
+}
+
+export function AnimatedList&lt;T&gt;({
+  items,
+  keyExtractor,
+  renderItem,
+}: AnimatedListProps&lt;T&gt;): ReactNode {
+  const prefersReduced = useReducedMotion()
+  const { animationsEnabled } = useMotionConfig()
+  const shouldAnimate = animationsEnabled &amp;&amp; !prefersReduced
+
+  const variants = shouldAnimate ? itemVariants : reducedVariants
+
+  return (
+    &lt;motion.ul variants={containerVariants} initial=&quot;hidden&quot; animate=&quot;visible&quot; exit=&quot;exit&quot;&gt;
+      &lt;AnimatePresence mode=&quot;popLayout&quot;&gt;
+        {items.map((item) =&gt; (
+          &lt;motion.li key={keyExtractor(item)} variants={variants} layout={shouldAnimate}&gt;
+            {renderItem(item)}
+          &lt;/motion.li&gt;
+        ))}
+      &lt;/AnimatePresence&gt;
+    &lt;/motion.ul&gt;
+  )
+}
+</code></pre>
+            <h3 id="motion-12-shared-layout-animation">Motion 12: Shared Layout Animation</h3>
+            <pre><code class="language-tsx">// src/shared/ui/SharedLayoutTabs.tsx
+// 탭 전환 시 indicator가 부드럽게 이동하는 패턴
+
+import { motion, AnimatePresence } from 'motion/react'
+import { useState, type ReactNode } from 'react'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+
+interface Tab {
+  id: string
+  label: string
+  content: ReactNode
+}
+
+interface SharedLayoutTabsProps {
+  tabs: Tab[]
+  defaultTab?: string
+}
+
+export function SharedLayoutTabs({ tabs, defaultTab }: SharedLayoutTabsProps): ReactNode {
+  const [activeTab, setActiveTab] = useState(defaultTab ?? tabs[0]?.id ?? '')
+  const prefersReduced = useReducedMotion()
+
+  return (
+    &lt;div&gt;
+      {/* 탭 헤더 */}
+      &lt;div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb' }}&gt;
+        {tabs.map((tab) =&gt; (
+          &lt;button
+            key={tab.id}
+            onClick={() =&gt; setActiveTab(tab.id)}
+            style={{
+              position: 'relative',
+              padding: '8px 16px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: activeTab === tab.id ? '#3b82f6' : '#6b7280',
+              fontWeight: activeTab === tab.id ? 600 : 400,
+            }}
+          &gt;
+            {tab.label}
+            {/* layoutId로 indicator가 탭 간 부드럽게 이동 */}
+            {activeTab === tab.id &amp;&amp; (
+              &lt;motion.div
+                layoutId=&quot;tab-indicator&quot;
+                style={{
+                  position: 'absolute',
+                  bottom: -1,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  background: '#3b82f6',
+                }}
+                transition={
+                  prefersReduced ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 30 }
+                }
+              /&gt;
+            )}
+          &lt;/button&gt;
+        ))}
+      &lt;/div&gt;
+
+      {/* 탭 콘텐츠 */}
+      &lt;AnimatePresence mode=&quot;wait&quot;&gt;
+        &lt;motion.div
+          key={activeTab}
+          initial={prefersReduced ? {} : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={prefersReduced ? {} : { opacity: 0, y: -10 }}
+          transition={{ duration: prefersReduced ? 0 : 0.2 }}
+          style={{ padding: '16px 0' }}
+        &gt;
+          {tabs.find((t) =&gt; t.id === activeTab)?.content}
+        &lt;/motion.div&gt;
+      &lt;/AnimatePresence&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="4-view-transitions-api">4. View Transitions API 실전 패턴</h2>
+            <p>
+              <strong>일상 비유</strong>: 뮤지컬 무대의 암전(snapshot)→세트 교체(DOM 변경)→조명
+              점등(animation)과 같다. 관객(사용자)은 깜빡임 없이 새 장면을 본다. 미지원 브라우저는
+              암전 없이 세트만 바뀌므로 fallback이 필요하다.
+            </p>
+            <p>이 그림은 View Transitions API의 라이프사이클과 상태 전이를 보여줍니다.</p>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Idle
+  Idle --&gt; CapturingOld: startViewTransition()
+  CapturingOld --&gt; DomUpdate: snapshot 완료
+  DomUpdate --&gt; CapturingNew: 콜백 실행
+  CapturingNew --&gt; Animating: new snapshot 완료
+  Animating --&gt; Finished: animation end
+  Animating --&gt; Skipped: skipTransition()
+  Skipped --&gt; Idle
+  Finished --&gt; Idle
+  note right of CapturingOld
+    이전 화면 픽셀 저장
+    ::view-transition-old(root)
+  end note
+  note right of CapturingNew
+    새 화면 픽셀 저장
+    ::view-transition-new(root)
+  end note</pre
+            >
+            <p>
+              이 그림은 호출자 코드와 브라우저가 View Transition을 어떻게 주고받는지 보여줍니다.
+            </p>
+            <pre class="mermaid">
+sequenceDiagram
+  participant U as 사용자
+  participant App as App 코드
+  participant VT as document.startViewTransition
+  participant DOM as DOM
+  participant Anim as Compositor
+
+  U-&gt;&gt;App: 라우트/상태 변경
+  App-&gt;&gt;VT: startViewTransition(callback)
+  VT-&gt;&gt;DOM: 1) old snapshot 캡처
+  VT-&gt;&gt;App: 2) callback 실행
+  App-&gt;&gt;DOM: 3) DOM 업데이트
+  VT-&gt;&gt;DOM: 4) new snapshot 캡처
+  VT-&gt;&gt;Anim: 5) ::view-transition pseudo CSS 적용
+  Anim--&gt;&gt;U: 6) crossfade/morph 실행
+  Anim--&gt;&gt;App: transition.finished resolve</pre
+            >
+            <blockquote>
+              <p>
+                <strong>참고</strong>: View Transitions API는 현재 공식 문서 기준 Chrome, Edge,
+                Safari 18+에서 정식 지원되며, Firefox는 진행 중입니다(L1 부분 지원). 더 자세한
+                호환성 현황은
+                <a href="./13_브라우저_호환성_가이드.md">13. 브라우저 호환성 가이드</a>에서
+                확인하세요.
+              </p>
+              <p><strong>Level 1 vs Level 2 차이</strong></p>
+              <ul>
+                <li>
+                  <strong>L1 (Same-Document)</strong>: SPA 내에서
+                  <code>document.startViewTransition()</code> 호출 -- 같은 문서 안에서 DOM 변경
+                  전환.
+                </li>
+                <li>
+                  <strong>L2 (Cross-Document, 최신 안정화)</strong>: MPA에서
+                  <code>@view-transition { navigation: auto }</code> CSS 한 줄로 페이지 간 전환을 JS
+                  없이 활성화. Next.js MPA 라우팅이나 Astro 같은 정적 페이지에서 즉시 활용 가능.
+                </li>
+              </ul>
+            </blockquote>
+            <h3 id="level-2-cross-document">Level 2 (Cross-Document) 최소 설정</h3>
+            <pre><code class="language-css">/* src/shared/styles/cross-document-transitions.css */
+/* MPA -- HTML 페이지 간 자동 전환 */
+
+@view-transition {
+  navigation: auto;
+}
+
+/* 페이지 공통 전환 -- crossfade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  /* 현재 Baseline -- 스프링 물리는 CSS만으로 표현 가능 */
+  animation-timing-function: linear(
+    0,
+    0.045,
+    0.18,
+    0.4,
+    0.7,
+    1.025,
+    1.205,
+    1.3,
+    1.32,
+    1.3,
+    1.225,
+    1.135,
+    1.05,
+    0.985,
+    0.94,
+    0.92,
+    0.92,
+    0.935,
+    0.965,
+    1,
+    1.03,
+    1.045,
+    1.045,
+    1.035,
+    1.02,
+    1.01,
+    1,
+    0.995,
+    0.995,
+    1
+  );
+}
+
+/* 특정 요소만 morph -- 공유 요소 애니메이션 */
+.product-hero {
+  view-transition-name: product-hero;
+}
+</code></pre>
+            <pre><code class="language-html">&lt;!-- HTML head에 활성화 메타가 필요한 경우 --&gt;
+&lt;meta name=&quot;view-transition&quot; content=&quot;same-origin&quot; /&gt;
+</code></pre>
+            <blockquote>
+              <p>
+                Cross-document 전환은 <strong>동일 출처(same-origin)</strong> 페이지 간에만
+                작동하며, <code>prefers-reduced-motion</code> 사용자에게는 자동으로 비활성화된다.
+              </p>
+            </blockquote>
+            <h3 id="useviewtransition">useViewTransition 훅</h3>
+            <pre><code class="language-typescript">// src/shared/lib/use-view-transition.ts
+import { useCallback, useRef } from 'react'
+
+type TransitionType = 'crossfade' | 'slide-left' | 'slide-right' | 'scale' | 'none'
+
+interface ViewTransitionOptions {
+  type?: TransitionType
+  duration?: number
+}
+
+interface ViewTransitionResult {
+  startTransition: (callback: () =&gt; void | Promise&lt;void&gt;) =&gt; Promise&lt;void&gt;
+  isSupported: boolean
+}
+
+export function useViewTransition(options: ViewTransitionOptions = {}): ViewTransitionResult {
+  const { type = 'crossfade', duration = 300 } = options
+  const transitionRef = useRef&lt;ViewTransition | null&gt;(null)
+
+  const isSupported = typeof document !== 'undefined' &amp;&amp; 'startViewTransition' in document
+
+  const startTransition = useCallback(
+    async (callback: () =&gt; void | Promise&lt;void&gt;) =&gt; {
+      if (!isSupported) {
+        // 미지원 브라우저: 즉시 콜백 실행 (fallback)
+        await callback()
+        return
+      }
+
+      // 전환 타입 CSS class 설정
+      document.documentElement.dataset.transitionType = type
+      document.documentElement.style.setProperty('--transition-duration', `${duration}ms`)
+
+      const transition = document.startViewTransition(async () =&gt; {
+        await callback()
+      })
+
+      transitionRef.current = transition
+
+      try {
+        await transition.finished
+      } finally {
+        delete document.documentElement.dataset.transitionType
+      }
+    },
+    [isSupported, type, duration],
+  )
+
+  return { startTransition, isSupported }
+}
+</code></pre>
+            <h3 id="view-transition-css">View Transition CSS</h3>
+            <pre><code class="language-css">/* src/shared/styles/view-transitions.css */
+
+/* 기본: crossfade - 가장 자연스러운 페이지 전환 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--transition-duration, 300ms);
+}
+
+/* slide-left - &quot;다음 페이지&quot; 느낌 */
+[data-transition-type='slide-left']::view-transition-old(root) {
+  animation: slide-out-left var(--transition-duration) ease-in-out;
+}
+[data-transition-type='slide-left']::view-transition-new(root) {
+  animation: slide-in-right var(--transition-duration) ease-in-out;
+}
+
+/* slide-right - &quot;뒤로 가기&quot; 느낌 */
+[data-transition-type='slide-right']::view-transition-old(root) {
+  animation: slide-out-right var(--transition-duration) ease-in-out;
+}
+[data-transition-type='slide-right']::view-transition-new(root) {
+  animation: slide-in-left var(--transition-duration) ease-in-out;
+}
+
+/* scale - 모달/다이얼로그 열기/닫기 */
+[data-transition-type='scale']::view-transition-old(root) {
+  animation: scale-down var(--transition-duration) ease-in-out;
+}
+[data-transition-type='scale']::view-transition-new(root) {
+  animation: scale-up var(--transition-duration) ease-in-out;
+}
+
+@keyframes slide-out-left {
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+@keyframes slide-out-right {
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+@keyframes scale-down {
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+@keyframes scale-up {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* reduced-motion 사용자: 전환 즉시 완료 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
+}
+</code></pre>
+            <h3 id="react-router-v7-view-transitions">React Router v7 + View Transitions 통합</h3>
+            <pre><code class="language-tsx">// src/app/router/TransitionLink.tsx
+// React Router v7과 View Transitions API를 결합한 네비게이션 컴포넌트
+
+import { useNavigate } from 'react-router'
+import { useViewTransition } from '@/shared/lib/use-view-transition'
+import { type ReactNode, type MouseEvent } from 'react'
+
+interface TransitionLinkProps {
+  to: string
+  transition?: 'crossfade' | 'slide-left' | 'slide-right' | 'scale'
+  children: ReactNode
+  className?: string
+}
+
+export function TransitionLink({
+  to,
+  transition = 'crossfade',
+  children,
+  className,
+}: TransitionLinkProps): ReactNode {
+  const navigate = useNavigate()
+  const { startTransition, isSupported } = useViewTransition({ type: transition })
+
+  const handleClick = async (e: MouseEvent&lt;HTMLAnchorElement&gt;): Promise&lt;void&gt; =&gt; {
+    e.preventDefault()
+
+    if (isSupported) {
+      // View Transitions API 지원 시: 부드러운 전환
+      await startTransition(() =&gt; {
+        navigate(to)
+      })
+    } else {
+      // 미지원 시: 즉시 이동
+      navigate(to)
+    }
+  }
+
+  return (
+    &lt;a href={to} onClick={handleClick} className={className}&gt;
+      {children}
+    &lt;/a&gt;
+  )
+}
+</code></pre>
+            <h3 id="view-transition-preview">View Transition 디버그 오버레이 (Preview 전용)</h3>
+            <pre><code class="language-tsx">// src/shared/ui/ViewTransitionDebug.tsx
+import { useEffect, useState, type ReactNode } from 'react'
+import { envConfig } from '@/shared/config/environment'
+
+interface TransitionLog {
+  type: string
+  duration: string
+  timestamp: number
+}
+
+export function ViewTransitionDebug(): ReactNode {
+  const [logs, setLogs] = useState&lt;TransitionLog[]&gt;([])
+
+  useEffect(() =&gt; {
+    if (envConfig.deployEnv !== 'preview') return
+
+    // data-transition-type 속성 변경을 감지하여 로그 수집
+    const observer = new MutationObserver((mutations) =&gt; {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === 'data-transition-type') {
+          const type = document.documentElement.dataset.transitionType
+          const duration = getComputedStyle(document.documentElement).getPropertyValue(
+            '--transition-duration',
+          )
+          if (type) {
+            setLogs((prev) =&gt; [...prev.slice(-9), { type, duration, timestamp: Date.now() }])
+          }
+        }
+      }
+    })
+
+    observer.observe(document.documentElement, { attributes: true })
+    return () =&gt; observer.disconnect()
+  }, [])
+
+  if (envConfig.deployEnv !== 'preview' || logs.length === 0) return null
+
+  return (
+    &lt;div
+      style={{
+        position: 'fixed',
+        bottom: 8,
+        left: 8,
+        background: 'rgba(0,0,0,0.85)',
+        color: '#10b981',
+        padding: '8px 12px',
+        borderRadius: '6px',
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        zIndex: 10000,
+        maxHeight: '200px',
+        overflow: 'auto',
+      }}
+    &gt;
+      &lt;strong&gt;View Transitions&lt;/strong&gt;
+      {logs.map((log, i) =&gt; (
+        &lt;div key={i}&gt;
+          [{new Date(log.timestamp).toLocaleTimeString()}] {log.type} ({log.duration})
+        &lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="5">5. 스크롤 기반 애니메이션</h2>
+            <p>
+              <strong>일상 비유</strong>: 도서관에서 책장을 따라 걸어갈 때 책 제목이 또렷해지는 경험
+              같다. CSS Scroll-Driven은 책장이 직접 조명을 켜는 방식(브라우저 합성)이고,
+              IntersectionObserver fallback은 사서(JS)가 옆에 서서 알려주는 방식이다.
+            </p>
+            <p>
+              이 그림은 스크롤 애니메이션 기술을 어떤 순서로 시도하고 어디서 fallback할지
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[스크롤 연동 요구] --&gt; Feat{Baseline&lt;br/&gt;animation-timeline?}
+  Feat --&gt;|Yes| CSS[CSS scroll/view timeline]
+  Feat --&gt;|No| IO{IntersectionObserver&lt;br/&gt;지원?}
+  IO --&gt;|Yes| JS[IO 기반 reveal/parallax]
+  IO --&gt;|No| Static[정적 콘텐츠 유지&lt;br/&gt;motion 생략]
+  CSS --&gt; RM{prefers-reduced-motion}
+  JS --&gt; RM
+  RM --&gt;|reduce| Static
+  RM --&gt;|no-preference| Verify[성능/회귀 검증]
+  Static --&gt; Verify</pre
+            >
+            <blockquote>
+              <p>
+                <strong>참고</strong>: CSS Scroll-Driven Animations는 현재 공식 문서 기준
+                Chrome/Edge 115+, Safari 26+에서 정식 지원되며, Firefox 137부터 부분 지원이
+                시작되었습니다. 미지원 브라우저를 위해 IntersectionObserver 기반 JS 폴백을 함께
+                구현하세요. 성능 측정은
+                <a href="./08_성능_최적화_가이드.md">08. 성능 최적화 가이드</a>를 참고합니다.
+              </p>
+              <p>
+                <strong>CSS <code>linear()</code> 스프링 물리 (최신 Baseline)</strong> 기존
+                <code>cubic-bezier</code>로 표현하기 어려운 스프링/바운스 곡선을 CSS만으로 구현
+                가능하다. JavaScript Spring physics 라이브러리 의존도를 크게 줄일 수 있다.
+              </p>
+              <p>
+                <code
+                  >css /* 스프링 물리 -- React Spring 없이 CSS만으로 */ .spring-in { animation:
+                  spring-in 600ms forwards; animation-timing-function: linear( 0, 0.009, 0.035 2.1%,
+                  0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%,
+                  1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991,
+                  0.977 51%, 0.974, 0.975, 0.991 65.5%, 1 ); } /* Scroll Timeline + linear() 조합 --
+                  스크롤에 스프링 반응 */ .reveal-spring { animation: reveal linear both;
+                  animation-timeline: view(); animation-range: entry 10% cover 40%;
+                  animation-timing-function: linear(0, 0.5 30%, 0.95 60%, 1); }</code
+                >
+              </p>
+            </blockquote>
+            <h3 id="css-scroll-driven-animations">CSS Scroll-Driven Animations (네이티브)</h3>
+            <pre><code class="language-css">/* 프로그레스 바: CSS만으로 구현 (JS 불필요, 최고 성능) */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #3b82f6;
+  transform-origin: left;
+  animation: progress-bar linear;
+  animation-timeline: scroll(root); /* 루트 스크롤에 연동 */
+}
+
+@keyframes progress-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 요소가 뷰포트를 통과하며 애니메이션 - view() 타임라인 */
+.reveal-on-scroll {
+  animation: reveal linear both;
+  animation-timeline: view(); /* 요소의 뷰포트 가시성에 연동 */
+  animation-range: entry 10% cover 40%; /* 진입 10%~40% 구간에서 실행 */
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 패럴랙스: CSS scroll()로 깊이감 표현 */
+.parallax-layer {
+  animation: parallax linear;
+  animation-timeline: scroll(root);
+}
+
+@keyframes parallax {
+  to {
+    transform: translateY(-30%);
+  }
+}
+
+/* 카드 스택 효과: 스크롤에 따라 카드가 겹치며 올라옴 */
+.card-stack-item {
+  animation: card-stack-reveal linear both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 50%;
+}
+
+@keyframes card-stack-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(100px) scale(0.9) rotateX(10deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+/* 텍스트 하이라이트 진행: 스크롤 위치에 따라 텍스트 강조 */
+.highlight-on-scroll {
+  background: linear-gradient(to right, #fbbf24, #fbbf24) no-repeat;
+  background-size: 0% 100%;
+  animation: highlight-progress linear both;
+  animation-timeline: view();
+  animation-range: entry 20% cover 60%;
+}
+
+@keyframes highlight-progress {
+  to {
+    background-size: 100% 100%;
+  }
+}
+</code></pre>
+            <h3 id="react">React 스크롤 애니메이션 훅</h3>
+            <pre><code class="language-typescript">// src/shared/lib/use-scroll-animation.ts
+// IntersectionObserver 기반 스크롤 애니메이션 (모든 브라우저 지원)
+
+import { useEffect, useRef, useState, type RefObject } from 'react'
+
+interface ScrollAnimationOptions {
+  threshold?: number // 요소가 얼마나 보여야 트리거 (0~1)
+  rootMargin?: string // 뷰포트 마진 (조기/지연 트리거)
+  once?: boolean // 한 번만 실행 여부
+}
+
+export function useScrollAnimation&lt;T extends HTMLElement&gt;(
+  options: ScrollAnimationOptions = {},
+): { ref: RefObject&lt;T | null&gt;; isInView: boolean; progress: number } {
+  const { threshold = 0.2, rootMargin = '-50px', once = true } = options
+  const ref = useRef&lt;T | null&gt;(null)
+  const [isInView, setIsInView] = useState(false)
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() =&gt; {
+    const el = ref.current
+    if (!el) return
+
+    // 뷰포트 진입 감지
+    const observer = new IntersectionObserver(
+      ([entry]) =&gt; {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          if (once) observer.unobserve(el)
+        } else if (!once) {
+          setIsInView(false)
+        }
+      },
+      { threshold, rootMargin },
+    )
+
+    observer.observe(el)
+
+    // 스크롤 진행률 추적 (패럴랙스 등에 활용)
+    const handleScroll = (): void =&gt; {
+      const rect = el.getBoundingClientRect()
+      const viewHeight = window.innerHeight
+      const p = Math.max(0, Math.min(1, 1 - rect.top / viewHeight))
+      setProgress(p)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () =&gt; {
+      observer.disconnect()
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [threshold, rootMargin, once])
+
+  return { ref, isInView, progress }
+}
+</code></pre>
+            <h3 id="useparallax">useParallax 훅</h3>
+            <pre><code class="language-typescript">// src/shared/lib/use-parallax.ts
+// JS 기반 패럴랙스 효과 (CSS Scroll-Driven 미지원 브라우저 폴백)
+
+import { useEffect, useRef, type RefObject } from 'react'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+
+interface ParallaxOptions {
+  speed?: number // 스크롤 대비 이동 비율 (0.1~1.0, 기본 0.3)
+  direction?: 'up' | 'down' // 이동 방향
+}
+
+export function useParallax&lt;T extends HTMLElement&gt;(
+  options: ParallaxOptions = {},
+): RefObject&lt;T | null&gt; {
+  const { speed = 0.3, direction = 'up' } = options
+  const ref = useRef&lt;T | null&gt;(null)
+  const prefersReduced = useReducedMotion()
+
+  useEffect(() =&gt; {
+    const el = ref.current
+    if (!el || prefersReduced) return // reduced-motion 시 비활성화
+
+    let rafId: number
+
+    const handleScroll = (): void =&gt; {
+      rafId = requestAnimationFrame(() =&gt; {
+        const rect = el.getBoundingClientRect()
+        const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height)
+        const offset = (scrollProgress - 0.5) * speed * 100
+        const sign = direction === 'up' ? -1 : 1
+
+        // transform만 사용하여 GPU 가속 보장
+        el.style.transform = `translateY(${sign * offset}px)`
+      })
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // 초기 위치 설정
+
+    return () =&gt; {
+      window.removeEventListener('scroll', handleScroll)
+      cancelAnimationFrame(rafId)
+    }
+  }, [speed, direction, prefersReduced])
+
+  return ref
+}
+</code></pre>
+            <pre><code class="language-tsx">// src/shared/ui/ScrollReveal.tsx
+// 뷰포트 진입 시 애니메이션 실행 컴포넌트
+
+import { motion, useInView } from 'motion/react'
+import { useRef, type ReactNode } from 'react'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+
+interface ScrollRevealProps {
+  children: ReactNode
+  variant?: 'fadeUp' | 'fadeLeft' | 'scaleIn' | 'none'
+  delay?: number
+  once?: boolean
+}
+
+const variants = {
+  fadeUp: {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0 },
+  },
+  fadeLeft: {
+    hidden: { opacity: 0, x: -40 },
+    visible: { opacity: 1, x: 0 },
+  },
+  scaleIn: {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { opacity: 1, scale: 1 },
+  },
+  none: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+  },
+}
+
+export function ScrollReveal({
+  children,
+  variant = 'fadeUp',
+  delay = 0,
+  once = true,
+}: ScrollRevealProps): ReactNode {
+  const ref = useRef&lt;HTMLDivElement | null&gt;(null)
+  const isInView = useInView(ref, { once, margin: '-50px' })
+  const prefersReduced = useReducedMotion()
+
+  // reduced-motion 사용자: transform 없이 opacity만
+  const selectedVariant = prefersReduced ? 'none' : variant
+
+  return (
+    &lt;motion.div
+      ref={ref}
+      initial=&quot;hidden&quot;
+      animate={isInView ? 'visible' : 'hidden'}
+      variants={variants[selectedVariant]}
+      transition={{ duration: 0.5, ease: 'easeOut', delay }}
+    &gt;
+      {children}
+    &lt;/motion.div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="6">6. 타임라인 라이브러리 &amp; 고급 시퀀스</h2>
+            <p>
+              복잡한 멀티 스텝 애니메이션 시퀀스, SVG 모핑, 정밀한 타이밍 제어는 CSS/WAAPI만으로
+              유지보수가 어려울 수 있습니다. 이때는 타임라인 라이브러리를 검토하되, 라이브러리명
+              자체를 조직 표준으로 고정하지 않습니다.
+            </p>
+            <blockquote>
+              <p><strong>선택 가이드 최신</strong></p>
+              <ul>
+                <li>
+                  CSS Scroll-Driven 또는 Web Animations API로 충분한 케이스에서는 외부 라이브러리
+                  도입을 자제합니다.
+                </li>
+                <li>
+                  SVG path morph, FLIP, 복잡한 텍스트 분해, 정밀 타임라인처럼 표준 API만으로 비용이
+                  큰 케이스에서만 채택합니다.
+                </li>
+                <li>
+                  무료/상용 라이선스, 플러그인 라이선스, tree-shaking, SSR 호환성을 PR에서 증거로
+                  남깁니다.
+                </li>
+              </ul>
+            </blockquote>
+            <h3 id="gsap-react">GSAP React 통합 훅</h3>
+            <pre><code class="language-typescript">// src/shared/lib/use-gsap.ts
+// GSAP을 React에서 안전하게 사용하기 위한 훅
+
+import { useEffect, useRef, useCallback } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+
+// GSAP 플러그인 등록 (한 번만 실행)
+gsap.registerPlugin(ScrollTrigger)
+
+interface UseGsapOptions {
+  /** reduced-motion 시 애니메이션 비활성화 */
+  respectReducedMotion?: boolean
+}
+
+/**
+ * GSAP 타임라인을 React 생명주기에 맞게 관리하는 훅
+ * 컴포넌트 언마운트 시 자동으로 kill 처리
+ */
+export function useGsapTimeline(options: UseGsapOptions = {}) {
+  const { respectReducedMotion = true } = options
+  const timelineRef = useRef&lt;gsap.core.Timeline | null&gt;(null)
+  const prefersReduced = useReducedMotion()
+
+  // 타임라인 생성 함수
+  const createTimeline = useCallback(
+    (config?: gsap.TimelineVars): gsap.core.Timeline =&gt; {
+      // 기존 타임라인 정리
+      timelineRef.current?.kill()
+
+      const tl = gsap.timeline({
+        ...config,
+        // reduced-motion 시 즉시 완료
+        ...(respectReducedMotion &amp;&amp; prefersReduced ? { duration: 0 } : {}),
+      })
+
+      timelineRef.current = tl
+      return tl
+    },
+    [prefersReduced, respectReducedMotion],
+  )
+
+  // 클린업: 컴포넌트 언마운트 시 타임라인 제거
+  useEffect(() =&gt; {
+    return () =&gt; {
+      timelineRef.current?.kill()
+    }
+  }, [])
+
+  return { createTimeline, timeline: timelineRef }
+}
+</code></pre>
+            <h3 id="gsap">GSAP 히어로 섹션 애니메이션</h3>
+            <pre><code class="language-tsx">// src/features/hero/HeroAnimation.tsx
+// 랜딩 페이지 히어로 섹션의 복잡한 시퀀스 애니메이션
+
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useGsapTimeline } from '@/shared/lib/use-gsap'
+
+export function HeroAnimation(): ReactNode {
+  const containerRef = useRef&lt;HTMLDivElement&gt;(null)
+  const { createTimeline } = useGsapTimeline()
+
+  useEffect(() =&gt; {
+    const container = containerRef.current
+    if (!container) return
+
+    // 멀티 스텝 시퀀스: 배경 → 제목 → 부제목 → CTA 버튼 순서
+    const tl = createTimeline({ defaults: { ease: 'power3.out' } })
+
+    tl
+      // 1단계: 배경 커튼 열기
+      .from('[data-hero-bg]', {
+        scaleY: 0,
+        transformOrigin: 'top',
+        duration: 0.8,
+      })
+      // 2단계: 제목 글자 단위 stagger 진입
+      .from(
+        '[data-hero-title] .char',
+        {
+          y: 100,
+          opacity: 0,
+          stagger: 0.03,
+          duration: 0.6,
+        },
+        '-=0.3',
+      ) // 이전 애니메이션과 0.3초 겹침
+      // 3단계: 부제목 페이드인
+      .from(
+        '[data-hero-subtitle]',
+        {
+          y: 30,
+          opacity: 0,
+          duration: 0.5,
+        },
+        '-=0.2',
+      )
+      // 4단계: CTA 버튼 바운스 진입
+      .from('[data-hero-cta]', {
+        scale: 0.8,
+        opacity: 0,
+        duration: 0.4,
+        ease: 'back.out(1.7)', // 탄성 바운스 효과
+      })
+  }, [createTimeline])
+
+  return (
+    &lt;div ref={containerRef}&gt;
+      &lt;div data-hero-bg style={{ background: '#1e293b', minHeight: '60vh' }}&gt;
+        &lt;h1 data-hero-title&gt;
+          {/* SplitText 등으로 글자 분리 시 .char 클래스 부여 */}
+          &lt;span className=&quot;char&quot;&gt;W&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;e&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;l&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;c&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;o&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;m&lt;/span&gt;
+          &lt;span className=&quot;char&quot;&gt;e&lt;/span&gt;
+        &lt;/h1&gt;
+        &lt;p data-hero-subtitle&gt;부제목 텍스트&lt;/p&gt;
+        &lt;button data-hero-cta&gt;시작하기&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <h3 id="gsap-scrolltrigger">GSAP ScrollTrigger 스크롤 연동</h3>
+            <pre><code class="language-typescript">// src/shared/lib/use-gsap-scroll.ts
+// ScrollTrigger를 활용한 스크롤 기반 애니메이션
+
+import { useEffect, useRef, type RefObject } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+
+interface ScrollAnimationConfig {
+  /** 트리거 시작 위치 (예: 'top 80%') */
+  start?: string
+  /** 트리거 종료 위치 (예: 'bottom 20%') */
+  end?: string
+  /** 스크롤에 고정 (pin) 여부 */
+  pin?: boolean
+  /** 스크롤 진행률에 따라 애니메이션 스크러빙 */
+  scrub?: boolean | number
+}
+
+export function useGsapScrollTrigger&lt;T extends HTMLElement&gt;(
+  animationFn: (el: T, tl: gsap.core.Timeline) =&gt; void,
+  config: ScrollAnimationConfig = {},
+): RefObject&lt;T | null&gt; {
+  const ref = useRef&lt;T | null&gt;(null)
+  const prefersReduced = useReducedMotion()
+  const { start = 'top 80%', end = 'bottom 20%', pin = false, scrub = false } = config
+
+  useEffect(() =&gt; {
+    const el = ref.current
+    if (!el || prefersReduced) return // reduced-motion 시 비활성화
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start,
+        end,
+        pin,
+        scrub,
+        // Preview 환경에서 마커 표시 (디버그용)
+        markers: import.meta.env.MODE === 'preview',
+      },
+    })
+
+    animationFn(el, tl)
+
+    return () =&gt; {
+      tl.kill()
+      ScrollTrigger.getAll().forEach((st) =&gt; st.kill())
+    }
+  }, [animationFn, start, end, pin, scrub, prefersReduced])
+
+  return ref
+}
+</code></pre>
+            <hr />
+            <h2 id="7">7. 성능 최적화</h2>
+            <p>
+              <strong>일상 비유</strong>: 60fps는 한 프레임당 약 16.67ms의 짧은 식사 시간이다. 이
+              시간 안에 스크립트 요리·스타일 차림·레이아웃 세팅·페인트 그리기·합성 서빙을 끝내야
+              다음 손님(다음 프레임)을 받을 수 있다. transform/opacity는 합성 단계만 사용하므로 식사
+              시간이 가장 짧다.
+            </p>
+            <p>이 그림은 16.67ms 안에서 각 단계가 어떤 비중으로 시간을 잡아먹는지를 보여줍니다.</p>
+            <pre class="mermaid">
+gantt
+  title 60fps 한 프레임 (16.67ms) 예산 분배 예시
+  dateFormat ss.SSS
+  axisFormat %S.%L
+  section 합성만 (이상적)
+    Script           :s1, 00.000, 0.002s
+    Style/Layout      :s2, 00.002, 0.001s
+    Paint            :s3, 00.003, 0.001s
+    Composite         :s4, 00.004, 0.003s
+    Idle (여유)       :s5, 00.007, 0.010s
+  section 레이아웃 트리거 (위험)
+    Script(JS anim)   :w1, 00.000, 0.005s
+    Style              :w2, 00.005, 0.003s
+    Layout reflow      :w3, 00.008, 0.005s
+    Paint              :w4, 00.013, 0.003s
+    Composite          :w5, 00.016, 0.001s</pre
+            >
+            <p>이 그림은 한 페이지의 motion budget이 어떻게 분배되는지를 보여줍니다.</p>
+            <pre class="mermaid">
+flowchart TD
+  Budget[페이지 motion budget&lt;br/&gt;예: total 4초 / frame drop 0] --&gt; Hero[Hero 진입&lt;br/&gt;0.8초 1회]
+  Budget --&gt; Micro[마이크로 인터랙션&lt;br/&gt;0.1-0.3초 N회]
+  Budget --&gt; Page[페이지 전환&lt;br/&gt;0.3-0.5초]
+  Budget --&gt; Scroll[스크롤 연동&lt;br/&gt;지속·CSS scroll/view timeline]
+  Hero --&gt; Reserve[INP/long task&lt;br/&gt;예산 50ms 남김]
+  Micro --&gt; Reserve
+  Page --&gt; Reserve
+  Scroll --&gt; Reserve
+  Reserve --&gt; Verify[Lighthouse/RUM&lt;br/&gt;p75 검증]</pre
+            >
+            <blockquote>
+              <p>
+                <strong>참고</strong>: 애니메이션 성능은 Core Web Vitals의 INP(Interaction to Next
+                Paint)에 직접 영향을 줍니다.
+                <a href="./08_성능_최적화_가이드.md">08. 성능 최적화 가이드</a>의 INP 섹션을 함께
+                참고하세요.
+              </p>
+            </blockquote>
+            <h3 id="_8">성능 규칙</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>규칙</th>
+                    <th>설명</th>
+                    <th>위반 시 영향</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>GPU 속성만 애니메이션</strong></td>
+                    <td>
+                      <code>transform</code>, <code>opacity</code>만 사용. <code>width</code>,
+                      <code>height</code>, <code>top</code>, <code>left</code> 금지
+                    </td>
+                    <td>레이아웃 리플로우 발생, 프레임 드롭</td>
+                  </tr>
+                  <tr>
+                    <td><strong>will-change 최소 사용</strong></td>
+                    <td>애니메이션 시작 직전 추가, 종료 후 제거</td>
+                    <td>메모리 과다 소비, GPU 레이어 폭증</td>
+                  </tr>
+                  <tr>
+                    <td><strong>contain 활용</strong></td>
+                    <td><code>contain: layout style paint</code>로 리플로우 격리</td>
+                    <td>부모/형제 요소까지 리플로우 전파</td>
+                  </tr>
+                  <tr>
+                    <td><strong>뷰포트 밖 정지</strong></td>
+                    <td>IntersectionObserver로 보이지 않는 애니메이션 정지</td>
+                    <td>CPU/GPU 리소스 낭비</td>
+                  </tr>
+                  <tr>
+                    <td><strong>requestAnimationFrame</strong></td>
+                    <td>JS 애니메이션은 반드시 rAF 사용</td>
+                    <td>프레임 타이밍 불일치, 쟁크</td>
+                  </tr>
+                  <tr>
+                    <td><strong>composite 최적화</strong></td>
+                    <td>Web Animations API의 <code>composite: 'add'</code> 활용</td>
+                    <td>애니메이션 합성 비효율</td>
+                  </tr>
+                  <tr>
+                    <td><strong>CSS 우선 원칙</strong></td>
+                    <td>CSS로 가능한 것은 JS 미사용</td>
+                    <td>메인 스레드 차단, 번들 사이즈 증가</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="will-change">will-change 안전 사용 패턴</h3>
+            <pre><code class="language-typescript">// src/shared/lib/will-change-manager.ts
+// will-change를 안전하게 관리하는 유틸 (메모리 누수 방지)
+
+/**
+ * will-change는 브라우저에 &quot;곧 이 속성이 변경될 것&quot;이라고 알려주는 힌트.
+ * 남용하면 GPU 레이어가 과도하게 생성되어 오히려 성능 저하 발생.
+ * 이 유틸은 애니메이션 직전에 추가하고 완료 후 자동 제거한다.
+ */
+export function applyWillChange(
+  element: HTMLElement,
+  properties: string[],
+  durationMs: number = 1000,
+): () =&gt; void {
+  // will-change 속성 설정
+  element.style.willChange = properties.join(', ')
+
+  // 지정 시간 후 자동 제거 (메모리 보호)
+  const timerId = window.setTimeout(() =&gt; {
+    element.style.willChange = 'auto'
+  }, durationMs)
+
+  // 수동 정리 함수 반환
+  return () =&gt; {
+    window.clearTimeout(timerId)
+    element.style.willChange = 'auto'
+  }
+}
+
+/**
+ * 호버/포커스 시에만 will-change 적용하는 이벤트 리스너
+ * 상시 will-change보다 메모리 효율적
+ */
+export function applyWillChangeOnInteraction(
+  element: HTMLElement,
+  properties: string[],
+): () =&gt; void {
+  const handleEnter = (): void =&gt; {
+    element.style.willChange = properties.join(', ')
+  }
+  const handleLeave = (): void =&gt; {
+    element.style.willChange = 'auto'
+  }
+
+  element.addEventListener('mouseenter', handleEnter)
+  element.addEventListener('mouseleave', handleLeave)
+  element.addEventListener('focusin', handleEnter)
+  element.addEventListener('focusout', handleLeave)
+
+  return () =&gt; {
+    element.removeEventListener('mouseenter', handleEnter)
+    element.removeEventListener('mouseleave', handleLeave)
+    element.removeEventListener('focusin', handleEnter)
+    element.removeEventListener('focusout', handleLeave)
+    element.style.willChange = 'auto'
+  }
+}
+</code></pre>
+            <h3 id="preview">애니메이션 성능 모니터 (Preview 전용)</h3>
+            <pre><code class="language-typescript">// src/shared/lib/animation-performance-monitor.ts
+import { envConfig } from '@/shared/config/environment'
+
+interface AnimationMetric {
+  name: string
+  fps: number
+  droppedFrames: number
+  duration: number
+}
+
+/** 애니메이션 실행 중 실시간 FPS를 측정하는 유틸 */
+export function measureAnimationPerformance(
+  name: string,
+  durationMs: number = 1000,
+): Promise&lt;AnimationMetric&gt; {
+  // 프로덕션에서는 측정 생략 (성능 오버헤드 방지)
+  if (envConfig.deployEnv !== 'preview') {
+    return Promise.resolve({ name, fps: 60, droppedFrames: 0, duration: durationMs })
+  }
+
+  return new Promise((resolve) =&gt; {
+    let frameCount = 0
+    let startTime = 0
+
+    const countFrame = (timestamp: number): void =&gt; {
+      if (startTime === 0) startTime = timestamp
+      frameCount++
+
+      if (timestamp - startTime &lt; durationMs) {
+        requestAnimationFrame(countFrame)
+      } else {
+        const elapsed = timestamp - startTime
+        const fps = Math.round((frameCount / elapsed) * 1000)
+        const expectedFrames = Math.round((elapsed / 1000) * 60)
+        const droppedFrames = Math.max(0, expectedFrames - frameCount)
+
+        const metric: AnimationMetric = { name, fps, droppedFrames, duration: elapsed }
+
+        // 50fps 미만: 성능 경고 출력
+        if (fps &lt; 50) {
+          console.warn(
+            `[Animation Performance] &quot;${name}&quot;: ${fps}fps (dropped ${droppedFrames} frames)`,
+          )
+        }
+
+        resolve(metric)
+      }
+    }
+
+    requestAnimationFrame(countFrame)
+  })
+}
+
+/**
+ * Performance Observer로 long animation frame 감지
+ * Chrome 123+의 LoAF(Long Animation Frames) API 활용
+ */
+export function observeLongAnimationFrames(
+  callback: (entry: PerformanceEntry) =&gt; void,
+): () =&gt; void {
+  if (envConfig.deployEnv !== 'preview') return () =&gt; {}
+
+  try {
+    const observer = new PerformanceObserver((list) =&gt; {
+      for (const entry of list.getEntries()) {
+        // 50ms 초과 프레임 감지 (16.7ms x 3)
+        if (entry.duration &gt; 50) {
+          callback(entry)
+        }
+      }
+    })
+
+    observer.observe({ type: 'long-animation-frame', buffered: true })
+    return () =&gt; observer.disconnect()
+  } catch {
+    // LoAF API 미지원 브라우저: 무시
+    return () =&gt; {}
+  }
+}
+</code></pre>
+            <hr />
+            <h2 id="8-prefers-reduced-motion">8. 접근성 (prefers-reduced-motion)</h2>
+            <p>
+              <strong>일상 비유</strong>: 식당의 매운맛 선택과 같다. 사용자가 OS 설정에서 "맵게
+              빼주세요(reduce)"를 표시했는데도 매운 향신료(parallax/큰 이동)를 그대로 내면 손님이
+              불편(어지러움)을 호소한다. 메뉴(애니메이션)마다 "안 맵게(opacity만)"·"덜 맵게(짧은
+              duration)"·"빼기(none)" 3옵션을 준비한다.
+            </p>
+            <p>
+              이 그림은 한 애니메이션을 reduced-motion 사용자에게 어떻게 변환할지 결정하는 흐름을
+              보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Start[애니메이션 항목] --&gt; Kind{역할 분류}
+  Kind --&gt;|장식적| Dec{필수 정보 포함?}
+  Dec --&gt;|No| Disable[비활성화&lt;br/&gt;aria-hidden]
+  Dec --&gt;|Yes| Convert1[opacity-only&lt;br/&gt;0.01ms]
+  Kind --&gt;|기능적| Func[duration 단축 후&lt;br/&gt;최종 상태로 즉시 전환]
+  Kind --&gt;|상태 피드백| Feed[유지하되 짧게&lt;br/&gt;aria-live=assertive]
+  Disable --&gt; Snapshot[Playwright screenshot&lt;br/&gt;reducedMotion: reduce]
+  Convert1 --&gt; Snapshot
+  Func --&gt; Snapshot
+  Feed --&gt; Snapshot
+  Snapshot --&gt; Pass{회귀 없음?}
+  Pass --&gt;|Yes| Merge[PR 통과]
+  Pass --&gt;|No| Fix[fallback 재설계]
+  Fix --&gt; Kind</pre
+            >
+            <p>이 그림은 접근성 검증이 모션 PR의 어디서 자동/수동으로 발생하는지를 보여줍니다.</p>
+            <pre class="mermaid">
+flowchart LR
+  Dev[모션 구현] --&gt; Lint[ESLint motion 규칙&lt;br/&gt;토큰/속성/RM 분기]
+  Lint --&gt; Unit[단위 테스트&lt;br/&gt;variants reduced 분기]
+  Unit --&gt; E2E[Playwright emulateMedia&lt;br/&gt;reducedMotion reduce]
+  E2E --&gt; A11yScan[axe-core/Pa11y&lt;br/&gt;focus/ARIA]
+  A11yScan --&gt; Manual[수동 키보드 smoke&lt;br/&gt;탭/엔터/Esc]
+  Manual --&gt; Sign[A11y owner sign-off]</pre
+            >
+            <blockquote>
+              <p>
+                <strong>참고</strong>: 접근성 관련 상세 가이드라인은
+                <a href="./19_웹_접근성_가이드.md">19. 웹 접근성 가이드</a>를 참고하세요. 본 섹션은
+                애니메이션 특화 접근성에 집중합니다.
+              </p>
+            </blockquote>
+            <h3 id="_9">완전한 접근성 대응</h3>
+            <pre><code class="language-typescript">// src/shared/lib/motion-accessibility.ts
+import { type Variants } from 'motion/react'
+
+/**
+ * reduced-motion 사용자를 위한 variant 생성 유틸
+ * 모든 애니메이션에 적용하여 일관된 접근성 보장
+ *
+ * 사용 예시:
+ *   const { full, reduced } = createAccessibleVariants(myVariants);
+ *   const variants = prefersReduced ? reduced : full;
+ */
+export function createAccessibleVariants(
+  fullMotion: Variants,
+  reducedMotion?: Variants,
+): { full: Variants; reduced: Variants } {
+  // reduced-motion 기본값: opacity만 변경, transform 제거
+  const defaultReduced: Variants = {}
+
+  for (const [key, value] of Object.entries(fullMotion)) {
+    if (typeof value === 'object' &amp;&amp; value !== null) {
+      const v = value as Record&lt;string, unknown&gt;
+      defaultReduced[key] = {
+        opacity: v.opacity ?? 1,
+        transition: { duration: 0.01 },
+      }
+    }
+  }
+
+  return {
+    full: fullMotion,
+    reduced: reducedMotion ?? defaultReduced,
+  }
+}
+
+/**
+ * 애니메이션이 있는 요소에 필수 ARIA 속성 반환
+ * 스크린 리더 사용자에게 애니메이션 콘텐츠의 존재를 알림
+ */
+export function getMotionAriaProps(description: string): Record&lt;string, string&gt; {
+  return {
+    'aria-live': 'polite',
+    'aria-atomic': 'true',
+    'aria-label': description,
+  }
+}
+
+/**
+ * 애니메이션 타입별 접근성 권장사항
+ * 각 애니메이션 유형에 따라 적절한 접근성 처리를 안내
+ */
+export const MOTION_A11Y_GUIDELINES = {
+  /** 장식적 애니메이션: reduced-motion 시 완전 비활성화 */
+  decorative: {
+    reducedBehavior: 'disable', // 완전 제거
+    ariaHidden: true, // 스크린 리더 무시
+  },
+  /** 기능적 애니메이션: reduced-motion 시 즉시 완료 */
+  functional: {
+    reducedBehavior: 'instant', // duration: 0으로 즉시 최종 상태
+    ariaHidden: false, // 콘텐츠 정보 유지
+  },
+  /** 상태 피드백: reduced-motion과 무관하게 유지 (짧은 duration) */
+  feedback: {
+    reducedBehavior: 'keep', // 유지하되 짧게
+    ariaLive: 'assertive', // 즉시 알림
+  },
+} as const
+</code></pre>
+            <h3 id="reduced-motion-css">전역 reduced-motion CSS</h3>
+            <pre><code class="language-css">/* src/shared/styles/reduced-motion.css */
+/* 전역 reduced-motion 스타일 */
+
+@media (prefers-reduced-motion: reduce) {
+  /* 모든 애니메이션 비활성화 */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Lottie 컨테이너: 정적 이미지로 대체 */
+  [data-lottie-container] {
+    display: none;
+  }
+  [data-lottie-fallback] {
+    display: block;
+  }
+
+  /* 스켈레톤: 정적 회색 블록 (shimmer 제거) */
+  .skeleton::after {
+    animation: none !important;
+  }
+
+  /* 스크롤 프로그레스: 숨김 (장식적 요소) */
+  .scroll-progress {
+    display: none;
+  }
+
+  /* 패럴랙스: 비활성화 (어지러움 유발 가능) */
+  .parallax-layer {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+</code></pre>
+            <h3 id="e2e-playwright">접근성 테스트 E2E (Playwright)</h3>
+            <pre><code class="language-typescript">// tests/e2e/motion-accessibility.spec.ts
+// 애니메이션 접근성 자동화 테스트 - 07. 테스팅 가이드 참고
+
+import { test, expect } from '@playwright/test'
+
+test.describe('애니메이션 접근성', () =&gt; {
+  test('reduced-motion 설정 시 모든 애니메이션이 비활성화된다', async ({ page }) =&gt; {
+    // 시스템 설정: reduced-motion 활성화
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+
+    // 모든 요소의 animation-duration이 0에 가까운지 확인
+    const animatedElements = await page.locator('[class*=&quot;animate&quot;]').all()
+    for (const el of animatedElements) {
+      const duration = await el.evaluate((e) =&gt; getComputedStyle(e).animationDuration)
+      expect(parseFloat(duration)).toBeLessThanOrEqual(0.01)
+    }
+  })
+
+  test('Lottie 대신 정적 이미지가 표시된다', async ({ page }) =&gt; {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+
+    // Lottie 컨테이너가 숨겨져야 함
+    const lottieContainers = page.locator('[data-lottie-container]')
+    await expect(lottieContainers).toHaveCount(0)
+
+    // 폴백 이미지가 표시되어야 함
+    const fallbacks = page.locator('[data-lottie-fallback]')
+    const count = await fallbacks.count()
+    if (count &gt; 0) {
+      await expect(fallbacks.first()).toBeVisible()
+    }
+  })
+
+  test('Lottie 요소에 적절한 ARIA 속성이 있다', async ({ page }) =&gt; {
+    await page.goto('/')
+
+    const lottieElements = page.locator('[data-lottie-container], [data-lottie-fallback]')
+    const count = await lottieElements.count()
+    for (let i = 0; i &lt; count; i++) {
+      const el = lottieElements.nth(i)
+      await expect(el).toHaveAttribute('role', 'img')
+      await expect(el).toHaveAttribute('aria-label', /.+/)
+    }
+  })
+})
+</code></pre>
+            <hr />
+            <h2 id="9-lottie">9. 마이크로 인터랙션 &amp; Lottie</h2>
+            <h3 id="_10">마이크로 인터랙션 프리셋</h3>
+            <pre><code class="language-typescript">// src/shared/ui/micro-interactions.ts
+// 재사용 가능한 마이크로 인터랙션 프리셋 모음
+// 디자인 시스템 가이드(20)의 토큰과 연동하여 일관성 유지
+
+import { type Variants, type MotionProps } from 'motion/react'
+
+/** 버튼 탭 피드백 - 모든 버튼에 기본 적용 */
+export const tapFeedback: MotionProps = {
+  whileTap: { scale: 0.97 },
+  transition: { type: 'spring', stiffness: 500, damping: 30 },
+}
+
+/** 카드 호버 - 인터랙티브 카드에 적용 */
+export const cardHover: MotionProps = {
+  whileHover: {
+    scale: 1.02,
+    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+    transition: { duration: 0.2 },
+  },
+  whileTap: { scale: 0.98 },
+}
+
+/** 토글 스위치 - on/off 상태 전환 */
+export const toggleVariants: Variants = {
+  off: { x: 0, backgroundColor: '#d1d5db' },
+  on: { x: 20, backgroundColor: '#3b82f6' },
+}
+
+/** 알림 뱃지 진입 - 숫자 뱃지가 팝업되는 효과 */
+export const badgePop: Variants = {
+  hidden: { scale: 0, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 500, damping: 25, delay: 0.2 },
+  },
+}
+
+/** 셰이크 (에러 피드백) - 폼 유효성 검증 실패 시 */
+export const shakeVariants: Variants = {
+  idle: { x: 0 },
+  shake: {
+    x: [0, -10, 10, -10, 10, 0],
+    transition: { duration: 0.4 },
+  },
+}
+
+/** 슬라이드 인 (알림/알림) - 화면 외부에서 진입 */
+export const slideInVariants: Variants = {
+  hidden: { x: '100%', opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 300, damping: 30 },
+  },
+  exit: {
+    x: '100%',
+    opacity: 0,
+    transition: { duration: 0.2, ease: 'easeIn' },
+  },
+}
+
+/** 스켈레톤 펄스 - 콘텐츠 로딩 대기 상태 */
+export const skeletonPulse: MotionProps = {
+  animate: { opacity: [0.5, 1, 0.5] },
+  transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
+}
+
+/** 포커스 링 확장 - 접근성 강화 포커스 표시 */
+export const focusRing: MotionProps = {
+  whileFocus: {
+    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.5)',
+    transition: { duration: 0.15 },
+  },
+}
+</code></pre>
+            <h3 id="lottie">Lottie 최적화 래퍼</h3>
+            <pre><code class="language-tsx">// src/shared/ui/OptimizedLottie.tsx
+// Lottie 애니메이션 프로덕션 최적화 래퍼
+// - 지연 로딩 (Suspense + IntersectionObserver)
+// - reduced-motion 시 정적 이미지 대체
+// - Canvas 렌더러 (대형 애니메이션 성능 우수)
+
+import { lazy, Suspense, useRef, useEffect, useState, type ReactNode } from 'react'
+import { useReducedMotion } from '@/shared/lib/reduced-motion'
+import { envConfig } from '@/shared/config/environment'
+
+// dotLottie 플레이어 지연 로딩 (초기 번들에 포함하지 않음)
+const DotLottiePlayer = lazy(() =&gt;
+  import('@dotlottie/react-player').then((m) =&gt; ({ default: m.DotLottiePlayer })),
+)
+
+interface OptimizedLottieProps {
+  src: string
+  fallbackSrc: string // 정적 이미지 (reduced-motion용)
+  width?: number
+  height?: number
+  loop?: boolean
+  autoplay?: boolean
+  ariaLabel: string // 접근성 필수
+  renderer?: 'svg' | 'canvas'
+}
+
+export function OptimizedLottie({
+  src,
+  fallbackSrc,
+  width = 200,
+  height = 200,
+  loop = true,
+  autoplay = true,
+  ariaLabel,
+  renderer = 'canvas', // Canvas가 대형 애니메이션에서 SVG보다 성능 우수
+}: OptimizedLottieProps): ReactNode {
+  const prefersReduced = useReducedMotion()
+  const containerRef = useRef&lt;HTMLDivElement | null&gt;(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  // IntersectionObserver로 뷰포트 진입 시에만 로드
+  useEffect(() =&gt; {
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) =&gt; {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.unobserve(el) // 한 번 로드 후 관찰 중단
+        }
+      },
+      { rootMargin: '100px' }, // 100px 미리 로드 시작
+    )
+
+    observer.observe(el)
+    return () =&gt; observer.disconnect()
+  }, [])
+
+  // reduced-motion 사용자: 정적 이미지로 완전 대체
+  if (prefersReduced) {
+    return (
+      &lt;div data-lottie-fallback=&quot;&quot; role=&quot;img&quot; aria-label={ariaLabel}&gt;
+        &lt;img src={fallbackSrc} width={width} height={height} alt={ariaLabel} /&gt;
+      &lt;/div&gt;
+    )
+  }
+
+  return (
+    &lt;div
+      ref={containerRef}
+      data-lottie-container=&quot;&quot;
+      role=&quot;img&quot;
+      aria-label={ariaLabel}
+      style={{ width, height }}
+    &gt;
+      {isVisible &amp;&amp; (
+        &lt;Suspense fallback={&lt;div style={{ width, height, background: '#f3f4f6' }} /&gt;}&gt;
+          &lt;DotLottiePlayer
+            src={src}
+            loop={loop}
+            autoplay={autoplay}
+            renderer={renderer}
+            style={{ width, height }}
+          /&gt;
+        &lt;/Suspense&gt;
+      )}
+      {/* Preview 환경: Lottie 디버그 정보 표시 */}
+      {envConfig.deployEnv === 'preview' &amp;&amp; isVisible &amp;&amp; (
+        &lt;div
+          style={{
+            fontSize: '10px',
+            color: '#6b7280',
+            textAlign: 'center',
+            fontFamily: 'monospace',
+          }}
+        &gt;
+          {src.split('/').pop()} | {renderer} | {loop ? 'loop' : 'once'}
+        &lt;/div&gt;
+      )}
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="10">10. 모션 디자인 토큰 &amp; 시스템 통합</h2>
+            <blockquote>
+              <p>
+                <strong>참고</strong>: 디자인 토큰 체계는
+                <a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템 가이드</a>의 토큰 섹션과
+                통합하여 사용합니다.
+              </p>
+            </blockquote>
+            <p>
+              애니메이션의 일관성을 보장하기 위해 duration, easing, delay 등을 디자인 토큰으로
+              관리합니다. 하드코딩된 값 대신 토큰을 사용하면 전역 조정과 실험군 검증이 쉬워집니다.
+            </p>
+            <p>
+              <strong>일상 비유</strong>: 모든 직원이 회사 표준 시계(토큰)를 차도록 강제하면,
+              매장마다 다른 시간으로 회의를 잡는 일이 사라진다. 디자이너가 표준 시계의 분 단위를
+              바꾸면 전 매장이 동시에 따라간다.
+            </p>
+            <p>
+              이 그림은 디자인 토큰이 어디서 정의되고 어떤 경로로 코드/도구에 흘러 들어가는지
+              의존성을 보여줍니다.
+            </p>
+            <pre class="mermaid">
+flowchart TD
+  Source[Figma Tokens / DTCG] --&gt; Build[Style Dictionary 빌드]
+  Build --&gt; CSS[&quot;motion-tokens.css&lt;br/&gt;@theme custom property&quot;]
+  Build --&gt; TS[&quot;motion-tokens.ts&lt;br/&gt;DURATION/EASE/STAGGER&quot;]
+  Build --&gt; Tailwind[&quot;tailwind.config&lt;br/&gt;animation utilities&quot;]
+  CSS --&gt; ComponentCSS[CSS/SCSS 컴포넌트]
+  TS --&gt; Motion[motion/react variants]
+  TS --&gt; GSAP[GSAP timeline]
+  Tailwind --&gt; Class[Tailwind class 사용처]
+  ComponentCSS --&gt; Lint[ESLint no-hardcoded-duration]
+  Motion --&gt; Lint
+  GSAP --&gt; Lint
+  Class --&gt; Lint
+  Lint --&gt; PR[PR 게이트]</pre
+            >
+            <h3 id="_11">모션 토큰 정의</h3>
+            <pre><code class="language-css">/* src/shared/styles/motion-tokens.css */
+/* Tailwind v4 CSS-first 설정과 통합 */
+
+@theme {
+  /* ── Duration 토큰 ── */
+  --duration-instant: 0ms; /* 상태 변경 (즉시) */
+  --duration-fast: 100ms; /* 마이크로 인터랙션 (호버, 탭) */
+  --duration-normal: 200ms; /* 일반 전환 (토글, 드롭다운) */
+  --duration-slow: 300ms; /* 진입/퇴장 애니메이션 */
+  --duration-slower: 500ms; /* 페이지 전환, 모달 */
+  --duration-slowest: 800ms; /* 히어로 섹션, 랜딩 */
+
+  /* ── Easing 토큰 ── */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1); /* Material 기본 */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1); /* 가속 (퇴장) */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1); /* 감속 (진입) */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* 가속→감속 */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 바운스 느낌 */
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 강한 바운스 */
+
+  /* ── Stagger 토큰 ── */
+  --stagger-fast: 30ms; /* 리스트 아이템 */
+  --stagger-normal: 50ms; /* 카드 그리드 */
+  --stagger-slow: 80ms; /* 히어로 텍스트 */
+}
+</code></pre>
+            <h3 id="typescript">TypeScript 모션 토큰</h3>
+            <pre><code class="language-typescript">// src/shared/config/motion-tokens.ts
+// CSS 토큰과 동기화된 TypeScript 상수
+
+/** Duration 토큰 (초 단위 - Framer Motion 호환) */
+export const DURATION = {
+  instant: 0,
+  fast: 0.1,
+  normal: 0.2,
+  slow: 0.3,
+  slower: 0.5,
+  slowest: 0.8,
+} as const
+
+/** Easing 토큰 */
+export const EASE = {
+  default: [0.4, 0, 0.2, 1] as const,
+  in: [0.4, 0, 1, 1] as const,
+  out: [0, 0, 0.2, 1] as const,
+  inOut: [0.4, 0, 0.2, 1] as const,
+  spring: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  bounce: { type: 'spring' as const, stiffness: 500, damping: 25 },
+} as const
+
+/** Stagger 토큰 (초 단위) */
+export const STAGGER = {
+  fast: 0.03,
+  normal: 0.05,
+  slow: 0.08,
+} as const
+
+/**
+ * 토큰 기반 transition 생성 헬퍼
+ * 하드코딩 대신 토큰을 사용하여 일관성 보장
+ */
+export function createTransition(
+  duration: keyof typeof DURATION = 'normal',
+  ease: keyof Omit&lt;typeof EASE, 'spring' | 'bounce'&gt; = 'default',
+) {
+  return {
+    duration: DURATION[duration],
+    ease: EASE[ease],
+  }
+}
+</code></pre>
+            <h3 id="eslint">ESLint 규칙: 하드코딩 방지</h3>
+            <pre><code class="language-typescript">// eslint-plugin-motion/no-hardcoded-duration.ts
+// 애니메이션 duration 하드코딩을 감지하고 토큰 사용을 권장하는 ESLint 규칙
+
+/*
+ * 잘못된 예:
+ *   transition={{ duration: 0.3 }}
+ *
+ * 올바른 예:
+ *   import { DURATION } from '@/shared/config/motion-tokens';
+ *   transition={{ duration: DURATION.slow }}
+ */
+</code></pre>
+            <hr />
+            <h2 id="11">11. 체크리스트</h2>
+            <h3 id="_12">기본 품질 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>항목</th>
+                    <th>확인</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>GPU 가속 속성만 사용 (<code>transform</code>, <code>opacity</code>)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><code>prefers-reduced-motion</code> 대응 완료</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>뷰포트 밖 애니메이션 정지 (IntersectionObserver)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td><code>will-change</code> 최소 사용 (시작 전 추가, 종료 후 제거)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Lottie 파일 dotLottie 변환 완료</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>접근성 ARIA 속성 추가 (<code>role</code>, <code>aria-label</code>)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>Feature Flag로 모션 on/off 가능</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>Preview 환경에서 디버그 도구 동작 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>9</td>
+                    <td>모션 실험군 설정 완료</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>10</td>
+                    <td>60fps 이상 유지 확인 (DevTools Performance 탭)</td>
+                    <td>[ ]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_13">성능 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>항목</th>
+                    <th>확인</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>
+                      <code>left</code>/<code>top</code>/<code>width</code>/<code>height</code>
+                      애니메이션 금지 (transform 사용)
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>CSS로 가능한 애니메이션은 JS 미사용</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>
+                      Framer Motion tree-shaking 적용 (<code>import { motion }</code> 개별 임포트)
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Lottie 지연 로딩 (React.lazy + Suspense)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td><code>contain: layout style paint</code> 적용 (리플로우 격리)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>rAF 기반 JS 애니메이션 (setTimeout/setInterval 금지)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>모션 토큰 사용 (하드코딩 duration/easing 금지)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>번들 분석에서 미사용 GSAP 플러그인 제외 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_14">접근성 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>항목</th>
+                    <th>확인</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><code>prefers-reduced-motion: reduce</code> 미디어 쿼리 전역 적용</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>장식적 애니메이션: reduced-motion 시 완전 비활성화</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>기능적 애니메이션: reduced-motion 시 즉시 완료 (duration: 0)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Lottie/Canvas에 <code>role="img"</code> + <code>aria-label</code> 추가</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>자동 재생 애니메이션에 일시정지 버튼 제공 (WCAG 2.2.2)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>깜빡임 주파수 3Hz 이하 유지 (WCAG 2.3.1)</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>Playwright E2E 테스트에 reduced-motion 시나리오 포함</td>
+                    <td>[ ]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_15">배포 전 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>항목</th>
+                    <th>확인</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Preview 환경에서 모든 애니메이션 육안 검증</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>디버그 패널/오버레이가 프로덕션에서 제거되는지 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>
+                      View Transitions L1/L2 미지원 브라우저 (<a
+                        href="./13_브라우저_호환성_가이드.md"
+                        >13. 호환성 가이드</a
+                      >) 폴백 동작 확인
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>모바일 디바이스 (저사양) 성능 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Feature Flag 기본값이 올바른지 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>
+                      Core Web Vitals INP 영향 확인 (<a href="./08_성능_최적화_가이드.md"
+                        >08. 성능 가이드</a
+                      >)
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="_16">최신 신기술 도입 체크리스트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>항목</th>
+                    <th>확인</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>React motion library 사용 시 공식 release/라이선스/번들 크기 검증 완료</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>
+                      MPA 전환에 <code>@view-transition { navigation: auto }</code> 적용 (Level 2)
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>
+                      스프링 곡선을 <code>linear()</code> easing으로 표현 (JS 라이브러리 제거 가능
+                      여부 확인)
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>CSS Scroll-Driven Animations로 JS scroll library 대체 가능한 부분 식별</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Timeline library 사용 시 플러그인별 라이선스와 tree-shaking 확인</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>LoAF(Long Animation Frames) PerformanceObserver로 50ms+ 프레임 모니터링</td>
+                    <td>[ ]</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>
+                      View Transitions L2와 <code>prefers-reduced-motion</code> 충돌 없음 확인
+                    </td>
+                    <td>[ ]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="_17">연관 가이드</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>가이드</th>
+                    <th>연관 내용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="./02_React19_실무_가이드.md">02. React 19 실무 가이드</a></td>
+                    <td>React 19 호환 애니메이션 패턴, Suspense 연동</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./07_테스팅_가이드.md">07. 테스팅 가이드</a></td>
+                    <td>Playwright E2E 애니메이션 테스트, reduced-motion 시나리오</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./08_성능_최적화_가이드.md">08. 성능 최적화 가이드</a></td>
+                    <td>Core Web Vitals, INP, 번들 사이즈 최적화</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./13_브라우저_호환성_가이드.md">13. 브라우저 호환성 가이드</a></td>
+                    <td>View Transitions API 지원 현황, 폴백 전략</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./19_웹_접근성_가이드.md">19. 웹 접근성 가이드</a></td>
+                    <td>WCAG 모션 관련 기준, prefers-reduced-motion</td>
+                  </tr>
+                  <tr>
+                    <td><a href="./20_디자인_시스템_가이드.md">20. 디자인 시스템 가이드</a></td>
+                    <td>디자인 토큰, Tailwind v4, 컴포넌트 아키텍처</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="_18">실무 적용 가이드</h2>
+            <h3 id="_19">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>모션이 UX를 돕는지 방해하는지 판단해야 할 때</li>
+              <li>route transition이나 scroll animation이 성능/접근성을 악화시킬 때</li>
+              <li>reduced motion 대응을 표준화해야 할 때</li>
+            </ul>
+            <h3 id="_20">적용 순서</h3>
+            <ol>
+              <li>모션의 목적을 feedback, continuity, hierarchy, delight 중 하나로 정한다.</li>
+              <li>duration, easing, interruption, cancel 조건을 정의한다.</li>
+              <li>prefers-reduced-motion 대응을 먼저 만든다.</li>
+              <li>INP, long task, frame time을 trace로 확인한다.</li>
+              <li>flag나 fallback으로 모션을 끌 수 있게 한다.</li>
+            </ol>
+            <h3 id="_21">함께 두는 파일</h3>
+            <ul>
+              <li>feature 전용 motion config와 component를 같은 폴더에 둔다.</li>
+              <li>공통 transition primitive는 접근성/성능 테스트와 함께 shared로 둔다.</li>
+              <li>route transition fallback은 route 가까이에 둔다.</li>
+            </ul>
+            <h3 id="_22">흔한 실수</h3>
+            <ul>
+              <li>장식 목적으로 모든 상태에 animation을 넣는다.</li>
+              <li>사용자 입력 중 애니메이션이 취소되지 않는다.</li>
+              <li>reduced motion에서 opacity/transform만 줄이고 flow를 깨뜨린다.</li>
+              <li>무거운 motion library를 초기 번들에 넣는다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] motion 목적과 off 조건이 있다.</li>
+              <li>[ ] reduced motion 테스트가 있다.</li>
+              <li>[ ] performance trace가 있다.</li>
+              <li>[ ] fallback/rollback이 가능하다.</li>
+            </ul>
+            <h2 id="_23">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — interaction motion, reduced motion, animation budget 중
+                하나를 작은 변경 1건에 적용하고 증거(motion spec)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 모션 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — INP 악화, long task, motion sickness complaint, dropped
+                frames 추이를 보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 모션 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_24">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : interaction motion, reduced motion, animation budget
+                적용 대상을 1개로 좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(motion spec, perf trace, reduced-motion capture,
+                visual diff)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : INP 악화, long task, motion sickness complaint,
+                dropped frames가 기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_25">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 모션이 상태 변화를 설명하는지, 장식인지 먼저 구분한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : 모션 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : reduced motion과 performance trace가 통과하면 적용 범위를
+                넓힌다.
+              </li>
+              <li>
+                <code>정지 조건</code> : INP나 accessibility preference를 해치면 motion을 끄거나
+                단순화한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 애니메이션 빈도, viewport 점유, device 성능으로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : UX 엔지니어링 리드가 최종 승인 책임을 맡는다.</li>
+              <li><code>승인 역할</code> : 모션 작성자, 검토자, 운영 확인자를 분리해 기록한다.</li>
+              <li>
+                <code>재평가 주기</code> : 주요 interaction 변경마다 reduced-motion 경로를 다시
+                본다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

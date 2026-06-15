@@ -1,0 +1,3752 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 05 API 통신 및 모킹 가이드.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="05-api">05. API 통신 및 모킹 가이드</h1>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>이 문서는 프론트엔드와 서버가 주고받는 약속과 테스트를 쉽게 맞추는 방법입니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: API 통신은 식당에서의 주문과 같습니다. 메뉴판(OpenAPI
+                명세)이 있어야 손님(프론트)과 주방(백엔드)이 같은 음식을 떠올리며, 가짜 메뉴(MSW)로
+                미리 리허설을 해두면 실제 영업에서 실수가 줄어듭니다.
+              </p>
+            </blockquote>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>API</code></td>
+                    <td>화면이 서버와 통신할 때 쓰는 주소/규칙</td>
+                  </tr>
+                  <tr>
+                    <td><code>엔드포인트</code></td>
+                    <td>특정 기능 요청을 받는 URL</td>
+                  </tr>
+                  <tr>
+                    <td><code>요청/응답</code></td>
+                    <td>클라이언트가 보내는 질문과 서버가 돌려주는 대답</td>
+                  </tr>
+                  <tr>
+                    <td><code>MSW</code></td>
+                    <td>로컬 테스트용 가짜 서버 모킹 도구</td>
+                  </tr>
+                  <tr>
+                    <td><code>contract</code></td>
+                    <td>서버/클라이언트가 같은 데이터 규칙을 공유하는 약속</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="contract-first">Contract-First 흐름 한눈에 보기</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 합의된 계약(스펙)이 있어야 백엔드/프론트가 동시에 작업해도 충돌이
+                줄어듭니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+sequenceDiagram
+  participant BE as 백엔드 팀
+  participant Spec as OpenAPI 스펙
+  participant CG as Codegen
+  participant FE as 프론트엔드
+  participant Mock as MSW
+
+  BE-&gt;&gt;Spec: 엔드포인트/스키마 정의 (PR)
+  Spec-&gt;&gt;CG: spec diff 트리거
+  CG-&gt;&gt;FE: TS 타입 + API 클라이언트 생성
+  CG-&gt;&gt;Mock: 핸들러 스켈레톤 생성
+  FE-&gt;&gt;Mock: 로컬 개발 (실서버 없이)
+  FE-&gt;&gt;BE: 통합 시 실제 호출로 전환
+  Mock--&gt;&gt;FE: 가상 응답 (성공/실패 모두)
+  BE--&gt;&gt;FE: 실 응답 (동일 스키마 보장)</pre
+            >
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">아키텍처</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./06_웹_보안_심화_가이드.md">06. 보안</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      OpenAPI 3.1 코드젠, MSW 2.x(boundary), Result 패턴, TanStack Query v5, RSC
+                      Hydration
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                <strong
+                  >"인터페이스 명세와 가상 응답만 있다면 비즈니스 로직을 완결할 수
+                  있습니다."</strong
+                >
+                본 가이드는 타입 안전하고 예측 가능한 시스템 간 통신 계층을 구축하는 워크플로우를
+                제시합니다. API 설계 원칙부터 에러 핸들링, 토큰 갱신, 캐싱 전략까지 프론트엔드 통신
+                계층의 전체 아키텍처를 다룹니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: API 계약(OpenAPI/스키마)을 먼저 고정하고 에러 코드는
+                일관된 분류 체계로 통일하세요.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 프론트 요청 재시도/타임아웃 정책은 기능별로 다르지 않게
+                중앙 규칙으로 관리합니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: MSW는 계약 변경 시나리오 테스트까지 반영해 production
+                모킹 없이도 회귀를 줄입니다.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — OpenAPI/contract와 MSW handler 중 하나를 실제 PR이나 운영
+                이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — schema diff, generated client diff, contract test log를
+                같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — mock drift, 4xx/5xx 처리 누락, contract failure 수가
+                나아졌는지 30일 안에 확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : OpenAPI/contract와 MSW handler 적용 범위를 어느 화면, 패키지,
+                문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : schema diff, generated client diff, contract test log 중 실제로
+                남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : mock drift, 4xx/5xx 처리 누락, contract failure 수를 다시
+                볼 날짜와 담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <p>문서 전체가 길어 보여도 처음엔 아래 3가지만 이해하면 핵심을 놓치지 않습니다.</p>
+            <ol>
+              <li>
+                <strong><code>계약(API 명세)</code>이 먼저다.</strong>
+              </li>
+              <li>API의 입력/출력 형식을 먼저 정해야 타입과 런타임 검증이 맞춰집니다.</li>
+              <li><strong>실패를 미리 분류한다.</strong></li>
+              <li>
+                요청 실패를 “네트워크”, “권한”, “중복 요청”처럼 구분해 사용자 메시지와 재시도 전략을
+                다르게 만듭니다.
+              </li>
+              <li><strong>모의 응답(MSW)도 실제 스펙을 따라야 한다.</strong></li>
+              <li>테스트에서 쓰는 응답이 실제 API와 다르면, 운영에서 바로 문제가 납니다.</li>
+            </ol>
+            <h2 id="_7">쉬운 말로 보는 용어 정리 (이 문서 중심)</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>평소 말투로 바꿔 말하면</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>OpenAPI</code></td>
+                    <td>백엔드와 프론트가 같은 약속으로 대화하도록 적어둔 메뉴얼</td>
+                  </tr>
+                  <tr>
+                    <td><code>MSW</code></td>
+                    <td>실제 서버 없이도 API 호출을 흉내 낼 수 있는 테스트용 가짜 서버</td>
+                  </tr>
+                  <tr>
+                    <td><code>타임아웃</code></td>
+                    <td>지정 시간 안에 응답이 안 오면 요청을 멈추는 장치</td>
+                  </tr>
+                  <tr>
+                    <td><code>재시도</code></td>
+                    <td>일시적 실패가 나면 잠시 후 다시 요청을 보내는 동작</td>
+                  </tr>
+                  <tr>
+                    <td><code>contract test</code></td>
+                    <td>클라이언트와 서버가 같은 데이터 규칙을 지키는지 자동 검사</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      API contract, generated client, mock fidelity, error taxonomy
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./01_TypeScript_심화_가이드.md">01. TypeScript</a>,
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">인증, 토큰, CSRF, 민감정보가 걸린 통신 기준</td>
+                    <td style="text-align: left">
+                      <a href="./06_웹_보안_심화_가이드.md">06. 보안</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      cache invalidation, retry, streaming, abort 정책
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./03_상태관리_패턴_가이드.md">03. 상태관리</a>,
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">API 변경을 배포/롤백할 때의 운영 게이트</td>
+                    <td style="text-align: left">
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <p>
+              API 통신 표준은 특정 코드젠 도구가 아니라
+              <strong>계약, 실패 모델, 타입 안전성, 관측 가능성</strong>을 일관되게 유지하는
+              방식입니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">최소 적용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>계약 우선</strong></td>
+                    <td style="text-align: left">
+                      REST는 OpenAPI, GraphQL은 schema, RPC는 IDL처럼 기계가 검증할 수 있는 계약을
+                      둡니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>생성 코드 격리</strong></td>
+                    <td style="text-align: left">
+                      generated client는 직접 수정하지 않고, thin wrapper에서 인증/에러/관측성을
+                      처리합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>런타임 검증</strong></td>
+                    <td style="text-align: left">
+                      외부 응답, feature flag, CMS/remote config는 TypeScript 타입만 믿지 않고
+                      schema로 검증합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>실패 모델</strong></td>
+                    <td style="text-align: left">
+                      timeout, retry, abort, 401/403/409/429/5xx, 네트워크 단절을 Result 또는 동일한
+                      에러 모델로 표현합니다.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>모킹 일관성</strong></td>
+                    <td style="text-align: left">
+                      테스트/스토리/로컬 개발이 같은 mock contract를 사용하고, 실제 스펙과 drift를
+                      검사합니다.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 통신 파이프라인 한눈에 보기</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 한 줄의 명세 변경이 어디까지 흘러가는지 미리 보면 사고를 예방할 수
+                있습니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;백엔드 명세 (OpenAPI/IDL)&quot;] --&gt; B[코드 생성기]
+  B --&gt; C[타입+클라이언트 공통 인터페이스]
+  C --&gt; D[인증/재시도/타임아웃/abort 정책]
+  D --&gt; E[도메인 서비스]
+  E --&gt; F[UI 반영]
+  D --&gt;|정책 위반| G[에러 정규화 + fallback]
+  H[MSW Mock] --&gt; C
+  H --&gt; I[Fixture 검증]
+  I --&gt; E</pre
+            >
+            <h3 id="001">0.0.1 통신 계층 아키텍처 단면도</h3>
+            <pre class="mermaid">
+flowchart TD
+  subgraph UI[&quot;UI 레이어&quot;]
+    Comp[React Component]
+    Hook[Custom Hook]
+  end
+  subgraph SQ[&quot;서버 상태&quot;]
+    TQ[TanStack Query]
+  end
+  subgraph Service[&quot;도메인 서비스&quot;]
+    Service1[UserService]
+    Service2[OrderService]
+  end
+  subgraph Repo[&quot;Repository&quot;]
+    Repo1[UserRepository]
+    Repo2[OrderRepository]
+  end
+  subgraph Client[&quot;HTTP 클라이언트&quot;]
+    CF[customFetch wrapper]
+    Inter[interceptors]
+  end
+  subgraph Generated[&quot;생성 코드 (수정 금지)&quot;]
+    GenAPI[generated/endpoints.ts]
+    GenModel[generated/models.ts]
+  end
+  subgraph Network[&quot;네트워크&quot;]
+    Real[실 서버]
+    MSW[MSW 핸들러]
+  end
+
+  Comp --&gt; Hook
+  Hook --&gt; TQ
+  TQ --&gt; Service1
+  TQ --&gt; Service2
+  Service1 --&gt; Repo1
+  Service2 --&gt; Repo2
+  Repo1 --&gt; GenAPI
+  Repo2 --&gt; GenAPI
+  GenAPI --&gt; CF
+  CF --&gt; Inter
+  Inter --&gt; Network
+  Network --&gt; Real
+  Network --&gt; MSW
+  GenModel -.타입.-&gt; Repo1
+  GenModel -.타입.-&gt; Repo2
+  GenModel -.타입.-&gt; Service1</pre
+            >
+            <p>각 계층의 책임을 분리하면 한 곳의 변경이 다른 계층으로 새지 않습니다.</p>
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      신규 REST 계약은 OpenAPI 3.1 이상, 3.2는 도구 호환성 검증 후 적용한다
+                    </td>
+                    <td style="text-align: left">OpenAPI Specification latest</td>
+                    <td style="text-align: left">spec lint, generated type diff, contract test</td>
+                    <td style="text-align: left">API drift, client runtime error</td>
+                    <td style="text-align: left">
+                      코드젠/문서/게이트웨이가 해당 버전을 안정 지원하지 않을 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      mock은 실제 API 계약에서 생성하거나 계약 테스트와 묶는다
+                    </td>
+                    <td style="text-align: left">MSW/코드젠 도구 공식 문서</td>
+                    <td style="text-align: left">mock handler coverage, schema validation</td>
+                    <td style="text-align: left">mock-pass/prod-fail 비율</td>
+                    <td style="text-align: left">
+                      백엔드 계약이 비정형이어서 명세 비용이 과도할 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      API 에러는 throw 문자열이 아니라 구조화된 Result로 전달한다
+                    </td>
+                    <td style="text-align: left">HTTP/RFC, 프레임워크 error boundary 문서</td>
+                    <td style="text-align: left">exhaustive switch, 401/409/429 테스트</td>
+                    <td style="text-align: left">사용자 재시도 성공률, 에러 분류 정확도</td>
+                    <td style="text-align: left">
+                      호출 계층이 에러 바운더리로만 처리되는 단순 앱일 때
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      실시간/스트리밍 API는 backpressure와 취소를 먼저 설계한다
+                    </td>
+                    <td style="text-align: left">Fetch/Streams 표준, OpenAPI streaming 지원</td>
+                    <td style="text-align: left">abort test, reconnect test</td>
+                    <td style="text-align: left">reconnect storm, memory growth</td>
+                    <td style="text-align: left">폴링이 더 단순하고 운영 비용이 낮을 때</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">API contract gate</td>
+                    <td style="text-align: left">spec lint, generated diff, contract test</td>
+                    <td style="text-align: left">API owner</td>
+                    <td style="text-align: left">previous spec artifact pinning</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Mock fidelity gate</td>
+                    <td style="text-align: left">MSW handler coverage, schema fixture</td>
+                    <td style="text-align: left">FE/API owner</td>
+                    <td style="text-align: left">mock handler freeze 후 실제 API smoke 우선</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Error taxonomy gate</td>
+                    <td style="text-align: left">Result union test, 401/409/429 fixture</td>
+                    <td style="text-align: left">Feature owner</td>
+                    <td style="text-align: left">error boundary fallback path 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Streaming gate</td>
+                    <td style="text-align: left">abort/reconnect/backpressure test</td>
+                    <td style="text-align: left">Platform owner</td>
+                    <td style="text-align: left">polling 또는 pagination fallback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="1-openapi-31-codegen">1. 인터페이스 주도 개발: OpenAPI 3.1 &amp; Codegen</h2>
+            <p>
+              시스템 스펙(OpenAPI)을 기반으로 TypeScript 타입과 통신 함수를 자동으로 생성하여 데이터
+              정합성을 보장합니다. 백엔드 팀이 스웨거 명세를 변경하면, 코드젠 도구가 자동으로 타입을
+              재생성하여 프론트엔드에서 즉시 타입 오류를 감지할 수 있습니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 명세 우선 개발은 건축에서의 설계도와 같습니다.
+                설계도(OpenAPI)가 먼저 있으면 전기공·배관공·미장공(여러 팀)이 동시에 작업해도 충돌이
+                줄어들고, 설계가 바뀌면 모두에게 그 영향이 즉시 보입니다.
+              </p>
+              <p>
+                <strong>OpenAPI 버전 기준</strong>: OpenAPI 3.2.0이 2025년 9월 공개된 최신
+                minor이며, streaming media type과 tag 구조 개선을 포함합니다. 다만
+                코드젠/문서/게이트웨이 호환성이 조직마다 다르므로 신규 표준은
+                <strong>3.1 이상을 baseline</strong>,
+                <strong>3.2는 도구 호환성 검증 후 recommended</strong>로 적용합니다. 3.1은 JSON
+                Schema 2020-12와 완전 호환되어 <code>nullable</code> 대신
+                <code>type: [string, "null"]</code> 형식의 유니온, <code>examples</code> 배열,
+                <code>webhooks</code> 정의를 지원합니다.
+              </p>
+            </blockquote>
+            <h3 id="11">1.1 코드젠 도구 비교</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">도구</th>
+                    <th style="text-align: left">특징</th>
+                    <th style="text-align: left">추천 상황</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>openapi-typescript 7.x</strong></td>
+                    <td style="text-align: left">
+                      런타임 코드 없이 <strong>타입만</strong> 생성. <code>openapi-fetch</code>와
+                      조합 시 가장 가벼움. <code>--read-write-markers</code>로 readOnly/writeOnly
+                      자동 분리
+                    </td>
+                    <td style="text-align: left">번들 크기 최소화, 타입만 필요</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>@hey-api/openapi-ts</strong></td>
+                    <td style="text-align: left">
+                      TypeScript + SDK + Zod + TanStack Query 훅까지 한 번에 생성.
+                      <strong>ESM 전용</strong>, 플러그인 기반 확장
+                    </td>
+                    <td style="text-align: left">풀스택 SDK 자동 생성, 신규 프로젝트</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Orval v7+</strong></td>
+                    <td style="text-align: left">
+                      React Query/SWR/Angular/Vue 훅 + <strong>MSW 핸들러 자동 생성</strong>(Faker
+                      데이터) + Zod 스키마
+                    </td>
+                    <td style="text-align: left">프론트 모킹까지 통합 자동화</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>Kubb</strong></td>
+                    <td style="text-align: left">플러그인 기반, 부분 도입에 유리</td>
+                    <td style="text-align: left">기존 코드젠 일부만 교체</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <blockquote>
+              <p>
+                <strong>참고</strong>: 본 가이드는 Orval을 중심으로 설명하지만,
+                <strong>타입만 필요하면 openapi-typescript 7.x</strong>,
+                <strong>SDK·훅까지 자동 생성</strong>이 필요하면
+                <strong>@hey-api/openapi-ts</strong>가 더 적합합니다.
+              </p>
+            </blockquote>
+            <h3 id="12">1.2 워크플로우 개요</h3>
+            <blockquote>
+              <p>
+                일상 비유: 명세는 메뉴판이고, 코드젠은 메뉴판을 보고 키오스크
+                화면(타입+클라이언트)을 자동으로 그려주는 디자이너입니다.
+              </p>
+            </blockquote>
+            <pre><code>┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
+│ swagger.yaml │ ──→ │ Orval (코드젠) │ ──→ │ TypeScript 타입  │ ──→ │ API 함수 호출  │
+│ (백엔드 제공) │     │  orval.config │     │ + API 클라이언트  │     │ (프론트엔드)   │
+└─────────────┘     └──────────────┘     └─────────────────┘     └──────────────┘
+</code></pre>
+            <pre class="mermaid">
+flowchart LR
+  Spec[&quot;api-spec.yaml&lt;br/&gt;(OpenAPI 3.1)&quot;] --&gt; Lint[spec lint]
+  Lint --&gt; Diff[이전 버전 diff]
+  Diff --&gt; Gen[Orval codegen]
+  Gen --&gt; Types[&quot;models/*.ts&lt;br/&gt;(타입 정의)&quot;]
+  Gen --&gt; Endpoints[&quot;endpoints.ts&lt;br/&gt;(API 함수+훅)&quot;]
+  Gen --&gt; MockSk[&quot;MSW handler 스켈레톤&quot;]
+  Types --&gt; TS[tsc typecheck]
+  Endpoints --&gt; TS
+  MockSk --&gt; Manual[수동 fixture 보강]
+  TS --&gt; Build[빌드/배포]
+  Manual --&gt; Tests[단위/통합 테스트]</pre
+            >
+            <h3 id="121">1.2.1 코드젠 도구 선택 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start[코드젠 도구 선택] --&gt; Q1{타입만 필요?}
+  Q1 --&gt;|예| OT[&quot;openapi-typescript 7.x&lt;br/&gt;+ openapi-fetch&quot;]
+  Q1 --&gt;|아니오| Q2{훅까지 자동 생성?}
+  Q2 --&gt;|아니오| Q3{기존 코드젠 부분 교체?}
+  Q3 --&gt;|예| Kubb[Kubb 플러그인]
+  Q3 --&gt;|아니오| OT
+  Q2 --&gt;|예| Q4{MSW 핸들러도 자동 생성?}
+  Q4 --&gt;|예| Orval[Orval v7+]
+  Q4 --&gt;|아니오| Q5{Zod 스키마/RQ까지?}
+  Q5 --&gt;|예| HeyAPI[&quot;@hey-api/openapi-ts&quot;]
+  Q5 --&gt;|아니오| Orval</pre
+            >
+            <h3 id="13-orval-orvalconfigts">1.3 Orval 설정 (orval.config.ts)</h3>
+            <pre><code class="language-typescript">// orval.config.ts — 프로젝트 루트에 위치
+import { defineConfig } from 'orval'
+
+export default defineConfig({
+  // 메인 API 코드젠 설정
+  mainApi: {
+    input: {
+      // 백엔드 스웨거 명세 경로 (로컬 파일 또는 URL)
+      target: './swagger/api-spec.yaml',
+      // 명세 유효성 검증 활성화
+      validation: true,
+    },
+    output: {
+      // 생성 파일 출력 경로
+      target: './src/api/generated/endpoints.ts',
+      // 스키마(타입) 별도 파일로 분리
+      schemas: './src/api/generated/models',
+      // 클라이언트 라이브러리 선택
+      client: 'react-query',
+      // HTTP 클라이언트 선택 (axios | fetch)
+      httpClient: 'fetch',
+      // 커스텀 인스턴스 사용 설정
+      override: {
+        // 커스텀 fetch 인스턴스 경로
+        mutator: {
+          path: './src/api/client/customFetch.ts',
+          name: 'customFetch',
+        },
+        // 쿼리 키 팩토리 자동 생성
+        query: {
+          useQuery: true,
+          useSuspenseQuery: true,
+          useMutation: true,
+          // 쿼리 키를 별도 파일로 추출
+          signal: true,
+        },
+        // 응답 타입을 자동으로 추출
+        operations: {
+          // 특정 엔드포인트에 대한 오버라이드
+          getUsers: {
+            query: {
+              useQuery: true,
+              useSuspenseQuery: true,
+            },
+          },
+        },
+      },
+      // 생성 모드: 'split' | 'single' | 'tags' | 'tags-split'
+      mode: 'tags-split',
+    },
+  },
+})
+</code></pre>
+            <h3 id="14">1.4 생성되는 코드 예시</h3>
+            <p><strong>swagger.yaml 입력 (OpenAPI 3.1):</strong></p>
+            <pre><code class="language-yaml"># swagger/api-spec.yaml — OpenAPI 3.1 (JSON Schema 2020-12 호환)
+openapi: 3.1.0
+info:
+  title: 프로젝트 API
+  version: 1.0.0
+paths:
+  /api/v1/users:
+    get:
+      operationId: getUsers
+      summary: 사용자 목록 조회
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+    post:
+      operationId: createUser
+      summary: 사용자 생성
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required: [id, email, name]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, USER, GUEST]
+    UserListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+    CreateUserRequest:
+      type: object
+      required: [email, name]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, USER, GUEST]
+</code></pre>
+            <p><strong>생성된 TypeScript 타입 (models/user.ts):</strong></p>
+            <pre><code class="language-typescript">// src/api/generated/models/user.ts — 자동 생성 파일 (수동 편집 금지)
+
+/** 사용자 역할 */
+export type UserRole = 'ADMIN' | 'USER' | 'GUEST'
+
+/** 사용자 엔티티 */
+export interface User {
+  id: number
+  email: string
+  name: string
+  role?: UserRole
+}
+
+/** 사용자 목록 응답 */
+export interface UserListResponse {
+  items?: User[]
+  totalCount?: number
+  page?: number
+}
+
+/** 사용자 생성 요청 */
+export interface CreateUserRequest {
+  email: string
+  name: string
+  role?: UserRole
+}
+
+/** getUsers 쿼리 파라미터 */
+export interface GetUsersParams {
+  page?: number
+  size?: number
+}
+</code></pre>
+            <p><strong>생성된 API 함수 및 React Query 훅 (endpoints.ts):</strong></p>
+            <pre><code class="language-typescript">// src/api/generated/endpoints.ts — 자동 생성 파일 (수동 편집 금지)
+import { useSuspenseQuery, useMutation } from '@tanstack/react-query'
+import { customFetch } from '../client/customFetch'
+import type { User, UserListResponse, GetUsersParams, CreateUserRequest } from './models'
+
+// ─── API 함수 ─────────────────────────────────
+/** 사용자 목록 조회 */
+export const getUsers = (params?: GetUsersParams, signal?: AbortSignal) =&gt; {
+  return customFetch&lt;UserListResponse&gt;({
+    url: '/api/v1/users',
+    method: 'GET',
+    params,
+    signal,
+  })
+}
+
+/** 사용자 생성 */
+export const createUser = (body: CreateUserRequest) =&gt; {
+  return customFetch&lt;User&gt;({
+    url: '/api/v1/users',
+    method: 'POST',
+    data: body,
+  })
+}
+
+// ─── 쿼리 키 팩토리 ──────────────────────────────
+export const getUsersQueryKey = (params?: GetUsersParams) =&gt;
+  ['api', 'v1', 'users', ...(params ? [params] : [])] as const
+
+// ─── React Query 훅 ──────────────────────────────
+/** 사용자 목록 조회 (Suspense 전용) */
+export const useGetUsersSuspense = (params?: GetUsersParams) =&gt; {
+  return useSuspenseQuery({
+    queryKey: getUsersQueryKey(params),
+    queryFn: ({ signal }) =&gt; getUsers(params, signal),
+  })
+}
+
+/** 사용자 생성 뮤테이션 */
+export const useCreateUser = () =&gt; {
+  return useMutation({
+    mutationFn: (body: CreateUserRequest) =&gt; createUser(body),
+  })
+}
+</code></pre>
+            <h3 id="15-packagejson">1.5 package.json 스크립트 설정</h3>
+            <pre><code class="language-jsonc">// package.json
+{
+  &quot;scripts&quot;: {
+    // 코드젠 실행 (개발 시)
+    &quot;api:generate&quot;: &quot;orval&quot;,
+    // 코드젠 + 감시 모드 (명세 변경 시 자동 재생성)
+    &quot;api:watch&quot;: &quot;orval --watch&quot;,
+    // 스웨거 명세 다운로드 후 코드젠 (CI/CD에서 사용)
+    &quot;api:sync&quot;: &quot;curl -o swagger/api-spec.yaml $API_SPEC_URL &amp;&amp; orval&quot;,
+    // 생성된 파일 정리
+    &quot;api:clean&quot;: &quot;rm -rf src/api/generated&quot;,
+  },
+}
+</code></pre>
+            <h3 id="16">1.6 자동화 도구를 활용한 명세 동기화</h3>
+            <p>
+              백엔드 엔티티 변경 시 코드젠을 통해 즉시 타입 오류를 감지하고, 영향 범위를 파악합니다.
+            </p>
+            <pre><code class="language-bash"># CI 파이프라인에서 명세 변경 감지 후 자동 코드젠
+# .ci/workflows/api-sync.yml 에서 사용
+npm run api:sync
+
+# 타입 오류 확인 — 명세 변경으로 인한 깨진 부분 즉시 발견
+npx tsc --noEmit
+</code></pre>
+            <p><strong>권장 워크플로우:</strong></p>
+            <ol>
+              <li>백엔드 팀이 스웨거 명세를 업데이트하고 PR을 생성</li>
+              <li>CI가 명세 변경을 감지하여 프론트엔드 리포지토리에 자동 PR 생성</li>
+              <li><code>npm run api:generate</code> 실행으로 타입 + API 함수 재생성</li>
+              <li><code>tsc --noEmit</code>으로 타입 오류 확인</li>
+              <li>깨진 부분 수정 후 머지</li>
+            </ol>
+            <hr />
+            <h2 id="2-msw-2x">2. 가상 응답 시스템: MSW 2.x</h2>
+            <p>
+              실제 인프라가 준비되기 전이나 격리된 테스트 환경에서 네트워크 요청을 인터셉트하여 가상
+              데이터를 제공합니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: MSW는 영화 촬영장의 "그린 스크린"과 같습니다. 진짜
+                배경(서버) 없이도 같은 자세, 같은 카메라 워크(요청)로 촬영(테스트)할 수 있고,
+                마지막에 진짜 배경으로 교체해도 그림이 어긋나지 않습니다.
+              </p>
+            </blockquote>
+            <p><strong>MSW(Mock Service Worker)의 핵심 원리:</strong></p>
+            <ul>
+              <li>Service Worker를 통해 네트워크 레벨에서 요청을 인터셉트</li>
+              <li>애플리케이션 코드를 전혀 수정하지 않고 가상 응답 제공</li>
+              <li>브라우저(Service Worker)와 Node.js(인터셉터) 환경 모두 지원</li>
+              <li>실제 HTTP 요청/응답과 동일한 동작을 보장</li>
+            </ul>
+            <blockquote>
+              <p>
+                <strong>MSW v1은 더 이상 지원되지 않습니다.</strong> v2부터는 ①
+                <code>req/res/ctx</code> 컴포지션이 사라지고 Fetch API <code>Response</code>를 직접
+                반환하는 방식으로 변경되었으며, ② Node.js 18+가 요구되고, ③ ESM 호환이
+                강화되었습니다. v1 프로젝트는 공식 codemod(<code>npx @msw/codemods</code>)로 일괄
+                마이그레이션할 수 있습니다.
+              </p>
+            </blockquote>
+            <h3 id="20-msw">2.0 MSW 요청 인터셉트 흐름</h3>
+            <pre class="mermaid">
+sequenceDiagram
+  participant App as App 코드
+  participant Fetch as fetch / axios
+  participant SW as Service Worker / Node 인터셉터
+  participant Handler as MSW Handler
+  participant Real as 실제 서버
+
+  App-&gt;&gt;Fetch: GET /api/users
+  Fetch-&gt;&gt;SW: 네트워크 호출
+  alt 매칭 핸들러 있음
+    SW-&gt;&gt;Handler: 요청 위임
+    Handler--&gt;&gt;SW: HttpResponse.json(...)
+    SW--&gt;&gt;Fetch: 가상 응답
+  else 매칭 없음 (onUnhandledRequest)
+    SW-&gt;&gt;Real: 실제 요청 전달
+    Real--&gt;&gt;SW: 실 응답
+    SW--&gt;&gt;Fetch: pass-through
+  end
+  Fetch--&gt;&gt;App: 응답 객체</pre
+            >
+            <h3 id="201-msw">2.0.1 MSW 핸들러 라이프사이클</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Defined: handlers.ts 정의
+  Defined --&gt; Registered: setupServer / setupWorker 등록
+  Registered --&gt; Listening: server.listen / worker.start
+  Listening --&gt; Overridden: server.use 오버라이드
+  Overridden --&gt; Listening: server.resetHandlers (afterEach)
+  Listening --&gt; BoundaryActive: server.boundary 진입
+  BoundaryActive --&gt; Listening: boundary 종료 시 자동 격리 해제
+  Listening --&gt; OneShotUsed: once true 핸들러 소비
+  OneShotUsed --&gt; Listening: server.restoreHandlers
+  Listening --&gt; [*]: server.close (afterAll)</pre
+            >
+            <h3 id="21">2.1 설치 및 초기 설정</h3>
+            <pre><code class="language-bash"># MSW 설치
+npm install msw --save-dev
+
+# Service Worker 파일 생성 (브라우저 환경용)
+npx msw init public/ --save
+</code></pre>
+            <h3 id="22-setupworker">2.2 브라우저 환경 설정 (setupWorker)</h3>
+            <pre><code class="language-typescript">// src/mocks/browser.ts — 브라우저 환경에서 MSW 활성화
+import { setupWorker } from 'msw/browser'
+import { handlers } from './handlers'
+
+// Service Worker 기반 모킹 워커 생성
+export const worker = setupWorker(...handlers)
+</code></pre>
+            <pre><code class="language-typescript">// src/main.tsx — 개발 환경에서만 MSW 활성화
+async function bootstrap() {
+  // 개발 환경에서만 MSW 워커를 시작
+  if (import.meta.env.DEV) {
+    const { worker } = await import('./mocks/browser');
+    await worker.start({
+      // 처리되지 않은 요청은 그대로 통과 (콘솔 경고 표시)
+      onUnhandledRequest: 'warn',
+      // Service Worker 파일 경로
+      serviceWorker: {
+        url: '/mockServiceWorker.js',
+      },
+    });
+    console.log('[MSW] 모킹 활성화됨');
+  }
+
+  // React 앱 마운트
+  const root = document.getElementById('root')!;
+  ReactDOM.createRoot(root).render(&lt;App /&gt;);
+}
+
+bootstrap();
+</code></pre>
+            <h3 id="23-msw-nodejs-setupserver">
+              2.3 MSW Node.js 환경 설정 (setupServer) — 테스트용
+            </h3>
+            <pre><code class="language-typescript">// src/mocks/server.ts — Node.js 환경(테스트)에서 MSW 활성화
+import { setupServer } from 'msw/node'
+import { handlers } from './handlers'
+
+// Node.js 인터셉터 기반 모킹 서버 생성
+export const server = setupServer(...handlers)
+</code></pre>
+            <pre><code class="language-typescript">// src/setupTests.ts — Vitest/Jest 전역 설정
+// 연관: [07. 테스팅 가이드](./07_테스팅_가이드.md)
+import { server } from './mocks/server'
+
+// 모든 테스트 전에 서버 시작
+beforeAll(() =&gt; server.listen({ onUnhandledRequest: 'error' }))
+
+// 각 테스트 후 핸들러 초기화 (테스트 간 격리)
+afterEach(() =&gt; server.resetHandlers())
+
+// 모든 테스트 후 서버 종료
+afterAll(() =&gt; server.close())
+</code></pre>
+            <h3 id="231">2.3.1 목업 테스트 운영 원칙</h3>
+            <ul>
+              <li>
+                Node 테스트는 <code>setupServer</code>를 전역 test setup에서 한 번 시작하고,
+                <code>afterEach</code>에서 <code>resetHandlers</code>, <code>afterAll</code>에서
+                <code>close</code>를 호출합니다.
+              </li>
+              <li>
+                처리되지 않은 요청은 기본적으로 <code>onUnhandledRequest: 'error'</code>로 실패시켜
+                mock-pass/prod-fail을 줄입니다. 외부 asset이나 analytics처럼 우회가 필요한 요청은
+                명시적으로 handler 또는 bypass 정책을 남깁니다.
+              </li>
+              <li>
+                handler는 테스트 파일 안에 숨기지 말고 feature의 <code>api</code> 또는
+                <code>mocks</code>에 두어 local dev, Storybook, integration test가 같은 fixture를
+                재사용하게 합니다.
+              </li>
+              <li>
+                목업 테스트는 성공 응답만 보지 않습니다. validation error, auth error, timeout,
+                network error, rate limit, empty list를 최소 fixture로 둡니다.
+              </li>
+              <li>
+                mock이 실제 계약을 대체하지 않도록 OpenAPI/GraphQL/protobuf diff 또는 실제 API
+                smoke와 함께 운영합니다.
+              </li>
+            </ul>
+            <h3 id="24-domain-neutral">2.4 핸들러 설계 (Domain-Neutral)</h3>
+            <pre><code class="language-typescript">// src/mocks/handlers.ts — 모든 API 엔드포인트의 가상 응답 정의
+import { http, HttpResponse, delay } from 'msw'
+import type { User, CreateUserRequest, UserListResponse } from '@/api/generated/models'
+
+// ─── 가상 데이터 ──────────────────────────────────
+const mockUsers: User[] = [
+  { id: 1, email: 'admin@example.com', name: '관리자', role: 'ADMIN' },
+  { id: 2, email: 'user@example.com', name: '일반 사용자', role: 'USER' },
+  { id: 3, email: 'guest@example.com', name: '게스트', role: 'GUEST' },
+]
+
+let nextId = 4 // 자동 증가 ID
+
+// ─── 핸들러 정의 ──────────────────────────────────
+export const handlers = [
+  // GET — 사용자 목록 조회 (페이지네이션 지원)
+  http.get('/api/v1/users', async ({ request }) =&gt; {
+    await delay(200) // 네트워크 지연 시뮬레이션
+
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') ?? 1)
+    const size = Number(url.searchParams.get('size') ?? 20)
+
+    // 페이지네이션 처리
+    const start = (page - 1) * size
+    const paginatedUsers = mockUsers.slice(start, start + size)
+
+    return HttpResponse.json&lt;UserListResponse&gt;({
+      items: paginatedUsers,
+      totalCount: mockUsers.length,
+      page,
+    })
+  }),
+
+  // GET — 사용자 단건 조회
+  http.get('/api/v1/users/:id', async ({ params }) =&gt; {
+    await delay(150)
+    const userId = Number(params.id)
+    const user = mockUsers.find((u) =&gt; u.id === userId)
+
+    if (!user) {
+      // 404 에러 응답
+      return HttpResponse.json(
+        { code: 'USER_NOT_FOUND', message: '사용자를 찾을 수 없습니다.' },
+        { status: 404 },
+      )
+    }
+
+    return HttpResponse.json(user)
+  }),
+
+  // POST — 사용자 생성
+  http.post('/api/v1/users', async ({ request }) =&gt; {
+    await delay(300)
+    const body = (await request.json()) as CreateUserRequest
+
+    // 유효성 검증 실패 시뮬레이션
+    if (!body.email || !body.name) {
+      return HttpResponse.json(
+        {
+          code: 'VALIDATION_ERROR',
+          message: '필수 필드가 누락되었습니다.',
+          details: {
+            email: body.email ? null : '이메일은 필수입니다.',
+            name: body.name ? null : '이름은 필수입니다.',
+          },
+        },
+        { status: 400 },
+      )
+    }
+
+    // 새 사용자 생성
+    const newUser: User = {
+      id: nextId++,
+      email: body.email,
+      name: body.name,
+      role: body.role ?? 'USER',
+    }
+    mockUsers.push(newUser)
+
+    return HttpResponse.json(newUser, { status: 201 })
+  }),
+
+  // PUT — 사용자 정보 수정
+  http.put('/api/v1/users/:id', async ({ params, request }) =&gt; {
+    await delay(250)
+    const userId = Number(params.id)
+    const body = (await request.json()) as Partial&lt;CreateUserRequest&gt;
+    const userIndex = mockUsers.findIndex((u) =&gt; u.id === userId)
+
+    if (userIndex === -1) {
+      return HttpResponse.json(
+        { code: 'USER_NOT_FOUND', message: '사용자를 찾을 수 없습니다.' },
+        { status: 404 },
+      )
+    }
+
+    // 기존 데이터와 병합
+    mockUsers[userIndex] = { ...mockUsers[userIndex], ...body }
+    return HttpResponse.json(mockUsers[userIndex])
+  }),
+
+  // DELETE — 사용자 삭제
+  http.delete('/api/v1/users/:id', async ({ params }) =&gt; {
+    await delay(200)
+    const userId = Number(params.id)
+    const userIndex = mockUsers.findIndex((u) =&gt; u.id === userId)
+
+    if (userIndex === -1) {
+      return HttpResponse.json(
+        { code: 'USER_NOT_FOUND', message: '사용자를 찾을 수 없습니다.' },
+        { status: 404 },
+      )
+    }
+
+    mockUsers.splice(userIndex, 1)
+    // 204 No Content — 본문 없음
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ─── 에러 시나리오 핸들러 ─────────────────────────
+  // 서버 에러 시뮬레이션 (특정 조건에서 500 반환)
+  http.post('/api/v1/transaction/execute', async ({ request }) =&gt; {
+    await delay(500)
+    const body = (await request.json()) as { forceError?: boolean }
+
+    if (body.forceError) {
+      return HttpResponse.json(
+        { code: 'INTERNAL_ERROR', message: '내부 서버 오류가 발생했습니다.' },
+        { status: 500 },
+      )
+    }
+
+    return HttpResponse.json({
+      transactionId: 'tx-999',
+      status: 'COMPLETED',
+      data: { id: 1, name: 'Sample Entity' },
+    })
+  }),
+
+  // 인증 에러 시뮬레이션 (토큰 만료)
+  http.get('/api/v1/protected-resource', ({ request }) =&gt; {
+    const authHeader = request.headers.get('Authorization')
+
+    if (!authHeader || authHeader === 'Bearer expired-token') {
+      return HttpResponse.json(
+        { code: 'TOKEN_EXPIRED', message: '인증 토큰이 만료되었습니다.' },
+        { status: 401 },
+      )
+    }
+
+    return HttpResponse.json({ data: '보호된 리소스' })
+  }),
+
+  // 네트워크 타임아웃 시뮬레이션
+  http.get('/api/v1/slow-endpoint', async () =&gt; {
+    // 10초 지연 — 클라이언트 타임아웃 테스트용
+    await delay(10_000)
+    return HttpResponse.json({ data: '느린 응답' })
+  }),
+]
+</code></pre>
+            <h3 id="25">2.5 테스트에서 핸들러 오버라이드</h3>
+            <pre><code class="language-typescript">// 특정 테스트에서 기본 핸들러를 일시적으로 교체
+import { server } from '@/mocks/server'
+import { http, HttpResponse } from 'msw'
+
+test('서버 에러 발생 시 에러 화면을 표시한다', async () =&gt; {
+  // 이 테스트에서만 500 에러를 반환하도록 오버라이드
+  server.use(
+    http.get('/api/v1/users', () =&gt; {
+      return HttpResponse.json({ code: 'INTERNAL_ERROR', message: '서버 오류' }, { status: 500 })
+    }),
+  )
+
+  // 테스트 로직...
+  // afterEach에서 server.resetHandlers()가 호출되므로 자동 복원됨
+})
+</code></pre>
+            <h3 id="26-serverboundary-msw-2x">
+              2.6 <code>server.boundary()</code> — 병렬 테스트 격리 (MSW 2.x 신규)
+            </h3>
+            <p>
+              Vitest의 <code>--threads</code>/<code>fileParallelism</code> 같은 병렬 테스트
+              환경에서는 <code>server.use()</code>로 오버라이드한 핸들러가 다른 테스트에 누수될
+              위험이 있습니다. <strong><code>server.boundary()</code></strong> 는 콜백 내부의 모든
+              핸들러 변경을 해당 경계 밖으로 새지 않도록 격리합니다.
+            </p>
+            <pre><code class="language-typescript">import { server } from '@/mocks/server'
+import { http, HttpResponse } from 'msw'
+
+test('병렬로 실행되어도 다른 테스트에 영향 없이 격리되는 시나리오', async () =&gt; {
+  // boundary 안에서 등록한 핸들러는 이 콜백 안에서만 유효
+  await server.boundary(async () =&gt; {
+    server.use(
+      http.get('/api/v1/users', () =&gt; HttpResponse.json({ items: [], totalCount: 0, page: 1 })),
+    )
+
+    // boundary 안에서 실행되는 로직
+    await renderAndAssertEmptyState()
+  })()
+})
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>권장 패턴</strong>: 병렬 테스트에서는
+                <code>afterEach(server.resetHandlers)</code>만으로는 race condition을 안정적으로
+                막기 어렵습니다.
+                <strong
+                  >오버라이드가 필요한 테스트는 항상 <code>server.boundary(...)</code> 안에서
+                  수행</strong
+                >하면 다른 워커의 요청과 충돌하지 않습니다.
+              </p>
+            </blockquote>
+            <h3 id="27-serverrestorehandlers">
+              2.7 <code>server.restoreHandlers()</code> — 일회성 핸들러 재사용
+            </h3>
+            <p>
+              MSW 2.x에서 <code>http.get('/x', resolver, { once: true })</code>로 등록한 일회성
+              핸들러는 한 번 사용되면 비활성화됩니다.
+              <strong><code>server.restoreHandlers()</code></strong> 는 사용된 일회성 핸들러를 다시
+              활성화하여, 재시도 로직이나 토큰 갱신 후 재요청 같은 시나리오에서 동일 핸들러를
+              재사용할 수 있게 합니다.
+            </p>
+            <pre><code class="language-typescript">test('401 → refresh → 원래 요청 재시도', async () =&gt; {
+  server.use(
+    // 첫 호출은 401, 두 번째 호출은 200으로 회복
+    http.get('/api/v1/me', () =&gt; new HttpResponse(null, { status: 401 }), { once: true }),
+    http.get('/api/v1/me', () =&gt; HttpResponse.json({ id: 1, name: '홍길동' })),
+  )
+
+  // ... 시나리오 실행 (자동 재시도) ...
+
+  // 같은 401→200 시퀀스를 재실행하려면 일회성 핸들러 복원
+  server.restoreHandlers()
+})
+</code></pre>
+            <hr />
+            <h2 id="3-result">3. 예외 처리: Result 패턴</h2>
+            <p>성공과 실패를 명시적인 객체로 반환하여 시스템의 견고함을 높입니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: Result 패턴은 택배 영수증에 "배송 성공/배송 실패" 라벨이
+                미리 찍혀 있는 것과 같습니다. 박스를 열기 전(=값을 쓰기 전) 라벨을 반드시 보게
+                되므로 처리 누락이 사라집니다.
+              </p>
+            </blockquote>
+            <h3 id="30-result">3.0 Result 처리 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  Call[API 호출] --&gt; Wrap[customFetch wrapper]
+  Wrap --&gt; Net{네트워크/응답 단계}
+  Net --&gt;|2xx 응답| OK[&quot;ok(data)&quot;]
+  Net --&gt;|4xx/5xx| Map[status → ApiErrorCode 매핑]
+  Net --&gt;|AbortError| TO[&quot;fail({code: TIMEOUT})&quot;]
+  Net --&gt;|예외/실패| NE[&quot;fail({code: NETWORK_ERROR})&quot;]
+  Map --&gt; FA[&quot;fail({code, message, details})&quot;]
+  OK --&gt; Consumer{호출 측 분기}
+  FA --&gt; Consumer
+  TO --&gt; Consumer
+  NE --&gt; Consumer
+  Consumer --&gt;|result.success === true| Use[result.data 사용]
+  Consumer --&gt;|result.success === false| Handle[result.error 처리]
+  Handle --&gt; Global[글로벌 핸들러]
+  Handle --&gt; Local[로컬 UI 메시지]</pre
+            >
+            <h3 id="31-trycatch">3.1 try/catch와의 비교</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>관점</th>
+                    <th>try/catch</th>
+                    <th>Result 패턴</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>타입 안전성</strong></td>
+                    <td>catch의 error는 <code>unknown</code></td>
+                    <td>에러 타입이 명시적으로 정의됨</td>
+                  </tr>
+                  <tr>
+                    <td><strong>강제성</strong></td>
+                    <td>에러 처리를 빼먹어도 컴파일 통과</td>
+                    <td><code>success</code> 분기 없이 <code>data</code> 접근 불가</td>
+                  </tr>
+                  <tr>
+                    <td><strong>가독성</strong></td>
+                    <td>try 블록이 길어지면 가독성 저하</td>
+                    <td>성공/실패 경로가 명확히 분리</td>
+                  </tr>
+                  <tr>
+                    <td><strong>조합성</strong></td>
+                    <td>중첩 try/catch가 복잡해짐</td>
+                    <td>체이닝과 변환이 용이</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="32-result">3.2 제네릭 Result 타입 정의</h3>
+            <pre><code class="language-typescript">// src/types/result.ts — 프로젝트 전역 Result 타입
+
+/** 표준 에러 코드 열거 */
+export type ApiErrorCode =
+  | 'NETWORK_ERROR' // 네트워크 연결 실패
+  | 'TIMEOUT' // 요청 타임아웃
+  | 'UNAUTHORIZED' // 인증 실패 (401)
+  | 'FORBIDDEN' // 권한 부족 (403)
+  | 'NOT_FOUND' // 리소스 없음 (404)
+  | 'VALIDATION_ERROR' // 유효성 검증 실패 (400)
+  | 'CONFLICT' // 충돌 (409)
+  | 'RATE_LIMITED' // 요청 제한 초과 (429)
+  | 'SERVER_ERROR' // 서버 내부 오류 (500)
+  | 'UNKNOWN' // 알 수 없는 에러
+
+/** 구조화된 API 에러 */
+export interface ApiError {
+  code: ApiErrorCode
+  message: string
+  /** HTTP 상태 코드 */
+  status?: number
+  /** 필드별 유효성 검증 에러 */
+  details?: Record&lt;string, string | null&gt;
+  /** 원본 에러 (디버깅용) */
+  cause?: unknown
+}
+
+/** 성공 결과 */
+interface Success&lt;T&gt; {
+  success: true
+  data: T
+}
+
+/** 실패 결과 */
+interface Failure&lt;E = ApiError&gt; {
+  success: false
+  error: E
+}
+
+/** Result 타입 — 성공(data) 또는 실패(error)를 명시적으로 표현 */
+export type Result&lt;T, E = ApiError&gt; = Success&lt;T&gt; | Failure&lt;E&gt;
+
+// ─── 헬퍼 함수 ──────────────────────────────────
+/** 성공 결과 생성 */
+export const ok = &lt;T&gt;(data: T): Success&lt;T&gt; =&gt; ({ success: true, data })
+
+/** 실패 결과 생성 */
+export const fail = &lt;E = ApiError&gt;(error: E): Failure&lt;E&gt; =&gt; ({
+  success: false,
+  error,
+})
+
+/** Result를 변환 (성공 시에만 mapper 적용) */
+export const mapResult = &lt;T, U, E = ApiError&gt;(
+  result: Result&lt;T, E&gt;,
+  mapper: (data: T) =&gt; U,
+): Result&lt;U, E&gt; =&gt; {
+  if (result.success) {
+    return ok(mapper(result.data))
+  }
+  return result
+}
+</code></pre>
+            <h3 id="33-api-result">3.3 API 클라이언트에서 Result 패턴 적용</h3>
+            <pre><code class="language-typescript">// src/api/client/customFetch.ts — Result 패턴을 적용한 커스텀 fetch
+
+import type { Result, ApiError, ApiErrorCode } from '@/types/result'
+import { ok, fail } from '@/types/result'
+
+/** HTTP 상태 코드 → ApiErrorCode 매핑 */
+function statusToErrorCode(status: number): ApiErrorCode {
+  const map: Record&lt;number, ApiErrorCode&gt; = {
+    400: 'VALIDATION_ERROR',
+    401: 'UNAUTHORIZED',
+    403: 'FORBIDDEN',
+    404: 'NOT_FOUND',
+    409: 'CONFLICT',
+    429: 'RATE_LIMITED',
+  }
+  return map[status] ?? (status &gt;= 500 ? 'SERVER_ERROR' : 'UNKNOWN')
+}
+
+interface FetchOptions {
+  url: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  data?: unknown
+  params?: Record&lt;string, unknown&gt;
+  signal?: AbortSignal
+  headers?: Record&lt;string, string&gt;
+}
+
+/** Result 패턴 기반 fetch 래퍼 */
+export async function customFetch&lt;T&gt;(options: FetchOptions): Promise&lt;Result&lt;T&gt;&gt; {
+  const { url, method, data, params, signal, headers } = options
+
+  // 쿼리 파라미터 조립
+  const queryString = params
+    ? '?' +
+      new URLSearchParams(
+        Object.entries(params)
+          .filter(([, v]) =&gt; v != null)
+          .map(([k, v]) =&gt; [k, String(v)]),
+      ).toString()
+    : ''
+
+  try {
+    const response = await fetch(`${url}${queryString}`, {
+      method,
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    })
+
+    // 204 No Content — 본문 없이 성공
+    if (response.status === 204) {
+      return ok(null as T)
+    }
+
+    const body = await response.json()
+
+    if (!response.ok) {
+      return fail({
+        code: statusToErrorCode(response.status),
+        message: body.message ?? '요청 처리 중 오류가 발생했습니다.',
+        status: response.status,
+        details: body.details,
+      })
+    }
+
+    return ok(body as T)
+  } catch (error) {
+    // 네트워크 에러 또는 요청 취소
+    if (error instanceof DOMException &amp;&amp; error.name === 'AbortError') {
+      return fail({
+        code: 'TIMEOUT',
+        message: '요청이 취소되었습니다.',
+        cause: error,
+      })
+    }
+
+    return fail({
+      code: 'NETWORK_ERROR',
+      message: '네트워크 연결을 확인해주세요.',
+      cause: error,
+    })
+  }
+}
+</code></pre>
+            <h3 id="34-react-result">3.4 React 컴포넌트에서 Result 사용</h3>
+            <pre><code class="language-tsx">// src/features/user/UserProfile.tsx
+import type { Result } from '@/types/result'
+import type { User } from '@/api/generated/models'
+
+interface Props {
+  userResult: Result&lt;User&gt;
+}
+
+function UserProfile({ userResult }: Props) {
+  // 타입 내로잉 — success 분기 없이 data에 접근할 수 없음
+  if (!userResult.success) {
+    const { error } = userResult
+
+    // 에러 코드별 분기 처리
+    switch (error.code) {
+      case 'NOT_FOUND':
+        return &lt;EmptyState message=&quot;사용자를 찾을 수 없습니다.&quot; /&gt;
+      case 'UNAUTHORIZED':
+        return &lt;LoginRedirect /&gt;
+      default:
+        return &lt;ErrorFallback message={error.message} /&gt;
+    }
+  }
+
+  // 여기서 userResult.data는 User 타입으로 확정
+  const { data: user } = userResult
+
+  return (
+    &lt;div&gt;
+      &lt;h2&gt;{user.name}&lt;/h2&gt;
+      &lt;p&gt;{user.email}&lt;/p&gt;
+      &lt;Badge&gt;{user.role}&lt;/Badge&gt;
+    &lt;/div&gt;
+  )
+}
+</code></pre>
+            <hr />
+            <h2 id="4-tanstack-query-v5">4. 서버 상태 동기화: TanStack Query (v5+)</h2>
+            <p>
+              비동기 리소스의 캐싱 및 상태 전이를 관리합니다. React 19의 <code>Suspense</code>와
+              연동하여 선언적인 데이터 로딩을 구현합니다.
+            </p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: TanStack Query는 도서관의 사서와 같습니다. 같은
+                책(데이터)을 누가 또 빌리겠다고 하면 책장(서버)까지 가지 않고 사서 책상 위(캐시)에서
+                바로 건네줍니다. 단, 너무 오래되면 stale 표시를 붙여 갱신을 알립니다.
+              </p>
+            </blockquote>
+            <h3 id="40">4.0 쿼리 상태 머신</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; fetching: 첫 마운트 / 키 변경
+  fetching --&gt; success: 응답 OK
+  fetching --&gt; error: 응답 실패
+  success --&gt; fresh: data 신선
+  fresh --&gt; stale: staleTime 초과
+  stale --&gt; fetching: refetch / focus / reconnect
+  error --&gt; fetching: retry 결정 (지수 backoff)
+  success --&gt; inactive: 마지막 옵저버 unmount
+  inactive --&gt; gc: gcTime 경과
+  gc --&gt; [*]
+  stale --&gt; success: background refetch 성공</pre
+            >
+            <h3 id="41-queryclient">4.1 QueryClient 전역 설정</h3>
+            <pre><code class="language-typescript">// src/lib/queryClient.ts
+import { QueryClient } from '@tanstack/react-query'
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 5분 동안 캐시 유지 (stale 상태 전환 시간)
+      staleTime: 5 * 60 * 1000,
+      // 30분 동안 미사용 캐시 보관 후 가비지 컬렉션
+      gcTime: 30 * 60 * 1000,
+      // 실패 시 최대 2회 재시도 (지수 백오프)
+      retry: 2,
+      retryDelay: (attemptIndex) =&gt; Math.min(1000 * 2 ** attemptIndex, 10000),
+      // 창 포커스 시 자동 재조회
+      refetchOnWindowFocus: true,
+      // 네트워크 재연결 시 자동 재조회
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      // 뮤테이션 실패 시 재시도하지 않음
+      retry: false,
+    },
+  },
+})
+</code></pre>
+            <h3 id="42-usesuspensequery">4.2 useSuspenseQuery — 선언적 데이터 로딩</h3>
+            <pre><code class="language-tsx">// src/features/user/UserList.tsx
+import { Suspense } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { getUsers, getUsersQueryKey } from '@/api/generated/endpoints'
+import { ErrorBoundary } from 'react-error-boundary'
+
+/** 사용자 목록 (Suspense 기반 — 로딩 상태를 부모에게 위임) */
+function UserListContent({ page }: { page: number }) {
+  // useSuspenseQuery는 data가 항상 존재함을 보장 (undefined 불가)
+  const { data } = useSuspenseQuery({
+    queryKey: getUsersQueryKey({ page, size: 20 }),
+    queryFn: ({ signal }) =&gt; getUsers({ page, size: 20 }, signal),
+  })
+
+  // data.success 체크 (Result 패턴과 결합 시)
+  if (!data.success) {
+    throw new Error(data.error.message) // ErrorBoundary로 전파
+  }
+
+  return (
+    &lt;ul&gt;
+      {data.data.items?.map((user) =&gt; (
+        &lt;li key={user.id}&gt;
+          {user.name} ({user.email})
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  )
+}
+
+/** 부모 컴포넌트 — Suspense + ErrorBoundary 조합 */
+export function UserListPage() {
+  const [page, setPage] = useState(1)
+
+  return (
+    &lt;ErrorBoundary
+      fallbackRender={({ error, resetErrorBoundary }) =&gt; (
+        &lt;div role=&quot;alert&quot;&gt;
+          &lt;p&gt;오류가 발생했습니다: {error.message}&lt;/p&gt;
+          &lt;button onClick={resetErrorBoundary}&gt;다시 시도&lt;/button&gt;
+        &lt;/div&gt;
+      )}
+    &gt;
+      &lt;Suspense fallback={&lt;UserListSkeleton /&gt;}&gt;
+        &lt;UserListContent page={page} /&gt;
+      &lt;/Suspense&gt;
+    &lt;/ErrorBoundary&gt;
+  )
+}
+</code></pre>
+            <h3 id="43-usemutation">4.3 useMutation — 데이터 변경</h3>
+            <pre><code class="language-tsx">// src/features/user/CreateUserForm.tsx
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createUser, getUsersQueryKey } from '@/api/generated/endpoints'
+import type { CreateUserRequest } from '@/api/generated/models'
+
+function CreateUserForm() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (body: CreateUserRequest) =&gt; createUser(body),
+
+    // 성공 시 관련 쿼리 무효화 → 자동 재조회
+    onSuccess: () =&gt; {
+      // 사용자 목록 관련 모든 쿼리를 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['api', 'v1', 'users'],
+      })
+      toast.success('사용자가 생성되었습니다.')
+    },
+
+    // 실패 시 에러 처리
+    onError: (error) =&gt; {
+      toast.error(`생성 실패: ${error.message}`)
+    },
+  })
+
+  const handleSubmit = (formData: CreateUserRequest) =&gt; {
+    mutation.mutate(formData)
+  }
+
+  return (
+    &lt;form onSubmit={handleFormSubmit(handleSubmit)}&gt;
+      {/* 폼 필드 */}
+      &lt;button type=&quot;submit&quot; disabled={mutation.isPending}&gt;
+        {mutation.isPending ? '생성 중...' : '사용자 생성'}
+      &lt;/button&gt;
+    &lt;/form&gt;
+  )
+}
+</code></pre>
+            <h3 id="44-optimistic-update">4.4 Optimistic Update (낙관적 업데이트)</h3>
+            <p>서버 응답 전에 UI를 먼저 업데이트하여 즉각적인 사용자 경험을 제공합니다.</p>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 카페에서 직원이 결제 전 음료 이름을 컵에 먼저 쓰는 것과
+                같습니다. 결제 실패 시 컵을 버리면 되지만, 손님 경험은 훨씬 빠르게 느껴집니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+sequenceDiagram
+  participant U as 사용자
+  participant UI
+  participant Cache as Query Cache
+  participant Server
+
+  U-&gt;&gt;UI: 좋아요 클릭
+  UI-&gt;&gt;Cache: onMutate: snapshot + 낙관적 갱신
+  Cache--&gt;&gt;UI: 즉시 새 상태 반영
+  UI-&gt;&gt;Server: POST /likes
+  alt 성공
+    Server--&gt;&gt;UI: 200 OK
+    UI-&gt;&gt;Cache: onSettled: invalidate
+    Cache-&gt;&gt;Server: 백그라운드 refetch
+  else 실패
+    Server--&gt;&gt;UI: 4xx/5xx
+    UI-&gt;&gt;Cache: onError: snapshot 복원
+    Cache--&gt;&gt;UI: 이전 상태 복귀
+  end</pre
+            >
+            <pre><code class="language-typescript">// src/features/user/useUpdateUser.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { User } from '@/api/generated/models'
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (user: Partial&lt;User&gt; &amp; { id: number }) =&gt;
+      customFetch&lt;User&gt;({
+        url: `/api/v1/users/${user.id}`,
+        method: 'PUT',
+        data: user,
+      }),
+
+    // 1단계: 뮤테이션 시작 전 — 이전 데이터를 스냅샷으로 저장
+    onMutate: async (updatedUser) =&gt; {
+      // 진행 중인 조회를 취소하여 낙관적 업데이트와 충돌 방지
+      await queryClient.cancelQueries({
+        queryKey: ['api', 'v1', 'users', updatedUser.id],
+      })
+
+      // 현재 캐시 데이터 스냅샷
+      const previousUser = queryClient.getQueryData&lt;User&gt;(['api', 'v1', 'users', updatedUser.id])
+
+      // 캐시를 낙관적으로 업데이트 (서버 응답 전)
+      queryClient.setQueryData(['api', 'v1', 'users', updatedUser.id], (old: User | undefined) =&gt;
+        old ? { ...old, ...updatedUser } : old,
+      )
+
+      // 롤백용 스냅샷 반환
+      return { previousUser }
+    },
+
+    // 2단계: 실패 시 — 스냅샷으로 롤백
+    onError: (_err, updatedUser, context) =&gt; {
+      if (context?.previousUser) {
+        queryClient.setQueryData(['api', 'v1', 'users', updatedUser.id], context.previousUser)
+      }
+      toast.error('수정에 실패했습니다. 이전 상태로 복원합니다.')
+    },
+
+    // 3단계: 성공/실패 무관하게 — 서버 데이터로 재동기화
+    onSettled: (_data, _error, updatedUser) =&gt; {
+      queryClient.invalidateQueries({
+        queryKey: ['api', 'v1', 'users', updatedUser.id],
+      })
+    },
+  })
+}
+</code></pre>
+            <h3 id="45-rsc-hydration">4.5 RSC Hydration — 서버 컴포넌트와 결합 (현재 표준)</h3>
+            <p>
+              Next.js App Router에서는
+              <strong>서버 컴포넌트에서 prefetch → 클라이언트에서 hydrate</strong>가 널리 쓰이는
+              데이터 통신 패턴입니다. 서버는 초기 데이터를 안정적으로 채우고, 클라이언트는 동일 쿼리
+              키로 즉시 hydration된 캐시를 사용한 뒤 인터랙티브 갱신만 담당합니다. Next.js 15+ App
+              Router 프로젝트도 동일 패턴을 적용할 수 있습니다.
+            </p>
+            <pre><code class="language-tsx">// app/(routes)/users/page.tsx — 서버 컴포넌트
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query'
+import { userRepository } from '@/api/repositories/userRepository'
+import { userKeys } from '@/api/queryKeys'
+import { UserListClient } from './UserListClient'
+
+export default async function UsersPage() {
+  const queryClient = new QueryClient()
+
+  // 1) 서버에서 데이터 prefetch (Result 패턴 호환)
+  await queryClient.prefetchQuery({
+    queryKey: userKeys.list({ page: 1 }),
+    queryFn: () =&gt; userRepository.getList({ page: 1, size: 20 }),
+  })
+
+  // 2) 직렬화된 캐시를 클라이언트에 전달
+  return (
+    &lt;HydrationBoundary state={dehydrate(queryClient)}&gt;
+      &lt;UserListClient /&gt;
+    &lt;/HydrationBoundary&gt;
+  )
+}
+</code></pre>
+            <pre><code class="language-tsx">// app/(routes)/users/UserListClient.tsx — 클라이언트에서 동일 키로 hydration
+'use client'
+
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { userRepository } from '@/api/repositories/userRepository'
+import { userKeys } from '@/api/queryKeys'
+
+export function UserListClient() {
+  // 서버 prefetch와 동일한 키 → 즉시 hydrate, 네트워크 호출 없음
+  const { data } = useSuspenseQuery({
+    queryKey: userKeys.list({ page: 1 }),
+    queryFn: () =&gt; userRepository.getList({ page: 1, size: 20 }),
+  })
+
+  if (!data.success) throw new Error(data.error.message)
+  return (
+    &lt;ul&gt;
+      {data.data.items?.map((u) =&gt; (
+        &lt;li key={u.id}&gt;{u.name}&lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  )
+}
+</code></pre>
+            <blockquote>
+              <p>
+                <strong>핵심 원칙</strong>: ① 서버와 클라이언트가
+                <strong>반드시 같은 queryKey + queryFn</strong>을 사용할 것, ②
+                <code>QueryClient</code>는 요청마다 새로 생성하여 사용자 간 캐시가 섞이지 않게 할
+                것, ③ 직렬화 비용이 큰 데이터(Map/Set/Date 객체)는 dehydrate 직전에 평탄화할 것.
+              </p>
+            </blockquote>
+            <h3 id="46">4.6 쿼리 무효화 패턴</h3>
+            <pre><code class="language-typescript">// src/api/queryKeys.ts — 체계적인 쿼리 키 관리
+
+/** 쿼리 키 팩토리 — 계층적 무효화를 지원 */
+export const userKeys = {
+  // 사용자 관련 모든 쿼리를 무효화할 때
+  all: ['users'] as const,
+
+  // 목록 관련 쿼리만 무효화할 때
+  lists: () =&gt; [...userKeys.all, 'list'] as const,
+
+  // 특정 필터의 목록만 무효화할 때
+  list: (filters: { page?: number; role?: string }) =&gt; [...userKeys.lists(), filters] as const,
+
+  // 상세 관련 쿼리만 무효화할 때
+  details: () =&gt; [...userKeys.all, 'detail'] as const,
+
+  // 특정 사용자 상세만 무효화할 때
+  detail: (id: number) =&gt; [...userKeys.details(), id] as const,
+}
+
+// 사용 예시:
+// 사용자 생성 후 → 목록만 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+
+// 사용자 수정 후 → 해당 사용자 상세 + 목록 모두 무효화
+queryClient.invalidateQueries({ queryKey: userKeys.all })
+
+// 사용자 삭제 후 → 특정 사용자 캐시 제거 + 목록 무효화
+queryClient.removeQueries({ queryKey: userKeys.detail(userId) })
+queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+</code></pre>
+            <hr />
+            <h2 id="5-axios-vs-fetch-vs-ky-http">5. Axios vs Fetch vs ky: HTTP 클라이언트 선택</h2>
+            <blockquote>
+              <p>
+                왜 중요한가: 클라이언트 선택은 단순 취향이 아닙니다. 번들·인터셉터·에러 처리 방식이
+                코드 곳곳의 추상화 비용에 직접 영향을 줍니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>기준</th>
+                    <th style="text-align: center"><strong>Fetch API</strong></th>
+                    <th style="text-align: center"><strong>Axios</strong></th>
+                    <th style="text-align: center"><strong>ky</strong></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>번들 크기</strong></td>
+                    <td style="text-align: center">0 KB (브라우저 내장)</td>
+                    <td style="text-align: center">~13 KB (gzip)</td>
+                    <td style="text-align: center">~3 KB (gzip)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>인터셉터</strong></td>
+                    <td style="text-align: center">직접 구현 필요</td>
+                    <td style="text-align: center">내장 (request/response)</td>
+                    <td style="text-align: center">내장 (hooks)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>자동 JSON 파싱</strong></td>
+                    <td style="text-align: center">수동 (.json() 호출)</td>
+                    <td style="text-align: center">자동</td>
+                    <td style="text-align: center">자동</td>
+                  </tr>
+                  <tr>
+                    <td><strong>타임아웃</strong></td>
+                    <td style="text-align: center">AbortController 사용</td>
+                    <td style="text-align: center">timeout 옵션 내장</td>
+                    <td style="text-align: center">timeout 옵션 내장</td>
+                  </tr>
+                  <tr>
+                    <td><strong>재시도</strong></td>
+                    <td style="text-align: center">직접 구현 필요</td>
+                    <td style="text-align: center">직접 구현 필요</td>
+                    <td style="text-align: center">retry 옵션 내장</td>
+                  </tr>
+                  <tr>
+                    <td><strong>에러 처리</strong></td>
+                    <td style="text-align: center">4xx/5xx에서 throw 안 함</td>
+                    <td style="text-align: center">4xx/5xx에서 자동 throw</td>
+                    <td style="text-align: center">4xx/5xx에서 자동 throw</td>
+                  </tr>
+                  <tr>
+                    <td><strong>스트리밍</strong></td>
+                    <td style="text-align: center">ReadableStream 지원</td>
+                    <td style="text-align: center">제한적</td>
+                    <td style="text-align: center">Fetch 기반이므로 지원</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Node.js</strong></td>
+                    <td style="text-align: center">18+ 내장</td>
+                    <td style="text-align: center">완전 지원</td>
+                    <td style="text-align: center">Fetch 기반</td>
+                  </tr>
+                  <tr>
+                    <td><strong>진행률 추적</strong></td>
+                    <td style="text-align: center">ReadableStream으로 가능</td>
+                    <td style="text-align: center">onUploadProgress 내장</td>
+                    <td style="text-align: center">미지원</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="http">HTTP 클라이언트 선택 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start[클라이언트 선택] --&gt; Q1{번들 크기가 결정적인가?}
+  Q1 --&gt;|예| Q2{인터셉터/재시도 필요?}
+  Q2 --&gt;|아니오| Fetch[Fetch API 그대로]
+  Q2 --&gt;|예| Ky[ky]
+  Q1 --&gt;|아니오| Q3{업로드 진행률 표시?}
+  Q3 --&gt;|예| Axios[Axios]
+  Q3 --&gt;|아니오| Q4{스트리밍/SSE/AbortController 활용?}
+  Q4 --&gt;|예| Q5{재시도/타임아웃 내장 선호?}
+  Q5 --&gt;|예| Ky
+  Q5 --&gt;|아니오| Fetch
+  Q4 --&gt;|아니오| Q6{이미 Axios 생태계?}
+  Q6 --&gt;|예| Axios
+  Q6 --&gt;|아니오| Ky</pre
+            >
+            <h3 id="51">5.1 선택 기준</h3>
+            <pre><code class="language-typescript">// ──────────────────────────────────────────────────
+// 선택 가이드라인:
+// ──────────────────────────────────────────────────
+//
+// ✅ Fetch API 추천:
+//   - 번들 크기가 중요한 프로젝트
+//   - 간단한 API 호출만 필요
+//   - Orval 코드젠과 함께 사용 (httpClient: 'fetch')
+//   - 스트리밍 응답 처리가 필요
+//
+// ✅ Axios 추천:
+//   - 복잡한 인터셉터 로직이 필요
+//   - 파일 업로드 진행률 추적이 필요
+//   - 기존 프로젝트에서 이미 사용 중
+//   - 브라우저 호환성이 중요 (IE11 등)
+//
+// ✅ ky 추천:
+//   - Fetch 기반이면서 편의 기능 필요
+//   - 내장 재시도가 필요
+//   - 작은 번들 크기 유지하면서 DX 개선
+
+// ky 사용 예시 — Fetch의 장점 + 편의 기능
+import ky from 'ky'
+
+const api = ky.create({
+  prefixUrl: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10_000, // 10초 타임아웃
+  retry: {
+    limit: 2, // 최대 2회 재시도
+    methods: ['get'], // GET 요청만 재시도
+    statusCodes: [408, 500, 502, 503, 504], // 이 상태 코드에서 재시도
+  },
+  hooks: {
+    // 요청 전 인터셉터
+    beforeRequest: [
+      (request) =&gt; {
+        const token = getAccessToken()
+        if (token) {
+          request.headers.set('Authorization', `Bearer ${token}`)
+        }
+      },
+    ],
+    // 응답 후 인터셉터
+    afterResponse: [
+      async (_request, _options, response) =&gt; {
+        if (response.status === 401) {
+          // 토큰 갱신 로직 (섹션 7 참조)
+        }
+      },
+    ],
+  },
+})
+</code></pre>
+            <hr />
+            <h2 id="6-api">6. API 에러 핸들링 전략</h2>
+            <blockquote>
+              <p>
+                왜 중요한가: 에러를 한 곳에서만 처리하면 책임이 한쪽으로 쏠리고, 곳곳에서 처리하면
+                메시지가 중복됩니다. 계층별 책임을 분명히 나눠야 동일 에러를 일관되게 응대할 수
+                있습니다.
+              </p>
+            </blockquote>
+            <h3 id="61">6.1 에러 계층 구조</h3>
+            <pre><code>┌─────────────────────────────────────────────────┐
+│              글로벌 에러 핸들러                    │  → 401/403 등 인증/권한 에러
+│          (Axios 인터셉터 / ky hooks)              │  → 네트워크 에러
+├─────────────────────────────────────────────────┤
+│            React Error Boundary                  │  → 렌더링 중 발생한 에러
+│         (페이지/섹션 레벨)                        │  → 예상치 못한 런타임 에러
+├─────────────────────────────────────────────────┤
+│          TanStack Query onError                  │  → 쿼리/뮤테이션 레벨 에러
+│          (QueryClient defaults)                  │  → 재시도 로직
+├─────────────────────────────────────────────────┤
+│          컴포넌트 레벨 에러 처리                   │  → 폼 유효성 검증 에러
+│          (Result 패턴 분기)                       │  → 비즈니스 로직 에러
+└─────────────────────────────────────────────────┘
+</code></pre>
+            <pre class="mermaid">
+flowchart TD
+  Err[에러 발생] --&gt; L1{계층 판별}
+  L1 --&gt;|HTTP 응답 단계| Global[&quot;글로벌 핸들러&lt;br/&gt;(인터셉터 / hooks)&quot;]
+  L1 --&gt;|쿼리/뮤테이션| RQ[&quot;TanStack Query&lt;br/&gt;onError + retry&quot;]
+  L1 --&gt;|렌더 중 throw| EB[&quot;React Error Boundary&quot;]
+  L1 --&gt;|폼/비즈니스| Comp[&quot;컴포넌트 레벨&lt;br/&gt;Result 분기&quot;]
+
+  Global --&gt; Action1[&quot;세션 만료 → /login&lt;br/&gt;토큰 갱신&lt;br/&gt;로깅&quot;]
+  RQ --&gt; Action2[&quot;재시도 결정&lt;br/&gt;onError 토스트&quot;]
+  EB --&gt; Action3[&quot;폴백 UI&lt;br/&gt;관측성 보고&quot;]
+  Comp --&gt; Action4[&quot;필드 메시지&lt;br/&gt;로컬 토스트&quot;]
+
+  classDef l1 fill:#fff3e0,stroke:#fb8c00;
+  classDef l2 fill:#e3f2fd,stroke:#1976d2;
+  class Global,RQ,EB,Comp l1;
+  class Action1,Action2,Action3,Action4 l2;</pre
+            >
+            <h3 id="611">6.1.1 재시도 의사결정 흐름</h3>
+            <pre class="mermaid">
+flowchart TD
+  Fail[요청 실패] --&gt; Code{에러 코드}
+  Code --&gt;|UNAUTHORIZED| Refresh[&quot;토큰 갱신 시도&quot;]
+  Code --&gt;|FORBIDDEN / NOT_FOUND / VALIDATION_ERROR / CONFLICT| NoRetry[재시도 금지]
+  Code --&gt;|RATE_LIMITED| Backoff[&quot;Retry-After 준수&lt;br/&gt;지수 backoff&quot;]
+  Code --&gt;|NETWORK_ERROR / TIMEOUT / SERVER_ERROR| Count{failureCount &lt; 2?}
+  Count --&gt;|예| Wait[2^attempt 초 지연]
+  Wait --&gt; Retry[재요청]
+  Count --&gt;|아니오| Surface[에러 노출]
+  Refresh --&gt;|성공| Retry
+  Refresh --&gt;|실패| Logout[세션 종료]
+  Backoff --&gt; Retry
+  NoRetry --&gt; Surface</pre
+            >
+            <h3 id="62">6.2 글로벌 에러 핸들러</h3>
+            <pre><code class="language-typescript">// src/api/client/globalErrorHandler.ts
+import type { ApiError } from '@/types/result'
+import { queryClient } from '@/lib/queryClient'
+
+/** 글로벌 에러 처리 — 모든 API 에러가 여기를 통과 */
+export function handleGlobalApiError(error: ApiError): void {
+  switch (error.code) {
+    case 'UNAUTHORIZED':
+      // 인증 만료 → 로그인 페이지로 리다이렉트
+      clearAuthTokens()
+      // 모든 쿼리 캐시 초기화 (개인 정보 보호)
+      queryClient.clear()
+      window.location.href = '/login?reason=session_expired'
+      break
+
+    case 'FORBIDDEN':
+      // 권한 부족 → 접근 거부 페이지
+      toast.error('접근 권한이 없습니다. 관리자에게 문의하세요.')
+      break
+
+    case 'RATE_LIMITED':
+      // 요청 제한 초과 → 잠시 후 재시도 안내
+      toast.warning('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.')
+      break
+
+    case 'NETWORK_ERROR':
+      // 네트워크 에러 → 오프라인 상태 표시
+      toast.error('네트워크 연결을 확인해주세요.')
+      break
+
+    case 'SERVER_ERROR':
+      // 서버 에러 → 관측성 도구 보고 + 사용자 안내
+      // 연관: [09. 관측성 표준](./09_장애_대응_및_관측성_표준.md)
+      reportErrorToObservability(error.cause ?? new Error(error.message))
+      toast.error('일시적인 서버 오류입니다. 잠시 후 다시 시도해주세요.')
+      break
+
+    default:
+      console.error('[API Error]', error)
+  }
+}
+</code></pre>
+            <h3 id="63-error-boundary">6.3 Error Boundary 통합</h3>
+            <pre><code class="language-tsx">// src/components/error/ApiErrorBoundary.tsx
+// 연관: [02. React 19 가이드](./02_React19_실무_가이드.md)
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import type { ApiError } from '@/types/result'
+
+/** API 에러에 특화된 폴백 컴포넌트 */
+function ApiErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  // ApiError 구조인지 확인
+  const apiError = error as ApiError | undefined
+
+  return (
+    &lt;div role=&quot;alert&quot; className=&quot;error-container&quot;&gt;
+      &lt;h2&gt;문제가 발생했습니다&lt;/h2&gt;
+      &lt;p&gt;{apiError?.message ?? '알 수 없는 오류가 발생했습니다.'}&lt;/p&gt;
+
+      {apiError?.code === 'NETWORK_ERROR' &amp;&amp; (
+        &lt;p className=&quot;hint&quot;&gt;네트워크 연결 상태를 확인해주세요.&lt;/p&gt;
+      )}
+
+      &lt;button onClick={resetErrorBoundary}&gt;다시 시도&lt;/button&gt;
+    &lt;/div&gt;
+  )
+}
+
+/** 페이지 레벨 Error Boundary 래퍼 */
+export function ApiErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    &lt;ErrorBoundary
+      FallbackComponent={ApiErrorFallback}
+      onError={(error) =&gt; {
+        // 글로벌 에러 핸들러로 전파
+        handleGlobalApiError(error as ApiError)
+      }}
+      onReset={() =&gt; {
+        // 에러 복구 시 관련 쿼리 재조회
+        queryClient.invalidateQueries()
+      }}
+    &gt;
+      {children}
+    &lt;/ErrorBoundary&gt;
+  )
+}
+</code></pre>
+            <h3 id="64-tanstack-query">6.4 TanStack Query 레벨 재시도 전략</h3>
+            <pre><code class="language-typescript">// src/lib/queryClient.ts (확장)
+
+/** 에러 코드에 따른 재시도 여부 판단 */
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  const apiError = error as ApiError
+
+  // 재시도하지 않는 에러 (클라이언트 문제)
+  const noRetryErrors: ApiErrorCode[] = [
+    'UNAUTHORIZED',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'VALIDATION_ERROR',
+    'CONFLICT',
+  ]
+
+  if (noRetryErrors.includes(apiError.code)) {
+    return false // 재시도해도 결과가 같음
+  }
+
+  // 서버 에러/네트워크 에러는 최대 2회 재시도
+  return failureCount &lt; 2
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: shouldRetry,
+      retryDelay: (attemptIndex) =&gt; Math.min(1000 * 2 ** attemptIndex, 10_000),
+    },
+  },
+})
+</code></pre>
+            <hr />
+            <h2 id="7">7. 인터셉터와 토큰 갱신 패턴</h2>
+            <blockquote>
+              <p>
+                <strong>일상 비유</strong>: 인터셉터는 우편물 분류기와 같습니다. 보내기 전(요청)에는
+                발송 라벨(토큰, 추적 ID)을 붙이고, 받기 전(응답)에는 분실/지연을 골라내 적절한 후속
+                처리를 합니다.
+              </p>
+            </blockquote>
+            <h3 id="70-silent-refresh">7.0 Silent Refresh 시퀀스</h3>
+            <blockquote>
+              <p>
+                왜 중요한가: 토큰 갱신 도중 동일 사용자에 의한 다중 요청이 동시에 들어오면 중복
+                갱신과 토큰 충돌이 발생합니다. 큐 기반 직렬화가 핵심입니다.
+              </p>
+            </blockquote>
+            <pre class="mermaid">
+sequenceDiagram
+  participant App
+  participant Client as apiClient
+  participant Server
+  participant Auth as Auth Server
+  participant Queue as failedQueue
+
+  App-&gt;&gt;Client: GET /me (만료 토큰)
+  Client-&gt;&gt;Server: Authorization: Bearer A
+  Server--&gt;&gt;Client: 401 Unauthorized
+  alt isRefreshing == false
+    Client-&gt;&gt;Client: isRefreshing = true
+    Client-&gt;&gt;Auth: POST /refresh
+    Auth--&gt;&gt;Client: 새 토큰 B
+    Client-&gt;&gt;Queue: resolve(B) (대기 요청 일괄 처리)
+    Client-&gt;&gt;Server: GET /me (B)
+    Server--&gt;&gt;Client: 200 OK
+    Client--&gt;&gt;App: 응답
+  else 이미 갱신 중
+    Client-&gt;&gt;Queue: enqueue({resolve, reject})
+    Queue--&gt;&gt;Client: 새 토큰 B 수신 후 재요청
+    Client-&gt;&gt;Server: GET /me (B)
+    Server--&gt;&gt;Client: 200 OK
+    Client--&gt;&gt;App: 응답
+  end</pre
+            >
+            <h3 id="71-axios">7.1 요청/응답 인터셉터 (Axios 기준)</h3>
+            <pre><code class="language-typescript">// src/api/client/axiosInstance.ts
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10_000,
+  headers: { 'Content-Type': 'application/json' },
+})
+
+// ─── 요청 인터셉터 ──────────────────────────────
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) =&gt; {
+    // 1. 인증 토큰 주입
+    const token = getAccessToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // 2. 요청 추적 ID 주입 (디버깅/로깅용)
+    config.headers['X-Request-Id'] = crypto.randomUUID()
+
+    // 3. 요청 시작 시간 기록 (성능 측정용)
+    config.metadata = { startTime: Date.now() }
+
+    return config
+  },
+  (error) =&gt; Promise.reject(error),
+)
+
+// ─── 응답 인터셉터 ──────────────────────────────
+apiClient.interceptors.response.use(
+  (response) =&gt; {
+    // 응답 시간 로깅
+    const duration = Date.now() - response.config.metadata?.startTime
+    if (duration &gt; 3000) {
+      console.warn(`[Slow API] ${response.config.url} — ${duration}ms`)
+    }
+    return response
+  },
+  async (error: AxiosError) =&gt; {
+    // 401 에러 시 토큰 갱신 시도 (아래 섹션 참조)
+    if (error.response?.status === 401) {
+      return handleTokenRefresh(error)
+    }
+    return Promise.reject(error)
+  },
+)
+</code></pre>
+            <h3 id="72-silent-refresh">7.2 자동 토큰 갱신 (Silent Refresh)</h3>
+            <pre><code class="language-typescript">// src/api/client/tokenRefresh.ts
+import axios, { type AxiosError } from 'axios'
+
+// 토큰 갱신 중복 방지를 위한 플래그
+let isRefreshing = false
+// 갱신 대기 중인 요청들의 콜백 큐
+let failedQueue: Array&lt;{
+  resolve: (token: string) =&gt; void
+  reject: (error: Error) =&gt; void
+}&gt; = []
+
+/** 대기 큐에 있는 모든 요청을 처리 */
+function processQueue(error: Error | null, token: string | null) {
+  failedQueue.forEach(({ resolve, reject }) =&gt; {
+    if (error) {
+      reject(error)
+    } else {
+      resolve(token!)
+    }
+  })
+  failedQueue = []
+}
+
+/** 401 에러 시 토큰 갱신 후 원래 요청 재시도 */
+export async function handleTokenRefresh(error: AxiosError) {
+  const originalRequest = error.config!
+
+  // 이미 갱신 중이면 큐에 추가하고 대기
+  if (isRefreshing) {
+    return new Promise((resolve, reject) =&gt; {
+      failedQueue.push({
+        resolve: (token: string) =&gt; {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          resolve(axios(originalRequest))
+        },
+        reject,
+      })
+    })
+  }
+
+  isRefreshing = true
+
+  try {
+    const refreshToken = getRefreshToken()
+
+    if (!refreshToken) {
+      throw new Error('리프레시 토큰이 없습니다.')
+    }
+
+    // 토큰 갱신 API 호출
+    const { data } = await axios.post('/api/v1/auth/refresh', {
+      refreshToken,
+    })
+
+    const { accessToken, refreshToken: newRefreshToken } = data
+
+    // 새 토큰 저장
+    setAccessToken(accessToken)
+    setRefreshToken(newRefreshToken)
+
+    // 대기 중인 모든 요청에 새 토큰 전달
+    processQueue(null, accessToken)
+
+    // 원래 요청 재시도
+    originalRequest.headers.Authorization = `Bearer ${accessToken}`
+    return axios(originalRequest)
+  } catch (refreshError) {
+    // 갱신 실패 → 대기 큐 전부 reject
+    processQueue(refreshError as Error, null)
+
+    // 로그아웃 처리
+    clearAuthTokens()
+    window.location.href = '/login?reason=session_expired'
+
+    return Promise.reject(refreshError)
+  } finally {
+    isRefreshing = false
+  }
+}
+</code></pre>
+            <h3 id="73-fetch">7.3 Fetch 기반 인터셉터 (래퍼 패턴)</h3>
+            <p>
+              Fetch API에는 인터셉터가 내장되어 있지 않으므로, 래퍼 함수로 동일한 기능을 구현합니다.
+            </p>
+            <pre><code class="language-typescript">// src/api/client/fetchWithInterceptor.ts
+
+type RequestInterceptor = (config: RequestInit &amp; { url: string }) =&gt; RequestInit &amp; { url: string }
+type ResponseInterceptor = (
+  response: Response,
+  request: RequestInit &amp; { url: string },
+) =&gt; Promise&lt;Response&gt;
+
+const requestInterceptors: RequestInterceptor[] = []
+const responseInterceptors: ResponseInterceptor[] = []
+
+/** 인터셉터를 등록하는 유틸리티 */
+export const interceptors = {
+  request: {
+    use: (fn: RequestInterceptor) =&gt; requestInterceptors.push(fn),
+  },
+  response: {
+    use: (fn: ResponseInterceptor) =&gt; responseInterceptors.push(fn),
+  },
+}
+
+/** 인터셉터가 적용된 fetch 래퍼 */
+export async function fetchWithInterceptor(url: string, init?: RequestInit): Promise&lt;Response&gt; {
+  // 요청 인터셉터 순차 적용
+  let config = { ...init, url } as RequestInit &amp; { url: string }
+  for (const interceptor of requestInterceptors) {
+    config = interceptor(config)
+  }
+
+  let response = await fetch(config.url, config)
+
+  // 응답 인터셉터 순차 적용
+  for (const interceptor of responseInterceptors) {
+    response = await interceptor(response, config)
+  }
+
+  return response
+}
+
+// 사용 예시: 인증 토큰 자동 주입
+interceptors.request.use((config) =&gt; {
+  const token = getAccessToken()
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    }
+  }
+  return config
+})
+</code></pre>
+            <hr />
+            <h2 id="8-api">8. API 계층 구조 설계</h2>
+            <blockquote>
+              <p>연관: <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처 설계 패턴</a></p>
+              <p>
+                <strong>일상 비유</strong>: API 계층은 식당의 작업 분할과 같습니다. 손님 응대(UI) →
+                주문서 작성(Hook) → 주방 분담(Service) → 재료 가져오기(Repository) → 가스레인지(HTTP
+                클라이언트). 한 사람이 다 하면 효율도 책임 추적도 흐려집니다.
+              </p>
+            </blockquote>
+            <h3 id="81">8.1 계층 다이어그램</h3>
+            <pre><code>┌─────────────────────────────────────────────────┐
+│  UI Layer (React 컴포넌트)                       │
+│  └─ useSuspenseQuery, useMutation               │
+├─────────────────────────────────────────────────┤
+│  Hook Layer (커스텀 훅)                          │
+│  └─ useUsers, useCreateUser 등                  │
+│  └─ 비즈니스 로직 캡슐화, 캐싱 전략 결정          │
+├─────────────────────────────────────────────────┤
+│  Service Layer (서비스 함수)                      │
+│  └─ 여러 API를 조합한 복합 비즈니스 로직          │
+│  └─ 데이터 변환, 유효성 검증                      │
+├─────────────────────────────────────────────────┤
+│  Repository Layer (API 함수)                     │
+│  └─ Orval 자동 생성 또는 수동 작성               │
+│  └─ 단일 엔드포인트 ↔ 단일 함수                  │
+├─────────────────────────────────────────────────┤
+│  Client Layer (HTTP 클라이언트)                   │
+│  └─ Axios/Fetch/ky 인스턴스                      │
+│  └─ 인터셉터, 토큰 관리, 에러 변환               │
+└─────────────────────────────────────────────────┘
+</code></pre>
+            <pre class="mermaid">
+flowchart TD
+  subgraph UI[&quot;UI Layer&quot;]
+    R[React Component]
+  end
+  subgraph Hook[&quot;Hook Layer&quot;]
+    H1[useUsers]
+    H2[useCreateUser]
+  end
+  subgraph Svc[&quot;Service Layer&quot;]
+    Svc1[&quot;userService&lt;br/&gt;(여러 Repo 조합)&quot;]
+  end
+  subgraph Repo[&quot;Repository Layer&quot;]
+    Rp1[userRepository]
+    Rp2[orderRepository]
+  end
+  subgraph Client[&quot;HTTP Client&quot;]
+    Cf[&quot;customFetch / axios&lt;br/&gt;+ interceptors&quot;]
+  end
+  Net[(Network)]
+
+  R --&gt; H1
+  R --&gt; H2
+  H1 --&gt; Svc1
+  H2 --&gt; Svc1
+  Svc1 --&gt; Rp1
+  Svc1 --&gt; Rp2
+  Rp1 --&gt; Cf
+  Rp2 --&gt; Cf
+  Cf --&gt; Net
+
+  classDef ui fill:#e3f2fd,stroke:#1976d2;
+  classDef hook fill:#f3e5f5,stroke:#7b1fa2;
+  classDef svc fill:#fff3e0,stroke:#ef6c00;
+  classDef repo fill:#e8f5e9,stroke:#2e7d32;
+  classDef cli fill:#ffebee,stroke:#c62828;
+  class R ui;
+  class H1,H2 hook;
+  class Svc1 svc;
+  class Rp1,Rp2 repo;
+  class Cf cli;</pre
+            >
+            <p>
+              각 계층은 한 방향으로만 의존합니다(상→하). 역방향 의존이 발견되면 boundary 위반입니다.
+            </p>
+            <h3 id="82-repository">8.2 Repository 패턴</h3>
+            <pre><code class="language-typescript">// src/api/repositories/userRepository.ts
+// Repository는 단일 도메인의 API 엔드포인트를 그룹화
+
+import { customFetch } from '@/api/client/customFetch'
+import type { Result } from '@/types/result'
+import type {
+  User,
+  CreateUserRequest,
+  UserListResponse,
+  GetUsersParams,
+} from '@/api/generated/models'
+
+/** 사용자 도메인 Repository — 모든 User 관련 API 호출을 캡슐화 */
+export const userRepository = {
+  /** 사용자 목록 조회 */
+  getList: (params?: GetUsersParams, signal?: AbortSignal): Promise&lt;Result&lt;UserListResponse&gt;&gt; =&gt;
+    customFetch({ url: '/api/v1/users', method: 'GET', params, signal }),
+
+  /** 사용자 단건 조회 */
+  getById: (id: number, signal?: AbortSignal): Promise&lt;Result&lt;User&gt;&gt; =&gt;
+    customFetch({ url: `/api/v1/users/${id}`, method: 'GET', signal }),
+
+  /** 사용자 생성 */
+  create: (body: CreateUserRequest): Promise&lt;Result&lt;User&gt;&gt; =&gt;
+    customFetch({ url: '/api/v1/users', method: 'POST', data: body }),
+
+  /** 사용자 수정 */
+  update: (id: number, body: Partial&lt;CreateUserRequest&gt;): Promise&lt;Result&lt;User&gt;&gt; =&gt;
+    customFetch({ url: `/api/v1/users/${id}`, method: 'PUT', data: body }),
+
+  /** 사용자 삭제 */
+  delete: (id: number): Promise&lt;Result&lt;void&gt;&gt; =&gt;
+    customFetch({ url: `/api/v1/users/${id}`, method: 'DELETE' }),
+} as const
+</code></pre>
+            <h3 id="83-service-layer">8.3 Service Layer</h3>
+            <pre><code class="language-typescript">// src/services/userService.ts
+// Service는 여러 Repository를 조합한 복합 비즈니스 로직을 담당
+
+import { userRepository } from '@/api/repositories/userRepository'
+import { teamRepository } from '@/api/repositories/teamRepository'
+import type { Result } from '@/types/result'
+import { ok, fail } from '@/types/result'
+
+/** 사용자 + 소속 팀 정보를 함께 조회하는 복합 서비스 */
+export async function getUserWithTeam(
+  userId: number,
+): Promise&lt;Result&lt;{ user: User; team: Team | null }&gt;&gt; {
+  // 사용자 조회
+  const userResult = await userRepository.getById(userId)
+  if (!userResult.success) return userResult
+
+  const user = userResult.data
+
+  // 팀 정보 조회 (실패해도 사용자 정보는 반환)
+  if (user.teamId) {
+    const teamResult = await teamRepository.getById(user.teamId)
+    return ok({
+      user,
+      team: teamResult.success ? teamResult.data : null,
+    })
+  }
+
+  return ok({ user, team: null })
+}
+
+/** 사용자 생성 + 기본 팀 배정 (트랜잭션적 로직) */
+export async function createUserWithDefaultTeam(
+  body: CreateUserRequest,
+  defaultTeamId: number,
+): Promise&lt;Result&lt;User&gt;&gt; {
+  // 1. 사용자 생성
+  const createResult = await userRepository.create(body)
+  if (!createResult.success) return createResult
+
+  // 2. 기본 팀 배정
+  const assignResult = await teamRepository.addMember(defaultTeamId, createResult.data.id)
+
+  if (!assignResult.success) {
+    // 팀 배정 실패 시 사용자 생성은 유지하되 경고 로깅
+    console.warn('기본 팀 배정 실패:', assignResult.error)
+  }
+
+  return createResult
+}
+</code></pre>
+            <h3 id="84">8.4 커스텀 훅 계층</h3>
+            <pre><code class="language-typescript">// src/features/user/hooks/useUsers.ts
+// 훅 계층은 React Query + Repository/Service를 연결
+
+import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { userRepository } from '@/api/repositories/userRepository'
+import { userKeys } from '@/api/queryKeys'
+
+/** 사용자 목록 조회 훅 */
+export function useUsers(params?: GetUsersParams) {
+  return useSuspenseQuery({
+    queryKey: userKeys.list(params ?? {}),
+    queryFn: ({ signal }) =&gt; userRepository.getList(params, signal),
+  })
+}
+
+/** 사용자 삭제 훅 — 삭제 후 목록 자동 갱신 */
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (userId: number) =&gt; userRepository.delete(userId),
+    onSuccess: (_data, userId) =&gt; {
+      // 삭제된 사용자의 개별 캐시 제거
+      queryClient.removeQueries({ queryKey: userKeys.detail(userId) })
+      // 목록 캐시 무효화 → 자동 재조회
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    },
+  })
+}
+</code></pre>
+            <hr />
+            <h2 id="9">9. 주의사항 및 흔한 실수</h2>
+            <h3 id="91">9.1 쿼리 키 불일치</h3>
+            <pre><code class="language-typescript">// ❌ 잘못된 예 — 쿼리 키에 참조 타입을 매번 새로 생성
+const { data } = useQuery({
+  // 매 렌더마다 새 객체가 생성되어 무한 재조회 발생!
+  queryKey: ['users', { page, filters: { role: 'admin' } }],
+  queryFn: fetchUsers,
+})
+
+// ✅ 올바른 예 — 쿼리 키 팩토리로 안정적인 키 생성
+const { data } = useQuery({
+  queryKey: userKeys.list({ page, role: 'admin' }),
+  queryFn: fetchUsers,
+})
+</code></pre>
+            <h3 id="92-suspense">9.2 Suspense에서 조건부 쿼리</h3>
+            <pre><code class="language-typescript">// ❌ 잘못된 예 — useSuspenseQuery에 enabled 옵션 사용 불가
+const { data } = useSuspenseQuery({
+  queryKey: ['user', userId],
+  queryFn: () =&gt; getUser(userId),
+  enabled: !!userId, // Suspense 쿼리에서는 지원되지 않음!
+});
+
+// ✅ 올바른 예 — 조건부 렌더링으로 해결
+function UserDetail({ userId }: { userId: number | null }) {
+  if (!userId) return &lt;EmptyState /&gt;;
+  return &lt;UserDetailContent userId={userId} /&gt;;
+}
+
+function UserDetailContent({ userId }: { userId: number }) {
+  // userId가 반드시 존재하므로 안전하게 호출
+  const { data } = useSuspenseQuery({
+    queryKey: ['user', userId],
+    queryFn: () =&gt; getUser(userId),
+  });
+  return &lt;div&gt;{data.name}&lt;/div&gt;;
+}
+</code></pre>
+            <h3 id="93-msw">9.3 MSW 핸들러에서 타입 누락</h3>
+            <pre><code class="language-typescript">// ❌ 잘못된 예 — 응답 타입이 실제 API 스키마와 불일치
+http.get('/api/v1/users', () =&gt; {
+  return HttpResponse.json([
+    { id: 1, username: 'test' }, // 'username'은 스키마에 없는 필드!
+  ])
+})
+
+// ✅ 올바른 예 — 생성된 타입을 임포트하여 타입 안전성 확보
+import type { UserListResponse } from '@/api/generated/models'
+
+http.get('/api/v1/users', () =&gt; {
+  return HttpResponse.json&lt;UserListResponse&gt;({
+    items: [{ id: 1, email: 'test@example.com', name: '테스트' }],
+    totalCount: 1,
+    page: 1,
+  })
+})
+</code></pre>
+            <h3 id="94">9.4 인터셉터에서 무한 루프</h3>
+            <pre><code class="language-typescript">// ❌ 잘못된 예 — 토큰 갱신 요청도 인터셉터를 통과하여 무한 루프
+apiClient.interceptors.response.use(null, async (error) =&gt; {
+  if (error.response?.status === 401) {
+    // 이 요청도 apiClient를 사용하면 다시 401 → 무한 루프!
+    const { data } = await apiClient.post('/api/v1/auth/refresh', { ... });
+  }
+});
+
+// ✅ 올바른 예 — 토큰 갱신은 별도 Axios 인스턴스 사용
+const authClient = axios.create({ baseURL: API_BASE_URL });
+
+apiClient.interceptors.response.use(null, async (error) =&gt; {
+  if (error.response?.status === 401) {
+    // 인터셉터가 없는 별도 인스턴스로 갱신 요청
+    const { data } = await authClient.post('/api/v1/auth/refresh', { ... });
+  }
+});
+</code></pre>
+            <h3 id="95">9.5 불필요한 리렌더링</h3>
+            <pre><code class="language-typescript">// ❌ 잘못된 예 — 객체 전체를 구독하여 관련 없는 필드 변경에도 리렌더링
+const { data } = useQuery({
+  queryKey: ['user', userId],
+  queryFn: () =&gt; getUser(userId),
+})
+// data.name만 사용하지만 data.lastLogin이 변경되어도 리렌더링
+
+// ✅ 올바른 예 — select로 필요한 데이터만 추출
+const { data: userName } = useQuery({
+  queryKey: ['user', userId],
+  queryFn: () =&gt; getUser(userId),
+  select: (data) =&gt; data.name, // name이 변경될 때만 리렌더링
+})
+</code></pre>
+            <h3 id="96">9.6 생성 코드 수동 편집</h3>
+            <pre><code class="language-typescript">// ❌ 절대 금지 — Orval이 생성한 파일을 직접 수정
+// src/api/generated/endpoints.ts 에 커스텀 로직 추가
+
+// ✅ 올바른 방법 — orval.config.ts의 override 옵션으로 커스터마이징
+// 또는 생성된 함수를 래핑하는 별도 파일 작성
+// src/api/repositories/userRepository.ts 에서 생성 함수를 import하여 확장
+</code></pre>
+            <hr />
+            <h2 id="_8">체크리스트</h2>
+            <h3 id="openapi">OpenAPI &amp; 코드젠</h3>
+            <ul>
+              <li>
+                [ ] 데이터 엔티티 타입을 수동으로 선언하지 않고 명세(OpenAPI)에서 자동 생성하고
+                있나요?
+              </li>
+              <li>[ ] orval.config.ts가 프로젝트 루트에 설정되어 있나요?</li>
+              <li>
+                [ ] <code>npm run api:generate</code> 스크립트가 package.json에 등록되어 있나요?
+              </li>
+              <li>[ ] CI 파이프라인에서 명세 변경 시 자동 코드젠이 실행되나요?</li>
+              <li>
+                [ ] 생성된 파일에 "수동 편집 금지" 주석이 있고, .gitignore 또는 .eslintignore에
+                등록되어 있나요?
+              </li>
+            </ul>
+            <h3 id="msw">MSW 모킹</h3>
+            <ul>
+              <li>[ ] 개발 초기 단계에서 가상 응답(MSW)을 활용하여 로직을 완결했나요?</li>
+              <li>
+                [ ] MSW v1을 사용 중이라면 codemod로 <strong>v2로 마이그레이션</strong>을
+                완료했나요? (v1은 유지보수 종료)
+              </li>
+              <li>[ ] 브라우저용 setupWorker와 테스트용 setupServer가 분리되어 있나요?</li>
+              <li>[ ] MSW 핸들러에서 생성된 타입을 사용하여 응답 타입 안전성을 확보했나요?</li>
+              <li>[ ] 에러 시나리오(404, 500, 네트워크 에러)에 대한 핸들러가 준비되어 있나요?</li>
+              <li>
+                [ ] 테스트에서 <code>afterEach(() =&gt; server.resetHandlers())</code>로 격리를
+                보장하나요?
+              </li>
+              <li>
+                [ ] 병렬 테스트에서 오버라이드가 필요한 경우 <code>server.boundary(...)</code>로
+                누수를 차단했나요?
+              </li>
+              <li>
+                [ ] 일회성 핸들러 재사용이 필요한 시나리오에 <code>server.restoreHandlers()</code>를
+                활용하나요?
+              </li>
+            </ul>
+            <h3 id="result">Result 패턴 &amp; 에러 처리</h3>
+            <ul>
+              <li>
+                [ ] 비동기 작업 결과에 대해 명시적인 예외 처리(Result 패턴)를 강제하고 있나요?
+              </li>
+              <li>[ ] ApiError 타입에 에러 코드, 메시지, HTTP 상태가 포함되어 있나요?</li>
+              <li>[ ] 글로벌 에러 핸들러가 401/403/500 등 공통 에러를 처리하나요?</li>
+              <li>[ ] Error Boundary가 페이지/섹션 레벨에 적절히 배치되어 있나요?</li>
+            </ul>
+            <h3 id="tanstack-query">TanStack Query</h3>
+            <ul>
+              <li>[ ] QueryClient에 적절한 staleTime, gcTime, retry 정책이 설정되어 있나요?</li>
+              <li>[ ] 쿼리 키 팩토리를 사용하여 체계적으로 키를 관리하나요?</li>
+              <li>[ ] 뮤테이션 성공 후 관련 쿼리를 적절히 무효화하나요?</li>
+              <li>
+                [ ] 낙관적 업데이트가 필요한 곳에 onMutate/onError/onSettled 패턴을 적용했나요?
+              </li>
+              <li>[ ] useSuspenseQuery에서 enabled 대신 조건부 렌더링을 사용하나요?</li>
+              <li>
+                [ ] RSC 환경에서 서버는 <code>prefetchQuery</code> + <code>HydrationBoundary</code>,
+                클라이언트는 동일 키의 <code>useSuspenseQuery</code>로 hydrate하고 있나요?
+              </li>
+              <li>
+                [ ] <code>QueryClient</code>를 사용자 요청 단위로 생성하여 캐시가 사용자 간 섞이지
+                않도록 했나요?
+              </li>
+            </ul>
+            <h3 id="_9">인터셉터 &amp; 인증</h3>
+            <ul>
+              <li>[ ] 요청 인터셉터에서 인증 토큰을 자동으로 주입하나요?</li>
+              <li>[ ] 토큰 갱신 시 동시 요청 큐잉(중복 방지)이 구현되어 있나요?</li>
+              <li>[ ] 토큰 갱신 실패 시 적절한 로그아웃 처리가 되나요?</li>
+              <li>[ ] 토큰 갱신 요청은 별도 HTTP 인스턴스를 사용하여 무한 루프를 방지하나요?</li>
+            </ul>
+            <h3 id="api">API 계층 설계</h3>
+            <ul>
+              <li>[ ] Repository → Service → Hook → Component 계층이 명확히 분리되어 있나요?</li>
+              <li>[ ] 각 계층의 책임이 단일 원칙을 따르나요?</li>
+              <li>[ ] HTTP 클라이언트 선택 근거가 문서화되어 있나요?</li>
+            </ul>
+            <hr />
+            <blockquote>
+              <p>
+                <strong>다음 단계:</strong>
+                <a href="./07_테스팅_가이드.md">07. 테스팅 가이드</a>에서 MSW를 활용한 통합 테스트
+                전략을 확인하세요. <strong>연관 가이드:</strong>
+                <a href="./04_아키텍처_설계_패턴.md">04. 아키텍처 설계 패턴</a> |
+                <a href="./06_웹_보안_심화_가이드.md">06. 웹 보안 심화 가이드</a> |
+                <a href="./09_장애_대응_및_관측성_표준.md">09. 장애 대응 및 관측성 표준</a>
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="12-api">12. API 코드 예측 가능성 규칙</h2>
+            <p>API 계층은 이름과 반환 타입이 조금만 흔들려도 화면 전체의 에러 처리가 깨집니다.</p>
+            <h3 id="121-wrapper">12.1 wrapper 이름에 숨은 동작을 드러낸다</h3>
+            <ul>
+              <li>
+                인증 토큰을 붙이는 client는 <code>http.get</code>이 아니라
+                <code>authHttp.getWithAuth</code>처럼 이름에서 부수 동작을 알 수 있게 합니다.
+              </li>
+              <li>
+                retry, tracing, logging, refresh token, idempotency key 삽입은 wrapper 이름, 옵션,
+                반환 타입 중 하나로 드러냅니다.
+              </li>
+              <li>
+                fetch 함수가 데이터 조회처럼 보이는데 analytics logging이나 navigation을 실행하면
+                숨은 로직입니다. 호출부 orchestration으로 옮깁니다.
+              </li>
+            </ul>
+            <h3 id="122-api">12.2 같은 계열 API 함수의 반환 계약을 통일한다</h3>
+            <ul>
+              <li>
+                endpoint client는 <code>Result&lt;T, ApiError&gt;</code> 또는 throw 기반 중 하나로
+                통일하고 섞지 않습니다.
+              </li>
+              <li>
+                query hook은 query object 반환, data-only 반환 중 하나를 기능 그룹 안에서
+                고정합니다.
+              </li>
+              <li>
+                validation 함수는 boolean과 객체 반환을 섞지 않고
+                <code>{ ok: true } | { ok: false; reason: string }</code>처럼 분기 가능한 타입을
+                사용합니다.
+              </li>
+            </ul>
+            <h3 id="123-mock">12.3 mock과 계약 파일을 같은 변경 단위로 둔다</h3>
+            <ul>
+              <li>
+                client, schema, MSW handler, fixture, contract test는 같은 feature 폴더에 둡니다.
+              </li>
+              <li>
+                generated file은 수동 수정하지 않고, "수동 편집 금지" 주석과 재생성 명령을 함께
+                둡니다.
+              </li>
+              <li>mock handler가 추가되면 실제 API 계약과 깨지는 부분이 없는지 diff를 남깁니다.</li>
+            </ul>
+            <hr />
+            <h2 id="_10">실무 적용 가이드</h2>
+            <h3 id="_11">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>API 스펙 변경 후 프론트가 배포 뒤 깨질 때</li>
+              <li>mock과 실제 API 응답이 달라 테스트 신뢰도가 낮을 때</li>
+              <li>에러 응답과 재시도 정책이 화면마다 다르게 처리될 때</li>
+            </ul>
+            <h3 id="_12">적용 순서</h3>
+            <ol>
+              <li>OpenAPI/GraphQL/protobuf 같은 계약 파일을 기준으로 client type을 생성한다.</li>
+              <li>feature별 API client, schema, MSW handler, contract test를 함께 둔다.</li>
+              <li>
+                성공 응답보다 validation error, auth error, rate limit, timeout을 먼저 모델링한다.
+              </li>
+              <li>Result pattern 또는 일관된 error type으로 화면 처리를 통일한다.</li>
+              <li>breaking change diff와 mock coverage를 PR에 남긴다.</li>
+            </ol>
+            <h3 id="_13">함께 두는 파일</h3>
+            <ul>
+              <li>
+                <code>features/&lt;name&gt;/api</code> 아래 client, handler, fixture, schema, test를
+                둔다.
+              </li>
+              <li>공통 fetch wrapper는 인증, timeout, trace id처럼 도메인 무관한 것만 담당한다.</li>
+              <li>endpoint별 UI fallback은 해당 feature에 둔다.</li>
+            </ul>
+            <h3 id="_14">흔한 실수</h3>
+            <ul>
+              <li>수동 타입을 백엔드 스펙과 따로 관리한다.</li>
+              <li>MSW handler를 테스트 전용 폴더에 몰아 실제 기능과 분리한다.</li>
+              <li>HTTP status만 보고 비즈니스 에러를 구분한다.</li>
+              <li>retry가 안전한 요청인지 idempotency를 확인하지 않는다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] contract diff가 확인되었다.</li>
+              <li>[ ] MSW success/failure fixture가 있다.</li>
+              <li>[ ] API error UI가 재시도 또는 복구 경로를 제공한다.</li>
+              <li>[ ] client/schema/mock/test가 같은 변경 단위에 있다.</li>
+            </ul>
+            <h2 id="_15">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — OpenAPI/contract와 MSW handler 중 하나를 작은 변경 1건에
+                적용하고 증거(schema diff)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — API 계약 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — mock drift, 4xx/5xx 처리 누락, contract failure 수 추이를
+                보고 기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — API 계약 오너가 증거와 철회 조건을 확인했다는 기록을
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_16">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : OpenAPI/contract와 MSW handler 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(schema diff, generated client diff, contract
+                test log)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : mock drift, 4xx/5xx 처리 누락, contract failure 수가
+                기준 안에 들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_17">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li>
+                <code>실행 게이트</code> : 명세, client, mock, test가 같은 변경에 포함됐는지
+                확인한다.
+              </li>
+              <li>
+                <code>승인 체계</code> : API 계약 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : contract test와 handler lifecycle이 통과하면 다음
+                endpoint에 적용한다.
+              </li>
+              <li><code>정지 조건</code> : 명세 없이 mock이나 client만 바뀌면 merge를 보류한다.</li>
+              <li>
+                <code>리스크 점수</code> : endpoint 수, breaking field 수, consumer 수로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : API 플랫폼 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : API 계약 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li><code>재평가 주기</code> : API 버전 변경 때마다 mock drift를 점검한다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>

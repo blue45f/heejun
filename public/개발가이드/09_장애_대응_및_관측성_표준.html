@@ -1,0 +1,1828 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>00. 09 장애 대응 및 관측성 표준.md - 프론트엔드 개발 가이드</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #060913;
+        --card-bg: rgba(13, 20, 38, 0.7);
+        --border-color: rgba(255, 255, 255, 0.06);
+        --sidebar-bg: rgba(9, 13, 26, 0.85);
+
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
+
+        --accent-color: #6366f1;
+        --accent-light: #818cf8;
+        --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+
+        --left-sidebar-width: 320px;
+        --right-sidebar-width: 250px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Malgun Gothic',
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        line-height: 1.8;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* LEFT SIDEBAR: Document List & Search */
+      .left-sidebar {
+        width: var(--left-sidebar-width);
+        border-right: 1px solid var(--border-color);
+        background: var(--sidebar-bg);
+        backdrop-filter: blur(20px);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        padding: 24px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        margin-bottom: 20px;
+      }
+
+      .sidebar-logo-text {
+        font-size: 1.15rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px 10px 34px;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .doc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .doc-item {
+        margin-bottom: 3px;
+      }
+
+      .doc-link {
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .doc-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .doc-link.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.16);
+        border-left: 3px solid var(--accent-color);
+        font-weight: 600;
+      }
+
+      .doc-number {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        color: var(--accent-light);
+        margin-right: 8px;
+        opacity: 0.8;
+      }
+
+      /* RIGHT SIDEBAR: Current Document TOC */
+      .right-sidebar {
+        width: var(--right-sidebar-width);
+        border-left: 1px solid var(--border-color);
+        background: var(--bg-color);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        padding: 30px 20px;
+        overflow-y: auto;
+      }
+
+      .toc-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border-left: 1px solid var(--border-color);
+      }
+
+      .toc-item {
+        margin-bottom: 2px;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 6px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+      }
+
+      .toc-link:hover {
+        color: #fff;
+      }
+
+      .toc-link.active {
+        color: var(--accent-light);
+        border-left-color: var(--accent-color);
+        font-weight: 600;
+      }
+
+      .toc-link.level-3 {
+        padding-left: 28px;
+        font-size: 0.8rem;
+      }
+
+      /* MIDDLE MAIN CONTENT */
+      .main-content {
+        margin-left: var(--left-sidebar-width);
+        margin-right: var(--right-sidebar-width);
+        flex-grow: 1;
+        padding: 50px 60px;
+        min-width: 0;
+      }
+
+      .content-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .content-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 15px 40px -15px rgba(0, 0, 0, 0.7);
+      }
+
+      /* RESPONSIVE LAYOUT */
+      @media (max-width: 1280px) {
+        .right-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-right: 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .left-sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 30px 20px;
+        }
+      }
+
+      /* TYPOGRAPHY IN BODY */
+      h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+      }
+
+      h2 {
+        font-size: 1.65rem;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+        color: #f1f5f9;
+        scroll-margin-top: 30px;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 35px;
+        margin-bottom: 15px;
+        color: #e2e8f0;
+        scroll-margin-top: 30px;
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+      }
+
+      a {
+        color: #818cf8;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      a:hover {
+        color: #a5b4fc;
+        text-decoration: underline;
+      }
+
+      /* Styled Table element */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        margin: 30px 0;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: rgba(255, 255, 255, 0.025);
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      td {
+        color: #cbd5e1;
+      }
+
+      tr:nth-child(even) td {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      tr:hover td {
+        background-color: rgba(99, 102, 241, 0.04);
+        color: #fff;
+      }
+
+      /* Badges for code keywords */
+      code {
+        font-family: 'Fira Code', Consolas, Monaco, monospace;
+        background-color: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #c7d2fe;
+      }
+
+      pre {
+        background-color: #030611;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        margin: 30px 0;
+      }
+
+      pre code {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+      }
+
+      /* Blockquotes */
+      blockquote {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(99, 102, 241, 0.03);
+        margin: 30px 0;
+        padding: 16px 24px;
+        border-radius: 0 12px 12px 0;
+      }
+
+      blockquote p {
+        margin: 0;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 24px;
+        padding-left: 28px;
+        color: #cbd5e1;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      /* Alerts custom classes */
+      .alert {
+        padding: 18px 24px;
+        border-radius: 12px;
+        margin: 30px 0;
+        border-left: 4px solid;
+        font-size: 0.95rem;
+      }
+
+      .alert-note {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+
+      .alert-warning {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--warning-color);
+        color: #fef3c7;
+      }
+
+      .alert-danger {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: var(--danger-color);
+        color: #fee2e2;
+      }
+
+      .alert-tip {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: var(--success-color);
+        color: #ecfdf5;
+      }
+
+      /* Mermaid graph card wrapping */
+      .mermaid {
+        background: #030611 !important;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <!-- LEFT SIDEBAR -->
+      <aside class="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo-text">AI-First 개발 표준 가이드</div>
+          <div class="search-container">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="가이드 검색..."
+            />
+          </div>
+        </div>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <a href="00_종합_가이드_목차.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">00 종합 가이드 목차.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="01_TypeScript_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">01 TypeScript 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="02_React19_실무_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">02 React19 실무 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="03_상태관리_패턴_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">03 상태관리 패턴 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="04_아키텍처_설계_패턴.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">04 아키텍처 설계 패턴.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="05_API_통신_및_모킹_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">05 API 통신 및 모킹 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="06_웹_보안_심화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">06 웹 보안 심화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="07_테스팅_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">07 테스팅 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="08_성능_최적화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">08 성능 최적화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="09_장애_대응_및_관측성_표준.html" class="doc-link active">
+              <span class="doc-number">00</span>
+              <span class="doc-title">09 장애 대응 및 관측성 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="10_인프라_IaC_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">10 인프라 IaC 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="11_CICD_파이프라인_표준.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">11 CICD 파이프라인 표준.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="12_CDN_캐시_전략.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">12 CDN 캐시 전략.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="13_브라우저_호환성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">13 브라우저 호환성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="14_배포_프로세스_체크리스트.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">14 배포 프로세스 체크리스트.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="15_RFC_의사결정_프로세스.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">15 RFC 의사결정 프로세스.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="16_AI_협업_코드리뷰_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">16 AI 협업 코드리뷰 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="17_신규_입사자_온보딩_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">17 신규 입사자 온보딩 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="18_AI_개발_워크플로우_종합.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">18 AI 개발 워크플로우 종합.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="19_웹_접근성_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">19 웹 접근성 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="20_디자인_시스템_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">20 디자인 시스템 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="21_마이크로_프론트엔드_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">21 마이크로 프론트엔드 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="22_모노레포_운영_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">22 모노레포 운영 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="23_국제화_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">23 국제화 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="24_SEO_메타데이터_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">24 SEO 메타데이터 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="25_웹_애니메이션_모션_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">25 웹 애니메이션 모션 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="26_PWA_오프라인_전략_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">26 PWA 오프라인 전략 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="27_다중_개발_서버_구축_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">27 다중 개발 서버 구축 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="28_Sentry_모니터링_활용_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">28 Sentry 모니터링 활용 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="29_표준_라이브러리_스택_가이드.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">29 표준 라이브러리 스택 가이드.md</span>
+            </a>
+          </li>
+          \n
+          <li class="doc-item">
+            <a href="30_사례_전저장소_일관성_정렬_회고.html" class="doc-link">
+              <span class="doc-number">00</span>
+              <span class="doc-title">30 사례 전저장소 일관성 정렬 회고.md</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- MIDDLE CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <div class="content-wrapper">
+            <h1 id="09">09. 장애 대응 및 관측성 표준</h1>
+            <h2 id="0-30">0. 먼저 알고 가기 (30초 요약)</h2>
+            <ul>
+              <li>
+                장애는 <code>발견</code>보다 <code>격리</code>와 <code>복구 속도</code>가 더
+                중요합니다.
+              </li>
+              <li>경보는 노이즈를 줄이고 실제 사용자 영향에 맞춰 단계적으로 경보하세요.</li>
+              <li>
+                사후 복구만이 아니라 같은 장애가 다시 안 나게 <code>원인-조치-재발방지</code>를
+                남기세요.
+              </li>
+            </ul>
+            <h2 id="_1">초심자용 한눈에 보기</h2>
+            <p>문제는 “발견 빠르게, 영향 제한, 복구 빨리”가 핵심입니다.</p>
+            <h3 id="_2">핵심 용어 빠르게 정리</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>용어</th>
+                    <th>쉬운 뜻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>관측성</code></td>
+                    <td>로그/지표/추적으로 문제 원인을 추적하는 체계</td>
+                  </tr>
+                  <tr>
+                    <td><code>심각도(P0~P3)</code></td>
+                    <td>장애의 긴급성과 사용자 영향 크기 구분</td>
+                  </tr>
+                  <tr>
+                    <td><code>알림</code></td>
+                    <td>문제가 감지되었을 때 자동 통보 체계</td>
+                  </tr>
+                  <tr>
+                    <td><code>postmortem</code></td>
+                    <td>장애 종료 후 원인과 개선안을 정리하는 회고</td>
+                  </tr>
+                  <tr>
+                    <td><code>SLA</code></td>
+                    <td>약속된 가용성/복구 시간 같은 운영 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">분류</th>
+                    <th style="text-align: left">품질 &amp; 운영</th>
+                    <th style="text-align: left">상태</th>
+                    <th style="text-align: left">Stable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>연관 가이드</strong></td>
+                    <td style="text-align: left">
+                      <a href="./07_테스팅_가이드.md">07. 테스팅</a>,
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>,
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>
+                    </td>
+                    <td style="text-align: left"><strong>도구 원칙</strong></td>
+                    <td style="text-align: left">벤더 중립</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>핵심 테마</strong></td>
+                    <td style="text-align: left">
+                      관측성, 알림, 장애 분류, 복구, 사후 분석, 재발 방지
+                    </td>
+                    <td style="text-align: left"><strong>Update</strong></td>
+                    <td style="text-align: left">최신 기준</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <blockquote>
+              <p>
+                장애 대응 표준은 특정 모니터링 제품 사용법이 아니라
+                <strong>사용자 영향 탐지, 의사결정 속도, 복구 가능성, 재발 방지</strong>를 일관되게
+                만드는 운영 계약입니다.
+              </p>
+            </blockquote>
+            <hr />
+            <h2 id="_3">추천 항목 (실무 우선순위)</h2>
+            <ul>
+              <li>
+                <strong>시작 추천</strong>: 관측성 삼각형(로그, 지표, 추적)을 하나의 링크드된
+                대시보드로 묶습니다.
+              </li>
+              <li>
+                <strong>안정 추천</strong>: 장애 분류(P0~P3)와 대응 우선순위를 문서화해 대응자가
+                즉시 판단하게 합니다.
+              </li>
+              <li>
+                <strong>운영 추천</strong>: postmortem 템플릿을 24시간 내 자동 생성해 재발 방지
+                액션까지 포함하세요.
+              </li>
+            </ul>
+            <h2 id="_4">추천 항목 고도화 체크</h2>
+            <ul>
+              <li>
+                <code>첫 적용</code> — severity, alert, postmortem action 중 하나를 실제 PR이나 운영
+                이슈에 붙이고, 변경 전 기준을 먼저 적는다.
+              </li>
+              <li>
+                <code>증거 정리</code> — incident timeline, alert rule, dashboard link, action
+                owner를 같은 작업 기록에 남긴다.
+              </li>
+              <li>
+                <code>재점검</code> — MTTD, MTTR, 재발 이슈 수, action 지연일가 나아졌는지 30일 안에
+                확인하고 기준을 유지, 수정, 폐기 중 하나로 판정한다.
+              </li>
+            </ul>
+            <h2 id="_5">추천 항목 실행 기록 템플릿</h2>
+            <ul>
+              <li>
+                <code>작업</code> : severity, alert, postmortem action 적용 범위를 어느 화면,
+                패키지, 문서에 둘지 적는다.
+              </li>
+              <li>
+                <code>증거</code> : incident timeline, alert rule, dashboard link, action owner 중
+                실제로 남긴 항목만 링크한다.
+              </li>
+              <li><code>판정</code> : 유지/수정/폐기 중 하나와 이유를 한 문장으로 남긴다.</li>
+              <li>
+                <code>다음 점검</code> : MTTD, MTTR, 재발 이슈 수, action 지연일를 다시 볼 날짜와
+                담당자를 지정한다.
+              </li>
+            </ul>
+            <h2 id="_6">문서 책임 범위</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">이 문서가 결정하는 것</th>
+                    <th style="text-align: left">단일 출처로 따르는 문서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">
+                      error/RUM/trace/release health 데이터 모델과 alert 기준
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./08_성능_최적화_가이드.md">08. 성능</a>,
+                      <a href="./11_CICD_파이프라인_표준.md">11. CI/CD</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">
+                      incident severity, runbook, postmortem action 관리
+                    </td>
+                    <td style="text-align: left">
+                      <a href="./14_배포_프로세스_체크리스트.md">14. 배포</a>,
+                      <a href="./15_RFC_의사결정_프로세스.md">15. 의사결정</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">CDN/cache, API, PWA 장애의 도메인별 완화 기준</td>
+                    <td style="text-align: left">
+                      <a href="./12_CDN_캐시_전략.md">12. CDN 캐시</a>,
+                      <a href="./05_API_통신_및_모킹_가이드.md">05. API 통신</a>,
+                      <a href="./26_PWA_오프라인_전략_가이드.md">26. PWA</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">AI를 활용한 incident 초안/분석의 검증 책임</td>
+                    <td style="text-align: left">
+                      <a href="./18_AI_개발_워크플로우_종합.md">18. AI 개발 워크플로우</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h2 id="0-baseline">0. 모든 프론트엔드 그룹 공통 Baseline</h2>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">영역</th>
+                    <th style="text-align: left">공통 기준</th>
+                    <th style="text-align: left">문서화 산출물</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>탐지</strong></td>
+                    <td style="text-align: left">
+                      에러율, 핵심 API 실패율, Core Web Vitals, JS crash, blank screen, 배포 후 신규
+                      오류를 p75/p95와 release 단위로 추적
+                    </td>
+                    <td style="text-align: left">대시보드 링크, 알림 조건</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>분류</strong></td>
+                    <td style="text-align: left">
+                      사용자 영향도와 복구 시급도 기준으로 P0~P3 severity를 정의
+                    </td>
+                    <td style="text-align: left">severity 표, escalation rule</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>대응</strong></td>
+                    <td style="text-align: left">
+                      감지, triage, owner 지정, 완화, 복구, 검증, 종료를 단일 runbook으로 운영
+                    </td>
+                    <td style="text-align: left">incident runbook</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>커뮤니케이션</strong></td>
+                    <td style="text-align: left">
+                      내부 대응 채널, 의사결정자, 상태 공유 주기, 고객 공지 필요 조건을 명시
+                    </td>
+                    <td style="text-align: left">comms template</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>증적</strong></td>
+                    <td style="text-align: left">
+                      로그, trace, release, feature flag, 배포 이력, 사용자 영향 수치를 타임라인에
+                      남김
+                    </td>
+                    <td style="text-align: left">incident timeline</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>재발 방지</strong></td>
+                    <td style="text-align: left">
+                      액션 아이템은 테스트, 알림, 런북, 코드 수정, 배포 절차 중 하나로 닫음
+                    </td>
+                    <td style="text-align: left">postmortem, follow-up PR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="00">0.0 장애 대응 시작점</h3>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;이상 신호 수신&quot;] --&gt; B[&quot;심각도/영향 범위 판단&quot;]
+  B --&gt; C{&quot;P0~P3&quot;}
+  C --&gt;|P0/P1| D[&quot;즉시 소유자 지정&quot;]
+  C --&gt;|P2/P3| E[&quot;우선순위 큐 등록&quot;]
+  D --&gt; F[&quot;완화 실행\n(rollback/flag/cache)&quot;]
+  E --&gt; F
+  F --&gt; G[&quot;지표 검증\n(error/API/Core Web Vitals)&quot;]
+  G --&gt; H{&quot;회복 여부&quot;}
+  H --&gt;|아니오| I[&quot;추가 완화 + 원인 조치&quot;]
+  H --&gt;|예| J[&quot;사후 분석 및 action 등록&quot;]
+  I --&gt; B
+  J --&gt; K[&quot;Runbook/알림/테스트 닫힘 상태 반영&quot;]</pre
+            >
+            <h3 id="01">0.1 교차 검증 매트릭스</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">권고</th>
+                    <th style="text-align: left">1차 출처</th>
+                    <th style="text-align: left">실행 증거</th>
+                    <th style="text-align: left">운영 증거</th>
+                    <th style="text-align: left">철회 조건</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">OpenTelemetry/RUM</td>
+                    <td style="text-align: left">
+                      OpenTelemetry JS 상태 문서, Core Web Vitals 기준
+                    </td>
+                    <td style="text-align: left">trace id 전파 test, RUM event schema test</td>
+                    <td style="text-align: left">error rate, release health, p75 Web Vitals</td>
+                    <td style="text-align: left">브라우저 수집이 과도하면 sampling/필드 축소</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Severity/runbook</td>
+                    <td style="text-align: left">incident management best practice와 내부 SLA</td>
+                    <td style="text-align: left">incident drill, rollback drill</td>
+                    <td style="text-align: left">MTTA, MTTR, 재발률</td>
+                    <td style="text-align: left">반복 오탐은 알림 조건 재설계</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">Postmortem action</td>
+                    <td style="text-align: left">장애 대응 표준</td>
+                    <td style="text-align: left">follow-up PR/test/alert 연결</td>
+                    <td style="text-align: left">action item 완료율</td>
+                    <td style="text-align: left">owner/due 없는 action은 유효하지 않음</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 id="02">0.2 운영 게이트</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Gate</th>
+                    <th style="text-align: left">Evidence</th>
+                    <th style="text-align: left">Owner</th>
+                    <th style="text-align: left">Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">Incident open</td>
+                    <td style="text-align: left">
+                      알림, 고객 영향, smoke 실패 중 하나 이상의 증적
+                    </td>
+                    <td style="text-align: left">Incident commander</td>
+                    <td style="text-align: left">오탐이면 severity downgrade와 알림 조건 수정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">완화/복구</td>
+                    <td style="text-align: left">
+                      rollback, feature flag, cache purge, hotfix 실행 기록
+                    </td>
+                    <td style="text-align: left">Tech lead</td>
+                    <td style="text-align: left">이전 artifact 복구 또는 flag off 유지</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">종료 승인</td>
+                    <td style="text-align: left">error rate, 핵심 flow, Web Vitals 정상화 확인</td>
+                    <td style="text-align: left">Incident commander</td>
+                    <td style="text-align: left">지표 재상승 시 incident reopen</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">재발 방지</td>
+                    <td style="text-align: left">follow-up PR, 테스트, 알림, runbook 링크</td>
+                    <td style="text-align: left">Action owner</td>
+                    <td style="text-align: left">due date 초과 시 action 재분류와 escalation</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <hr />
+            <h3 id="03">0.3 대응 플로우 한눈에 보기</h3>
+            <p>관측성 데이터가 쌓여 있어도 대응 경로가 없으면 대응이 늦어집니다.</p>
+            <pre><code class="language-text">이상 탐지 (알림/고객문의/스크립트 실패)
+            |
+            v
+      +----------------+
+      | Incident 판단  |
+      | - P0~P3 분류    |
+      +----------------+
+            |
+            v
+    +-----------------------+
+    | 소유자 지정           |
+    | 기술/운영/커뮤니케이션  |
+    +-----------------------+
+            |
+            v
+    +-----------------------+
+    | 완화 실행             |
+    | rollback/flag/cache   |
+    +-----------------------+
+            |
+            v
+      +----------------+
+      | 영향 검증       |
+      | error/API/지표   |
+      +----------------+
+            |
+      +-----------+-----------+
+      |                   |
+      v                   v
+ 종료               미완화
+  |                  |
+  v                  v
+postmortem       추가 완화/이슈 정리
+action 완료
+
+</code></pre>
+            <pre><code class="language-text">데이터 축적 순서
+
+release/version -&gt; route/feature -&gt; trace_id -&gt; segment -&gt; error fingerprint -&gt; 사용자 영향
+       │              │               │            │            │                │
+       v              v               v            v            v                v
+관측성 대시보드      알림 룰         대응 우선순위   Runbook 호출   postmortem         개선 액션
+</code></pre>
+            <pre class="mermaid">
+flowchart TD
+  A[&quot;이상 탐지\n알림/고객문의/스크립트 실패&quot;] --&gt; B[&quot;Incident 판단\nP0~P3 분류&quot;]
+  B --&gt; C[&quot;소유자 지정\n기술/운영/커뮤니케이션&quot;]
+  C --&gt; D[&quot;완화 실행\nrollback/flag/cache&quot;]
+  D --&gt; E[&quot;영향 검증\nerror/API/지표&quot;]
+  E --&gt; F{&quot;완화 완료?&quot;}
+  F --&gt;|종료| G[&quot;postmortem / action 완료&quot;]
+  F --&gt;|미완화| H[&quot;추가 완화/이슈 정리&quot;]
+  G --&gt; I[&quot;개선 액션 반영&quot;]
+  H --&gt; I</pre
+            >
+            <pre class="mermaid">
+flowchart LR
+  A2[&quot;release/version&quot;] --&gt; B2[&quot;route/feature&quot;]
+  B2 --&gt; C2[&quot;trace_id&quot;]
+  C2 --&gt; D2[&quot;segment&quot;]
+  D2 --&gt; E2[&quot;error fingerprint&quot;]
+  E2 --&gt; F2[&quot;사용자 영향&quot;]
+  F2 --&gt; G2[&quot;관측성 대시보드&quot;]
+  G2 --&gt; H2[&quot;알림 룰&quot;]
+  H2 --&gt; I2[&quot;대응 우선순위&quot;]
+  I2 --&gt; J2[&quot;Runbook 호출&quot;]
+  J2 --&gt; K2[&quot;postmortem&quot;]
+  K2 --&gt; L2[&quot;개선 액션&quot;]</pre
+            >
+            <h2 id="1">1. 관측성 데이터 모델</h2>
+            <p>
+              프론트엔드 관측성은 도구보다 데이터 모델이 먼저입니다. 어떤 제품을 쓰더라도 아래
+              필드는 동일하게 수집되어야 합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">필드</th>
+                    <th style="text-align: left">목적</th>
+                    <th style="text-align: left">예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><code>release</code></td>
+                    <td style="text-align: left">배포 버전별 회귀 추적</td>
+                    <td style="text-align: left">git SHA, semantic version</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>environment</code></td>
+                    <td style="text-align: left">환경별 오탐 분리</td>
+                    <td style="text-align: left">production, staging, preview</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>route</code></td>
+                    <td style="text-align: left">영향 화면 식별</td>
+                    <td style="text-align: left">
+                      <code>/checkout</code>, <code>/dashboard</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>feature</code></td>
+                    <td style="text-align: left">기능 단위 ownership 연결</td>
+                    <td style="text-align: left">payment, search, editor</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>user_segment</code></td>
+                    <td style="text-align: left">영향 범위 판단</td>
+                    <td style="text-align: left">anonymous, paid, admin</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>trace_id</code></td>
+                    <td style="text-align: left">백엔드/API 로그와 연결</td>
+                    <td style="text-align: left">W3C Trace Context</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><code>error_fingerprint</code></td>
+                    <td style="text-align: left">같은 오류 그룹화</td>
+                    <td style="text-align: left">message + stack + cause</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              민감정보는 수집 전에 제거해야 합니다. 이메일, 전화번호, 주소, 토큰, 쿠키, 결제 정보,
+              자유 입력값 원문은 관측성 이벤트에 그대로 들어가면 안 됩니다.
+            </p>
+            <hr />
+            <h2 id="2">2. 알림 설계</h2>
+            <p>알림은 "알 수 있음"이 아니라 "행동해야 함"을 기준으로 만듭니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">알림 유형</th>
+                    <th style="text-align: left">권장 조건</th>
+                    <th style="text-align: left">즉시 행동</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>P0 사용자 차단</strong></td>
+                    <td style="text-align: left">
+                      로그인, 결제, 핵심 CTA 등 주요 흐름 실패율 급등
+                    </td>
+                    <td style="text-align: left">즉시 owner 지정, 완화 또는 롤백 판단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P1 배포 회귀</strong></td>
+                    <td style="text-align: left">새 release에서만 error/crash/INP/LCP 회귀 발생</td>
+                    <td style="text-align: left">배포 중지, canary 확대 중단</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P2 성능 저하</strong></td>
+                    <td style="text-align: left">Core Web Vitals p75가 예산 초과</td>
+                    <td style="text-align: left">원인 분석, 다음 배포 전 수정</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P3 노이즈/품질</strong></td>
+                    <td style="text-align: left">비핵심 오류 반복, fallback 성공</td>
+                    <td style="text-align: left">backlog 등록, 알림 임계값 조정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              알림에는 항상 <code>무엇이</code>, <code>어디서</code>, <code>얼마나</code>,
+              <code>언제부터</code>, <code>최근 배포와 관련 있는지</code>,
+              <code>첫 대응자가 할 다음 행동</code>이 포함되어야 합니다.
+            </p>
+            <hr />
+            <h2 id="3-severity">3. Severity 표준</h2>
+            <blockquote>
+              <p>
+                비유: <strong>병원 응급실 트리아지</strong>와 같습니다 — 환자(장애)의 위험도에 따라
+                즉시(P0), 우선(P1), 일반(P2), 대기(P3)로 분류해 의료진(엔지니어)이 효율적으로
+                대응합니다.
+              </p>
+            </blockquote>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">등급</th>
+                    <th style="text-align: left">기준</th>
+                    <th style="text-align: left">응답 목표</th>
+                    <th style="text-align: left">예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left"><strong>P0</strong></td>
+                    <td style="text-align: left">다수 사용자가 핵심 기능을 사용할 수 없음</td>
+                    <td style="text-align: left">5분 내 triage, 즉시 완화</td>
+                    <td style="text-align: left">앱 진입 불가, 결제 전체 실패</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P1</strong></td>
+                    <td style="text-align: left">
+                      주요 기능 일부 장애 또는 특정 segment 광범위 영향
+                    </td>
+                    <td style="text-align: left">15분 내 triage</td>
+                    <td style="text-align: left">특정 브라우저에서 주문 실패</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P2</strong></td>
+                    <td style="text-align: left">우회 경로가 있으나 사용자 경험/성능 저하</td>
+                    <td style="text-align: left">영업일 내 조치 계획</td>
+                    <td style="text-align: left">검색 지연, 일부 화면 오류</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left"><strong>P3</strong></td>
+                    <td style="text-align: left">운영 품질 개선 또는 노이즈 정리</td>
+                    <td style="text-align: left">backlog 관리</td>
+                    <td style="text-align: left">비핵심 warning, 낮은 빈도 오류</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>severity는 "코드의 심각함"이 아니라 사용자 영향과 복구 시급도로 판단합니다.</p>
+            <h3 id="severity">Severity 판단 결정 트리</h3>
+            <pre class="mermaid">
+flowchart TD
+  Start[&quot;장애 발생/탐지&quot;] --&gt; Q1{&quot;전체 사용자가&lt;br/&gt;핵심 기능을&lt;br/&gt;못 쓰나?&quot;}
+  Q1 --&gt;|예| P0[&quot;P0&lt;br/&gt;5분 내 triage&lt;br/&gt;즉시 완화&quot;]
+  Q1 --&gt;|아니오| Q2{&quot;일부 segment&lt;br/&gt;또는 일부 기능에&lt;br/&gt;광범위 영향?&quot;}
+  Q2 --&gt;|예| P1[&quot;P1&lt;br/&gt;15분 내 triage&quot;]
+  Q2 --&gt;|아니오| Q3{&quot;우회 가능하나&lt;br/&gt;UX/성능 저하?&quot;}
+  Q3 --&gt;|예| P2[&quot;P2&lt;br/&gt;영업일 내 조치&quot;]
+  Q3 --&gt;|아니오| P3[&quot;P3&lt;br/&gt;backlog 관리&quot;]
+
+  style P0 fill:#ffcdd2,stroke:#c62828
+  style P1 fill:#ffe0b2,stroke:#ef6c00
+  style P2 fill:#fff9c4,stroke:#f9a825
+  style P3 fill:#c8e6c9,stroke:#2e7d32</pre
+            >
+            <h3 id="severity-mtta">Severity별 응답 시간 비교 (MTTA 목표)</h3>
+            <pre class="mermaid">
+gantt
+  title Severity별 대응 시간 기준
+  dateFormat HH:mm
+  axisFormat %H:%M
+  section P0 (즉시)
+  triage      :p0a, 00:00, 5m
+  완화 시작   :p0b, after p0a, 10m
+  section P1 (15분)
+  triage      :p1a, 00:00, 15m
+  완화 시작   :p1b, after p1a, 30m
+  section P2 (영업일)
+  triage      :p2a, 00:00, 4h
+  조치 계획   :p2b, after p2a, 4h
+  section P3 (backlog)
+  분류        :p3a, 00:00, 1d</pre
+            >
+            <hr />
+            <h2 id="4-incident-runbook">4. Incident Runbook</h2>
+            <blockquote>
+              <p>
+                비유: <strong>항공기 비상 매뉴얼</strong>과 같습니다 — 순간적 판단을 줄이고, 사전에
+                약속된 단계대로 동작하게 만들어 실수를 줄입니다.
+              </p>
+            </blockquote>
+            <ol>
+              <li>
+                <strong>감지</strong>: 알림, 고객 문의, 배포 smoke test 중 하나로 incident를 엽니다.
+              </li>
+              <li>
+                <strong>확인</strong>: 재현 여부, 영향 범위, 최근 배포/설정 변경 여부를 확인합니다.
+              </li>
+              <li>
+                <strong>소유자 지정</strong>: incident commander, tech lead, comms owner를
+                분리합니다.
+              </li>
+              <li>
+                <strong>완화</strong>: rollback, feature flag off, traffic shift, cache purge,
+                hotfix 중 가장 빠르고 안전한 조치를 선택합니다.
+              </li>
+              <li>
+                <strong>검증</strong>: error rate, 주요 flow, Core Web Vitals, synthetic check가
+                정상화되었는지 확인합니다.
+              </li>
+              <li>
+                <strong>종료</strong>: 영향 시간, 원인, 복구 조치, 남은 리스크를 기록하고 incident를
+                닫습니다.
+              </li>
+              <li>
+                <strong>사후 분석</strong>: 24~72시간 안에 postmortem을 작성하고 액션 아이템 owner와
+                due date를 지정합니다.
+              </li>
+            </ol>
+            <h3 id="incident-lifecycle">Incident Lifecycle 상태 다이어그램</h3>
+            <pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; Detected: 알림/smoke 실패
+  Detected --&gt; Triaged: severity 분류
+  Triaged --&gt; Assigned: commander 지정
+  Assigned --&gt; Mitigating: rollback/flag/cache
+  Mitigating --&gt; Verifying: 지표 확인
+  Verifying --&gt; Mitigating: 미회복
+  Verifying --&gt; Resolved: 정상화
+  Resolved --&gt; PostMortem: 24~72h 내
+  PostMortem --&gt; ActionsTracked: owner/due 지정
+  ActionsTracked --&gt; [*]: 액션 완료
+  ActionsTracked --&gt; Mitigating: 재발 시</pre
+            >
+            <h3 id="_7">완화 옵션 우선순위 (가장 빠르고 안전한 순)</h3>
+            <pre class="mermaid">
+flowchart LR
+  Start[&quot;완화 결정&quot;] --&gt; Q1{&quot;최근 배포가&lt;br/&gt;원인인가?&quot;}
+  Q1 --&gt;|예| Rollback[&quot;1) Rollback&lt;br/&gt;(가장 빠름)&quot;]
+  Q1 --&gt;|아니오| Q2{&quot;피처 플래그가&lt;br/&gt;걸려 있나?&quot;}
+  Q2 --&gt;|예| Flag[&quot;2) Feature Flag Off&quot;]
+  Q2 --&gt;|아니오| Q3{&quot;CDN/캐시 이슈?&quot;}
+  Q3 --&gt;|예| Purge[&quot;3) Cache Purge&quot;]
+  Q3 --&gt;|아니오| Q4{&quot;트래픽 분산&lt;br/&gt;가능?&quot;}
+  Q4 --&gt;|예| Shift[&quot;4) Traffic Shift&quot;]
+  Q4 --&gt;|아니오| Hotfix[&quot;5) Hotfix Deploy&lt;br/&gt;(가장 위험)&quot;]
+
+  style Rollback fill:#c8e6c9
+  style Flag fill:#dcedc8
+  style Purge fill:#fff9c4
+  style Shift fill:#ffe0b2
+  style Hotfix fill:#ffcdd2</pre
+            >
+            <hr />
+            <h2 id="5-postmortem">5. Postmortem 템플릿</h2>
+            <pre><code class="language-markdown"># Incident Postmortem
+
+## Summary
+
+- Severity:
+- Started at:
+- Detected at:
+- Mitigated at:
+- Resolved at:
+- User impact:
+
+## Timeline
+
+| Time | Event | Evidence |
+| :--- | :---- | :------- |
+|      |       |          |
+
+## Root Cause
+
+- Direct cause:
+- Contributing factors:
+- Why existing tests/alerts did not catch it:
+
+## Resolution
+
+- Immediate mitigation:
+- Permanent fix:
+- Verification:
+
+## Action Items
+
+| Action | Owner | Due | Category                                |
+| :----- | :---- | :-- | :-------------------------------------- |
+|        |       |     | test / alert / runbook / code / release |
+
+## Lessons
+
+- What worked:
+- What did not:
+- What to change in the standard:
+</code></pre>
+            <p>
+              Postmortem은 책임 추궁 문서가 아니라 시스템 개선 문서입니다. 사람 이름보다 실패한
+              방어선, 누락된 검증, 모호한 소유권을 기록합니다.
+            </p>
+            <hr />
+            <h2 id="6-error-boundary-ux">6. Error Boundary와 사용자 복구 UX</h2>
+            <p>
+              프론트엔드 장애 대응은 관측성 이벤트 전송으로 끝나지 않습니다. 사용자가 스스로 복구할
+              수 있는 UX가 필요합니다.
+            </p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">상황</th>
+                    <th style="text-align: left">사용자 메시지</th>
+                    <th style="text-align: left">기술 조치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">화면 렌더링 실패</td>
+                    <td style="text-align: left">
+                      새로고침 또는 이전 화면으로 돌아갈 수 있는 안내
+                    </td>
+                    <td style="text-align: left">route-level error boundary</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">API 일시 실패</td>
+                    <td style="text-align: left">재시도 버튼과 저장 상태 안내</td>
+                    <td style="text-align: left">retry with backoff, idempotency</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">권한/세션 만료</td>
+                    <td style="text-align: left">다시 로그인 유도</td>
+                    <td style="text-align: left">auth refresh, redirect</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">부분 데이터 실패</td>
+                    <td style="text-align: left">가능한 영역만 표시하고 실패 영역 분리</td>
+                    <td style="text-align: left">component-level fallback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Error Boundary는 화면 전체를 흰 화면으로 만들지 않도록 route, layout, widget 단위로
+              분리합니다.
+            </p>
+            <hr />
+            <h2 id="7-release-health">7. Release Health 기준</h2>
+            <blockquote>
+              <p>
+                비유: <strong>건강 검진 결과지</strong>처럼 — 배포한 코드가 "정상 범위"인지 한
+                화면에서 확인할 수 있어야 합니다.
+              </p>
+            </blockquote>
+            <p>배포 단위로 최소 다음 지표를 비교합니다.</p>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left">지표</th>
+                    <th style="text-align: left">비교 방식</th>
+                    <th style="text-align: left">차단 조건 예시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left">JS error rate</td>
+                    <td style="text-align: left">이전 안정 release 대비</td>
+                    <td style="text-align: left">2배 이상 증가</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">crash-free session</td>
+                    <td style="text-align: left">release별 p95</td>
+                    <td style="text-align: left">기준선 하락</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">LCP / INP / CLS</td>
+                    <td style="text-align: left">Core Web Vitals p75</td>
+                    <td style="text-align: left">good 기준 이탈</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">API failure rate</td>
+                    <td style="text-align: left">route/feature별</td>
+                    <td style="text-align: left">핵심 flow 실패율 급등</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left">blank screen</td>
+                    <td style="text-align: left">synthetic + RUM</td>
+                    <td style="text-align: left">신규 release에서만 발생</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              릴리스 태그와 배포 시각이 관측성 데이터에 연결되어야 자동 롤백과 postmortem이
+              정확해집니다.
+            </p>
+            <h3 id="release-health">Release Health 모니터링 흐름</h3>
+            <pre class="mermaid">
+flowchart LR
+  Deploy[&quot;배포 완료&quot;] --&gt; Tag[&quot;release tag 부착&quot;]
+  Tag --&gt; Collect[&quot;RUM/Error/API 수집&quot;]
+  Collect --&gt; Compare[&quot;이전 release 대비 비교&quot;]
+  Compare --&gt; Check{&quot;임계 위반?&quot;}
+  Check --&gt;|&quot;error 2x↑&quot;| Block[&quot;배포 차단 또는 자동 롤백&quot;]
+  Check --&gt;|&quot;Web Vitals 악화&quot;| Block
+  Check --&gt;|&quot;blank screen 신규&quot;| Block
+  Check --&gt;|&quot;정상 범위&quot;| Continue[&quot;canary 확장 or 100% 전환&quot;]
+  Block --&gt; PM[&quot;incident open&quot;]
+
+  style Block fill:#ffcdd2
+  style Continue fill:#c8e6c9</pre
+            >
+            <hr />
+            <h2 id="8-ai">8. AI 활용 기준</h2>
+            <p>AI는 incident commander를 대체하지 않습니다. 다음 작업에만 보조로 사용합니다.</p>
+            <ul>
+              <li>로그와 trace에서 공통 패턴 요약</li>
+              <li>최근 변경 diff와 오류 발생 시점 대조</li>
+              <li>postmortem 초안 작성</li>
+              <li>재발 방지 테스트 케이스 제안</li>
+              <li>runbook 누락 항목 점검</li>
+            </ul>
+            <p>
+              AI에 민감 로그 원문, 고객 식별 정보, 토큰, 내부 URL을 전달하지 않습니다. 필요한 경우
+              익명화된 샘플과 구조화된 요약만 사용합니다.
+            </p>
+            <hr />
+            <h2 id="9">9. 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] release, environment, route, feature, trace id가 모든 오류 이벤트에 포함되는가
+              </li>
+              <li>[ ] 민감정보가 SDK/collector 전송 전에 제거되는가</li>
+              <li>[ ] P0~P3 severity와 응답 목표가 문서화되어 있는가</li>
+              <li>[ ] 핵심 사용자 flow마다 synthetic check 또는 E2E smoke가 있는가</li>
+              <li>[ ] 배포 후 신규 오류와 Core Web Vitals 회귀가 release 단위로 보이는가</li>
+              <li>
+                [ ] rollback, feature flag off, cache purge 중 최소 하나의 완화 경로가 검증되어
+                있는가
+              </li>
+              <li>[ ] postmortem 액션 아이템이 테스트/알림/런북/코드/배포 절차로 닫히는가</li>
+            </ul>
+            <hr />
+            <h2 id="10">10. 제외한 벤더 종속 항목</h2>
+            <p>
+              공통 개발 가이드에는 특정 에러 트래킹 SaaS의 SDK 초기화 코드, 콘솔 메뉴 경로, 전용 AI
+              기능, 전용 웹훅 payload, 가격/플랜, 특정 인시던트 관리 제품의 자동화 절차를 포함하지
+              않습니다. 이 문서에는 어떤 도구를 쓰더라도 유지되어야 하는 관측성 데이터 모델, 알림
+              기준, 대응 절차, 사후 분석 기준만 남깁니다.
+            </p>
+            <p>
+              Sentry를 실제 프로젝트에 적용할 때는
+              <a href="./28_Sentry_모니터링_활용_가이드.md">28. Sentry 모니터링 활용</a>을 실행
+              문서로 사용합니다.
+            </p>
+            <hr />
+            <h2 id="_8">실무 적용 가이드</h2>
+            <h3 id="_9">언제 이 문서를 펼칠까</h3>
+            <ul>
+              <li>배포 후 오류가 나도 어느 release, route, user segment 문제인지 모를 때</li>
+              <li>알림은 많은데 실제 행동으로 이어지지 않을 때</li>
+              <li>postmortem action이 코드나 테스트로 닫히지 않을 때</li>
+            </ul>
+            <h3 id="_10">적용 순서</h3>
+            <ol>
+              <li>
+                error/RUM/trace 이벤트에 release, route, feature, environment, trace id를 넣는다.
+              </li>
+              <li>P0-P3 severity를 사용자 영향 기준으로 정의한다.</li>
+              <li>알림은 다음 행동과 owner가 있을 때만 만든다.</li>
+              <li>rollback, flag off, cache purge, hotfix 순서를 runbook에 적는다.</li>
+              <li>postmortem action을 test, alert, runbook, code 중 하나로 닫는다.</li>
+            </ol>
+            <h3 id="_11">함께 두는 파일</h3>
+            <ul>
+              <li>feature별 error boundary, fallback UI, recovery test를 기능 폴더에 둔다.</li>
+              <li>공통 observability client는 shared에 두되 event schema는 기능 가까이에 둔다.</li>
+              <li>runbook은 배포/장애 문서와 링크한다.</li>
+            </ul>
+            <h3 id="_12">흔한 실수</h3>
+            <ul>
+              <li>console error 수만 보고 사용자 영향을 판단한다.</li>
+              <li>release tag 없이 오류를 수집한다.</li>
+              <li>postmortem을 작성만 하고 follow-up PR이 없다.</li>
+              <li>민감 로그 원문을 관측성 도구나 AI에 전달한다.</li>
+            </ul>
+            <h3 id="pr">PR 완료 기준</h3>
+            <ul>
+              <li>[ ] release health dashboard가 있다.</li>
+              <li>[ ] incident runbook과 severity 기준이 있다.</li>
+              <li>[ ] postmortem action owner/due가 있다.</li>
+              <li>[ ] 복구 UX와 fallback 테스트가 있다.</li>
+            </ul>
+            <h2 id="_13">추천 항목 실행 우선순위 매핑</h2>
+            <ul>
+              <li>
+                <code>P1(7일 내)</code> — severity, alert, postmortem action 중 하나를 작은 변경
+                1건에 적용하고 증거(incident timeline)를 남긴다.
+              </li>
+              <li>
+                <code>P2(30일 내)</code> — 장애 대응 기준을 팀 템플릿, 체크리스트, CI 중 한 곳에
+                고정한다.
+              </li>
+              <li>
+                <code>P3(90일 내)</code> — MTTD, MTTR, 재발 이슈 수, action 지연일 추이를 보고
+                기준을 유지할지 조정할지 결정한다.
+              </li>
+              <li>
+                <code>완료 기준</code> — 운영 오너가 증거와 철회 조건을 확인했다는 기록을 남긴다.
+              </li>
+            </ul>
+            <h2 id="_14">추천 항목 실행 체크리스트</h2>
+            <ul>
+              <li>
+                [ ] <code>1단계(7일)</code> : severity, alert, postmortem action 적용 대상을 1개로
+                좁힌다.
+              </li>
+              <li>
+                [ ] <code>2단계(30일)</code> : 증거(incident timeline, alert rule, dashboard link,
+                action owner)를 PR, ADR, 회고 중 한 곳에 연결한다.
+              </li>
+              <li>
+                [ ] <code>3단계(60일)</code> : MTTD, MTTR, 재발 이슈 수, action 지연일가 기준 안에
+                들어왔는지 확인한다.
+              </li>
+              <li>
+                [ ] <code>문제 대응</code> : 미달성 사유와 다음 조치, 중단 여부를 같은 기록에
+                남긴다.
+              </li>
+            </ul>
+            <h2 id="_15">추천 항목 실행 운영 규칙</h2>
+            <ul>
+              <li><code>실행 게이트</code> : 사용자 영향과 rollback 가능 시간을 먼저 분류한다.</li>
+              <li>
+                <code>승인 체계</code> : 운영 오너가 영향 범위와 rollback 담당자를 적용 전에
+                확인한다.
+              </li>
+              <li>
+                <code>재개 조건</code> : 임시 완화와 재발 방지 action owner가 정해지면 정상 운영으로
+                돌린다.
+              </li>
+              <li>
+                <code>정지 조건</code> : 원인 추정만 있고 사용자 영향 증거가 없으면 결론을 보류한다.
+              </li>
+              <li>
+                <code>리스크 점수</code> : 영향 사용자 수, 지속 시간, 재발 가능성으로 산정한다.
+              </li>
+              <li><code>리더 승인자</code> : 온콜 리드가 최종 승인 책임을 맡는다.</li>
+              <li>
+                <code>승인 역할</code> : 장애 대응 작성자, 검토자, 운영 확인자를 분리해 기록한다.
+              </li>
+              <li><code>재평가 주기</code> : 장애 종료 후 7일 안에 action 상태를 다시 본다.</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR (TOC) -->
+      <aside class="right-sidebar">
+        <div class="toc-title">이 페이지 목차</div>
+        <ul class="toc-list" id="toc-list">
+          <!-- Javascript will build items -->
+        </ul>
+      </aside>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Generate TOC Dynamically
+        const headers = document.querySelectorAll('.content-wrapper h2, .content-wrapper h3')
+        const tocList = document.getElementById('toc-list')
+
+        if (tocList && headers.length > 0) {
+          headers.forEach((header, index) => {
+            if (!header.id) {
+              header.id = 'header-' + index
+            }
+
+            const li = document.createElement('li')
+            li.className = 'toc-item'
+
+            const a = document.createElement('a')
+            a.href = '#' + header.id
+            a.className = 'toc-link'
+            if (header.tagName.toLowerCase() === 'h3') {
+              a.classList.add('level-3')
+            }
+
+            // Clean up text
+            let text = header.textContent.trim()
+            a.textContent = text
+
+            li.appendChild(a)
+            tocList.appendChild(li)
+          })
+
+          // TOC Scroll Offset
+          document.querySelectorAll('.toc-link').forEach((anchor) => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault()
+              const targetId = this.getAttribute('href')
+              const targetElement = document.querySelector(targetId)
+
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 30,
+                  behavior: 'smooth',
+                })
+
+                document.querySelectorAll('.toc-link').forEach((l) => l.classList.remove('active'))
+                this.classList.add('active')
+              }
+            })
+          })
+
+          // Active item highlighting on scroll
+          window.addEventListener('scroll', function () {
+            let currentActive = ''
+            headers.forEach((header) => {
+              const top = header.offsetTop
+              if (window.scrollY >= top - 120) {
+                currentActive = '#' + header.id
+              }
+            })
+
+            if (currentActive) {
+              document.querySelectorAll('.toc-link').forEach((link) => {
+                if (link.getAttribute('href') === currentActive) {
+                  link.classList.add('active')
+                } else {
+                  link.classList.remove('active')
+                }
+              })
+            }
+          })
+        }
+
+        // 2. Search Input Filtering for Left Sidebar
+        const searchInput = document.getElementById('search-input')
+        const docItems = document.querySelectorAll('.doc-item')
+
+        if (searchInput) {
+          searchInput.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase().trim()
+
+            docItems.forEach((item) => {
+              const titleText = item.querySelector('.doc-title').textContent.toLowerCase()
+              const numText = item.querySelector('.doc-number').textContent.toLowerCase()
+
+              if (titleText.includes(query) || numText.includes(query)) {
+                item.style.display = ''
+              } else {
+                item.style.display = 'none'
+              }
+            })
+          })
+        }
+      })
+
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+          background: '#030611',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          lineColor: '#64748b',
+        },
+      })
+    </script>
+  </body>
+</html>
