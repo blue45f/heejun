@@ -450,9 +450,25 @@ li {
     border-radius: 12px;
     padding: 24px;
     margin: 30px 0;
-    display: flex;
-    justify-content: center;
+    display: block;
+    overflow-x: auto;
+    width: 100%;
 }
+
+.mermaid svg {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Prevent gantt and timeline charts from squishing and overlapping text */
+.mermaid svg.gantt,
+.mermaid svg[id^="gantt"],
+.mermaid svg.timeline,
+.mermaid svg[id^="timeline"] {
+    min-width: 800px !important;
+    max-width: none !important;
+}
+
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
