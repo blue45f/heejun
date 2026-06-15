@@ -861,6 +861,72 @@ def get_h1_title(md_text, filename):
     clean_name = clean_name.replace('_', ' ')
     return clean_name
 
+def remove_ascii_diagrams(md_text):
+    lines = md_text.splitlines()
+    output_lines = []
+    
+    in_block = False
+    block_lang = ""
+    block_lines = []
+    block_backticks_count = 0
+    
+    for line in lines:
+        stripped = line.strip()
+        backtick_match = re.match(r'^(~{3,}|`{3,})', stripped)
+        
+        if backtick_match:
+            backtick_str = backtick_match.group(1)
+            backtick_count = len(backtick_str)
+            backtick_char = backtick_str[0]
+            
+            if in_block:
+                if backtick_count >= block_backticks_count and stripped.startswith(backtick_char * block_backticks_count):
+                    in_block = False
+                    content = "\n".join(block_lines)
+                    diagram_chars = [
+                        '+--', '├──', '└──', '│', '▼', '├─', '└─', '──→', '──┐', '──┘', 
+                        '┌─', '└─', '───', '─────', '┌───', '└───', '┌', '┐', '└', '┘'
+                    ]
+                    
+                    is_diagram = False
+                    if block_lang.lower() in ["text", ""]:
+                        diagram_line_count = 0
+                        for bl in block_lines:
+                            if any(char in bl for char in diagram_chars):
+                                diagram_line_count += 1
+                        
+                        if len(block_lines) > 0 and (diagram_line_count / len(block_lines)) >= 0.3:
+                            is_diagram = True
+                        elif any(char in content for char in ['+---------', '┌─────', '└───', '──→', '──┐', '──┘', '│    ', '│   ']):
+                            is_diagram = True
+                    
+                    if is_diagram:
+                        preview = block_lines[0][:35] if block_lines else ""
+                        print(f"Removed redundant ASCII diagram block: {preview}...")
+                    else:
+                        lang_str = backtick_char * block_backticks_count + block_lang
+                        output_lines.append(lang_str)
+                        output_lines.extend(block_lines)
+                        output_lines.append(backtick_char * block_backticks_count)
+                    
+                    block_lines = []
+                    block_lang = ""
+                    block_backticks_count = 0
+                else:
+                    block_lines.append(line)
+            else:
+                in_block = True
+                block_backticks_count = backtick_count
+                block_lang = stripped[backtick_count:].strip()
+                block_lines = []
+        else:
+            if in_block:
+                block_lines.append(line)
+            else:
+                output_lines.append(line)
+                
+    return "\n".join(output_lines)
+
 def build_guides():
     # 1. Collect all md files and sort
     files = sorted([f for f in os.listdir(docs_dir) if f.endswith(".md")])
@@ -901,6 +967,9 @@ def build_guides():
         with open(md_path, 'r', encoding='utf-8') as f:
             md_text = f.read()
             
+        # Clean ASCII diagrams before parsing to avoid redundancy
+        md_text = remove_ascii_diagrams(md_text)
+        
         # Parse to html
         html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'toc'])
         

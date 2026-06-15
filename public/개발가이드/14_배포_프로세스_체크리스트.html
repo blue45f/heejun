@@ -1181,43 +1181,6 @@ flowchart TD
             <hr />
             <h3 id="03">0.3 배포 의사결정 지도</h3>
             <p>배포는 기능 공개 시점과 rollback 비용을 동시에 고려해야 합니다.</p>
-            <pre><code class="language-text">배포 전 승인 필요성 판단
-       ┌────────────────────────────┐
-       │ 변경이 사용자 노출까지 가는가? │
-       └──────────────┬─────────────┘
-                      │
-             아니오    │     예
-               +------+         +------+
-               | 데모/PR |      | deploy/release 분리 점검 |
-               +------+         +------+
-                                 |
-                                 v
-                       ┌───────────────────────────┐
-                       | preflight gate 통과 여부   |
-                       | - type/test/build/security |
-                       | - perf/accessibility      |
-                       └─────────────┬─────────────┘
-                                     │ 미통과
-                                     v
-                             롤백/수정 후 게이트 재실행
-                                     ^
-                                     │ 통과
-                                     |
-                     ┌───────────────────────────────────┐
-                     | 점진 노출 전략 선택               |
-                     | canary / flag / blue-green        |
-                     +───────────────────────────────────+
-                                     |
-                                     v
-                            post-deploy 모니터링
-                                     |
-                                     v
-                          이상 징후 감지? ---&gt; yes -&gt; 중단 + 완화 + 재평가
-                                     |
-                                     no
-                                     v
-                              release handoff
-</code></pre>
             <pre><code class="language-text">배포 단계 책임 맵
 
 빌드 오너   =&gt; artifact + checksum 책임

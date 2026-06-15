@@ -1561,14 +1561,6 @@ flowchart TD
   MF --&gt; Note3[shared scope 협상&lt;br/&gt;dts manifest]
   Multi --&gt; Note4[Import Maps 우선&lt;br/&gt;또는 framework adapter]</pre
             >
-            <pre><code>레거시 앱을 통합해야 하는가?
-├── Yes → 기술 스택 변경 불가?
-│   ├── Yes → iframe
-│   └── No → Single-SPA (점진적 마이그레이션)
-└── No → 신규 구축 또는 동일 프레임워크?
-    ├── 동일 프레임워크 → Module Federation 2.1
-    └── 다중 프레임워크 → Single-SPA 또는 Native Federation
-</code></pre>
             <h3 id="31">3.1 스타일 격리 전략 비교</h3>
             <p>
               마이크로 프론트엔드에서 스타일 충돌은 가장 빈번한 문제 중 하나다. 통합 방식별 스타일
@@ -2237,25 +2229,6 @@ flowchart TD
   Decision --&gt;|Pass| Promote[canary 확대 또는 승격]
   Decision --&gt;|Fail| Rollback[canary 0% 즉시 롤백]</pre
             >
-            <pre><code>사용자 요청 → CDN / Load Balancer
-                    │
-           ┌────────┴────────┐
-           │   Shell (Host)  │
-           │   항상 stable   │
-           └────────┬────────┘
-                    │
-    ┌───────────────┼───────────────┐
-    ▼               ▼               ▼
-┌────────┐    ┌────────┐    ┌────────┐
-│ App A  │    │ App B  │    │ App C  │
-│ v2.1.0 │    │ v1.5.0 │    │ v3.0.0 │
-│(canary)│    │(stable)│    │(stable)│
-│ 10%    │    │ 100%   │    │ 100%   │
-└────────┘    └────────┘    └────────┘
-     │
-     ├── 10% 트래픽: canary (v2.1.0-canary.1)
-     └── 90% 트래픽: stable (v2.0.3)
-</code></pre>
             <blockquote>
               <p>
                 <strong>핵심 원칙</strong>: Shell(Host)은 stable 버전을 유지하고, 각 리모트 앱만
@@ -2545,25 +2518,6 @@ flowchart TD
   RSC -.-&gt;|cache revalidate| API[(Internal API/DB)]
   Remote1 -.-&gt;|own client data| API2[(Remote API)]</pre
             >
-            <pre><code>브라우저 요청
-     │
-     ▼
-┌──────────────────────────────────────┐
-│           Shell (Next.js)            │
-│  ┌─────────────────────────────────┐ │
-│  │     Server Components Layer     │ │
-│  │  - 레이아웃, 네비게이션 (RSC)    │ │
-│  │  - 데이터 프리페치              │ │
-│  │  - 인증 상태 주입               │ │
-│  └──────────┬──────────────────────┘ │
-│             │                        │
-│  ┌──────────▼──────────────────────┐ │
-│  │    Client Components Layer      │ │
-│  │  - Module Federation 리모트 로드 │ │
-│  │  - 인터랙티브 컴포넌트          │ │
-│  └─────────────────────────────────┘ │
-└──────────────────────────────────────┘
-</code></pre>
             <blockquote>
               <p>
                 <strong>원칙</strong>: Server Component에서 데이터를 프리페치하고, Client Component

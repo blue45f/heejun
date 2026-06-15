@@ -1145,49 +1145,6 @@ flowchart TD
             <hr />
             <h3 id="03">0.3 대응 플로우 한눈에 보기</h3>
             <p>관측성 데이터가 쌓여 있어도 대응 경로가 없으면 대응이 늦어집니다.</p>
-            <pre><code class="language-text">이상 탐지 (알림/고객문의/스크립트 실패)
-            |
-            v
-      +----------------+
-      | Incident 판단  |
-      | - P0~P3 분류    |
-      +----------------+
-            |
-            v
-    +-----------------------+
-    | 소유자 지정           |
-    | 기술/운영/커뮤니케이션  |
-    +-----------------------+
-            |
-            v
-    +-----------------------+
-    | 완화 실행             |
-    | rollback/flag/cache   |
-    +-----------------------+
-            |
-            v
-      +----------------+
-      | 영향 검증       |
-      | error/API/지표   |
-      +----------------+
-            |
-      +-----------+-----------+
-      |                   |
-      v                   v
- 종료               미완화
-  |                  |
-  v                  v
-postmortem       추가 완화/이슈 정리
-action 완료
-
-</code></pre>
-            <pre><code class="language-text">데이터 축적 순서
-
-release/version -&gt; route/feature -&gt; trace_id -&gt; segment -&gt; error fingerprint -&gt; 사용자 영향
-       │              │               │            │            │                │
-       v              v               v            v            v                v
-관측성 대시보드      알림 룰         대응 우선순위   Runbook 호출   postmortem         개선 액션
-</code></pre>
             <pre class="mermaid">
 flowchart TD
   A[&quot;이상 탐지\n알림/고객문의/스크립트 실패&quot;] --&gt; B[&quot;Incident 판단\nP0~P3 분류&quot;]

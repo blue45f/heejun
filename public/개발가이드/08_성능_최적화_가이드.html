@@ -1252,46 +1252,6 @@ flowchart TD
               성능 목표를 한 번에 기억하려면 지표 수집 → 병목 진단 → 사용자 영향 제거 순서를 같이
               본다.
             </p>
-            <pre><code class="language-text">출발점
-  ├─ Build 결과물
-  │   - chunk size
-  │   - 코드 분할
-  │   - Tree-shaking
-  ├─ Core Web Vitals
-  │   - LCP, INP, CLS
-  └─ Runtime 이벤트
-      - long task
-      - hydration delay
-      - layout shift
-              │
-              v
-      ┌───────────────────────────┐
-      │ 1차 정량 진단            │
-      │ - Lighthouse / trace      │
-      │ - RUM p75                 │
-      └───────────────────────────┘
-              │
-              v
-      ┌───────────────────────────┐
-      │ 1차 액션 분류            │
-      │ - 이미지/폰트 최적화      │
-      │ - 캐시 정책 재검토        │
-      │ - 코드 분할/지연 로딩     │
-      └───────────────────────────┘
-              │
-              v
-      ┌───────────────────────────┐
-      │ 성능 검증                  │
-      │ - bundle + CWV 회귀 감시    │
-      │ - field vs lab 비교        │
-      └───────────────────────────┘
-              │
-              v
-      통과 ── 미통과
-              │       │
-              │       ├─ 회귀면 feature owner 수정
-              └─ pass ▶ 배포 게이트/관측성 handoff
-</code></pre>
             <pre><code class="language-text">성능 조직 내 역할 예시
 
 개발자      =&gt; 회귀 지점 탐색과 수정

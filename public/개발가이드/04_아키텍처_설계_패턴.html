@@ -1135,39 +1135,6 @@ flowchart TD
               MSW handler, 테스트가 같은 이유로 바뀐다면 같은 feature/domain 폴더 아래에 둡니다.
               라우트는 얇은 조합 계층으로 유지하고, 실제 변경 책임은 domain feature가 가집니다.
             </p>
-            <pre><code>src/
-├── app/
-│   ├── (routes)/                 # 라우트, layout, loading, error
-│   └── providers/                # 전역 provider 조합
-├── domains/
-│   ├── account/
-│   │   ├── list/
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   ├── remotes/
-│   │   │   ├── model/
-│   │   │   ├── mocks/
-│   │   │   ├── tests/
-│   │   │   └── index.ts
-│   │   └── transfer/
-│   │       ├── components/
-│   │       ├── hooks/
-│   │       ├── remotes/
-│   │       ├── model/
-│   │       ├── mocks/
-│   │       ├── tests/
-│   │       └── index.ts
-│   └── profile/
-│       └── edit/
-├── shared/
-│   ├── ui/                       # 도메인 단어가 없는 디자인 시스템 컴포넌트
-│   ├── lib/                      # 순수 유틸, formatter, invariant
-│   └── config/                   # 앱 전역 상수와 feature flag 계약
-└── infrastructure/
-    ├── http/                     # 인증 HTTP client, retry, error mapping
-    ├── analytics/                # logging adapter
-    └── storage/                  # browser/server storage adapter
-</code></pre>
             <div class="table-responsive">
               <table>
                 <thead>
@@ -1651,42 +1618,6 @@ flowchart TD
             <p>
               요청이 들어온 뒤, 도메인 feature가 어떤 순서로 조립되는지 한 번에 정리한 도식입니다.
             </p>
-            <pre><code class="language-text">                  ┌─────────────────────┐
-                  │ 브라우저 요청/라우트 │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                   ┌───────────────────────┐
-                   │ app/(routes) Shell    │
-                   │ - layout/metadata     │
-                   │ - suspense/error 경계  │
-                   └───────────┬───────────┘
-                               │
-                               ▼
-                ┌─────────────────────────────────┐
-                │ feature public API (index.ts)   │
-                └───────────┬──────┬─────────────┘
-                            │      │
-                            │      ├───────────────────┐
-                            │                          │
-                            ▼                          ▼
-                   ┌────────────────┐         ┌──────────────────────┐
-                   │ containers/    │         │ remotes (API/Action)│
-                   │ components     │         │ - 인증, 캐시, 서버   │
-                   └───────┬────────┘         └───────────┬──────────┘
-                           │                               │
-                           ▼                               ▼
-                   ┌──────────────────┐            ┌────────────────────┐
-                   │ hooks/model      │            │ shared/lib, infra  │
-                   │ - 상태/도메인 규칙│            │ - adapter          │
-                   └───────┬──────────┘            └──────────┬────────┘
-                           │                               │
-                           └───────────────┬───────────────┘
-                                           ▼
-                                ┌────────────────────────┐
-                                │ 서버/클라이언트 렌더링 │
-                                └────────────────────────┘
-</code></pre>
             <pre class="mermaid">
 flowchart TD
   A[&quot;브라우저 요청/라우트&quot;] --&gt; B[&quot;app/(routes) Shell&lt;br/&gt;layout/metadata/suspense/error boundary&quot;]
@@ -1703,50 +1634,6 @@ flowchart TD
               <code>domains/{domain}/{feature}</code>로만 모으는 점입니다.
             </p>
             <h3 id="11">1.1 기본 토폴로지</h3>
-            <pre><code>src/
-├── app/
-│   ├── (routes)/
-│   │   ├── account/
-│   │   │   └── page.tsx                 # route shell
-│   │   └── transfer/
-│   │       ├── page.tsx                 # public API 조합만 수행
-│   │       └── loading.tsx
-│   ├── providers.tsx
-│   └── layout.tsx
-├── domains/
-│   ├── account/
-│   │   ├── _shared/                     # account 도메인 안에서만 공유
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   └── model/
-│   │   ├── list/
-│   │   │   ├── components/
-│   │   │   ├── containers/
-│   │   │   ├── hooks/
-│   │   │   ├── remotes/
-│   │   │   ├── model/
-│   │   │   ├── constants/
-│   │   │   ├── utils/
-│   │   │   ├── mocks/
-│   │   │   ├── tests/
-│   │   │   └── index.ts
-│   │   └── detail/
-│   │       └── ...
-│   └── transfer/
-│       ├── _shared/
-│       ├── send/
-│       ├── history/
-│       └── limit/
-├── shared/
-│   ├── ui/                             # 도메인 단어 없는 디자인 시스템
-│   ├── lib/                            # 순수 함수와 범용 adapter helper
-│   └── config/                         # 앱 전역 설정 계약
-└── infrastructure/
-    ├── http/
-    ├── analytics/
-    ├── storage/
-    └── monitoring/
-</code></pre>
             <div class="table-responsive">
               <table>
                 <thead>
@@ -2719,101 +2606,6 @@ jobs:
               라우트가 얇고, 실제 변경 파일은 <code>domains/{domain}/{feature}</code> 아래에 모이는
               것입니다.
             </p>
-            <pre><code>my-project/
-├── public/
-│   └── assets/
-├── src/
-│   ├── app/
-│   │   ├── (routes)/
-│   │   │   ├── (auth)/
-│   │   │   │   └── login/
-│   │   │   │       ├── page.tsx       # domains/auth/login 조합
-│   │   │   │       └── loading.tsx
-│   │   │   ├── dashboard/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── error.tsx
-│   │   │   └── projects/
-│   │   │       ├── page.tsx
-│   │   │       └── [id]/
-│   │   │           ├── page.tsx
-│   │   │           └── edit/
-│   │   │               └── page.tsx
-│   │   ├── layout.tsx
-│   │   ├── providers.tsx
-│   │   └── global.css
-│   │
-│   ├── domains/
-│   │   ├── auth/
-│   │   │   └── login/
-│   │   │       ├── components/
-│   │   │       │   ├── LoginForm.tsx
-│   │   │       │   └── LoginGuard.tsx
-│   │   │       ├── hooks/
-│   │   │       │   └── useLogin.ts
-│   │   │       ├── remotes/
-│   │   │       │   └── loginAction.ts
-│   │   │       ├── model/
-│   │   │       │   ├── schema.ts
-│   │   │       │   └── types.ts
-│   │   │       ├── mocks/
-│   │   │       │   └── handlers.ts
-│   │   │       ├── tests/
-│   │   │       │   └── login.test.tsx
-│   │   │       └── index.ts
-│   │   ├── project/
-│   │   │   ├── list/
-│   │   │   │   ├── components/
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── remotes/
-│   │   │   │   ├── model/
-│   │   │   │   ├── mocks/
-│   │   │   │   ├── tests/
-│   │   │   │   └── index.ts
-│   │   │   └── edit/
-│   │   │       ├── components/
-│   │   │       ├── hooks/
-│   │   │       ├── remotes/
-│   │   │       ├── model/
-│   │   │       ├── mocks/
-│   │   │       ├── tests/
-│   │   │       └── index.ts
-│   │   └── dashboard/
-│   │       └── overview/
-│   │           ├── components/
-│   │           ├── remotes/
-│   │           ├── model/
-│   │           └── index.ts
-│   │
-│   ├── shared/
-│   │   ├── ui/
-│   │   │   ├── button/
-│   │   │   ├── input/
-│   │   │   └── modal/
-│   │   ├── lib/
-│   │   │   ├── cn.ts
-│   │   │   └── formatDate.ts
-│   │   └── config/
-│   │       └── constants.ts
-│   │
-│   └── infrastructure/
-│       ├── http/
-│       │   ├── authHttp.ts
-│       │   └── errorMapping.ts
-│       ├── analytics/
-│       │   └── eventLogger.ts
-│       └── testing/
-│           ├── setupMsw.ts
-│           └── renderWithProviders.tsx
-│
-├── biome.json
-├── eslint.config.mjs
-├── .coderabbit.yaml
-├── .secretlintrc
-├── commitlint.config.cjs
-├── next.config.ts
-├── tsconfig.json
-└── package.json
-</code></pre>
             <p>
               이미 FSD를 채택한 저장소라면 <code>domains/{domain}/{feature}</code>를
               <code>features</code>, <code>entities</code>, <code>widgets</code>로 기계적으로 다시
@@ -2825,54 +2617,6 @@ jobs:
               6. Type-based 구조 vs 기능 중심 co-location vs FSD
             </h2>
             <h3 id="61">6.1 구조 비교</h3>
-            <pre><code># 기존 구조 (Flat pages/components)
-src/
-├── components/          # 모든 컴포넌트가 한 곳에
-│   ├── Header.tsx
-│   ├── ProjectCard.tsx
-│   ├── LoginForm.tsx
-│   └── Button.tsx       # 공통 vs 도메인 구분 없음
-├── pages/
-│   ├── Dashboard.tsx
-│   └── Settings.tsx
-├── hooks/               # 모든 훅이 한 곳에
-│   ├── useAuth.ts
-│   └── useProject.ts
-├── utils/
-│   └── format.ts
-└── api/                 # 모든 API 호출이 한 곳에
-    ├── auth.ts
-    └── project.ts
-
-# 기능 중심 co-location 구조 (기본값)
-src/
-├── app/(routes)/login/page.tsx       # 얇은 조합
-├── domains/auth/login/               # 함께 수정되는 코드
-│   ├── components/LoginForm.tsx
-│   ├── hooks/useLogin.ts
-│   ├── remotes/loginAction.ts
-│   ├── model/schema.ts
-│   ├── mocks/handlers.ts
-│   ├── tests/login.test.tsx
-│   └── index.ts
-├── domains/project/list/
-│   ├── components/ProjectList.tsx
-│   ├── remotes/getProjects.ts
-│   ├── model/types.ts
-│   └── index.ts
-└── shared/ui/button/           # 도메인 무관 공통
-    ├── Button.tsx
-    └── index.ts
-
-# FSD 구조 (이미 채택한 대규모 저장소의 선택지)
-src/
-├── app/
-├── pages/
-├── widgets/
-├── features/
-├── entities/
-└── shared/
-</code></pre>
             <h4 id="_13">세 가지 구조 비교 도식</h4>
             <blockquote>
               <p>
@@ -3302,17 +3046,6 @@ export async function ProjectList() {
 // 인터랙션이 필요한 부분만 클라이언트 컴포넌트로 분리
 </code></pre>
             <h3 id="86-fsd">8.6 소규모 프로젝트에 FSD 풀스택 적용</h3>
-            <pre><code>❌ 페이지 3개, 컴포넌트 10개인 프로젝트에 6계층 전부 적용
-   → 디렉토리만 20개, 파일보다 폴더가 많은 상황
-
-✅ 소규모에서는 간소화된 구조 사용:
-   src/
-   ├── app/          # 라우팅 + 레이아웃
-   ├── domains/      # 기능별 분리
-   └── shared/       # 공통 UI + 유틸
-
-   규모가 커지고 계층 규칙이 필요할 때만 FSD 계층을 검토
-</code></pre>
             <hr />
             <h2 id="ai">AI 보조 아키텍처 진단</h2>
             <p>

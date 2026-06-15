@@ -2997,13 +2997,11 @@ useEffect(() =&gt; {
               </li>
               <li><code>preview</code>는 PR에서 산출물 검증을 위해 옵션만 고정해 둔다.</li>
             </ol>
-            <p>
-              <code
-                >bash # 예시: monorepo에서 app 패키지 기준 pnpm --filter @scope/app run typecheck
-                pnpm --filter @scope/app run build pnpm --filter @scope/app run preview -- --host
-                127.0.0.1 --port 4173</code
-              >
-            </p>
+            <pre><code class="language-bash">   # 예시: monorepo에서 app 패키지 기준
+   pnpm --filter @scope/app run typecheck
+   pnpm --filter @scope/app run build
+   pnpm --filter @scope/app run preview -- --host 127.0.0.1 --port 4173
+</code></pre>
             <ol>
               <li>루트 게이트에 반영</li>
               <li>
@@ -3014,7 +3012,11 @@ useEffect(() =&gt; {
                 상한을 다르게 둔다.
               </li>
             </ol>
-            <p><code>bash pnpm lint pnpm typecheck pnpm build pnpm build-storybook</code></p>
+            <pre><code class="language-bash">   pnpm lint
+   pnpm typecheck
+   pnpm build
+   pnpm build-storybook
+</code></pre>
             <ol>
               <li>실패 대응 기준 공유</li>
               <li>
