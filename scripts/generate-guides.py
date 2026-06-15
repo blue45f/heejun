@@ -690,7 +690,7 @@ def make_html_layout(title, body_content, doc_list, current_filename):
             </a>
         </li>
         """)
-    sidebar_links_html = "\\n".join(sidebar_links)
+    sidebar_links_html = "\n".join(sidebar_links)
     
     return f"""<!DOCTYPE html>
 <html lang="ko">
