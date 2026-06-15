@@ -1,10 +1,10 @@
-# Netlify 배포 설정 — 정적 사이트(index.html + public/) 직접 서빙
+# Netlify 배포 설정 — Vite 빌드 결과물(dist/) 및 SPA 라우팅 서빙
 # DNS A 레코드를 75.2.60.5(또는 ALIAS/CNAME → <site>.netlify.app)로 바꾸면
 # Netlify가 자동으로 Let's Encrypt 인증서를 발급합니다.
 
 [build]
-  publish = "."
-  command = "node scripts/validate-dev-guides.mjs && node scripts/validate-recommendation-templates.mjs"
+  publish = "dist"
+  command = "pnpm run verify"
 
 [build.environment]
   NODE_VERSION = "24"
@@ -28,6 +28,13 @@
   to = "https://heejun.store/:splat"
   status = 301
   force = true
+
+# SPA 클라이언트 사이드 라우팅 리다이렉트 폴백
+# (디스크에 정적 파일이 실재하는 경우 그 파일을 서빙하고, 그 외에는 index.html로 포워딩합니다.)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # 전역 보안 헤더
 [[headers]]

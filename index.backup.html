@@ -1,0 +1,3807 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // FOUC 방지 — paint 전에 테마를 복원한다 (의존성 없음).
+      // 우선순위: 저장된 선택 > OS prefers-color-scheme. 'light'/'dark'만
+      // data-theme로 고정하고, 'system'/미설정은 OS 미디어쿼리에 위임한다.
+      ;(function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          if (saved === 'dark' || saved === 'light') {
+            document.documentElement.setAttribute('data-theme', saved)
+          }
+        } catch (e) {}
+      })()
+    </script>
+    <meta
+      name="description"
+      content="김희준 - 18년 경력 시니어 웹프론트엔드 개발자. React, TypeScript, AWS 전문."
+    />
+    <meta name="keywords" content="프론트엔드, 개발자, React, TypeScript, 이력서, 포트폴리오" />
+    <meta name="author" content="김희준" />
+    <meta property="og:title" content="김희준 - 시니어 웹프론트엔드 개발자" />
+    <meta property="og:description" content="18년 경력의 시니어 웹프론트엔드 개발자 포트폴리오" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:url" content="https://heejun.store" />
+    <meta property="og:site_name" content="김희준 포트폴리오" />
+    <meta property="og:locale" content="ko_KR" />
+    <!-- og:image 생략: 비민감 대표 이미지 자산이 없고, 개인 사진은 PII이므로 추가하지 않는다. -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="김희준 - 시니어 웹프론트엔드 개발자" />
+    <meta name="twitter:description" content="18년 경력의 시니어 웹프론트엔드 개발자 포트폴리오" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#1f3a44" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16242a" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href="https://heejun.store" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <title>김희준 - 시니어 웹프론트엔드 개발자</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "김희준",
+        "jobTitle": "시니어 웹프론트엔드 개발자",
+        "url": "https://heejun.store",
+        "sameAs": ["https://github.com/blue45f"]
+      }
+    </script>
+    <style>
+      /*
+       * Palette: "Executive Signal" — a recruiter-facing resume with a product-site
+       * finish. Petrol remains the structural ink, while coral, gold, mint, and
+       * cobalt mark impact, delivery, quality, and architecture.
+       */
+      :root {
+        color-scheme: light;
+        --ink: oklch(0.3 0.058 214);
+        --ink-strong: oklch(0.24 0.064 214);
+        --ink-soft: oklch(0.5 0.048 214);
+        --field: oklch(0.2 0.034 218);
+        --field-2: oklch(0.27 0.054 210);
+        --accent-coral: oklch(0.67 0.17 31);
+        --accent-gold: oklch(0.78 0.13 86);
+        --accent-mint: oklch(0.68 0.13 166);
+        --accent-cobalt: oklch(0.56 0.14 249);
+
+        --paper: oklch(0.982 0.006 210);
+        --surface: oklch(0.997 0.003 210);
+        --surface-glass: oklch(0.997 0.003 210 / 0.78);
+        --raise: oklch(0.956 0.012 210);
+        --line: oklch(0.88 0.016 210);
+        --line-soft: oklch(0.93 0.012 210);
+
+        --text: oklch(0.25 0.022 214);
+        --text-2: oklch(0.43 0.02 214);
+        --text-3: oklch(0.58 0.018 214);
+
+        --radius: 8px;
+        --maxw: 1080px;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out-expo */
+
+        /* Fixed type scale. Breakpoints adjust steps explicitly; no viewport font scaling. */
+        --t-eyebrow: 0.78rem;
+        --t-body: 1.0625rem;
+        --t-h3: 1.32rem;
+        --t-h2: 2rem;
+        --t-name: 4.35rem;
+      }
+
+      /*
+       * Dark theme — same token names, deeper executive field, lifted accents.
+       * Applied via prefers-color-scheme (auto) OR an explicit [data-theme]
+       * override set by the pre-paint bootstrap below.
+       */
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+
+        /* accent (ink) — lifted for contrast on dark field */
+        --ink: oklch(0.78 0.08 214);
+        --ink-strong: oklch(0.88 0.07 214);
+        --ink-soft: oklch(0.69 0.06 214);
+        --field: oklch(0.16 0.034 218);
+        --field-2: oklch(0.24 0.052 210);
+        --accent-coral: oklch(0.73 0.16 31);
+        --accent-gold: oklch(0.82 0.12 86);
+        --accent-mint: oklch(0.74 0.12 166);
+        --accent-cobalt: oklch(0.68 0.13 249);
+
+        /* tinted neutrals — never raw black/white */
+        --paper: oklch(0.18 0.016 214);
+        --surface: oklch(0.23 0.018 214);
+        --surface-glass: oklch(0.23 0.018 214 / 0.76);
+        --raise: oklch(0.28 0.02 214);
+        --line: oklch(0.36 0.018 214);
+        --line-soft: oklch(0.31 0.016 214);
+
+        --text: oklch(0.9 0.014 214);
+        --text-2: oklch(0.75 0.016 214);
+        --text-3: oklch(0.62 0.015 214);
+      }
+
+      /* Auto dark via OS preference — unless the user pinned light. */
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+
+          --ink: oklch(0.78 0.08 214);
+          --ink-strong: oklch(0.88 0.07 214);
+          --ink-soft: oklch(0.69 0.06 214);
+          --field: oklch(0.16 0.034 218);
+          --field-2: oklch(0.24 0.052 210);
+          --accent-coral: oklch(0.73 0.16 31);
+          --accent-gold: oklch(0.82 0.12 86);
+          --accent-mint: oklch(0.74 0.12 166);
+          --accent-cobalt: oklch(0.68 0.13 249);
+
+          --paper: oklch(0.18 0.016 214);
+          --surface: oklch(0.23 0.018 214);
+          --surface-glass: oklch(0.23 0.018 214 / 0.76);
+          --raise: oklch(0.28 0.02 214);
+          --line: oklch(0.36 0.018 214);
+          --line-soft: oklch(0.31 0.016 214);
+
+          --text: oklch(0.9 0.014 214);
+          --text-2: oklch(0.75 0.016 214);
+          --text-3: oklch(0.62 0.015 214);
+        }
+      }
+
+      @media (max-width: 768px) {
+        :root {
+          --t-body: 1rem;
+          --t-h3: 1.18rem;
+          --t-h2: 1.55rem;
+          --t-name: 3.15rem;
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Pretendard Variable',
+          Pretendard,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          'Noto Sans KR',
+          sans-serif;
+        font-size: var(--t-body);
+        line-height: 1.62;
+        color: var(--text);
+        background:
+          linear-gradient(90deg, oklch(0.78 0.02 210 / 0.08) 1px, transparent 1px),
+          linear-gradient(180deg, oklch(0.78 0.02 210 / 0.08) 1px, transparent 1px),
+          linear-gradient(135deg, oklch(0.78 0.13 86 / 0.08), transparent 28rem),
+          linear-gradient(180deg, var(--paper), var(--surface));
+        background-size:
+          48px 48px,
+          48px 48px,
+          auto,
+          auto;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      hr {
+        margin: 28px 0;
+        border: none;
+        border-top: 1px solid var(--line);
+      }
+
+      .tech-stack,
+      .infra-config {
+        margin-top: 14px;
+        color: var(--text-2);
+        font-size: 0.94em;
+        line-height: 1.45;
+      }
+      .tech-stack strong,
+      .infra-config strong {
+        color: var(--text);
+      }
+
+      .container {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: clamp(20px, 4vw, 56px) clamp(18px, 4vw, 40px) 96px;
+      }
+
+      /* ── Executive hero: dark product field, visible proof points ── */
+      header {
+        background: var(--field);
+        color: var(--surface);
+        padding: clamp(34px, 6vw, 68px);
+        border: 1px solid oklch(0.72 0.08 210 / 0.18);
+        border-radius: var(--radius);
+        margin-bottom: clamp(48px, 8vw, 96px);
+        position: relative;
+        overflow: hidden;
+        box-shadow:
+          0 32px 80px oklch(0.2 0.04 214 / 0.22),
+          inset 0 1px 0 oklch(0.95 0.02 210 / 0.14);
+      }
+
+      header::before,
+      header::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      header::before {
+        background:
+          linear-gradient(90deg, oklch(0.95 0.02 210 / 0.08) 1px, transparent 1px),
+          linear-gradient(180deg, oklch(0.95 0.02 210 / 0.06) 1px, transparent 1px);
+        background-size: 42px 42px;
+        mask-image: linear-gradient(110deg, black, transparent 78%);
+        opacity: 0.72;
+        z-index: 0;
+      }
+      header::after {
+        background:
+          linear-gradient(
+            90deg,
+            transparent 0 58%,
+            oklch(0.67 0.17 31 / 0.2) 58% 59%,
+            transparent 59%
+          ),
+          linear-gradient(
+            90deg,
+            transparent 0 70%,
+            oklch(0.78 0.13 86 / 0.16) 70% 71%,
+            transparent 71%
+          ),
+          linear-gradient(128deg, var(--field) 0%, var(--field-2) 54%, oklch(0.24 0.07 198) 100%);
+        z-index: 0;
+      }
+      header > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero-stage {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+      }
+      .hero-stage canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        opacity: 0.58;
+        mix-blend-mode: screen;
+      }
+
+      .hero-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+        gap: clamp(28px, 5vw, 56px);
+        align-items: end;
+      }
+
+      .hero-copy {
+        max-width: 640px;
+      }
+
+      /* An oversized "18" set in the header's negative space: the claim
+       * (18 years) becomes the hero graphic, in the ink field's own tone so
+       * it reads as a watermark, not a metric tile. Type IS the artwork. */
+      .hero-mark {
+        position: absolute;
+        top: clamp(-0.18em, -1vw, -0.05em);
+        right: clamp(-0.04em, 1vw, 0.06em);
+        z-index: 1;
+        font-size: 16rem;
+        font-weight: 800;
+        line-height: 0.78;
+        letter-spacing: 0;
+        color: oklch(0.72 0.08 210 / 0.13);
+        opacity: 1;
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
+        user-select: none;
+      }
+      .hero-mark sub {
+        font-size: 0.16em;
+        font-weight: 600;
+        letter-spacing: 0;
+        vertical-align: 0.9em;
+        margin-left: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        font-size: var(--t-eyebrow);
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        color: var(--accent-gold);
+        margin-bottom: clamp(16px, 3vw, 28px);
+        text-shadow: 0 1px 18px oklch(0.1 0.02 218 / 0.5);
+      }
+
+      /* A self-drawing baseline rule under the name: a quiet signature gesture
+       * that ties the name to the title without a heavy underline. */
+      .sig-rule {
+        height: 2px;
+        width: 168px;
+        background: linear-gradient(
+          90deg,
+          var(--accent-coral),
+          var(--accent-gold),
+          var(--accent-mint)
+        );
+        border: none;
+        margin: 14px 0 18px;
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-thickness: 1px;
+        cursor: pointer;
+      }
+      a:hover {
+        color: var(--ink-strong);
+      }
+
+      /* Keyboard focus ring: a single owned petrol ring for every interactive
+       * control, never the UA default. Pointer users see nothing (focus-visible),
+       * keyboard users get a clear 2px ink ring with offset so it reads against
+       * the paper body. Outline (not box-shadow) so it never disturbs layout. */
+      a:focus-visible,
+      .save-button:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+      }
+      /* Body links are tight inline targets; a small radius rounds the ring to
+       * the text run without implying a button. The save buttons keep their own
+       * 8px radius so the ring traces the control. */
+      a:focus-visible {
+        border-radius: 3px;
+      }
+      /* On the drenched header field the body ink is too dark to register;
+       * lift the ring to the light header tone. */
+      header a:focus-visible {
+        outline-color: oklch(0.82 0.05 215);
+      }
+
+      header a {
+        color: var(--surface);
+        text-decoration-color: oklch(0.7 0.04 215);
+      }
+      header a:hover {
+        color: var(--surface);
+        text-decoration-color: currentColor;
+      }
+
+      /* Skip-to-content link: hidden until keyboard focus, then pinned to the
+       * top-left as the first interactive control. Uses semantic tokens so it
+       * adapts to dark mode automatically. */
+      .skip-link {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        margin: 8px;
+        padding: 10px 16px;
+        background: var(--ink);
+        color: var(--surface);
+        border-radius: var(--radius);
+        font-weight: 600;
+        text-decoration: none;
+        transform: translateY(-150%);
+        transition: transform 160ms var(--ease);
+      }
+      .skip-link:focus,
+      .skip-link:focus-visible {
+        transform: translateY(0);
+        outline: 2px solid var(--ink-strong);
+        outline-offset: 2px;
+      }
+      :root[data-theme='dark'] .skip-link {
+        background: oklch(0.78 0.07 215);
+        color: oklch(0.19 0.012 215);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .skip-link {
+          background: oklch(0.78 0.07 215);
+          color: oklch(0.19 0.012 215);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .skip-link {
+          transition: none;
+        }
+      }
+      /* Programmatic focus target (skip-link destination): no oversized outline
+       * around the whole landmark; real focus rings on interactive controls
+       * are untouched. */
+      #main-content:focus {
+        outline: none;
+      }
+
+      h1 {
+        font-size: var(--t-name);
+        font-weight: 800;
+        line-height: 0.98;
+        letter-spacing: 0;
+        margin-bottom: 0;
+        text-wrap: balance;
+        color: oklch(0.94 0.014 210);
+        text-shadow: 0 2px 24px oklch(0.1 0.02 218 / 0.48);
+      }
+
+      .title {
+        font-size: 1.28rem;
+        font-weight: 500;
+        color: oklch(0.9 0.02 210);
+        letter-spacing: 0;
+        max-width: 36rem;
+        text-shadow: 0 1px 16px oklch(0.1 0.02 218 / 0.44);
+      }
+
+      .contact-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: clamp(28px, 4vw, 42px);
+        padding-top: clamp(22px, 3vw, 30px);
+        border-top: 1px solid oklch(0.82 0.04 210 / 0.22);
+        color: oklch(0.88 0.02 210);
+        font-size: 0.92em;
+        line-height: 1.35;
+      }
+      .contact-info .contact-label {
+        flex-basis: 100%;
+        color: var(--accent-gold);
+        font-weight: 700;
+      }
+      .contact-info strong {
+        font-weight: 600;
+        color: var(--surface);
+        letter-spacing: 0;
+      }
+      .contact-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 1px solid oklch(0.88 0.04 210 / 0.18);
+        border-radius: var(--radius);
+        background: oklch(0.95 0.02 210 / 0.08);
+        color: oklch(0.93 0.02 210);
+        text-decoration: none;
+        overflow-wrap: anywhere;
+      }
+      a.contact-chip {
+        border-bottom: 1px solid oklch(0.88 0.04 210 / 0.18);
+      }
+      .contact-chip:hover {
+        border-color: var(--accent-gold);
+        color: var(--surface);
+      }
+
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .impact-stat {
+        min-height: 132px;
+        padding: 16px;
+        border: 1px solid oklch(0.9 0.03 210 / 0.18);
+        border-radius: var(--radius);
+        background:
+          linear-gradient(180deg, oklch(0.98 0.01 210 / 0.12), oklch(0.98 0.01 210 / 0.045)),
+          oklch(0.18 0.03 218 / 0.48);
+        box-shadow: inset 0 1px 0 oklch(0.98 0.02 210 / 0.12);
+        transform-style: preserve-3d;
+        transition:
+          border-color 0.18s var(--ease),
+          box-shadow 0.18s var(--ease),
+          transform 0.18s var(--ease);
+      }
+
+      .impact-stat:nth-child(1) {
+        --stat-accent: var(--accent-gold);
+      }
+      .impact-stat:nth-child(2) {
+        --stat-accent: var(--accent-coral);
+      }
+      .impact-stat:nth-child(3) {
+        --stat-accent: var(--accent-mint);
+      }
+      .impact-stat:nth-child(4) {
+        --stat-accent: var(--accent-cobalt);
+      }
+
+      .impact-stat::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 3px;
+        margin-bottom: 14px;
+        border-radius: 99px;
+        background: var(--stat-accent);
+      }
+
+      .impact-stat strong {
+        display: block;
+        color: var(--surface);
+        font-size: 1.72rem;
+        line-height: 1;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .impact-stat span {
+        display: block;
+        margin-top: 8px;
+        color: oklch(0.82 0.025 210);
+        font-size: 0.88rem;
+        line-height: 1.35;
+      }
+      .impact-stat:hover {
+        border-color: color-mix(in oklab, var(--stat-accent) 56%, oklch(0.9 0.03 210 / 0.18));
+        box-shadow:
+          0 18px 44px oklch(0.1 0.03 218 / 0.22),
+          inset 0 1px 0 oklch(0.98 0.02 210 / 0.18);
+        transform: perspective(900px) rotateX(2deg) rotateY(-3deg) translateY(-2px);
+      }
+
+      /* ── Sections: no card lift, differentiate by air + a quiet hairline ── */
+      .section {
+        --section-accent: var(--accent-mint);
+        display: grid;
+        grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+        gap: 0 clamp(28px, 5vw, 64px);
+        align-items: start;
+        background: var(--surface-glass);
+        padding: clamp(34px, 5vw, 58px) 0;
+        margin-bottom: 0;
+        border-top: 1px solid var(--line);
+      }
+      .section:nth-of-type(3n + 1) {
+        --section-accent: var(--accent-coral);
+      }
+      .section:nth-of-type(3n + 2) {
+        --section-accent: var(--accent-gold);
+      }
+      .section:nth-of-type(3n + 3) {
+        --section-accent: var(--accent-mint);
+      }
+      .section:first-of-type {
+        border-top: none;
+      }
+      .section > :not(h2) {
+        grid-column: 2;
+      }
+
+      /* Authored section heads: numeral kicker + quiet weight, no 3px rule */
+      h2 {
+        color: var(--text);
+        font-size: var(--t-h2);
+        font-weight: 750;
+        letter-spacing: 0;
+        line-height: 1.1;
+        margin-bottom: clamp(22px, 3vw, 34px);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        position: sticky;
+        top: 24px;
+      }
+      h2::before {
+        content: attr(data-index);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid color-mix(in oklab, var(--section-accent) 42%, var(--line));
+        border-radius: 999px;
+        background: color-mix(in oklab, var(--section-accent) 12%, transparent);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: color-mix(in oklab, var(--section-accent) 76%, var(--text));
+        font-variant-numeric: tabular-nums;
+        transform: none;
+      }
+      h2::after {
+        content: '';
+        width: 88px;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--section-accent), transparent);
+      }
+
+      h3 {
+        color: var(--text);
+        font-size: var(--t-h3);
+        font-weight: 650;
+        letter-spacing: 0;
+        margin-top: clamp(30px, 4vw, 40px);
+        margin-bottom: 12px;
+      }
+      /* Rhythm: the section head already carries its own generous bottom air, so
+       * the first subhead under an h2 binds tight to it instead of stacking two
+       * large gaps. Sibling subheads keep the wider separation. This sharpens
+       * the head→group→group cadence rather than flattening it. */
+      h2 + h3 {
+        margin-top: 0;
+      }
+
+      .section > div {
+        max-width: 72ch;
+      }
+      .section > .skill-grid {
+        max-width: none;
+      }
+      .section-lead {
+        color: var(--text-2);
+        margin-bottom: 24px;
+      }
+      .section > div strong {
+        font-weight: 650;
+        color: var(--text);
+      }
+
+      .job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin-bottom: 14px;
+        margin-top: 4px;
+      }
+
+      .company-name {
+        font-size: var(--t-h3);
+        font-weight: 650;
+        letter-spacing: 0;
+        color: var(--text);
+      }
+
+      .job-period {
+        color: var(--text-3);
+        font-size: 0.9em;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum';
+      }
+
+      /* achievements: typographic tick marker, not emoji */
+      .achievement {
+        margin: 9px 0;
+        padding-left: 22px;
+        position: relative;
+        max-width: 72ch;
+      }
+      .achievement::before {
+        content: '';
+        position: absolute;
+        left: 2px;
+        top: 0.72em;
+        width: 9px;
+        height: 1px;
+        background: var(--ink-soft);
+        transform-origin: left center;
+        transition:
+          transform 0.22s var(--ease),
+          background-color 0.22s var(--ease);
+      }
+      /* Drafting gesture: resting on an achievement row draws its tick mark out
+       * to a full rule in the brand ink. transform/opacity only on a decorative
+       * pseudo, so the row text never reflows. */
+      .achievement:hover::before {
+        transform: scaleX(2);
+        background: var(--ink);
+      }
+
+      .skill-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: clamp(20px, 3vw, 40px);
+        margin-top: 8px;
+      }
+
+      /* skill groups: differentiate by weight + label, no side-stripe */
+      .skill-category {
+        padding: 0;
+        background: none;
+      }
+      .skill-category h4 {
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .skill-tag {
+        background: color-mix(in oklab, var(--section-accent) 10%, var(--raise));
+        color: var(--text);
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 1px solid color-mix(in oklab, var(--section-accent) 22%, var(--line-soft));
+        font-size: 0.88em;
+        line-height: 1.3;
+      }
+
+      /* project entries: open ledger rows, no card chrome, no side-stripe */
+      .project-card {
+        padding: 20px;
+        margin: 12px 0;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--radius);
+        background:
+          linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--section-accent) 8%, transparent),
+            transparent 52%
+          ),
+          var(--surface);
+        box-shadow: 0 14px 36px oklch(0.24 0.03 214 / 0.08);
+        max-width: 72ch;
+        transition:
+          border-color 0.18s var(--ease),
+          box-shadow 0.18s var(--ease),
+          transform 0.18s var(--ease);
+      }
+      .project-card:first-of-type {
+        padding-top: 20px;
+      }
+      .project-card h3 {
+        margin-top: 0;
+        margin-bottom: 4px;
+        transition: color 0.22s var(--ease);
+      }
+      .project-card .job-period {
+        margin-bottom: 12px;
+      }
+      .project-snapshot {
+        display: block;
+        width: 100%;
+        margin: 14px 0 16px;
+        aspect-ratio: 16 / 10;
+        overflow: hidden;
+        border: 1px solid color-mix(in oklab, var(--section-accent) 24%, var(--line));
+        border-radius: var(--radius);
+        background: var(--raise);
+        box-shadow: inset 0 1px 0 color-mix(in oklab, var(--surface) 70%, transparent);
+      }
+      .project-snapshot img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+        transform: scale(1);
+        transition: transform 0.32s var(--ease);
+      }
+      .project-card:hover .project-snapshot img {
+        transform: scale(1.015);
+      }
+      /* Ledger-row hover: the project title deepens to brand ink as the cursor
+       * rests on the row. Color only — no card lift, no side-stripe, no chrome,
+       * so the open-ledger composition is preserved. */
+      .project-card:hover h3 {
+        color: var(--ink);
+      }
+      .project-card:hover {
+        border-color: color-mix(in oklab, var(--section-accent) 42%, var(--line));
+        box-shadow: 0 20px 48px oklch(0.24 0.03 214 / 0.12);
+        transform: translateY(-2px);
+      }
+      .project-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+      .personal-projects .project-card {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        padding: 18px;
+      }
+      .personal-projects .project-card h3 {
+        font-size: 1.08rem;
+        line-height: 1.28;
+        overflow-wrap: anywhere;
+      }
+      .personal-projects .project-card .job-period {
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+      .personal-projects .project-snapshot {
+        margin: 12px 0 14px;
+      }
+      .personal-projects
+        .project-card
+        > div:not(.job-period):not(.tech-stack):not(.infra-config):not(.project-actions) {
+        color: var(--text-2);
+        font-size: 0.95rem;
+        line-height: 1.56;
+      }
+      .personal-projects .tech-stack {
+        margin-top: auto;
+        padding-top: 14px;
+      }
+      .personal-projects .infra-config {
+        margin-top: 0;
+        padding-top: 4px;
+      }
+      .project-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .project-actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 10px;
+        border: 1px solid color-mix(in oklab, var(--section-accent) 30%, var(--line));
+        border-radius: 6px;
+        background: color-mix(in oklab, var(--section-accent) 8%, var(--surface));
+        font-size: 0.88rem;
+        line-height: 1.2;
+        text-decoration: none;
+      }
+      .project-actions a:hover {
+        border-color: color-mix(in oklab, var(--section-accent) 52%, var(--line));
+        background: color-mix(in oklab, var(--section-accent) 14%, var(--surface));
+      }
+      :root[data-theme='dark'] .project-card:hover h3 {
+        color: var(--ink-strong);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .project-card:hover h3 {
+          color: var(--ink-strong);
+        }
+      }
+
+      .section a {
+        color: var(--ink);
+        text-decoration: none;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 1px;
+        transition: border-color 0.18s var(--ease);
+      }
+      .section a:hover {
+        color: var(--ink-strong);
+        border-bottom-color: var(--ink-soft);
+      }
+
+      .lede {
+        font-size: 1.24rem;
+        line-height: 1.66;
+        letter-spacing: 0;
+        color: var(--text);
+        max-width: 66ch;
+        text-wrap: pretty;
+      }
+      /* The lede opens each editorial section; its lead sentence carries a hair
+       * more ink weight so the eye lands there first, then settles into prose. */
+      .lede strong {
+        font-weight: 680;
+      }
+
+      /* ── One quiet button family in the brand ink ── */
+      .save-buttons {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        gap: 10px;
+        z-index: 1000;
+      }
+
+      .save-button {
+        background: var(--ink);
+        color: var(--surface);
+        padding: 11px 18px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.92rem;
+        font-weight: 550;
+        letter-spacing: 0;
+        cursor: pointer;
+        box-shadow: 0 6px 18px oklch(0.32 0.046 215 / 0.18);
+        transition:
+          background 0.18s var(--ease),
+          box-shadow 0.18s var(--ease);
+      }
+      .save-button.print-save {
+        background: var(--surface);
+        color: var(--ink);
+        border-color: var(--line);
+        box-shadow: 0 4px 14px oklch(0.32 0.046 215 / 0.1);
+      }
+      .save-button:hover {
+        background: var(--ink-strong);
+        box-shadow: 0 8px 22px oklch(0.32 0.046 215 / 0.26);
+      }
+      .save-button.print-save:hover {
+        background: var(--raise);
+        color: var(--ink-strong);
+      }
+
+      /* ──────────────────────────────────────────────────────────────
+       * Liveliness layer (additive). The base redesign was fully static;
+       * this adds an orchestrated page-load and on-scroll reveal so the
+       * page reads as crafted-and-alive, not a printout. transform/opacity
+       * only (never layout), ease-out-expo, no bounce. Fully disabled under
+       * prefers-reduced-motion below, where the guard does real work.
+       * ────────────────────────────────────────────────────────────── */
+
+      @keyframes ink-rise {
+        from {
+          opacity: 0;
+          transform: translate3d(0, 14px, 0);
+        }
+        to {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+      }
+
+      @keyframes ink-wipe {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+
+      /* Hero entrance: each line lifts in, staggered, behind a confident curve. */
+      header .eyebrow,
+      header h1,
+      header .title,
+      header .contact-info {
+        animation: ink-rise 0.9s var(--ease) both;
+      }
+      @keyframes mark-settle {
+        from {
+          opacity: 0;
+          transform: translate3d(0, -8px, 0) scale(1.03);
+        }
+        to {
+          opacity: 0.5;
+          transform: none;
+        }
+      }
+      header .hero-mark {
+        animation: mark-settle 1.1s var(--ease) 0.12s both;
+      }
+      header h1 {
+        animation-delay: 0.08s;
+      }
+      header .title {
+        animation-delay: 0.16s;
+      }
+      header .contact-info {
+        animation-delay: 0.26s;
+      }
+
+      /* The hero baseline rule draws itself once the name has landed. */
+      header .sig-rule {
+        transform-origin: left center;
+        animation: ink-wipe 1s var(--ease) 0.34s both;
+      }
+
+      /* Sections start hidden, then reveal as they enter the viewport
+       * (toggled by an IntersectionObserver below). No-JS / no-IO fallback:
+       * .reveal-ready is only added when the observer is wired, so without
+       * JS the content is fully visible.
+       *
+       * The reveal is staggered in two layers: the numbered section head
+       * settles first, then the body follows behind it. The head leads so the
+       * numeral kicker reads as an index being placed, not a panel sliding. */
+      .reveal-ready .section > h2,
+      .reveal-ready .section > :not(h2) {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0);
+        transition:
+          opacity 0.7s var(--ease),
+          transform 0.7s var(--ease);
+        will-change: opacity, transform;
+      }
+      .reveal-ready .section > :not(h2) {
+        transform: translate3d(0, 12px, 0);
+        transition-delay: 90ms;
+      }
+      .reveal-ready .section.is-in > h2,
+      .reveal-ready .section.is-in > :not(h2) {
+        opacity: 1;
+        transform: none;
+        will-change: auto;
+      }
+
+      /* The h2 numeral kicker draws in a hair behind its heading: the index
+       * mark lands last, like a stamp. opacity + transform only. */
+      .reveal-ready .section > h2::before {
+        opacity: 0;
+        transform: translateX(-8px);
+        transition:
+          opacity 0.55s var(--ease) 0.12s,
+          transform 0.55s var(--ease) 0.12s;
+      }
+      .reveal-ready .section.is-in > h2::before {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 16px 14px 92px;
+        }
+
+        header {
+          padding: 28px 18px;
+        }
+
+        .hero-layout {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .hero-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .impact-stat {
+          min-height: 104px;
+        }
+        .impact-stat:hover {
+          transform: none;
+        }
+
+        .hero-mark {
+          font-size: 9rem;
+          top: 8px;
+          right: -18px;
+        }
+
+        .title {
+          font-size: 1.08rem;
+        }
+
+        .contact-chip {
+          width: 100%;
+        }
+
+        .section {
+          display: block;
+          padding: 34px 0;
+        }
+
+        .section > :not(h2) {
+          grid-column: auto;
+        }
+
+        .project-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h2 {
+          position: static;
+        }
+
+        .job-header {
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .save-buttons {
+          flex-direction: column;
+          gap: 8px;
+          bottom: 16px;
+          right: 16px;
+        }
+
+        .save-button {
+          padding: 10px 16px;
+          font-size: 0.86rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+        .hero-stage {
+          display: none;
+        }
+        /* never let a reveal leave content hidden for motion-sensitive users:
+         * the reveal now targets section children and the h2 numeral kicker, so
+         * the guard must force every one of them visible regardless of state. */
+        .reveal-ready .section > h2,
+        .reveal-ready .section > :not(h2),
+        .reveal-ready .section > h2::before {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        header .sig-rule {
+          transform: scaleX(1) !important;
+        }
+      }
+
+      :root.pdf-capture {
+        --ink: #16414c;
+        --ink-strong: #0e2e38;
+        --ink-soft: #527782;
+        --field: #0b3338;
+        --field-2: #16444d;
+        --accent-coral: #d8694f;
+        --accent-gold: #c39a2f;
+        --accent-mint: #35aa83;
+        --accent-cobalt: #4a82d9;
+        --paper: #f5f8f8;
+        --surface: #fbfcfc;
+        --surface-glass: #fbfcfc;
+        --raise: #eef3f3;
+        --line: #d7e0e0;
+        --line-soft: #e7eded;
+        --text: #1c343b;
+        --text-2: #4c6268;
+        --text-3: #6e8085;
+      }
+
+      :root.pdf-capture body {
+        background: #f5f8f8 !important;
+      }
+      :root.pdf-capture * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+      :root.pdf-capture header {
+        background: #0b3338 !important;
+        border-color: #2d5961 !important;
+        color: #fbfcfc !important;
+      }
+      :root.pdf-capture header,
+      :root.pdf-capture header h1,
+      :root.pdf-capture header a,
+      :root.pdf-capture .impact-stat,
+      :root.pdf-capture .impact-stat strong,
+      :root.pdf-capture .contact-chip {
+        color: #fbfcfc !important;
+        opacity: 1 !important;
+      }
+      :root.pdf-capture header::before,
+      :root.pdf-capture header::after,
+      :root.pdf-capture .hero-stage,
+      :root.pdf-capture .hero-mark {
+        display: none !important;
+      }
+      :root.pdf-capture .eyebrow,
+      :root.pdf-capture .contact-label {
+        color: #f1c75d !important;
+        opacity: 1 !important;
+      }
+      :root.pdf-capture .title,
+      :root.pdf-capture .contact-info,
+      :root.pdf-capture .impact-stat span {
+        color: #d8e4e5 !important;
+        opacity: 1 !important;
+      }
+      :root.pdf-capture .contact-chip,
+      :root.pdf-capture .impact-stat {
+        background: #17464d !important;
+        border-color: #456c72 !important;
+        color: #f5f8f8 !important;
+      }
+      :root.pdf-capture h2::before {
+        background: #f7ece8 !important;
+        border-color: #d8694f !important;
+        color: #9f3e2f !important;
+      }
+      :root.pdf-capture h2::after {
+        background: #d8694f !important;
+      }
+      :root.pdf-capture .skill-tag {
+        background: #eef3f3 !important;
+        border-color: #d7e0e0 !important;
+        color: #1c343b !important;
+      }
+      :root.pdf-capture .project-card {
+        background: #fbfcfc !important;
+        border-color: #d7e0e0 !important;
+      }
+      :root.pdf-capture .project-grid {
+        display: block !important;
+        max-width: 100% !important;
+      }
+      :root.pdf-capture .project-snapshot {
+        width: 420px !important;
+        max-width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 16 / 10 !important;
+        margin: 10px 0 12px !important;
+        overflow: hidden !important;
+        background: #eef3f3 !important;
+        border-color: #d7e0e0 !important;
+      }
+      :root.pdf-capture .project-snapshot img {
+        width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+        transform: none !important;
+      }
+
+      /*
+       * Dark-mode header treatment mirrors the same executive signal system.
+       */
+      :root[data-theme='dark'] header {
+        background: var(--field);
+        color: oklch(0.96 0.01 210);
+      }
+      :root[data-theme='dark'] .hero-mark {
+        color: oklch(0.72 0.08 210 / 0.12);
+      }
+      :root[data-theme='dark'] header a {
+        color: oklch(0.96 0.01 210);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) header {
+          background: var(--field);
+          color: oklch(0.96 0.01 210);
+        }
+        :root:not([data-theme='light']) .hero-mark {
+          color: oklch(0.72 0.08 210 / 0.12);
+        }
+        :root:not([data-theme='light']) header a {
+          color: oklch(0.96 0.01 210);
+        }
+      }
+
+      @media print {
+        /*
+         * Output preservation: the printed/PDF resume always uses the light
+         * light executive palette regardless of the active screen theme, so dark
+         * mode never bleeds ink-heavy backgrounds onto paper. Re-pin the
+         * semantic tokens to their light values for any [data-theme] state.
+         */
+        :root,
+        :root[data-theme='dark'] {
+          color-scheme: light;
+          --ink: oklch(0.3 0.058 214);
+          --ink-strong: oklch(0.24 0.064 214);
+          --ink-soft: oklch(0.5 0.048 214);
+          --field: oklch(0.2 0.034 218);
+          --field-2: oklch(0.27 0.054 210);
+          --accent-coral: oklch(0.67 0.17 31);
+          --accent-gold: oklch(0.78 0.13 86);
+          --accent-mint: oklch(0.68 0.13 166);
+          --accent-cobalt: oklch(0.56 0.14 249);
+          --paper: oklch(0.982 0.006 210);
+          --surface: oklch(0.997 0.003 210);
+          --surface-glass: oklch(0.997 0.003 210 / 0.78);
+          --raise: oklch(0.956 0.012 210);
+          --line: oklch(0.88 0.016 210);
+          --line-soft: oklch(0.93 0.012 210);
+          --text: oklch(0.25 0.022 214);
+          --text-2: oklch(0.43 0.02 214);
+          --text-3: oklch(0.58 0.018 214);
+        }
+
+        .save-buttons {
+          display: none !important;
+        }
+
+        body {
+          background: var(--surface);
+          font-size: 10.5pt;
+        }
+
+        .container {
+          max-width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+
+        header {
+          background: var(--ink) !important;
+          color: var(--surface) !important;
+          border-radius: 0;
+          margin-bottom: 24px;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        header::after {
+          display: none;
+        }
+        /* keep the printed/PDF header crisp: drop the oversized watermark */
+        .hero-mark {
+          display: none !important;
+        }
+
+        .section {
+          display: block;
+          page-break-inside: avoid;
+          border-top: 1px solid var(--line);
+          padding: 20px 0;
+        }
+        .project-grid {
+          display: block;
+        }
+        /* reveal layer must never hide content in print/PDF: force the staggered
+         * section head, body, and numeral kicker visible for the capture. */
+        .reveal-ready .section,
+        .reveal-ready .section > h2,
+        .reveal-ready .section > :not(h2),
+        .reveal-ready .section > h2::before {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+    <main class="container" id="main-content" tabindex="-1">
+      <header>
+        <div class="hero-stage" aria-hidden="true">
+          <canvas id="hero-canvas" width="1200" height="720"></canvas>
+        </div>
+        <div class="hero-mark" aria-hidden="true">18<sub>yrs</sub></div>
+        <div class="hero-layout">
+          <div class="hero-copy">
+            <div class="eyebrow">Senior Frontend Engineer</div>
+            <h1>김희준</h1>
+            <hr class="sig-rule" aria-hidden="true" />
+            <div class="title">
+              주문·결제, 장바구니, 웹 표준화를 제품 임팩트로 연결하는 프론트엔드 시니어
+            </div>
+          </div>
+          <div class="hero-metrics" aria-label="핵심 성과 요약">
+            <div class="impact-stat">
+              <strong>18년</strong>
+              <span>웹 프론트엔드 구축과 운영 경험</span>
+            </div>
+            <div class="impact-stat">
+              <strong>30+</strong>
+              <span>2021-2025 주요 프로젝트 완수</span>
+            </div>
+            <div class="impact-stat">
+              <strong>70%</strong>
+              <span>레거시 전환 후 번들 크기 감소</span>
+            </div>
+            <div class="impact-stat">
+              <strong>69%</strong>
+              <span>배송 경로 이상 신고 VOC 감소</span>
+            </div>
+          </div>
+        </div>
+        <div class="contact-info">
+          <div class="contact-label"><strong>Contact & Proof</strong></div>
+          <a class="contact-chip" href="mailto:blue45f@gmail.com">blue45f@gmail.com</a>
+          <a class="contact-chip" href="tel:+821038734197">010-3873-4197</a>
+          <a
+            class="contact-chip"
+            href="https://github.com/blue45f"
+            target="_blank"
+            rel="noopener noreferrer"
+            >github.com/blue45f</a
+          >
+          <a
+            class="contact-chip"
+            href="https://github.com/develuv/study"
+            target="_blank"
+            rel="noopener noreferrer"
+            >develuv/study</a
+          >
+          <div class="contact-chip">
+            개인 프로젝트: PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum
+          </div>
+          <div class="contact-chip">1981년 · 서울 송파구 방이동</div>
+        </div>
+      </header>
+
+      <section class="section">
+        <h2 data-index="01">핵심 역량</h2>
+
+        <h3>기술 전문성</h3>
+        <div>
+          • <strong>18년 경력</strong>의 웹프론트엔드 개발 전문가로 대규모 서비스 구축 및 운영 경험
+          보유<br />
+          • <strong>React, TypeScript, React Query + Zustand</strong> 기반 모던 프론트엔드 아키텍처
+          설계 및 구현<br />
+          • 레거시 → React 기반 모던 스택 마이그레이션으로
+          <strong>JavaScript 번들 크기 70% 감소, 성능 30% 개선</strong><br />
+          • <strong>30개 이상의 주요 프로젝트 완수</strong> (2021-2025), 개발 생산성 30% 이상 향상
+          달성<br />
+          • <strong>서버리스 아키텍처</strong>(S3 + CloudFront) 도입으로 시스템 안정성 및 성능
+          개선<br />
+          • vitest 기반 테스팅 인프라 최초 구축 및 품질 문화 정착 (Jest/Vitest/Cypress)
+        </div>
+
+        <h3>리더십 & 조직 기여</h3>
+        <div>
+          • <strong>전사 웹표준 개발환경 RFC 핵심 참여자</strong> (2025.08 - 현재)<br />
+          • <strong>팀 표준 개발 환경 구축 TF장</strong>으로 스캐폴딩 및 개발 패턴 표준화 주도<br />
+          • RFC 프로세스 주도 및 기술 의사결정, 코드 리뷰 문화 정착 및 프로세스 개선<br />
+          • <strong>테크 밋업 연사</strong> (CloudFront 장애 대응 및 인프라 지식 공유)<br />
+          • 다수의 신입/경력 개발자 기술 면접 참여<br />
+          • 사내 디자인 시스템 TF 참여 및 기술 출판물 검수 활동<br />
+          • <strong>커머스 FE 개발자 온보딩</strong> 멘토링 및 기술 지원<br />
+          • 크로스 기능팀 협업 (PM, Design, Backend, QA, Mobile)
+        </div>
+
+        <h3>비즈니스 임팩트</h3>
+        <div>
+          • 대규모 커머스 앱 핵심 서비스(장바구니, 주문·결제) 개편으로 사용자 경험 개선<br />
+          • 배송 경로 이상 신고 기능으로 <strong>VOC 69% 감소</strong> (339건→105건), 고객센터
+          리소스 30% 절감<br />
+          • 국내 최초 애플페이 결제 연동으로 결제 편의성 혁신 (2023.01 성공적 배포)<br />
+          • VFD 2.0 배포 당일 장애 <strong>5시간 이내 원인 파악 및 해결</strong><br />
+          • 고객서비스 개선 프로젝트 <strong>96% TC 실행률, 90% 패스율</strong> 달성<br />
+          • 스마일게이트 STOVE 플랫폼 글로벌 런칭 성공적 완수<br />
+          • 커머스 서비스 옵션 안내 강화로 특화 배송 서비스 활성화 기여<br />
+          • 장애 포카요케 2건 구축으로 배포 프로세스 표준화
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="02">경력 사항</h2>
+
+        <div class="job-header">
+          <div class="company-name">자비스앤빌런즈 | Tax그룹 FE 챕터 chapter lead</div>
+          <div class="job-period">2025.12.08 - 2026.02.24 (약 3개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • 삼쩜삼 서비스 운영 및 웹프론트엔드 고도화<br />
+          • 삼쩜삼 후결제 개편 프로젝트 참여
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">우아한형제들 | 주문웹프론트개발팀</div>
+          <div class="job-period">2021.01.25 - 2025.12.05 (4년 10개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • 주문·결제 및 장바구니 서비스 핵심 아키텍처 설계 및 구현<br />
+          • 대규모 커머스 앱 내 장바구니, 주문·결제, 주문내역 등 핵심 웹뷰 서비스 개발 총괄<br />
+          • 레거시 아키텍처를 React 기반 모던 스택으로 전환 (Redux/Mobx → React Query)<br />
+          • 전사 표준 개발 환경 정립 TF 핵심 멤버 (React Query + Zustand + TypeScript)<br />
+          • vitest 기반 테스팅 인프라 최초 구축 및 품질 문화 정착<br />
+          • 전사 웹표준 개발환경 RFC 핵심 참여자<br />
+          • 테크 밋업 연사 및 내부 교육 세션 리더<br />
+          • 커머스 FE 개발자 온보딩 및 기술 멘토링
+        </div>
+
+        <h3>주요 성과</h3>
+        <div class="achievement">
+          <strong>아키텍처 통합</strong>: 레거시 → React 마이그레이션으로 JavaScript 번들 크기 70%
+          감소, 성능 30% 개선
+        </div>
+        <div class="achievement">
+          <strong>웹 장바구니 신규 구축</strong>: S3 + CloudFront 기반 서버리스 아키텍처로 안정성
+          향상
+        </div>
+        <div class="achievement">
+          <strong>성능 최적화</strong>: 평균 렌더링 시간 1초 → 700ms 개선 (30% 성능 향상)
+        </div>
+        <div class="achievement">
+          <strong>개발 표준화</strong>: React Query + Zustand + TypeScript 코어 스택 확정 및 팀 전체
+          적용
+        </div>
+        <div class="achievement">
+          <strong>테스팅 인프라</strong>: vitest 기반 테스팅 환경 최초 구축, 테스트 커버리지 0% →
+          16% 달성
+        </div>
+        <div class="achievement">
+          <strong>애플페이 연동</strong>: 국내 최초 애플페이 결제 연동 성공적 오픈 (기술 검토 및
+          설계 주도)
+        </div>
+        <div class="achievement">
+          <strong>VFD 2.0 즉시할인 대개편</strong>: 할인 계산 로직 서버 이관, 할인 영역 6종→4종
+          간소화
+        </div>
+        <div class="achievement">
+          <strong>공동 주문 서비스</strong>: 실시간 다중 사용자 장바구니 동기화 아키텍처 설계 및
+          구현
+        </div>
+        <div class="achievement">
+          <strong>배송 경로 이상 신고 기능</strong>: VOC 69% 감소 (339건→105건), 고객센터 리소스 30%
+          절감
+        </div>
+        <div class="achievement">
+          <strong>장애 포카요케</strong>: 배포 모니터링 자동화 및 스테이징/운영 인프라 구조 통일
+        </div>
+        <div class="achievement">
+          <strong>점진적 배포 환경 구축</strong>: 장바구니 개편 시 배포 리스크 최소화 및 안정성 확보
+        </div>
+        <div class="achievement">
+          <strong>운영 안정화</strong>: 2024년 상반기 VOC 대응 및 운영 과제 50건+ 처리
+        </div>
+
+        <div class="tech-stack">
+          <strong>기술 스택</strong>:
+          <span
+            >React, TypeScript, React Query, Zustand, MobX, Vite, Webpack, AWS S3/CloudFront,
+            Vitest, Jest, Cypress, GitLab CI/CD</span
+          >
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">
+            스마일게이트스토브 | 플랫폼개발본부 프론트기술담당 웹서비스개발4팀 팀장(차장)
+          </div>
+          <div class="job-period">2016.10.25 - 2020.12.31 (4년 2개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • STOVE 게임 플랫폼(www.onstove.com) 신규 개발 및 운영 총괄<br />
+          • 10명 규모 개발팀 리딩 및 프로젝트 관리<br />
+          • 글로벌 서비스 런칭 및 모바일 대응<br />
+          • 플랫폼개발본부 프론트기술담당 웹서비스개발4팀 팀장 역임
+        </div>
+
+        <h3>주요 성과</h3>
+        <div class="achievement">
+          <strong>글로벌 플랫폼 구축</strong>: 멀티 디바이스 지원 원소스 멀티유즈 아키텍처 설계
+        </div>
+        <div class="achievement">
+          <strong>SEO 최적화</strong>: Headless Browser 기반 Pre-rendering 시스템 구축으로 검색엔진
+          노출 개선
+        </div>
+        <div class="achievement">
+          <strong>개발 생산성</strong>: Vue.js + TypeScript + RxJS 기반 프레임워크 Seed 개발 및
+          표준화
+        </div>
+        <div class="achievement">
+          <strong>플랫폼 확장</strong>: TimeLine 개인화 소셜 플랫폼 및 창작 플랫폼(툰스푼, 더
+          뮤지션) 개발
+        </div>
+
+        <div class="tech-stack">
+          <strong>기술 스택</strong>: <span>Vue.js, TypeScript, RxJS, Webpack, Node.js, SEO</span>
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">엔씨소프트 | 모바일퍼블리싱플랫폼실 팀원</div>
+          <div class="job-period">2016.08.25 - 2016.10.24 (2개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • 블레이드앤소울 모바일 가이드앱 개발<br />
+          • 웹뷰 기반 웹앱 개발<br />
+          • 프레임워크 미사용, ES6 기반 자체 성능 경량화
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">카카오 | 메일파트 사원</div>
+          <div class="job-period">2014.09.16 - 2015.11.30 (1년 3개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • 다음 메일 PC 메인 웹프론트엔드 개발자로 근무<br />
+          • 모바일 웹메일, 쪽지, 캘린더 유지보수 및 개발<br />
+          • 메일 보안 향상을 위한 XSS 필터 자바스크립트 독자 개발<br />
+          • 화면단 및 자바 미들웨어 담당
+        </div>
+
+        <div class="tech-stack">
+          <strong>기술 스택</strong>: <span>JavaScript, HTML5, CSS3, Java</span>
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">미래아이엔텍 | SI 사업부 대리</div>
+          <div class="job-period">2012.06.21 - 2012.12.31 (약 6개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • LG CNS 금융플랫폼팀 소속으로 SmartUI(웹접근성 준수 JS UI 프레임워크) 개발 및 프로젝트
+          수행<br />
+          • LIG 투자증권 웹접근성 개선 프로젝트 - 프레임워크 아키텍처 업무 수행<br />
+          • 교보생명 차세대 프로젝트 - UI 프레임워크 지원 업무 수행
+        </div>
+
+        <h3>주요 성과</h3>
+        <div>
+          • LIG 투자증권 웹접근성 인증마크 획득<br />
+          • 교보생명 성공적인 오픈웹 구축<br />
+          • 상용 UI 프레임워크 구축
+        </div>
+
+        <div class="tech-stack"><strong>주요직무</strong>: <span>시스템설계</span></div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">솔루피아 | 계약직</div>
+          <div class="job-period">2012.03.21 - 2012.06.20 (약 3개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>
+          • 한국 야쿠르트 모바일 CRM 개발<br />
+          • 삼성 샘프 프레임워크 기반 하이브리드 앱 프론트 단 설계 및 구현<br />
+          • 하이브리드앱 최초 NFC 결제시스템 구축
+        </div>
+
+        <hr />
+
+        <div class="job-header">
+          <div class="company-name">네트빌 | 사업수행실 대리</div>
+          <div class="job-period">2007.01.01 - 2012.03.09 (5년 2개월)</div>
+        </div>
+
+        <h3>주요 업무</h3>
+        <div>• 웹, 모바일 개발 및 운영 (16건 프로젝트 수행)</div>
+
+        <h3>주요 프로젝트</h3>
+        <div>
+          • <strong>KTB 놀이터 앱</strong> (2012.02): KTB투자증권 안드로이드 앱 추가 기능 개발<br />
+          • <strong>삼성 CIC 교육운영</strong> (2011.07 - 2012.01): 교육 관리자단 운영 및
+          솔루션화<br />
+          • <strong>Netville PMS</strong> (2011.04 - 2011.06): 사내 프로젝트 매니지먼트 시스템
+          개발<br />
+          • <strong>숙명여대 학사 DB 개편</strong> (2011.01 - 2011.03): DB 개편 및 추가 기능 개발<br />
+          • <strong>삼성 모바일 위젯</strong> (2009.07 - 2010.12): 삼성 피처폰 및 바다OS 위젯 웹앱
+          개발, 논터치 환경 웹앱 프레임워크 개발<br />
+          • <strong>삼성 테크윈 리뉴얼</strong> (2009.07): 대용량 파일 업로드 분석, 설계, 개발<br />
+          • <strong>삼성 르노 운영</strong> (2009.04 - 2009.06): 마이크로 사이트 개발 및 운영<br />
+          • <strong>삼성 Solution Hub</strong> (2009.01 - 2009.04): 관리자단 기능 추가<br />
+          • <strong>산업은행 여신 지식 길라잡이</strong> (2008.10 - 2008.12): 통합검색 솔루션
+          구축<br />
+          • <strong>삼성 닷컴 추가 개발</strong> (2008.08 - 2008.09): 분석, 설계, 개발<br />
+          • <strong>유지증권 리뉴얼</strong> (2008.07): 주요 화면단 개발<br />
+          • <strong>삼성닷컴 중국 리뉴얼</strong> (2008.03 - 2008.06): 분석, 설계, 개발<br />
+          • <strong>Samsung Telecom Europe Online Center</strong> (2008.01 - 2008.02): 대용량
+          첨부파일 업로드 및 게시판 템플릿<br />
+          • <strong>에듀넷 자료 나눔터</strong> (2007.11 - 2007.12): 에디터 및 파일업로드 기능
+          개선<br />
+          • <strong>숙명여대 산학연</strong> (2007.09 - 2007.10): 게시판 추가 개발<br />
+          • <strong>삼성닷컴 차세대</strong> (2007.01 - 2007.08): 관리자단 개발
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="03">학력 및 자격증</h2>
+
+        <h3>학력</h3>
+        <div>
+          • 대진대학교 공과대학 컴퓨터공학과 졸업 (1999.03 - 2007.02.23) | 컴퓨터공학/공학사 | 학점
+          3.4/4.5<br />
+          • 서울중앙고등학교 졸업 (1996.03.02 - 1999.02.10) | 인문계
+        </div>
+
+        <h3>병역사항</h3>
+        <div>• 군필 | 육군 병장 만기전역 (2001.10.16 - 2003.12.08)</div>
+
+        <h3>자격증</h3>
+        <div>
+          • <strong>정보처리기사</strong> | 취득일: 2006.08.21 | 자격번호: 06202230369Q | 발행처:
+          한국산업인력공단 | 등급: 기사<br />
+          • <strong>SCJP</strong> (Sun Certified Programmer for the Java Platform, SE 5.0) | 취득일:
+          2006.09.30 | 자격번호: 24060391SCPJSE5P | 발행처: Sun Microsystems<br />
+          • <strong>MOS</strong> (Microsoft Office Specialist - Microsoft PowerPoint version 2002) |
+          취득일: 2005.06.06 | 자격번호: BUP4-kTSk | 발행처: Microsoft
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="04">주요 프로젝트</h2>
+
+        <div class="project-card">
+          <h3>장바구니 및 주문·결제 프로세스 통합 프로젝트</h3>
+          <div class="job-period">우아한형제들 | 2025.10 - 2026.01 | Frontend Lead</div>
+          <div>
+            • 4단계 주문 플로우를 3단계로 단축 (장바구니와 주문·결제 프로세스 통합)<br />
+            • 장바구니 기능을 컴포넌트 단위로 분리하여 주문·결제 플랫폼에 통합<br />
+            • 최적 쿠폰 및 커머스 서비스 옵션 자동 선택으로 사용자 액션 최소화<br />
+            • Module Federation 도입 검토 및 아키텍처 의사결정<br />
+            • 주문 완료 전환율 증가, 디바이스당 매출 증가, 평균 주문 시간 및 클릭 수 감소 기대
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>React, TypeScript, React Query, Zustand, Module Federation (MFE)</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>Webview Bridge, GitLab CI/CD, AWS CloudFront CDN</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>vitest 기반 테스팅 인프라 구축</h3>
+          <div class="job-period">우아한형제들 | 2025.08 | Technical Lead</div>
+          <div>
+            • 주문·결제 웹프론트팀 최초의 체계적인 vitest 기반 테스팅 환경 구축<br />
+            • 최소 20% 코드 커버리지 확보 목표, 약 16% 기준 커버리지 달성<br />
+            • 테스트 코드 작성 가이드 및 베스트 프랙티스 문서화<br />
+            • 팀 내 다른 도메인으로 테스팅 문화 확산
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>Vitest, Jest, Cypress, React Testing Library, MSW (Mock Service Worker)</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>GitLab CI Test Automation Gate (Pre-push & PR pipeline checks)</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>장애 포카요케 구축</h3>
+          <div class="job-period">우아한형제들 | 2025.08 | Infrastructure</div>
+          <div>
+            • 배포 모니터링 자동화 구현, 1시간 후 자동 배포 완료 처리 로직 추가<br />
+            • 스테이징/운영 인프라 구조 완전 통일 및 환경별 배포/롤백 절차 표준화<br />
+            • 메인 커머스 장바구니, 주문·결제 플랫폼, 주문 내역 플랫폼에 적용<br />
+            • 환경 불일치로 인한 장애 사전 방지 체계 구축
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>Bash Script, Sentry, GitLab CI/CD, AWS CloudWatch Alerts</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span
+              >Staging & Production Infrastructure Alignment, Automated CD pipeline rollout</span
+            >
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>VFD 2.0 즉시할인 시스템 대개편</h3>
+          <div class="job-period">우아한형제들 | 2025.05 - 2025.07 | Frontend Developer</div>
+          <div>
+            • 할인 계산 로직 프론트 → 서버 이관으로 데이터 일관성 확보<br />
+            • 할인 영역 6종 → 4종 간소화로 사용자 이해도 향상<br />
+            • 롤링 넘버 인터랙션 개발로 UX 개선<br />
+            • 배포 당일 장애 5시간 이내 원인 파악 및 해결 (2,757명 고객 보상 처리)
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>React, TypeScript, CSS Rolling Number Animation, Server Pricing Schema</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>GitLab CI/CD, Incident Response Logging System</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>서비스 도메인 통합 프로젝트</h3>
+          <div class="job-period">우아한형제들 | 2024.12 - 2025.02</div>
+          <div>
+            • 메인 서비스와 현장 물류 서비스를 단일 FOOD 서비스 타입으로 통합<br />
+            • 장바구니, 주문·결제, 주문내역, 공동 주문 서비스 온보딩, 문의하기 화면에서 서비스 타입
+            FOOD 구현<br />
+            • 2025년 2월 17일 FD 론칭 성공
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>주문내역 플랫폼 프로젝트</h3>
+          <div class="job-period">우아한형제들 | 2024</div>
+          <div>
+            • 초기 아키텍처 설계 및 구축 리드<br />
+            • 개발 가이드 문서화 및 커머스 FE 개발자 온보딩 지원<br />
+            • 비회원 주문내역 처리 및 레거시 버전 대응 설계<br />
+            • 점진적 배포 전략 수립 및 구현
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>공통 대기열 서비스 구축</h3>
+          <div class="job-period">우아한형제들 | 2024</div>
+          <div>
+            • 주문·결제 공통 대기열 서비스 아키텍처 설계<br />
+            • FE 지면 개발 및 사용자 경험 최적화<br />
+            • 대용량 트래픽 처리를 위한 시스템 안정성 확보
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>배송 경로 이상 신고 기능</h3>
+          <div class="job-period">우아한형제들 | 2024</div>
+          <div>
+            • 문의하기 내 프리셋 신고 기능 개발<br />
+            • VOC 69% 감소 달성 (월평균 339건 → 105건)<br />
+            • 고객센터 리소스 30% 절감 효과<br />
+            • 상담사 업무 효율성 대폭 개선
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>커머스 주문 고객서비스 경험 개선</h3>
+          <div class="job-period">우아한형제들 | 2024.03 - 2024.06</div>
+          <div>
+            • 문의하기 프리셋 기능, 주문 취소 요청 기능, 실험 플랫폼 연동<br />
+            • 채팅 운영시간 검증 제거, 웹 로깅 구현<br />
+            • <strong>96% TC 실행률에 90% 패스율</strong> 달성
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>푸드 웹지면 개편 - 장바구니 플랫폼 마이그레이션</h3>
+          <div class="job-period">우아한형제들 | 2023.08 - 2024.01 | Lead Developer</div>
+          <div>
+            • 레거시 장바구니를 표준 개발 환경으로 마이그레이션<br />
+            • React Query 패턴으로 API 레이어 전환, 배송비 서비스 통합<br />
+            • AWS S3 & CloudFront 인프라, Simple Deploy (서버리스 배포 도구) 서버리스 배포, GitLab
+            CI/CD 전체 인프라 스택 신규 구축<br />
+            • 인수테스트 3회 완료, 웹 접근성 대응, 2024년 1월 점진적 배포 완료
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>React, TypeScript, React Query, Zustand, Web Accessibility (WCAG/a11y)</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span
+              >AWS S3 Static Web Hosting, CloudFront CDN, Simple Deploy Serverless CLI, GitLab
+              CI/CD</span
+            >
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>표준 개발 환경 개선 TF</h3>
+          <div class="job-period">우아한형제들 | 2023.05 - 2023.12 | TF장 & Technical Lead</div>
+          <div>
+            • 표준 기술 스택 정의: React Query + Zustand + React 코어 스택 확정<br />
+            • 개발 환경 현대화: Node 버전 업그레이드, Vite 빌드 시스템 도입<br />
+            • 테스팅 인프라: Cypress E2E, Jest/Vitest 단위 테스팅 표준 정립<br />
+            • 아키텍처 레이어 설계 문서화, 보일러플레이트 리포지토리 생성<br />
+            • 팀 전체의 개발 표준 정립으로 코드 품질, 개발 속도, 온보딩 효율성 대폭 향상
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>React, React Query, Zustand, Vite, Node Upgrade, Jest, Vitest, Cypress</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>Boilerplate Scaffolding Registry, Monorepo Template Structure</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>커머스 서비스 옵션 안내 강화 프로젝트</h3>
+          <div class="job-period">우아한형제들 | 2023.05 - 2023.07</div>
+          <div>
+            • 특화 배송 서비스 활성화를 위한 Phase 1-3 단계별 커머스 서비스 옵션 안내 강화<br />
+            • 긍정적 언어 채택, 커머스 서비스 옵션 설명 업데이트, 토스트 팝업 메시지 개선<br />
+            • 사용자 선택률 개선으로 비즈니스 임팩트 창출
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>장바구니 모아보기</h3>
+          <div class="job-period">우아한형제들 | 2023.05 - 2023.07</div>
+          <div>
+            • 여러 음식점의 장바구니를 한 곳에서 관리하는 기능 개발<br />
+            • 네이티브 헤더 및 탭 통합, JavaScript 인터페이스를 통한 동기화<br />
+            • 빈 장바구니 상태 디자인 변경
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>애플페이 결제 통합</h3>
+          <div class="job-period">우아한형제들 | 2022.08 - 2023.01 | Technical Lead</div>
+          <div>
+            • 국내 최초 애플페이 결제 수단 연동 기술 검토 및 설계<br />
+            • 분리된 페이지 간 안전한 토큰 전달 메커니즘 솔루션 설계<br />
+            • 애플 담당자 미팅 참석 및 기술 협의, 결제 플랫폼팀 조율<br />
+            • 2023년 1월 10일 성공적 배포, iOS 사용자 결제 편의성 대폭 향상
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>TypeScript, Secure Token Web Bridge, Multi-WebView Communication</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span
+              >Apple Developer Portal Web Merchant Integration, Woowahan Payment Platform API
+              Sync</span
+            >
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>디자인 시스템 TF</h3>
+          <div class="job-period">우아한형제들 | 2022.08 - 2022.12</div>
+          <div>
+            • 재사용 가능한 UI 컴포넌트 라이브러리 개발<br />
+            • Modal/Dialog, Checkbox 타입 다이얼로그 컴포넌트 구현<br />
+            • Storybook을 이용한 컴포넌트 문서화 및 Figma 통합
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>공동 주문 서비스 Phase 1</h3>
+          <div class="job-period">우아한형제들 | 2022.06 - 2022.10 | Technical Architect</div>
+          <div>
+            • 실시간 다중 사용자 장바구니 동기화 아키텍처 설계 (폴링 → SSE 전환 계획)<br />
+            • 주최자/참여자 닉네임 설정, 공유 장바구니, 멤버 구분 UI 구현<br />
+            • 네이티브 앱과의 WebView 연동 및 앱 버전 체크 브릿지 페이지 개발<br />
+            • 그룹 주문 시나리오 지원으로 신규 사용자 확보 및 주문 금액 증대 기여
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>TypeScript, SSE (Server-Sent Events), WebView Javascript Bridge</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>Real-Time SSE Gateway, Native App Version Verification Router</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>장바구니 개편 (서버 사이드 전환)</h3>
+          <div class="job-period">우아한형제들 | 2021.09 - 2021.12 | Frontend Developer</div>
+          <div>
+            • 클라이언트 → 서버 기반 장바구니 아키텍처 전환<br />
+            • 멀티 디바이스 장바구니 동기화 구현<br />
+            • 신규 프론트엔드 아키텍처 적용 및 인터랙션/데이터 처리 플로우 설계<br />
+            • 성능 테스트 및 점진적 배포 완료
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>웹프론트엔드 아키텍처 통합</h3>
+          <div class="job-period">우아한형제들 | 2021.04 - 2021.09 | Technical Lead</div>
+          <div>
+            • 레거시 자체 프레임워크에서 React 기반 SPA로 전환<br />
+            • 상태 관리 현대화: Redux/Mobx → React Query로 비동기 패턴 변경<br />
+            • API, Service, Store, Component 레이어 명확히 분리<br />
+            •
+            <strong
+              >JavaScript 번들 크기 70% 감소, 평균 성능 30% 이상 개선, 개발 생산성 30% 이상
+              향상</strong
+            ><br />
+            • 입사 첫해에 완수하여 향후 5년간 모든 프론트엔드 개발의 기반이 됨
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>React, TypeScript, React Query, Zustand, MobX, Redux, Webpack</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>Static Asset CDN Hosting, GitLab CI/CD Pipeline</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>STOVE 글로벌 게임 플랫폼 개발</h3>
+          <div class="job-period">스마일게이트스토브 | 2016 - 2020</div>
+          <div>
+            • Vue.js 기반 SPA 라이브러리 개발<br />
+            • 멀티 디바이스 대응 및 SEO 최적화 (Headless Browser Pre-rendering)<br />
+            • 입점사 제공 라이브러리(GNB & Footer) 개발<br />
+            • TimeLine 개인화 소셜 플랫폼 및 창작 플랫폼(툰스푼, 더 뮤지션) 개발
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>: <span>Vue.js, TypeScript, RxJS, Webpack, Node.js</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>Headless Browser Pre-rendering System (SEO), Global Multi-Device CDN</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>SmartUI 웹접근성 프레임워크 개발</h3>
+          <div class="job-period">미래아이엔텍 | 2012.05 - 2014.02</div>
+          <div>
+            • 웹접근성 준수 JavaScript UI 프레임워크 개발<br />
+            • LG CNS 금융플랫폼 소속 프로젝트 지원 (교보생명, LIG 투자증권)<br />
+            • LIG 투자증권 웹접근성 인증마크 획득 기여<br />
+            • 교보생명 차세대 프로젝트 성공적 오픈<br />
+            • n스크린 지원(PC, 모바일, 태블릿) 반응형 UI 구현
+          </div>
+          <div class="tech-stack">
+            <strong>기술 스택</strong>:
+            <span>JavaScript (ES5), CSS, HTML4/5 Semantic Markup, Responsive Grid Engine</span>
+          </div>
+          <div class="infra-config">
+            <strong>인프라 구성</strong>:
+            <span>n-Screen cross-browser compilation & layout engines</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section personal-projects" aria-labelledby="personal-projects-title">
+        <h2 id="personal-projects-title" data-index="05">개인 프로젝트</h2>
+        <div class="section-lead">
+          퇴근 후 / 주말에 직접 기획·설계·구현한 개인 프로젝트입니다. 공개 GitHub 저장소와 배포 URL
+          기준으로 확인 가능한 제품형 서비스와 개발 도구를 홈 스냅샷과 함께 정리했습니다.
+        </div>
+
+        <div class="project-grid" aria-label="개인 프로젝트 목록">
+          <div class="project-card">
+            <h3>web-config-preset · 공유 Config 패키지 발행 &amp; 전 저장소 일관성 정렬</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/web-config-preset | npm: @heejun/*
+            </div>
+            <div>
+              • 여러 저장소가 공유하는 프론트엔드 표준 설정을 npm에 발행한 모노레포입니다. 한 곳에서
+              관리해 전 프로젝트의 ESLint·Prettier·TypeScript·Tailwind·Vite 설정 드리프트를
+              제거합니다.<br />
+              • <strong>발행 패키지</strong>: @heejun/eslint-config(ESLint flat config —
+              typescript-eslint + React 19 + React Compiler + 계층 경계 eslint-plugin-boundaries),
+              @heejun/prettier-config, @heejun/typescript-config(base/react/node),
+              @heejun/tailwind-config(Tailwind v4 CSS-first @theme), @heejun/vite-config(Vite 8 +
+              React Compiler).<br />
+              • <strong>배포 파이프라인</strong>: pnpm workspace 모노레포 + Changesets로 패키지별
+              버전 관리·발행, tsup(ESM+d.ts) 빌드, 루트 flat config가 프리셋을 self-dogfooding 하여
+              표준을 스스로 검증합니다.<br />
+              • <strong>전 저장소 일관성 정렬</strong>: 발행한 프리셋을 사이드 프로젝트 전반에
+              적용하고, 검증(class-validator → zod·nestjs-zod), HTTP 클라이언트(axios·fetch → ky),
+              포맷·린트(공유 Prettier·ESLint), 폴더 아키텍처(domains/ 계층 +
+              eslint-plugin-boundaries 경계 강제)까지 단일 표준으로 통일했습니다. 저장소별 verify
+              게이트(타입체크·테스트·빌드 통과)로 안전성을 확인한 뒤 스택형 PR로 단계적으로 반영해,
+              설정·라이브러리·아키텍처 드리프트를 제거했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >pnpm workspace, Changesets, ESLint flat config, typescript-eslint, Tailwind v4,
+                Vite 8, tsup, npm publish</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>발행</strong>:
+              <span
+                >npm public registry — @heejun/eslint-config, @heejun/prettier-config,
+                @heejun/typescript-config, @heejun/tailwind-config, @heejun/vite-config</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://www.npmjs.com/package/@heejun/eslint-config"
+                target="_blank"
+                rel="noopener noreferrer"
+                >npm</a
+              >
+              <a
+                href="https://github.com/blue45f/web-config-preset"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/PromptMarket</div>
+            <figure class="project-snapshot" aria-label="PromptMarket 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/promptmarket.jpg"
+                alt="PromptMarket 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • AI 모델용 프롬프트, Custom Skill, MCP 서버 및 Agent 자산을 카탈로그화한
+              마켓플레이스입니다.<br />
+              • <strong>아키텍처 & 설계 원칙</strong>: pnpm workspaces 기반 모노레포 구조로
+              client(React 19 SPA)와 server(NestJS 11 monolith)를 분리하고, shared 패키지로 Zod
+              스키마 및 공통 타입을 공유합니다. React Router 7 Data Router 객체 라우팅과 route-level
+              dynamic lazy loading으로 로딩 지연을 최소화했습니다.<br />
+              • <strong>상태 관리</strong>: 비동기 서버 상태는 TanStack Query 5(React Query)를
+              사용해 SWR 패턴 및 캐싱을 적용했으며, 클라이언트 전역 상태(인증 토큰, 다국어, 테마)는
+              Zustand 5를 사용해 가볍게 분담했습니다.<br />
+              • <strong>데이터 레이어</strong>: Prisma 7 ORM과 better-sqlite3 드라이버 어댑터를
+              탑재하여 SQL 수준의 타입 안정성을 확보함과 동시에 SQLite 파일 기반의 가벼운 persistent
+              스택을 운용합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >React 19, NestJS 11, TypeScript, pnpm workspace, Zustand 5, TanStack Query 5,
+                Prisma 7, Zod, Better-SQLite3</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel CDN을 통한 글로벌 엣지 정적 서빙(promptmarket.vercel.app) /
+                Backend: Render Web Service 위에 Docker 멀티스테이지 컨테이너 기반으로 상시
+                구동(promptmarket-api.onrender.com) / 로컬 개발: Docker Compose / CI/CD: GitHub
+                Actions (Secret 자동 skip 기능 탑재)</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://promptmarket-web.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/PromptMarket"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>ProtoLive · 바이브코딩 웹앱 공유 플랫폼</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/proto-live</div>
+            <figure class="project-snapshot" aria-label="ProtoLive 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/proto-live.jpg"
+                alt="ProtoLive 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • AI 코딩 도구를 통해 생성된 프로토타입 웹앱들을 살아있는 URL 기준으로 수집하고 실시간
+              피드백을 중개하는 공유 플랫폼입니다.<br />
+              • <strong>아키텍처 원리</strong>: React SPA 프론트엔드와 NestJS 백엔드 API 레이어로
+              구성되며, 사용자가 등록한 사이트의 생존 상태(Liveness) 판별을 백엔드 비동기 작업 큐로
+              격리하여 프론트엔드의 화면 반응성을 극대화했습니다.<br />
+              • <strong>주요 라이브러리</strong>: Tailwind CSS로 반응형 컴포넌트를 설계하고, Axios
+              인터셉터를 활용해 인증 헤더(JWT)를 자동으로 처리합니다.<br />
+              • <strong>인프라 & 데이터</strong>: DB 서버 구축 비용을 제로화하기 위해 백엔드 로컬
+              파일 시스템에 원자적으로 읽고 쓰는 가벼운 JSON 파일 스토어 엔진을 설계했습니다.
+              Render/Fly.io의 컨테이너 환경에서 운영되며, `/api/health` 헬스체크로 가동률을
+              모니터링합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, React, Zustand, TanStack Query, NestJS, JSON File Store, Tailwind CSS,
+                Axios</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel (proto-live.vercel.app) / Backend: Render/Fly.io 컨테이너 /
+                모니터링: /api/health Liveness 체크</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://proto-live.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/proto-live"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Multi-env Lab · 멀티 개발환경 레퍼런스</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/multi-environment-setting
+            </div>
+            <figure class="project-snapshot" aria-label="Multi-env Lab 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/multi-beta-guide.jpg"
+                alt="Multi-env Lab 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 동일한 Next.js 빌드 결과물을 빌드 타임 환경변수 변경 없이 런타임에 클라이언트가
+              `env.json`을 요청하여 주입받게 설계한 "Build Once, Deploy Many" 원칙의 구현
+              레퍼런스입니다.<br />
+              • <strong>아키텍처 & 인프라</strong>: AWS S3와 CloudFront CDN을 결합하여 무중단 글로벌
+              캐시 배포를 수행하고, Terraform IaC와 Makefile로 환경별 인프라 사양을 선언적으로
+              코딩하여 상태 관리(state)를 제어합니다.<br />
+              • <strong>CI/CD 파이프라인</strong>: IAM Key 저장 대신 GitHub Actions OIDC
+              WIF(Workload Identity Federation) Role 매핑 방식을 적용하여 클라우드 크레덴셜 탈취
+              위험을 원천 차단하고 PR 병합 시 preview 격리 환경을 자동으로 생성하고 파괴하는
+              수명주기(cleanup)를 구성했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >Next.js 16, TypeScript, AWS S3/CloudFront, Terraform IaC, Makefile, env.json,
+                GitHub Actions (OIDC/WIF)</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Static Hosting: AWS S3 + CloudFront CDN / IaC: Terraform / CD: GitHub Actions OIDC
+                / Demo: Vercel 배포 병행</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://multi-beta-guide.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/multi-environment-setting"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>ToonSpectrum · 웹툰·웹소설 통합 인덱스</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/toonspectrum</div>
+            <figure class="project-snapshot" aria-label="ToonSpectrum 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/toonspectrum.jpg"
+                alt="ToonSpectrum 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 네이버, 카카오 등 다양한 플랫폼에 분산된 웹툰/웹소설의 랭킹, 리뷰 및 메타데이터를
+              통합 탐색 및 추천하는 포털 서비스입니다.<br />
+              • <strong>아키텍처 원리 (분산 스크래핑 & ORM)</strong>: 대용량 메타데이터 동기화를
+              위한 비동기 크롤러 데몬(Node.js Puppeteer/Cheerio)을 NestJS 스케줄러(Cron)와 분리
+              구동하고, DB 접근 레이어에는 Drizzle ORM을 도입하여 Type-safe한 쿼리 작성과 빌드 타임
+              스키마 마이그레이션 안전성을 확보했습니다.<br />
+              • <strong>서버리스 DB 운용</strong>: 트래픽에 맞춰 실시간 오토스케일링되는 Neon
+              Serverless PostgreSQL을 도입하여 DB 인프라 운영 비용을 제로화하는 서버리스 최적화를
+              완수했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >React 19, NestJS 11, Drizzle ORM, PostgreSQL (Neon Serverless), Puppeteer, Cheerio
+                Scraper, Vite</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel CDN (webtoon-index.vercel.app) / Backend & Scraper: Render 가상
+                컨테이너 / DB: Neon Database (Cloud Serverless) / CI/CD: GitHub Actions</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://webtoon-index.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/toonspectrum"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>이력서공방</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/resume</div>
+            <figure class="project-snapshot" aria-label="이력서공방 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/resume-gongbang.jpg"
+                alt="이력서공방 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • AI 기술을 결합하여 개인 구직자, 헤드헌터, 기업 HR, 이력서 코치 등 4개 권한군에
+              최적화된 맞춤형 문항 제안 및 이력서 품질 분석을 제공하는 풀스택 SaaS입니다.<br />
+              • <strong>모노레포 & 아키텍처</strong>: pnpm workspace 기반 client(React 19 SPA)와
+              server(NestJS 11 monolith) 분리 아키텍처를 도입하고, shared 패키지로 Zod 스키마 및
+              공통 타입을 공유합니다. FSD(Feature-Sliced Design) 아키텍처와 25개 검사 서브 모듈로
+              분할된 2,800라인 규모의 한국어 텍스트 분석 엔진(koreanChecker)을 탑재했습니다.<br />
+              • <strong>AI Fallback & 실시간 기능</strong>: Gemini 2.0 Flash → Groq Llama 3.3 →
+              Claude Opus 4.7로 이어지는 Multi-LLM Fallback 체인을 구현해 API 오류 및 한도 초과에
+              유연히 대응합니다. WebRTC P2P 기반 화상 커피챗 기능은 1초 폴링 시그널링 큐를 통해
+              별도의 서버 중계 비용 없이 운용됩니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >React 19, NestJS 11, TypeScript 6, pnpm workspace, Prisma 7, Neon PostgreSQL,
+                Zustand 5, React Query 5, i18next, WebRTC, Zod</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel (resume-gongbang.vercel.app) / Backend: GCP Cloud Run
+                (asia-northeast3 서울 리전, resume-api) / DB: Neon Serverless PostgreSQL / 인증:
+                Google·GitHub·Kakao OAuth / 로깅: Cloud Logging JSON logs & Sentry / 크론:
+                CronScheduler (리뷰어 정리 및 코칭 넛지)</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://resume-gongbang.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a href="https://github.com/blue45f/resume" target="_blank" rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Family Care Platform</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/family-care-platform
+            </div>
+            <figure class="project-snapshot" aria-label="Family Care Platform 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/family-care-platform.jpg"
+                alt="Family Care Platform 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 가족 구성원 간의 공유 일정, 건강 상태, 알림 및 투약 스케줄을 공동 관리하는 패밀리
+              케어 태스크 허브입니다.<br />
+              • <strong>아키텍처</strong>: React 19 SPA 프론트엔드와 NestJS 백엔드로 분리된 모노레포
+              구조를 취하며, 민감한 개인 생활 데이터를 안전하게 보존하고 즉시성 있게 동기화하기 위한
+              폼 상태 제어와 Optimistic Update를 구현했습니다.<br />
+              • <strong>데이터 & 로컬 표준</strong>: 영속 데이터 레이어는 로컬 JSON 파일 스토어
+              엔진으로 파일 입출력을 처리해 유지 비용을 극대화하여 절감했습니다. Docker Compose를
+              구성해 web, api, mock 스토리지를 로컬에서 원클릭으로 구동할 수 있습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, React 19, Zustand, TanStack Query 5, NestJS, JSON File Store, Docker
+                Compose</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel (family-care-platform.vercel.app) / Backend: Render/Fly.io
+                컨테이너 / 헬스체크: /api/health 엔드포인트</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://family-care-platform.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/family-care-platform"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>RotiFolk · 로테이션 파티앱</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/rotifolk</div>
+            <figure class="project-snapshot" aria-label="RotiFolk 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/rotifolk.jpg"
+                alt="RotiFolk 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 오프라인 행사 현장의 참여자 로테이션 순서 및 순번 대기열을 실시간 조율하는 파티
+              매니저 플랫폼입니다.<br />
+              • <strong>아키텍처 원리 (레이스 컨디션 방지)</strong>: 현장에서 여러 사용자가 동시에
+              대기열 순서나 턴 교대를 조작할 때 발생하는 상태 레이스 컨디션을 최소화하기 위해,
+              Zustand 기반 상태 머신과 낙관적 락(Optimistic Lock) 개념을 차용해 API 요청 락(Request
+              Lock) 및 터치 디바운싱을 내장했습니다.<br />
+              • <strong>데이터 영속성</strong>: 독립적인 DB 없이 최소 비용으로 구동하기 위해 NestJS
+              백엔드 내에 파일 스트림 읽기/쓰기를 직렬화하는 원자적 JSON 데이터 모듈(File-based
+              State Storage)을 고안해 동시성 안전(Concurrency-safe) 처리를 완료했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span>TypeScript, React, Zustand, NestJS, JSON File Locking, Debouncing Engine</span>
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel CDN (rotifolk.vercel.app) / Backend: Render 가상 컨테이너
+                (rotifolk-api) / 헬스: /api/health 엔드포인트 모니터링</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://rotifolk.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/rotifolk"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Pettography</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/pettography</div>
+            <figure class="project-snapshot" aria-label="Pettography 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/pettography.jpg"
+                alt="Pettography 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 희귀 반려동물 돌봄 정보, 특수 동물병원, 용품점 및 커뮤니티를 연계한 웰니스 디렉터리
+              포털입니다.<br />
+              • <strong>아키텍처 원리 (3원 상태 동기화)</strong>: 수십 개의 상세 필터 조합(지역,
+              동물종, 진료 항목 등)을 결합하여 탐색하는 UX 요구사항에 따라, URL Query
+              Parameter(공유성), Zustand 전역 상태(인터랙션 피드백), TanStack Query SWR 캐시(서버
+              데이터)를 유기적으로 연결하는 동기화 컨트롤러를 구현했습니다. 검색 조건 변경이
+              히스토리 백/포워드 시에도 완벽히 복원됩니다.<br />
+              • <strong>네트워크 및 예외 처리</strong>: Axios HTTP 클라이언트에 글로벌 인터셉터를
+              장착하고 백엔드 API 에러 응답(4xx/5xx)을 표준화하여 통일된 토스트 피드백으로 사용자
+              경험을 보호합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span>TypeScript, React, Zustand, TanStack Query, Axios, NestJS Monolith</span>
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel (pettography.vercel.app) / Backend: Render Cloud Service /
+                모니터링: /api/health Liveness 엔드포인트</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://pettography.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/pettography"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>TermsDesk</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/termsdesk</div>
+            <figure class="project-snapshot" aria-label="TermsDesk 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/termsdesk.jpg"
+                alt="TermsDesk 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 서비스 이용약관 및 개인정보 처리방침의 버전 히스토리 통제, 법적 변조 방지 게시, 감사
+              동의 영수증 발급 SaaS입니다.<br />
+              • <strong>아키텍처 원리 (법적 증적 감사)</strong>: 약관 개정 시점과 내용의 일치성을
+              검증하기 위해 NestJS Audit Trail 미들웨어를 구축하고, 사용자 동의 시 약관 내용의
+              SHA-256 해시값과 클라이언트 브라우저 핑거프린트 서명을 결합해 복호화가 불가능한
+              암호학적 증적 영수증(Verification Receipt)을 UI에서 조회하고 인쇄할 수 있는 렌더링
+              파이프라인을 설계했습니다.<br />
+              • <strong>Diff 시각화</strong>: jsdiff 엔진을 기반으로 수정한 약관의 추가/삭제 영역을
+              클라이언트 사이드에서 즉각 문장/단어 수준으로 다차원 시각화해 주는 Diff 뷰어
+              컴포넌트를 직접 내장했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, React, NestJS, jsDiff Engine, SHA-256 Crypto, Browser
+                Fingerprinting</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel CDN (termsdesk.vercel.app) / Backend: Render Web Service (Fly.io
+                백업 이중화 구성)</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://termsdesk.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/termsdesk"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Quote Match</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/quote-match</div>
+            <figure class="project-snapshot" aria-label="Quote Match 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/quote-match.jpg"
+                alt="Quote Match 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 서비스 공급자와 수요자 매칭을 위해 설계된 조건부 다차원 견적 매칭 시스템의
+              프론트엔드 레퍼런스입니다.<br />
+              • <strong>아키텍처 원리 (다단계 폼 캐시)</strong>: 견적서 작성에 필요한 30개 이상의
+              복잡한 인풋 입력 장벽을 허물기 위해 Multi-step 폼 위젯 아키텍처를 적용했습니다. 특히
+              예기치 못한 탭 종료나 브라우저 크래시가 나더라도 기존 데이터를 보장하기 위해 Zustand
+              상태 변경을 관찰하여 LocalStorage/IndexedDB에 안전하게 동기화하고 복원하는 UI Form
+              Cache 엔진을 구현했습니다.<br />
+              • <strong>타입 검증</strong>: 입력 양식의 단계별 무결성 검증을 위해 Zod 스키마 검증
+              엔진을 통합하여 클라이언트 단계에서 불완전한 상태 전이를 엄격하게 방지합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, React, Zustand, Zod Schema, UI Form Cache Engine, GitHub Actions</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Frontend: Vercel CDN 배포 (quote-match.vercel.app) / CI/CD: GitHub Actions
+                워크플로우를 통한 자동 통합 및 빌드</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://quote-match.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/quote-match"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Orbit UI</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/orbit-ui (MIT)</div>
+            <figure class="project-snapshot" aria-label="Orbit UI 문서 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/orbit-ui.jpg"
+                alt="Orbit UI 문서 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • React 기반 3계층 헤드리스 아키텍처로 컴포넌트를 설계하여 상태 로직, 스타일, 브랜딩을
+              분리한 타입 안전 디자인 시스템 패키지 라이브러리입니다.<br />
+              • <strong>아키텍처 원리 (3계층 격리)</strong>: 마크업 구조 및 상태 로직(Primitives),
+              테일윈드/CSS 기반 스타일(Core), 디자인 토큰 기반 브랜딩(Theme)을 물리적 모듈 단위로
+              격리했습니다. WAI-ARIA 표준 명세 및 키보드 접근성(포커스 트랩, 스크린 리더 친화적
+              포커싱)을 디자인 시스템 코어 레이어에 자체적으로 탑재했습니다.<br />
+              • <strong>컴파일 및 배포</strong>: SWC 컴파일러 및 Rollup 번들러 환경을 튜닝하여 트리
+              쉐이킹(Tree Shaking) 효율을 극대화한 Dual-format(ESM/CJS) 컴포넌트 라이브러리를
+              빌드합니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >React, TypeScript, Storybook, SWC Compiler, Rollup Bundle, WAI-ARIA Standards</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Docs Showcase: Vercel CDN 배포 (orbit-ui-pink.vercel.app) / 패키지 배포: GitHub
+                Actions CI 연동을 통한 npm Registry 패키지 자동 퍼블리시</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://orbit-ui-pink.vercel.app/" target="_blank" rel="noopener noreferrer"
+                >Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/orbit-ui"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>Remote DevTools</h3>
+            <div class="job-period">
+              Personal Project | Public repo: blue45f/remote-devtools (MIT)
+            </div>
+            <figure class="project-snapshot" aria-label="Remote DevTools 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/remote-devtools.jpg"
+                alt="Remote DevTools 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 외부 모바일 웹뷰 및 스마트 TV 브라우저의 실행 환경을 원격으로 실시간
+              진단/감시/제어하는 오픈소스 디버깅 플랫폼입니다.<br />
+              • <strong>아키텍처 원리 (실시간 터널링)</strong>: 크로스 플랫폼 타겟 브라우저에
+              임베드되는 경량 에이전트 SDK가 WebSocket을 통해 디버깅 서버와 채널을 유지합니다.
+              Chrome DevTools Protocol(CDP) 메시지를 터널링하여 타겟 디바이스의 DOM 트리 상태 복원,
+              Javascript 원격 콘솔 명령 즉각 실행, 네트워크 호출 모니터링을 완벽하게 재현합니다.<br />
+              • <strong>초저지연 화면 미러링</strong>: 서버의 네트워크 트래픽 중계 비용을 배제하기
+              위해 WebRTC Peer-to-Peer 시그널링 채널을 통과하는 경량 이미지/프레임 캡처 스트림 전송
+              로직을 설계하고, 원격 세션 녹화 및 타임라인 재생(Playback) 엔진을 구현했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, React, NestJS, CDP (Chrome DevTools Protocol), Socket.io, WebRTC P2P,
+                Playback Engine</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Client Console: Vercel (remote-devtools.vercel.app) / Backend Daemon: Fly.io 및
+                Render 컨테이너 멀티 리전 클러스터 구조 (영속 데이터 적재용 PostgreSQL 내장) /
+                모니터링: /api/health Liveness 체크</span
+              >
+            </div>
+            <div class="project-actions">
+              <a
+                href="https://remote-devtools.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/remote-devtools"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+              <a
+                href="https://github.com/blue45f/remote-devtools/blob/main/docs/DEPLOY_DEMO.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Deploy Guide</a
+              >
+            </div>
+          </div>
+
+          <div class="project-card">
+            <h3>SPA SEO Gateway</h3>
+            <div class="job-period">Personal Project | Public repo: blue45f/spa-seo-gateway</div>
+            <figure class="project-snapshot" aria-label="SPA SEO Gateway 홈 화면 스냅샷">
+              <img
+                src="public/project-snapshots/spa-seo-gateway.jpg"
+                alt="SPA SEO Gateway 홈 화면 스냅샷"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div>
+              • 일반 사용자의 SPA 진입 속도를 침해하지 않고, 검색 크롤링 봇에게만 완벽히 사전
+              렌더링된 고성능 HTML을 제공하는 Dynamic Rendering 프록시 솔루션입니다.<br />
+              • <strong>아키텍처 원리 (User-Agent 라우팅)</strong>: Reverse Proxy 레이어에서
+              구글/네이버/카카오 등의 검색 크롤러 봇 트래픽을 감지하여 Puppeteer Headless 브라우저
+              렌더러 큐로 분기합니다. 렌더러가 클라이언트 CSR 사이트를 구동하여 획득한 정적 마크업
+              스냅샷을 봇에게 즉시 반환하여 검색 순위 및 SEO 지표를 향상시킵니다.<br />
+              • <strong>캐시 및 배포 효율화</strong>: Puppeteer 재구동 오버헤드를 제어하기 위해 LRU
+              Memory Cache 레이어를 구성하고, 코어 모듈을 독립
+              패키지(@heejun/spa-seo-gateway-core)로 분리하여 다수 서비스에 미들웨어 형태로 즉각
+              통합될 수 있도록 고안했습니다.
+            </div>
+            <div class="tech-stack">
+              <strong>기술 스택</strong>:
+              <span
+                >TypeScript, Node.js, Express, Puppeteer Headless, LRU Cache, User-Agent Router,
+                Reverse Proxy Engine</span
+              >
+            </div>
+            <div class="infra-config">
+              <strong>인프라 구성</strong>:
+              <span
+                >Gateway Host: Fly.io Docker container (Headless Chromium 구동용 시스템 라이브러리
+                프리컴파일 구성) / Admin UI & Demo: Netlify CDN (spa-seo-gateway.vercel.app) /
+                패키지 배포: npm Registry 퍼블리시 / 헬스체크: /healthz</span
+              >
+            </div>
+            <div class="project-actions">
+              <a href="https://spa-seo-gateway.vercel.app" target="_blank" rel="noopener noreferrer"
+                >Live Demo</a
+              >
+              <a
+                href="https://github.com/blue45f/spa-seo-gateway"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+              <a
+                href="https://www.npmjs.com/package/@heejun/spa-seo-gateway-core"
+                target="_blank"
+                rel="noopener noreferrer"
+                >npm</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="06">리더십 & 기술 공유</h2>
+
+        <h3>전사 웹표준 개발환경 RFC</h3>
+        <div>
+          • 2025.08부터 전사 웹 프론트엔드 개발 표준 정립 RFC의 핵심 참여자<br />
+          • 7차 RFC 논의 참석 및 아레나 논의 준비<br />
+          • 전사 표준 정립에 지속적으로 기여 중
+        </div>
+
+        <h3>테크 밋업 연사 (2025.09)</h3>
+        <div>
+          • 주제: 장바구니 CloudFront 장애 대응 및 웹 프론트엔드 개발자가 알아야 할 인프라 지식<br />
+          • 내부 교육 세션 연사 초청, 장애 대응 경험과 인프라 개념 전파
+        </div>
+
+        <h3>코드 리뷰 프로세스 개선</h3>
+        <div>
+          • 코드 리뷰 회고 2회 참석 및 적극적 의견 제시<br />
+          • MR 분할 지지, MR 완료 일정 및 QA 시작일을 메타데이터에 추가 제안<br />
+          • 명확한 액션 아이템과 오너십을 갖춘 프로세스 개선 주도
+        </div>
+
+        <h3>API 평가 및 아키텍처 리뷰</h3>
+        <div>
+          • 장바구니 빈 화면 추천 API 평가에서 상세한 기술 분석 제공<br />
+          • API 구조 복잡성, 클라이언트 파싱 복잡도, 웹 성능 우려 지적<br />
+          • 데이터만 전달하고 뷰 프레젠테이션은 프론트엔드가 처리하는 접근 권장
+        </div>
+
+        <h3>기술 문서화</h3>
+        <div>
+          • 4년간 <strong>250개 이상의 주간 상태 리포트</strong> 작성<br />
+          • 프로젝트 계획, 아키텍처 의사결정 기록(ADR), 개발 가이드라인 문서화<br />
+          • 일관된 문서화 습관을 통한 지식 공유와 협업 촉진
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="07">성과, 숫자로</h2>
+        <div class="lede">
+          2021년부터 2025년까지 <strong>30개 이상의 주요 프로젝트</strong>를 완수했습니다. 그 과정의
+          숫자는 세 갈래로 정리됩니다.
+        </div>
+
+        <h3>아키텍처 · 성능</h3>
+        <div>
+          레거시를 React 기반 모던 스택으로 전환하며 JavaScript 번들 크기를
+          <strong>70% 줄이고</strong>, 평균 성능을 <strong>30% 이상 끌어올렸으며</strong>, 그 결과
+          팀 전체의 개발 생산성을 <strong>30% 이상</strong> 높였습니다.
+        </div>
+
+        <h3>품질 · 안정성</h3>
+        <div>
+          vitest 기반 테스팅 인프라를 처음 세워 커버리지를 <strong>0%에서 16%로</strong> 끌어올리고,
+          고객서비스 개선 프로젝트에서 <strong>96% TC 실행률과 90% 패스율</strong>을 달성했습니다.
+          VFD 2.0 배포 장애는 <strong>5시간 안에</strong> 원인을 파악해 해결했고, 장애 포카요케
+          <strong>2건</strong>으로 배포 프로세스를 표준화했습니다. 배송 경로 이상 신고 기능은 VOC를
+          <strong>69% 줄였습니다</strong>.
+        </div>
+
+        <h3>조직 · 기록</h3>
+        <div>
+          표준 개발 환경 TF를 <strong>8개월</strong> 만에 마무리하며 React Query + Zustand +
+          TypeScript 코어 스택을 정립했고, 4년간 <strong>250개 이상의 주간 상태 리포트</strong>를
+          남기며 기록의 문화를 이어왔습니다.
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="08">기술 스택</h2>
+
+        <div class="skill-grid">
+          <div class="skill-category">
+            <h4>Frontend</h4>
+            <div class="skills">
+              <span class="skill-tag">JavaScript(ES6+)</span>
+              <span class="skill-tag">TypeScript</span>
+              <span class="skill-tag">HTML5</span>
+              <span class="skill-tag">CSS3/SCSS</span>
+              <span class="skill-tag">React</span>
+              <span class="skill-tag">Vue.js</span>
+              <span class="skill-tag">Angular</span>
+              <span class="skill-tag">React Query</span>
+              <span class="skill-tag">Zustand</span>
+              <span class="skill-tag">MobX</span>
+              <span class="skill-tag">Redux</span>
+              <span class="skill-tag">RxJS</span>
+              <span class="skill-tag">Webpack</span>
+              <span class="skill-tag">Vite</span>
+              <span class="skill-tag">Rollup</span>
+              <span class="skill-tag">Vitest</span>
+              <span class="skill-tag">Jest</span>
+              <span class="skill-tag">React Testing Library</span>
+              <span class="skill-tag">Cypress</span>
+              <span class="skill-tag">Storybook</span>
+            </div>
+          </div>
+
+          <div class="skill-category">
+            <h4>Backend & Tools</h4>
+            <div class="skills">
+              <span class="skill-tag">Java</span>
+              <span class="skill-tag">Node.js</span>
+              <span class="skill-tag">AWS S3</span>
+              <span class="skill-tag">CloudFront</span>
+              <span class="skill-tag">Route53</span>
+              <span class="skill-tag">Git</span>
+              <span class="skill-tag">GitLab CI/CD</span>
+              <span class="skill-tag">GitHub</span>
+              <span class="skill-tag">Jenkins</span>
+              <span class="skill-tag">GitHub Actions</span>
+              <span class="skill-tag">Docker</span>
+              <span class="skill-tag">Sentry</span>
+              <span class="skill-tag">Figma</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="09">기술 활동 및 기여</h2>
+        <div>
+          • <strong>개인 프로젝트</strong>는 본문의 <strong>"개인 프로젝트"</strong> 섹션을 참고
+          (PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum, 이력서공방, Family Care Platform,
+          RotiFolk, Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools, SPA SEO
+          Gateway)<br />
+          • <strong>GitHub Study Group</strong>:
+          <a href="https://github.com/develuv/study" target="_blank" rel="noopener noreferrer"
+            >https://github.com/develuv/study</a
+          ><br />
+          • 사내 디자인 시스템 TF 참여<br />
+          • 사내 기술 출판물 검수 활동<br />
+          • <strong>FSD(Feature-Sliced Design) 아키텍처</strong> 검토 및 팀 내 공유<br />
+          • <strong>모바일 테스트 방안</strong> 연구 및 가이드 제공<br />
+          • <strong>테스트 리포팅 대시보드</strong> 구축으로 품질 관리 체계화<br />
+          • <strong>스테이지 환경 구축</strong> 주도 및 유관부서 공유
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="10">자기소개</h2>
+        <div class="lede">
+          주문·결제 및 장바구니 서비스의 핵심 아키텍처를 설계하고 구현하는 시니어 프론트엔드
+          개발자입니다. 18년간 Kakao와 SmileGate Stove를 거치며 대규모 서비스의 프론트엔드 아키텍처
+          설계, 성능 최적화, 팀 표준화를 주도해왔습니다.<br /><br />
+
+          2021년 입사 이후 <strong>30개 이상의 주요 프로젝트를 완수</strong>하며 JavaScript 번들
+          크기 70% 감소, 평균 성능 30% 개선, 개발 생산성 30% 향상을 달성했습니다. 레거시 아키텍처를
+          React 기반 모던 스택으로 전환하고, 전사 표준 개발 환경을 정립하며, vitest 기반 테스팅
+          인프라를 구축하는 등 기술 리더십을 발휘하고 있습니다.<br /><br />
+
+          특히 국내 최초 애플페이 결제 연동, 공동 주문 서비스 실시간 동기화 아키텍처, 장바구니 및
+          주문·결제 프로세스 통합 프로젝트 리드 등 난이도 높은 기술 과제를 성공적으로 수행하며 팀의
+          핵심 개발자로서 기술력과 리더십을 인정받고 있습니다.<br /><br />
+
+          대규모 트래픽을 처리하는 서비스에서의 성능 최적화, RFC 프로세스 주도, 코드 리뷰 문화 정착,
+          그리고 테크 밋업 연사 활동과 주니어 개발자 멘토링을 통해 조직 전체의 기술 역량 향상에
+          기여하고 있습니다. 앞으로도 기술적 탁월함과 팀워크를 바탕으로 더 나은 사용자 경험을
+          만들어가고자 합니다.
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-index="11">첨부 문서</h2>
+
+        <h3>경력증명서</h3>
+        <div>
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/자비스앤빌런즈_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >자비스앤빌런즈_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/우아한형제들_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >우아한형제들_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/스마일게이트_경력증명.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >스마일게이트_경력증명.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/NC_소프트_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >NC_소프트_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/카카오_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >카카오_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/미택아이엔택_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >미택아이엔택_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/솔루피아_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >솔루피아_경력증명서.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/경력증명서/네트빌_경력증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >네트빌_경력증명서.pdf</a
+          >
+        </div>
+
+        <h3>졸업증명서</h3>
+        <div>
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/졸업증명서/졸업증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >졸업증명서.pdf</a
+          >
+        </div>
+
+        <h3>자격증</h3>
+        <div>
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/자격증/정보처리기사.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >정보처리기사.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/자격증/scjp.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >SCJP.pdf</a
+          ><br />
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/자격증/mous.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >MOS.pdf</a
+          >
+        </div>
+
+        <h3>국민연금 가입증명</h3>
+        <div>
+          <a
+            href="https://github.com/blue45f/heejun/blob/main/public/연봉 협의/원천징수/국민연금가입증명서.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            >국민연금가입증명서.pdf</a
+          >
+        </div>
+
+        <h3>개발 가이드 (실무형 최신 기준)</h3>
+        <div>
+          <a
+            href="public/개발가이드/00_종합_가이드_목차.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >00_종합_가이드_목차.html</a
+          ><br />
+          <a
+            href="public/개발가이드/01_TypeScript_심화_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >01_TypeScript_심화_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/02_React19_실무_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >02_React19_실무_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/03_상태관리_패턴_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >03_상태관리_패턴_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/04_아키텍처_설계_패턴.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >04_아키텍처_설계_패턴.html</a
+          ><br />
+          <a
+            href="public/개발가이드/05_API_통신_및_모킹_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >05_API_통신_및_모킹_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/06_웹_보안_심화_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >06_웹_보안_심화_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/07_테스팅_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >07_테스팅_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/08_성능_최적화_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >08_성능_최적화_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/09_장애_대응_및_관측성_표준.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >09_장애_대응_및_관측성_표준.html</a
+          ><br />
+          <a
+            href="public/개발가이드/10_인프라_IaC_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >10_인프라_IaC_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/11_CICD_파이프라인_표준.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >11_CICD_파이프라인_표준.html</a
+          ><br />
+          <a
+            href="public/개발가이드/12_CDN_캐시_전략.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >12_CDN_캐시_전략.html</a
+          ><br />
+          <a
+            href="public/개발가이드/13_브라우저_호환성_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >13_브라우저_호환성_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/14_배포_프로세스_체크리스트.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >14_배포_프로세스_체크리스트.html</a
+          ><br />
+          <a
+            href="public/개발가이드/15_RFC_의사결정_프로세스.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >15_RFC_의사결정_프로세스.html</a
+          ><br />
+          <a
+            href="public/개발가이드/16_AI_협업_코드리뷰_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >16_AI_협업_코드리뷰_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/17_신규_입사자_온보딩_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >17_신규_입사자_온보딩_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/18_AI_개발_워크플로우_종합.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >18_AI_개발_워크플로우_종합.html</a
+          ><br />
+          <a
+            href="public/개발가이드/19_웹_접근성_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >19_웹_접근성_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/20_디자인_시스템_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >20_디자인_시스템_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/21_마이크로_프론트엔드_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >21_마이크로_프론트엔드_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/22_모노레포_운영_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >22_모노레포_운영_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/23_국제화_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >23_국제화_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/24_SEO_메타데이터_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >24_SEO_메타데이터_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/25_웹_애니메이션_모션_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >25_웹_애니메이션_모션_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/26_PWA_오프라인_전략_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >26_PWA_오프라인_전략_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/27_다중_개발_서버_구축_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >27_다중_개발_서버_구축_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/28_Sentry_모니터링_활용_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >28_Sentry_모니터링_활용_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/29_표준_라이브러리_스택_가이드.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >29_표준_라이브러리_스택_가이드.html</a
+          ><br />
+          <a
+            href="public/개발가이드/30_사례_전저장소_일관성_정렬_회고.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >30_사례_전저장소_일관성_정렬_회고.html</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <div class="save-buttons">
+      <button class="save-button pdf-save" onclick="savePDF()">PDF 저장</button>
+      <button class="save-button print-save" onclick="printPDF()">인쇄</button>
+    </div>
+
+    <script>
+      ;(function () {
+        var canvas = document.getElementById('hero-canvas')
+        if (!canvas) return
+
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)')
+        if (reduce.matches) return
+
+        var context = canvas.getContext('2d')
+        if (!context) return
+
+        var header = canvas.closest('header')
+        var raf = 0
+        var pointerX = 0
+        var pointerY = 0
+        var points = []
+        var colors = [
+          'oklch(0.78 0.13 86)',
+          'oklch(0.67 0.17 31)',
+          'oklch(0.68 0.13 166)',
+          'oklch(0.56 0.14 249)',
+        ]
+
+        function colorToCanvas(value, fallback) {
+          context.fillStyle = fallback
+          context.fillStyle = value
+          return context.fillStyle
+        }
+
+        var paint = colors.map(function (value, index) {
+          return colorToCanvas(value, ['#e0b94b', '#e36f54', '#42c99b', '#548ee8'][index])
+        })
+
+        function resize() {
+          var rect = canvas.getBoundingClientRect()
+          var ratio = Math.min(window.devicePixelRatio || 1, 2)
+          canvas.width = Math.max(1, Math.floor(rect.width * ratio))
+          canvas.height = Math.max(1, Math.floor(rect.height * ratio))
+          context.setTransform(ratio, 0, 0, ratio, 0, 0)
+          seed(rect.width, rect.height)
+        }
+
+        function seed(width, height) {
+          points = []
+          var count = width < 520 ? 28 : 46
+          for (var i = 0; i < count; i += 1) {
+            points.push({
+              x: (i * 97) % Math.max(width, 1),
+              y: (i * 53) % Math.max(height, 1),
+              z: 0.45 + ((i * 13) % 50) / 100,
+              speed: 0.25 + ((i * 7) % 8) / 18,
+              hue: i % paint.length,
+            })
+          }
+        }
+
+        function draw(time) {
+          var rect = canvas.getBoundingClientRect()
+          context.clearRect(0, 0, rect.width, rect.height)
+          context.globalCompositeOperation = 'lighter'
+
+          for (var i = 0; i < points.length; i += 1) {
+            var p = points[i]
+            var drift = time * 0.00012 * p.speed
+            var x = (p.x + Math.cos(drift + i) * 18 + pointerX * p.z * 18 + rect.width) % rect.width
+            var y =
+              (p.y + Math.sin(drift * 1.7 + i) * 14 + pointerY * p.z * 16 + rect.height) %
+              rect.height
+
+            for (var j = i + 1; j < points.length; j += 1) {
+              var q = points[j]
+              var qx =
+                (q.x + Math.cos(drift + j) * 18 + pointerX * q.z * 18 + rect.width) % rect.width
+              var qy =
+                (q.y + Math.sin(drift * 1.7 + j) * 14 + pointerY * q.z * 16 + rect.height) %
+                rect.height
+              var dx = x - qx
+              var dy = y - qy
+              var dist = Math.sqrt(dx * dx + dy * dy)
+              if (dist < 132) {
+                context.strokeStyle = paint[p.hue]
+                context.globalAlpha = (1 - dist / 132) * 0.16
+                context.lineWidth = 1
+                context.beginPath()
+                context.moveTo(x, y)
+                context.lineTo(qx, qy)
+                context.stroke()
+              }
+            }
+
+            context.globalAlpha = 0.62
+            context.fillStyle = paint[p.hue]
+            context.beginPath()
+            context.arc(x, y, 1.6 + p.z * 1.8, 0, Math.PI * 2)
+            context.fill()
+          }
+
+          context.globalAlpha = 1
+          context.globalCompositeOperation = 'source-over'
+          raf = window.requestAnimationFrame(draw)
+        }
+
+        if (header) {
+          header.addEventListener('pointermove', function (event) {
+            var rect = header.getBoundingClientRect()
+            pointerX = (event.clientX - rect.left) / rect.width - 0.5
+            pointerY = (event.clientY - rect.top) / rect.height - 0.5
+          })
+          header.addEventListener('pointerleave', function () {
+            pointerX = 0
+            pointerY = 0
+          })
+        }
+
+        resize()
+        window.addEventListener('resize', resize)
+        raf = window.requestAnimationFrame(draw)
+        window.addEventListener('beforeprint', function () {
+          if (raf) window.cancelAnimationFrame(raf)
+        })
+      })()
+    </script>
+
+    <script>
+      function loadScriptOnce(id, urls) {
+        return new Promise((resolve, reject) => {
+          const existing = document.getElementById(id)
+          if (existing?.dataset.loaded === 'true') return resolve()
+          if (existing) {
+            existing.addEventListener('load', resolve, { once: true })
+            existing.addEventListener('error', reject, { once: true })
+            return
+          }
+
+          const [primary, ...fallbacks] = urls
+          const script = document.createElement('script')
+          script.id = id
+          script.src = primary
+          script.onload = () => {
+            script.dataset.loaded = 'true'
+            resolve()
+          }
+          script.onerror = () => {
+            const next = fallbacks.shift()
+            if (!next) {
+              reject(new Error(`${id} 로드 실패`))
+              return
+            }
+            script.src = next
+          }
+          document.head.appendChild(script)
+        })
+      }
+
+      async function loadPdfLibraries() {
+        if (typeof html2canvas === 'undefined') {
+          await loadScriptOnce('html2canvas-lib', [
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js',
+          ])
+        }
+
+        if (!window.jspdf?.jsPDF) {
+          await loadScriptOnce('jspdf-lib', [
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+          ])
+        }
+
+        if (typeof html2canvas === 'undefined' || !window.jspdf?.jsPDF) {
+          throw new Error('PDF 라이브러리를 불러오지 못했습니다.')
+        }
+      }
+
+      function resetButton(button, saveButtons, originalText) {
+        saveButtons.style.display = 'flex'
+        button.innerHTML = originalText
+        button.disabled = false
+      }
+
+      function stripUnsupportedPdfColorFunctions(cssText) {
+        return cssText
+          .replace(/[a-zA-Z-]+\s*:\s*[^;{}]*(?:color-mix|oklab|oklch)[^;{}]*;/g, '')
+          .replace(/color-mix\([^;{}]*(?:\([^)]*\)[^;{}]*)*\)/g, '#d7e0e0')
+          .replace(/oklch\([^)]*\)/g, '#1c343b')
+          .replace(/oklab\([^)]*\)/g, '#1c343b')
+      }
+
+      function sanitizePdfClone(clonedDocument) {
+        clonedDocument.documentElement.classList.add('pdf-capture')
+        clonedDocument.querySelectorAll('style, link[rel="stylesheet"]').forEach((node) => {
+          node.remove()
+        })
+        const safeStyle = clonedDocument.createElement('style')
+        safeStyle.textContent = `
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #f5f8f8 !important;
+            color: #1c343b !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+            line-height: 1.68 !important;
+          }
+          main {
+            width: min(100%, 1040px) !important;
+            margin: 0 auto !important;
+            padding: 24px !important;
+            box-sizing: border-box !important;
+          }
+          .pdf-capture *,
+          .pdf-capture *::before,
+          .pdf-capture *::after {
+            background-image: none !important;
+            background-color: transparent !important;
+            border-color: #d7e0e0 !important;
+            caret-color: #1c343b !important;
+            color: #1c343b !important;
+            fill: #1c343b !important;
+            mask-image: none !important;
+            mix-blend-mode: normal !important;
+            outline-color: #527782 !important;
+            filter: none !important;
+            box-shadow: none !important;
+            stroke: #1c343b !important;
+            text-decoration-color: #527782 !important;
+            text-shadow: none !important;
+            transform: none !important;
+          }
+          .pdf-capture header,
+          .pdf-capture .section {
+            display: block !important;
+            margin: 0 0 18px !important;
+            padding: 24px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 8px !important;
+            box-sizing: border-box !important;
+          }
+          .pdf-capture body { background: #f5f8f8 !important; }
+          .pdf-capture header {
+            background: #0b3338 !important;
+            color: #fbfcfc !important;
+          }
+          .pdf-capture header,
+          .pdf-capture header h1,
+          .pdf-capture header a,
+          .pdf-capture .impact-stat,
+          .pdf-capture .impact-stat strong,
+          .pdf-capture .contact-chip {
+            color: #fbfcfc !important;
+            opacity: 1 !important;
+          }
+          .pdf-capture .eyebrow,
+          .pdf-capture .contact-label,
+          .pdf-capture h2::before {
+            color: #a06f17 !important;
+          }
+          .pdf-capture h1,
+          .pdf-capture h2,
+          .pdf-capture h3 {
+            margin: 0 0 10px !important;
+            line-height: 1.24 !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+          .pdf-capture h1 { font-size: 36px !important; }
+          .pdf-capture h2 { font-size: 26px !important; }
+          .pdf-capture h3 { font-size: 19px !important; }
+          .pdf-capture div,
+          .pdf-capture p,
+          .pdf-capture a,
+          .pdf-capture span {
+            font-size: 14px !important;
+          }
+          .pdf-capture .eyebrow,
+          .pdf-capture .contact-label {
+            color: #f1c75d !important;
+            opacity: 1 !important;
+          }
+          .pdf-capture .title,
+          .pdf-capture .contact-info,
+          .pdf-capture .impact-stat span {
+            color: #d8e4e5 !important;
+            opacity: 1 !important;
+          }
+          .pdf-capture .impact-stat,
+          .pdf-capture .contact-chip { background: #17464d !important; }
+          .pdf-capture .contact-info,
+          .pdf-capture .impact-grid,
+          .pdf-capture .skill-grid {
+            display: block !important;
+          }
+          .pdf-capture .contact-chip,
+          .pdf-capture .impact-stat,
+          .pdf-capture .skill-tag {
+            display: inline-block !important;
+            margin: 0 6px 6px 0 !important;
+            padding: 4px 8px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 6px !important;
+          }
+          .pdf-capture .project-card,
+          .pdf-capture .section {
+            background: #fbfcfc !important;
+          }
+          .pdf-capture .project-card {
+            margin: 0 0 16px !important;
+            padding: 16px !important;
+            border: 1px solid #d7e0e0 !important;
+            border-radius: 8px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .pdf-capture .project-grid {
+            display: block !important;
+            max-width: 100% !important;
+          }
+          .pdf-capture .project-snapshot {
+            width: 420px !important;
+            max-width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 16 / 10 !important;
+            overflow: hidden !important;
+            background: #eef3f3 !important;
+            border: 1px solid #d7e0e0 !important;
+          }
+          .pdf-capture .project-snapshot img {
+            width: 100% !important;
+            height: auto !important;
+            object-fit: contain !important;
+            transform: none !important;
+          }
+          .pdf-capture .save-buttons,
+          .pdf-capture .hero-stage,
+          .pdf-capture .hero-mark,
+          .pdf-capture canvas {
+            display: none !important;
+          }
+        `
+        clonedDocument.head.appendChild(safeStyle)
+        clonedDocument.querySelectorAll('canvas, .hero-stage, .hero-mark').forEach((node) => {
+          node.remove()
+        })
+      }
+
+      function getPdfCaptureScale(element) {
+        const maxCanvasSide = 12000
+        const maxCanvasPixels = 10000000
+        const requestedScale = Math.min(1.25, window.devicePixelRatio || 1.25)
+        const captureWidth = Math.max(
+          element.scrollWidth,
+          element.offsetWidth,
+          document.documentElement.scrollWidth,
+        )
+        const captureHeight = Math.max(element.scrollHeight, element.offsetHeight)
+        const maxScaleBySide = Math.min(maxCanvasSide / captureWidth, maxCanvasSide / captureHeight)
+        const maxScaleByArea = Math.sqrt(maxCanvasPixels / (captureWidth * captureHeight))
+        const maxScale = Math.min(maxScaleBySide, maxScaleByArea)
+
+        return Math.max(0.1, Math.min(requestedScale, maxScale))
+      }
+
+      function getPdfCaptureTargets(element) {
+        return Array.from(element.children).filter((node) => {
+          return node instanceof HTMLElement && node.offsetHeight > 0
+        })
+      }
+
+      function canvasHasVisibleContent(canvas) {
+        const context = canvas.getContext('2d', { willReadFrequently: true })
+        if (!context) return false
+
+        const width = canvas.width
+        const height = canvas.height
+        const step = Math.max(8, Math.floor(Math.sqrt((width * height) / 18000)))
+        let min = 765
+        let max = 0
+        let opaqueSamples = 0
+
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            const [red, green, blue, alpha] = context.getImageData(x, y, 1, 1).data
+            if (alpha < 12) continue
+            const value = red + green + blue
+            min = Math.min(min, value)
+            max = Math.max(max, value)
+            opaqueSamples += 1
+          }
+        }
+
+        return opaqueSamples > 20 && max - min > 24
+      }
+
+      function waitForImages(root) {
+        const images = Array.from(root.querySelectorAll('img'))
+        return Promise.all(
+          images.map((image) => {
+            if (image.complete && image.naturalWidth > 0) return Promise.resolve()
+            return new Promise((resolve, reject) => {
+              image.addEventListener('load', resolve, { once: true })
+              image.addEventListener(
+                'error',
+                () =>
+                  reject(
+                    new Error(`${image.currentSrc || image.src} 이미지를 불러오지 못했습니다.`),
+                  ),
+                { once: true },
+              )
+            })
+          }),
+        )
+      }
+
+      function appendCanvasToPdf(pdf, canvas, startOnNewPage) {
+        const pageWidth = pdf.internal.pageSize.getWidth()
+        const pageHeight = pdf.internal.pageSize.getHeight()
+        const margin = 8
+        const imageWidth = pageWidth - margin * 2
+        const maxImageHeight = pageHeight - margin * 2
+        const pageCanvas = document.createElement('canvas')
+        const pageContext = pageCanvas.getContext('2d')
+        const pageHeightPx = Math.floor((canvas.width * maxImageHeight) / imageWidth)
+
+        if (!pageContext || pageHeightPx <= 0) {
+          throw new Error('PDF 페이지 캔버스를 만들지 못했습니다.')
+        }
+
+        pageCanvas.width = canvas.width
+        let sourceY = 0
+        let pageIndex = 0
+
+        while (sourceY < canvas.height) {
+          const sliceHeight = Math.min(pageHeightPx, canvas.height - sourceY)
+          pageCanvas.height = sliceHeight
+          pageContext.clearRect(0, 0, pageCanvas.width, pageCanvas.height)
+          pageContext.fillStyle = '#f5f8f8'
+          pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+          pageContext.drawImage(
+            canvas,
+            0,
+            sourceY,
+            canvas.width,
+            sliceHeight,
+            0,
+            0,
+            canvas.width,
+            sliceHeight,
+          )
+
+          if (startOnNewPage || pageIndex > 0) pdf.addPage()
+          const imageHeight = (sliceHeight * imageWidth) / canvas.width
+          pdf.addImage(
+            pageCanvas.toDataURL('image/jpeg', 0.96),
+            'JPEG',
+            margin,
+            margin,
+            imageWidth,
+            imageHeight,
+          )
+
+          sourceY += sliceHeight
+          pageIndex += 1
+          startOnNewPage = false
+        }
+      }
+
+      async function savePDF() {
+        const button = document.querySelector('.pdf-save')
+        const originalText = button.innerHTML
+        button.innerHTML = 'PDF 창 여는 중…'
+        button.disabled = true
+
+        const root = document.documentElement
+        const previousScrollY = window.scrollY
+        root.classList.add('pdf-capture')
+
+        if (typeof window.__revealAllSections === 'function') window.__revealAllSections()
+
+        const cleanup = () => {
+          window.scrollTo(0, previousScrollY)
+          root.classList.remove('pdf-capture')
+          button.disabled = false
+          button.innerHTML = originalText
+        }
+
+        window.addEventListener('afterprint', cleanup, { once: true })
+        window.print()
+        setTimeout(cleanup, 1500)
+      }
+
+      function printPDF() {
+        window.print()
+      }
+    </script>
+
+    <script>
+      /* On-scroll reveal for sections. Progressive enhancement: the
+       * .reveal-ready hook (which hides sections pre-reveal) is only added
+       * when JS runs AND motion is allowed, so no-JS and reduced-motion
+       * users always see fully-rendered content. Also force-reveals every
+       * section before print/PDF so captures are never blank. */
+      ;(function () {
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)')
+        var sections = Array.prototype.slice.call(document.querySelectorAll('.section'))
+        if (!sections.length) return
+
+        function showAll() {
+          sections.forEach(function (s) {
+            s.classList.add('is-in')
+          })
+        }
+        // Reachable from the PDF capture path (html2canvas does not fire beforeprint).
+        window.__revealAllSections = showAll
+
+        if (reduce.matches || !('IntersectionObserver' in window)) {
+          showAll()
+          return
+        }
+
+        document.body.classList.add('reveal-ready')
+
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-in')
+                io.unobserve(entry.target)
+              }
+            })
+          },
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.01 },
+        )
+        sections.forEach(function (s) {
+          io.observe(s)
+        })
+
+        // Guarantee visibility for print and html2pdf capture paths.
+        window.addEventListener('beforeprint', showAll)
+        window.matchMedia('print').addEventListener('change', function (e) {
+          if (e.matches) showAll()
+        })
+      })()
+    </script>
+  </body>
+</html>
