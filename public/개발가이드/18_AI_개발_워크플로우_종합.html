@@ -484,6 +484,40 @@
       ::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.15);
       }
+
+      /* Mermaid contrast adjustments for light background nodes */
+      .mermaid .node:has(rect[style*='fill']),
+      .mermaid .node:has(polygon[style*='fill']),
+      .mermaid .node:has(circle[style*='fill']),
+      .mermaid .node:has(ellipse[style*='fill']),
+      .mermaid .node:has(path[style*='fill']),
+      .mermaid .node[style*='fill'] {
+        /* Fallback styles if needed */
+      }
+
+      .mermaid .node:has(rect[style*='fill']) text,
+      .mermaid .node:has(rect[style*='fill']) .label,
+      .mermaid .node:has(rect[style*='fill']) .label *,
+      .mermaid .node:has(rect[style*='fill']) foreignObject div,
+      .mermaid .node:has(polygon[style*='fill']) text,
+      .mermaid .node:has(polygon[style*='fill']) .label,
+      .mermaid .node:has(polygon[style*='fill']) .label *,
+      .mermaid .node:has(polygon[style*='fill']) foreignObject div,
+      .mermaid .node:has(circle[style*='fill']) text,
+      .mermaid .node:has(circle[style*='fill']) .label,
+      .mermaid .node:has(circle[style*='fill']) .label *,
+      .mermaid .node:has(circle[style*='fill']) foreignObject div,
+      .mermaid .node:has(path[style*='fill']) text,
+      .mermaid .node:has(path[style*='fill']) .label,
+      .mermaid .node:has(path[style*='fill']) .label *,
+      .mermaid .node:has(path[style*='fill']) foreignObject div,
+      .mermaid .node[style*='fill'] text,
+      .mermaid .node[style*='fill'] .label,
+      .mermaid .node[style*='fill'] .label *,
+      .mermaid .node[style*='fill'] foreignObject div {
+        color: #0b0f19 !important;
+        fill: #0b0f19 !important;
+      }
     </style>
   </head>
   <body>
@@ -1789,6 +1823,88 @@ flowchart LR
             })
           })
         }
+
+        // 3. Adjust Mermaid Node Text Contrast Dynamically
+        function adjustMermaidContrast() {
+          const nodes = document.querySelectorAll('.mermaid .node')
+          nodes.forEach((node) => {
+            const bgEl = node.querySelector('rect, polygon, circle, ellipse, path')
+            if (!bgEl) return
+
+            const fill = bgEl.style.fill || bgEl.getAttribute('fill')
+            if (fill && fill !== 'none' && fill !== 'transparent') {
+              let isLight = true
+
+              // Check RGB format
+              const rgb = fill.match(/\d+/g)
+              if (rgb && rgb.length >= 3) {
+                const r = parseInt(rgb[0])
+                const g = parseInt(rgb[1])
+                const b = parseInt(rgb[2])
+                const yiq = (r * 299 + g * 587 + b * 114) / 1000
+                isLight = yiq > 128
+              } else if (fill.startsWith('#')) {
+                // Check Hex format
+                let hex = fill.slice(1)
+                if (hex.length === 3) {
+                  hex = hex
+                    .split('')
+                    .map((c) => c + c)
+                    .join('')
+                }
+                if (hex.length === 6) {
+                  const r = parseInt(hex.substr(0, 2), 16)
+                  const g = parseInt(hex.substr(2, 2), 16)
+                  const b = parseInt(hex.substr(4, 2), 16)
+                  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+                  isLight = yiq > 128
+                }
+              }
+
+              if (isLight) {
+                const labels = node.querySelectorAll(
+                  'text, .label, .label *, foreignObject div, foreignObject span',
+                )
+                labels.forEach((label) => {
+                  label.style.setProperty('color', '#0b0f19', 'important')
+                  label.style.setProperty('fill', '#0b0f19', 'important')
+                })
+              }
+            }
+          })
+        }
+
+        // Observe DOM changes to catch async Mermaid rendering
+        const observer = new MutationObserver((mutations) => {
+          let shouldAdjust = false
+          mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length > 0) {
+              mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  if (
+                    node.classList.contains('mermaid') ||
+                    node.querySelector('.mermaid') ||
+                    node.tagName.toLowerCase() === 'svg'
+                  ) {
+                    shouldAdjust = true
+                  }
+                }
+              })
+            }
+          })
+          if (shouldAdjust) {
+            adjustMermaidContrast()
+          }
+        })
+
+        observer.observe(document.body, { childList: true, subtree: true })
+
+        window.addEventListener('load', () => {
+          adjustMermaidContrast()
+          setTimeout(adjustMermaidContrast, 300)
+          setTimeout(adjustMermaidContrast, 800)
+          setTimeout(adjustMermaidContrast, 1500)
+        })
       })
 
       // Initialize Mermaid
