@@ -29154,7 +29154,7 @@ var Ha,
       return (
         K.DOMPurify
           ? Promise.resolve(K.DOMPurify)
-          : T(() => import(`./purify-BVPeF_5F.js`).then((e) => u(e.default)), [])
+          : T(() => import(`./purify-BcwuWxhg.js`).then((e) => u(e.default)), [])
       )
         .catch(function (e) {
           return Promise.reject(Error(`Could not load dompurify: ` + e))
@@ -36211,7 +36211,7 @@ function no(e) {
   })(q),
   (function (e) {
     function t() {
-      return (K.canvg ? Promise.resolve(K.canvg) : T(() => import(`./index.es-CSygi6BN.js`), []))
+      return (K.canvg ? Promise.resolve(K.canvg) : T(() => import(`./index.es-BKA2A_Iq.js`), []))
         .catch(function (e) {
           return Promise.reject(Error(`Could not load canvg: ` + e))
         })
@@ -39555,11 +39555,13 @@ var To = async (e, t = `resume.pdf`) => {
         experiences: r,
         mainProjects: i,
         personalProjects: a,
+        guides: o,
+        leadership: s,
       } = Eo,
-      o = {
+      c = {
         width: `210mm`,
         height: `297mm`,
-        padding: `22mm 20mm 18mm 20mm`,
+        padding: `20mm 20mm 15mm 20mm`,
         boxSizing: `border-box`,
         backgroundColor: `#ffffff`,
         position: `relative`,
@@ -39568,20 +39570,20 @@ var To = async (e, t = `resume.pdf`) => {
         flexDirection: `column`,
         fontFamily: `var(--sans)`,
         color: `#334155`,
-        lineHeight: 1.5,
+        lineHeight: 1.45,
       },
-      s = (e) => ({
-        fontSize: `1.1rem`,
+      l = (e) => ({
+        fontSize: `1.05rem`,
         fontWeight: 700,
         color: `#0f172a`,
         borderBottom: `1.5px solid #0f172a`,
-        paddingBottom: `4px`,
+        paddingBottom: `3px`,
         marginTop: `0rem`,
-        marginBottom: `1rem`,
+        marginBottom: `0.8rem`,
         textTransform: `uppercase`,
         letterSpacing: `-0.01em`,
       }),
-      c = {
+      u = (e) => ({
         fontSize: `0.65rem`,
         color: `#94a3b8`,
         display: `flex`,
@@ -39590,21 +39592,21 @@ var To = async (e, t = `resume.pdf`) => {
         borderTop: `1px solid #e2e8f0`,
         paddingTop: `0.5rem`,
         marginTop: `auto`,
-      }
+      })
     return (0, Z.jsxs)(`div`, {
       style: { backgroundColor: `#f1f5f9`, display: `flex`, flexDirection: `column`, gap: `20px` },
       children: [
         (0, Z.jsxs)(`div`, {
           className: `pdf-page`,
-          style: o,
+          style: c,
           children: [
             (0, Z.jsxs)(`div`, {
-              style: { display: `flex`, flexDirection: `column`, gap: `1.5rem` },
+              style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
               children: [
                 (0, Z.jsxs)(`header`, {
                   style: {
                     textAlign: `center`,
-                    paddingBottom: `1.5rem`,
+                    paddingBottom: `1.2rem`,
                     borderBottom: `1px solid #e2e8f0`,
                   },
                   children: [
@@ -39613,28 +39615,28 @@ var To = async (e, t = `resume.pdf`) => {
                         fontSize: `2.4rem`,
                         fontWeight: 800,
                         color: `#0f172a`,
-                        margin: `0 0 6px 0`,
+                        margin: `0 0 4px 0`,
                         letterSpacing: `-0.03em`,
                       },
                       children: e.name,
                     }),
                     (0, Z.jsx)(`div`, {
                       style: {
-                        fontSize: `0.95rem`,
+                        fontSize: `0.9rem`,
                         fontWeight: 600,
                         color: `#475569`,
-                        marginBottom: `8px`,
+                        marginBottom: `6px`,
                       },
                       children: e.jobTitle,
                     }),
                     (0, Z.jsxs)(`div`, {
                       style: {
-                        fontSize: `0.75rem`,
+                        fontSize: `0.725rem`,
                         color: `#64748b`,
                         display: `flex`,
                         justifyContent: `center`,
                         flexWrap: `wrap`,
-                        gap: `8px 12px`,
+                        gap: `6px 12px`,
                       },
                       children: [
                         (0, Z.jsxs)(`span`, { children: [`✉ `, e.contact[0].label] }),
@@ -39642,6 +39644,11 @@ var To = async (e, t = `resume.pdf`) => {
                         (0, Z.jsxs)(`span`, { children: [`📞 `, e.contact[1].label] }),
                         (0, Z.jsx)(`span`, { children: `|` }),
                         (0, Z.jsxs)(`span`, { children: [`🔗 `, e.contact[2].label] }),
+                        (0, Z.jsx)(`span`, { children: `|` }),
+                        (0, Z.jsx)(`span`, {
+                          style: { fontWeight: 700, color: `#1e3a8a` },
+                          children: `🌐 웹사이트: https://heejun.store`,
+                        }),
                         (0, Z.jsx)(`span`, { children: `|` }),
                         (0, Z.jsxs)(`span`, { children: [`📍 `, e.contact[4].label] }),
                       ],
@@ -39652,20 +39659,20 @@ var To = async (e, t = `resume.pdf`) => {
                   children: [
                     (0, Z.jsxs)(`div`, {
                       style: {
-                        fontSize: `0.8rem`,
+                        fontSize: `0.75rem`,
                         color: `#1e293b`,
-                        fontWeight: 600,
-                        lineHeight: 1.5,
-                        marginBottom: `6px`,
+                        fontWeight: 650,
+                        lineHeight: 1.4,
+                        marginBottom: `4px`,
                       },
                       children: [`🎯 `, e.title],
                     }),
                     (0, Z.jsx)(`p`, {
                       style: {
-                        fontSize: `0.75rem`,
+                        fontSize: `0.7rem`,
                         color: `#475569`,
                         margin: 0,
-                        lineHeight: 1.6,
+                        lineHeight: 1.5,
                         textAlign: `justify`,
                       },
                       children: n,
@@ -39674,9 +39681,9 @@ var To = async (e, t = `resume.pdf`) => {
                 }),
                 (0, Z.jsxs)(`section`, {
                   children: [
-                    (0, Z.jsx)(`div`, { style: s(`핵심 역량`) }),
+                    (0, Z.jsx)(`div`, { style: l(`핵심 역량`) }),
                     (0, Z.jsx)(`div`, {
-                      style: { display: `flex`, flexDirection: `column`, gap: `0.8rem` },
+                      style: { display: `flex`, flexDirection: `column`, gap: `0.6rem` },
                       children: t.map((e, t) =>
                         (0, Z.jsxs)(
                           `div`,
@@ -39685,7 +39692,7 @@ var To = async (e, t = `resume.pdf`) => {
                             children: [
                               (0, Z.jsxs)(`h3`, {
                                 style: {
-                                  fontSize: `0.8rem`,
+                                  fontSize: `0.75rem`,
                                   fontWeight: 700,
                                   color: `#0f172a`,
                                   margin: 0,
@@ -39694,18 +39701,18 @@ var To = async (e, t = `resume.pdf`) => {
                               }),
                               (0, Z.jsx)(`ul`, {
                                 style: {
-                                  paddingLeft: `1.2rem`,
+                                  paddingLeft: `1.1rem`,
                                   margin: 0,
-                                  fontSize: `0.725rem`,
+                                  fontSize: `0.675rem`,
                                   color: `#475569`,
-                                  lineHeight: 1.5,
+                                  lineHeight: 1.45,
                                 },
                                 children: e.bullets
                                   .slice(0, 4)
                                   .map((e, t) =>
                                     (0, Z.jsx)(
                                       `li`,
-                                      { style: { marginBottom: `2px` }, children: e },
+                                      { style: { marginBottom: `1px` }, children: e },
                                       t,
                                     ),
                                   ),
@@ -39718,27 +39725,73 @@ var To = async (e, t = `resume.pdf`) => {
                     }),
                   ],
                 }),
+                (0, Z.jsxs)(`section`, {
+                  children: [
+                    (0, Z.jsx)(`div`, { style: l(`보유 기술 요약`) }),
+                    (0, Z.jsxs)(`div`, {
+                      style: {
+                        display: `flex`,
+                        flexDirection: `column`,
+                        gap: `0.4rem`,
+                        fontSize: `0.675rem`,
+                        color: `#475569`,
+                        lineHeight: 1.45,
+                      },
+                      children: [
+                        (0, Z.jsxs)(`div`, {
+                          children: [
+                            (0, Z.jsx)(`strong`, {
+                              style: { color: `#0f172a` },
+                              children: `▪ Frontend:`,
+                            }),
+                            ` React 19, Next.js, TypeScript, JavaScript (ES6+), React Query, Zustand, Redux, MobX, HTML5, CSS3, SCSS, Framer Motion`,
+                          ],
+                        }),
+                        (0, Z.jsxs)(`div`, {
+                          children: [
+                            (0, Z.jsx)(`strong`, {
+                              style: { color: `#0f172a` },
+                              children: `▪ Testing & Build:`,
+                            }),
+                            ` Vitest, Jest, Cypress, Vite, Webpack, Babel, ESLint, Prettier`,
+                          ],
+                        }),
+                        (0, Z.jsxs)(`div`, {
+                          children: [
+                            (0, Z.jsx)(`strong`, {
+                              style: { color: `#0f172a` },
+                              children: `▪ DevOps & Tools:`,
+                            }),
+                            ` AWS (S3, CloudFront, Route53), Git, GitHub Actions, Jenkins, Docker, SonarQube`,
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
               ],
             }),
             (0, Z.jsxs)(`footer`, {
-              style: c,
+              style: u(1),
               children: [
-                (0, Z.jsxs)(`span`, { children: [`이력서 - `, e.name] }),
-                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 1 / 4` }),
+                (0, Z.jsxs)(`span`, {
+                  children: [`웹사이트: https://heejun.store | 이력서 - `, e.name],
+                }),
+                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 1 / 5` }),
               ],
             }),
           ],
         }),
         (0, Z.jsxs)(`div`, {
           className: `pdf-page`,
-          style: o,
+          style: c,
           children: [
             (0, Z.jsxs)(`div`, {
-              style: { display: `flex`, flexDirection: `column`, gap: `1.25rem` },
+              style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
               children: [
-                (0, Z.jsx)(`div`, { style: s(`경력 사항`) }),
+                (0, Z.jsx)(`div`, { style: l(`경력 사항 (시니어)`) }),
                 (0, Z.jsxs)(`div`, {
-                  style: { display: `flex`, flexDirection: `column`, gap: `1.5rem` },
+                  style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
                   children: [
                     r
                       .slice(0, 1)
@@ -39746,7 +39799,7 @@ var To = async (e, t = `resume.pdf`) => {
                         (0, Z.jsxs)(
                           `div`,
                           {
-                            style: { display: `flex`, flexDirection: `column`, gap: `4px` },
+                            style: { display: `flex`, flexDirection: `column`, gap: `2px` },
                             children: [
                               (0, Z.jsxs)(`div`, {
                                 style: {
@@ -39754,12 +39807,12 @@ var To = async (e, t = `resume.pdf`) => {
                                   justifyContent: `space-between`,
                                   alignItems: `baseline`,
                                   borderBottom: `1px solid #f1f5f9`,
-                                  paddingBottom: `3px`,
+                                  paddingBottom: `2px`,
                                 },
                                 children: [
                                   (0, Z.jsx)(`span`, {
                                     style: {
-                                      fontSize: `0.9rem`,
+                                      fontSize: `0.85rem`,
                                       fontWeight: 700,
                                       color: `#0f172a`,
                                     },
@@ -39767,7 +39820,7 @@ var To = async (e, t = `resume.pdf`) => {
                                   }),
                                   (0, Z.jsx)(`span`, {
                                     style: {
-                                      fontSize: `0.725rem`,
+                                      fontSize: `0.7rem`,
                                       color: `#475569`,
                                       fontFamily: `var(--mono)`,
                                     },
@@ -39777,7 +39830,7 @@ var To = async (e, t = `resume.pdf`) => {
                               }),
                               (0, Z.jsxs)(`div`, {
                                 style: {
-                                  fontSize: `0.75rem`,
+                                  fontSize: `0.725rem`,
                                   color: `#475569`,
                                   marginTop: `2px`,
                                   paddingLeft: `4px`,
@@ -39795,7 +39848,13 @@ var To = async (e, t = `resume.pdf`) => {
                         (0, Z.jsxs)(
                           `div`,
                           {
-                            style: { display: `flex`, flexDirection: `column`, gap: `8px` },
+                            style: {
+                              display: `flex`,
+                              flexDirection: `column`,
+                              gap: `0.6rem`,
+                              borderTop: `1px dashed #e2e8f0`,
+                              paddingTop: `0.8rem`,
+                            },
                             children: [
                               (0, Z.jsxs)(`div`, {
                                 style: {
@@ -39803,12 +39862,12 @@ var To = async (e, t = `resume.pdf`) => {
                                   justifyContent: `space-between`,
                                   alignItems: `baseline`,
                                   borderBottom: `1px solid #f1f5f9`,
-                                  paddingBottom: `3px`,
+                                  paddingBottom: `2px`,
                                 },
                                 children: [
                                   (0, Z.jsx)(`span`, {
                                     style: {
-                                      fontSize: `0.9rem`,
+                                      fontSize: `0.85rem`,
                                       fontWeight: 700,
                                       color: `#0f172a`,
                                     },
@@ -39816,7 +39875,7 @@ var To = async (e, t = `resume.pdf`) => {
                                   }),
                                   (0, Z.jsx)(`span`, {
                                     style: {
-                                      fontSize: `0.725rem`,
+                                      fontSize: `0.7rem`,
                                       color: `#475569`,
                                       fontFamily: `var(--mono)`,
                                     },
@@ -39828,10 +39887,10 @@ var To = async (e, t = `resume.pdf`) => {
                                 children: [
                                   (0, Z.jsx)(`div`, {
                                     style: {
-                                      fontSize: `0.75rem`,
+                                      fontSize: `0.725rem`,
                                       fontWeight: 700,
                                       color: `#1e293b`,
-                                      marginBottom: `4px`,
+                                      marginBottom: `2px`,
                                     },
                                     children: `[주요 업무 및 역할]`,
                                   }),
@@ -39839,16 +39898,16 @@ var To = async (e, t = `resume.pdf`) => {
                                     style: {
                                       paddingLeft: `1.1rem`,
                                       margin: 0,
-                                      fontSize: `0.725rem`,
+                                      fontSize: `0.7rem`,
                                       color: `#475569`,
-                                      lineHeight: 1.5,
+                                      lineHeight: 1.4,
                                     },
                                     children: e.tasks
                                       .slice(0, 6)
                                       .map((e, t) =>
                                         (0, Z.jsx)(
                                           `li`,
-                                          { style: { marginBottom: `2px` }, children: e },
+                                          { style: { marginBottom: `1px` }, children: e },
                                           t,
                                         ),
                                       ),
@@ -39860,10 +39919,10 @@ var To = async (e, t = `resume.pdf`) => {
                                   children: [
                                     (0, Z.jsx)(`div`, {
                                       style: {
-                                        fontSize: `0.75rem`,
+                                        fontSize: `0.725rem`,
                                         fontWeight: 700,
                                         color: `#1e293b`,
-                                        marginBottom: `4px`,
+                                        marginBottom: `2px`,
                                       },
                                       children: `[주요 실무 성과]`,
                                     }),
@@ -39871,9 +39930,9 @@ var To = async (e, t = `resume.pdf`) => {
                                       style: {
                                         paddingLeft: `1.1rem`,
                                         margin: 0,
-                                        fontSize: `0.725rem`,
+                                        fontSize: `0.7rem`,
                                         color: `#475569`,
-                                        lineHeight: 1.5,
+                                        lineHeight: 1.4,
                                       },
                                       children: e.achievements
                                         .slice(0, 5)
@@ -39881,7 +39940,7 @@ var To = async (e, t = `resume.pdf`) => {
                                           (0, Z.jsxs)(
                                             `li`,
                                             {
-                                              style: { marginBottom: `3px` },
+                                              style: { marginBottom: `2px` },
                                               children: [
                                                 (0, Z.jsx)(`strong`, {
                                                   style: { color: `#0f172a` },
@@ -39900,10 +39959,10 @@ var To = async (e, t = `resume.pdf`) => {
                               e.techStack &&
                                 (0, Z.jsxs)(`div`, {
                                   style: {
-                                    fontSize: `0.675rem`,
-                                    color: `#475569`,
+                                    fontSize: `0.65rem`,
+                                    color: `#64748b`,
                                     borderTop: `1px solid #f1f5f9`,
-                                    paddingTop: `6px`,
+                                    paddingTop: `4px`,
                                   },
                                   children: [
                                     (0, Z.jsx)(`strong`, { children: `사용 기술:` }),
@@ -39921,136 +39980,146 @@ var To = async (e, t = `resume.pdf`) => {
               ],
             }),
             (0, Z.jsxs)(`footer`, {
-              style: c,
+              style: u(2),
               children: [
-                (0, Z.jsxs)(`span`, { children: [`이력서 - `, e.name] }),
-                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 2 / 4` }),
+                (0, Z.jsxs)(`span`, {
+                  children: [`웹사이트: https://heejun.store | 이력서 - `, e.name],
+                }),
+                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 2 / 5` }),
               ],
             }),
           ],
         }),
         (0, Z.jsxs)(`div`, {
           className: `pdf-page`,
-          style: o,
+          style: c,
           children: [
             (0, Z.jsxs)(`div`, {
-              style: { display: `flex`, flexDirection: `column`, gap: `1.25rem` },
+              style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
               children: [
-                (0, Z.jsx)(`div`, { style: s(`기타 경력 사항 및 학력`) }),
+                (0, Z.jsx)(`div`, { style: l(`경력 사항 (기타) & 리더십 & 학력`) }),
                 (0, Z.jsxs)(`div`, {
-                  style: { display: `flex`, flexDirection: `column`, gap: `0.9rem` },
+                  style: { display: `flex`, flexDirection: `column`, gap: `0.8rem` },
                   children: [
-                    r
-                      .slice(2, 6)
-                      .map((e, t) =>
-                        (0, Z.jsxs)(
-                          `div`,
-                          {
-                            style: { display: `flex`, flexDirection: `column`, gap: `2px` },
-                            children: [
-                              (0, Z.jsxs)(`div`, {
-                                style: {
-                                  display: `flex`,
-                                  justifyContent: `space-between`,
-                                  alignItems: `baseline`,
-                                },
-                                children: [
-                                  (0, Z.jsxs)(`span`, {
-                                    style: {
-                                      fontSize: `0.8rem`,
-                                      fontWeight: 700,
-                                      color: `#0f172a`,
-                                    },
-                                    children: [`• `, e.company],
-                                  }),
-                                  (0, Z.jsx)(`span`, {
-                                    style: {
-                                      fontSize: `0.675rem`,
-                                      color: `#64748b`,
-                                      fontFamily: `var(--mono)`,
-                                    },
-                                    children: e.period,
-                                  }),
-                                ],
-                              }),
-                              (0, Z.jsx)(`div`, {
-                                style: {
-                                  fontSize: `0.7rem`,
-                                  color: `#475569`,
-                                  paddingLeft: `1rem`,
-                                  lineHeight: 1.4,
-                                },
-                                children: e.tasks.slice(0, 2).join(` / `),
-                              }),
-                            ],
-                          },
-                          t,
+                    (0, Z.jsx)(`div`, {
+                      style: { display: `flex`, flexDirection: `column`, gap: `0.4rem` },
+                      children: r
+                        .slice(2, 6)
+                        .map((e, t) =>
+                          (0, Z.jsxs)(
+                            `div`,
+                            {
+                              style: { display: `flex`, flexDirection: `column`, gap: `1px` },
+                              children: [
+                                (0, Z.jsxs)(`div`, {
+                                  style: {
+                                    display: `flex`,
+                                    justifyContent: `space-between`,
+                                    alignItems: `baseline`,
+                                  },
+                                  children: [
+                                    (0, Z.jsxs)(`span`, {
+                                      style: {
+                                        fontSize: `0.775rem`,
+                                        fontWeight: 700,
+                                        color: `#0f172a`,
+                                      },
+                                      children: [`• `, e.company],
+                                    }),
+                                    (0, Z.jsx)(`span`, {
+                                      style: {
+                                        fontSize: `0.65rem`,
+                                        color: `#64748b`,
+                                        fontFamily: `var(--mono)`,
+                                      },
+                                      children: e.period,
+                                    }),
+                                  ],
+                                }),
+                                (0, Z.jsx)(`div`, {
+                                  style: {
+                                    fontSize: `0.675rem`,
+                                    color: `#475569`,
+                                    paddingLeft: `0.85rem`,
+                                    lineHeight: 1.35,
+                                  },
+                                  children: e.tasks.slice(0, 2).join(` / `),
+                                }),
+                              ],
+                            },
+                            t,
+                          ),
                         ),
-                      ),
+                    }),
                     (0, Z.jsxs)(`div`, {
-                      style: { marginTop: `0.5rem` },
+                      style: { borderTop: `1px dashed #e2e8f0`, paddingTop: `0.6rem` },
                       children: [
-                        (0, Z.jsx)(`div`, { style: s(`학력 및 자격 사항`) }),
+                        (0, Z.jsx)(`div`, {
+                          style: {
+                            fontSize: `0.75rem`,
+                            fontWeight: 700,
+                            color: `#1e293b`,
+                            marginBottom: `4px`,
+                          },
+                          children: `[조직 기여 및 리더십 이력]`,
+                        }),
+                        (0, Z.jsx)(`ul`, {
+                          style: {
+                            paddingLeft: `1.1rem`,
+                            margin: 0,
+                            fontSize: `0.675rem`,
+                            color: `#475569`,
+                            lineHeight: 1.45,
+                          },
+                          children: s.map((e, t) =>
+                            (0, Z.jsxs)(
+                              `li`,
+                              {
+                                style: { marginBottom: `2px` },
+                                children: [
+                                  (0, Z.jsx)(`strong`, {
+                                    style: { color: `#0f172a` },
+                                    children: e.title,
+                                  }),
+                                  `: `,
+                                  e.bullets.join(` `),
+                                ],
+                              },
+                              t,
+                            ),
+                          ),
+                        }),
+                      ],
+                    }),
+                    (0, Z.jsxs)(`div`, {
+                      style: { borderTop: `1px dashed #e2e8f0`, paddingTop: `0.6rem` },
+                      children: [
+                        (0, Z.jsx)(`div`, {
+                          style: {
+                            fontSize: `0.75rem`,
+                            fontWeight: 700,
+                            color: `#1e293b`,
+                            marginBottom: `3px`,
+                          },
+                          children: `[학력 및 자격 사항]`,
+                        }),
                         (0, Z.jsxs)(`ul`, {
                           style: {
                             paddingLeft: `1.1rem`,
                             margin: 0,
-                            fontSize: `0.725rem`,
+                            fontSize: `0.675rem`,
                             color: `#475569`,
-                            lineHeight: 1.55,
+                            lineHeight: 1.45,
                           },
                           children: [
                             (0, Z.jsx)(`li`, {
                               children: `충북대학교 컴퓨터공학과 학사 졸업 (2000.03 - 2007.02)`,
                             }),
-                            (0, Z.jsx)(`li`, { children: `정보처리기사 취득 (한국산업인력공단)` }),
                             (0, Z.jsx)(`li`, {
-                              children: `SCJP (Sun Certified Java Programmer) 취득`,
+                              children: `정보처리기사 취득 (한국산업인력공단, 2006.06)`,
                             }),
-                          ],
-                        }),
-                      ],
-                    }),
-                    (0, Z.jsxs)(`div`, {
-                      style: { marginTop: `0.5rem` },
-                      children: [
-                        (0, Z.jsx)(`div`, { style: s(`보유 기술 요약`) }),
-                        (0, Z.jsxs)(`div`, {
-                          style: {
-                            display: `flex`,
-                            flexDirection: `column`,
-                            gap: `0.5rem`,
-                            fontSize: `0.7rem`,
-                            color: `#475569`,
-                            lineHeight: 1.5,
-                          },
-                          children: [
-                            (0, Z.jsxs)(`div`, {
-                              children: [
-                                (0, Z.jsx)(`strong`, {
-                                  style: { color: `#0f172a` },
-                                  children: `▪ Frontend:`,
-                                }),
-                                ` React 19, Next.js, TypeScript, JavaScript (ES6+), React Query, Zustand, Redux, MobX, HTML5, CSS3, SCSS, Framer Motion`,
-                              ],
-                            }),
-                            (0, Z.jsxs)(`div`, {
-                              children: [
-                                (0, Z.jsx)(`strong`, {
-                                  style: { color: `#0f172a` },
-                                  children: `▪ Testing & Build:`,
-                                }),
-                                ` Vitest, Jest, Cypress, Vite, Webpack, Babel, ESLint, Prettier`,
-                              ],
-                            }),
-                            (0, Z.jsxs)(`div`, {
-                              children: [
-                                (0, Z.jsx)(`strong`, {
-                                  style: { color: `#0f172a` },
-                                  children: `▪ DevOps & Tools:`,
-                                }),
-                                ` AWS (S3, CloudFront, Route53), Git, GitHub Actions, Jenkins, Docker, SonarQube`,
-                              ],
+                            (0, Z.jsx)(`li`, {
+                              children: `SCJP (Sun Certified Java Programmer) 자격 취득`,
                             }),
                           ],
                         }),
@@ -40061,99 +40130,350 @@ var To = async (e, t = `resume.pdf`) => {
               ],
             }),
             (0, Z.jsxs)(`footer`, {
-              style: c,
+              style: u(3),
               children: [
-                (0, Z.jsxs)(`span`, { children: [`이력서 - `, e.name] }),
-                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 3 / 4` }),
+                (0, Z.jsxs)(`span`, {
+                  children: [`웹사이트: https://heejun.store | 이력서 - `, e.name],
+                }),
+                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 3 / 5` }),
               ],
             }),
           ],
         }),
         (0, Z.jsxs)(`div`, {
           className: `pdf-page`,
-          style: o,
+          style: c,
           children: [
             (0, Z.jsxs)(`div`, {
-              style: { display: `flex`, flexDirection: `column`, gap: `1.25rem` },
+              style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
               children: [
-                (0, Z.jsx)(`div`, { style: s(`대표 프로젝트 수행 이력`) }),
+                (0, Z.jsx)(`div`, { style: l(`실무 프로젝트 수행 이력`) }),
                 (0, Z.jsx)(`div`, {
-                  style: { display: `flex`, flexDirection: `column`, gap: `1rem` },
-                  children: [...i.slice(0, 3), ...a.slice(0, 1)].map((e, t) =>
-                    (0, Z.jsxs)(
-                      `div`,
-                      {
-                        style: {
-                          borderBottom: t < 3 ? `1px dashed #e2e8f0` : `none`,
-                          paddingBottom: t < 3 ? `0.75rem` : 0,
-                          display: `flex`,
-                          flexDirection: `column`,
-                          gap: `2px`,
-                        },
-                        children: [
-                          (0, Z.jsxs)(`div`, {
-                            style: {
-                              display: `flex`,
-                              justifyContent: `space-between`,
-                              alignItems: `baseline`,
-                            },
-                            children: [
-                              (0, Z.jsxs)(`span`, {
-                                style: { fontSize: `0.825rem`, fontWeight: 700, color: `#0f172a` },
-                                children: [`▪ `, e.title],
-                              }),
-                              (0, Z.jsx)(`span`, {
-                                style: {
-                                  fontSize: `0.675rem`,
-                                  color: `#64748b`,
-                                  fontFamily: `var(--mono)`,
-                                },
-                                children: e.period,
-                              }),
-                            ],
-                          }),
-                          (0, Z.jsx)(`ul`, {
-                            style: {
-                              paddingLeft: `1.1rem`,
-                              margin: `2px 0`,
-                              fontSize: `0.7rem`,
-                              color: `#475569`,
-                              lineHeight: 1.45,
-                            },
-                            children: e.bullets
-                              .slice(0, 3)
-                              .map((e, t) => (0, Z.jsx)(`li`, { children: e }, t)),
-                          }),
-                          (0, Z.jsxs)(`div`, {
-                            style: { fontSize: `0.65rem`, color: `#64748b`, paddingLeft: `1.1rem` },
-                            children: [
-                              (0, Z.jsx)(`strong`, { children: `Tech Stack:` }),
-                              ` `,
-                              e.techStack,
-                              e.infraConfig &&
+                  style: { display: `flex`, flexDirection: `column`, gap: `0.8rem` },
+                  children: i
+                    .slice(0, 3)
+                    .map((e, t) =>
+                      (0, Z.jsxs)(
+                        `div`,
+                        {
+                          style: {
+                            borderBottom: `1px dashed #e2e8f0`,
+                            paddingBottom: `0.6rem`,
+                            display: `flex`,
+                            flexDirection: `column`,
+                            gap: `1px`,
+                          },
+                          children: [
+                            (0, Z.jsxs)(`div`, {
+                              style: {
+                                display: `flex`,
+                                justifyContent: `space-between`,
+                                alignItems: `baseline`,
+                              },
+                              children: [
                                 (0, Z.jsxs)(`span`, {
+                                  style: { fontSize: `0.8rem`, fontWeight: 700, color: `#0f172a` },
+                                  children: [`▪ `, e.title],
+                                }),
+                                (0, Z.jsx)(`span`, {
+                                  style: {
+                                    fontSize: `0.65rem`,
+                                    color: `#64748b`,
+                                    fontFamily: `var(--mono)`,
+                                  },
+                                  children: e.period,
+                                }),
+                              ],
+                            }),
+                            (0, Z.jsx)(`ul`, {
+                              style: {
+                                paddingLeft: `1.1rem`,
+                                margin: `2px 0`,
+                                fontSize: `0.675rem`,
+                                color: `#475569`,
+                                lineHeight: 1.4,
+                              },
+                              children: e.bullets
+                                .slice(0, 3)
+                                .map((e, t) => (0, Z.jsx)(`li`, { children: e }, t)),
+                            }),
+                            (0, Z.jsxs)(`div`, {
+                              style: {
+                                fontSize: `0.625rem`,
+                                color: `#64748b`,
+                                paddingLeft: `1.1rem`,
+                              },
+                              children: [
+                                (0, Z.jsx)(`strong`, { children: `Tech Stack:` }),
+                                ` `,
+                                e.techStack,
+                                e.infraConfig &&
+                                  (0, Z.jsxs)(`span`, {
+                                    children: [
+                                      ` | `,
+                                      (0, Z.jsx)(`strong`, { children: `Infra:` }),
+                                      ` `,
+                                      e.infraConfig,
+                                    ],
+                                  }),
+                              ],
+                            }),
+                          ],
+                        },
+                        t,
+                      ),
+                    ),
+                }),
+                (0, Z.jsxs)(`div`, {
+                  style: { marginTop: `0.2rem` },
+                  children: [
+                    (0, Z.jsx)(`div`, {
+                      style: {
+                        fontSize: `0.75rem`,
+                        fontWeight: 700,
+                        color: `#1e293b`,
+                        marginBottom: `4px`,
+                      },
+                      children: `[기타 실무 프로젝트 이력]`,
+                    }),
+                    (0, Z.jsx)(`div`, {
+                      style: {
+                        display: `flex`,
+                        flexDirection: `column`,
+                        gap: `3px`,
+                        fontSize: `0.625rem`,
+                        color: `#475569`,
+                      },
+                      children: i
+                        .slice(3)
+                        .map((e, t) =>
+                          (0, Z.jsxs)(
+                            `div`,
+                            {
+                              style: {
+                                display: `flex`,
+                                justifyContent: `space-between`,
+                                borderBottom: `1px solid #f8fafc`,
+                                paddingBottom: `2px`,
+                              },
+                              children: [
+                                (0, Z.jsxs)(`span`, {
+                                  style: {
+                                    overflow: `hidden`,
+                                    textOverflow: `ellipsis`,
+                                    whiteSpace: `nowrap`,
+                                    maxWidth: `65%`,
+                                  },
                                   children: [
-                                    ` | `,
-                                    (0, Z.jsx)(`strong`, { children: `Infra:` }),
-                                    ` `,
-                                    e.infraConfig,
+                                    `• `,
+                                    (0, Z.jsx)(`strong`, {
+                                      style: { color: `#334155` },
+                                      children: e.title,
+                                    }),
                                   ],
                                 }),
-                            ],
-                          }),
-                        ],
-                      },
-                      t,
-                    ),
-                  ),
+                                (0, Z.jsxs)(`span`, {
+                                  style: {
+                                    color: `#64748b`,
+                                    fontFamily: `var(--mono)`,
+                                    fontSize: `0.6rem`,
+                                  },
+                                  children: [
+                                    e.period,
+                                    ` | Tech: `,
+                                    e.techStack?.split(`,`).slice(0, 3).join(`, `),
+                                  ],
+                                }),
+                              ],
+                            },
+                            t,
+                          ),
+                        ),
+                    }),
+                  ],
                 }),
               ],
             }),
             (0, Z.jsxs)(`footer`, {
-              style: c,
+              style: u(4),
               children: [
-                (0, Z.jsxs)(`span`, { children: [`이력서 - `, e.name] }),
-                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 4 / 4` }),
+                (0, Z.jsxs)(`span`, {
+                  children: [`웹사이트: https://heejun.store | 이력서 - `, e.name],
+                }),
+                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 4 / 5` }),
+              ],
+            }),
+          ],
+        }),
+        (0, Z.jsxs)(`div`, {
+          className: `pdf-page`,
+          style: c,
+          children: [
+            (0, Z.jsxs)(`div`, {
+              style: { display: `flex`, flexDirection: `column`, gap: `1.2rem` },
+              children: [
+                (0, Z.jsxs)(`section`, {
+                  children: [
+                    (0, Z.jsx)(`div`, { style: l(`개인 프로젝트 및 오픈소스`) }),
+                    (0, Z.jsxs)(`div`, {
+                      style: { display: `flex`, flexDirection: `column`, gap: `0.7rem` },
+                      children: [
+                        a
+                          .slice(0, 2)
+                          .map((e, t) =>
+                            (0, Z.jsxs)(
+                              `div`,
+                              {
+                                style: { display: `flex`, flexDirection: `column`, gap: `1px` },
+                                children: [
+                                  (0, Z.jsxs)(`div`, {
+                                    style: {
+                                      display: `flex`,
+                                      justifyContent: `space-between`,
+                                      alignItems: `baseline`,
+                                    },
+                                    children: [
+                                      (0, Z.jsxs)(`span`, {
+                                        style: {
+                                          fontSize: `0.775rem`,
+                                          fontWeight: 700,
+                                          color: `#0f172a`,
+                                        },
+                                        children: [`▪ `, e.title],
+                                      }),
+                                      (0, Z.jsx)(`span`, {
+                                        style: {
+                                          fontSize: `0.65rem`,
+                                          color: `#64748b`,
+                                          fontFamily: `var(--mono)`,
+                                        },
+                                        children: e.period,
+                                      }),
+                                    ],
+                                  }),
+                                  (0, Z.jsx)(`ul`, {
+                                    style: {
+                                      paddingLeft: `1.1rem`,
+                                      margin: `2px 0`,
+                                      fontSize: `0.675rem`,
+                                      color: `#475569`,
+                                      lineHeight: 1.35,
+                                    },
+                                    children: e.bullets
+                                      .slice(0, 2)
+                                      .map((e, t) => (0, Z.jsx)(`li`, { children: e }, t)),
+                                  }),
+                                  (0, Z.jsxs)(`div`, {
+                                    style: {
+                                      fontSize: `0.625rem`,
+                                      color: `#64748b`,
+                                      paddingLeft: `1.1rem`,
+                                    },
+                                    children: [
+                                      (0, Z.jsx)(`strong`, { children: `Tech:` }),
+                                      ` `,
+                                      e.techStack,
+                                    ],
+                                  }),
+                                ],
+                              },
+                              t,
+                            ),
+                          ),
+                        (0, Z.jsx)(`div`, {
+                          style: {
+                            display: `flex`,
+                            flexDirection: `column`,
+                            gap: `2px`,
+                            fontSize: `0.625rem`,
+                            color: `#475569`,
+                            borderTop: `1px dashed #e2e8f0`,
+                            paddingTop: `0.4rem`,
+                            marginTop: `0.2rem`,
+                          },
+                          children: a
+                            .slice(2)
+                            .map((e, t) =>
+                              (0, Z.jsxs)(
+                                `div`,
+                                {
+                                  style: { display: `flex`, justifyContent: `space-between` },
+                                  children: [
+                                    (0, Z.jsxs)(`span`, { children: [`• `, e.title] }),
+                                    (0, Z.jsx)(`span`, {
+                                      style: { color: `#64748b`, fontFamily: `var(--mono)` },
+                                      children: e.period,
+                                    }),
+                                  ],
+                                },
+                                t,
+                              ),
+                            ),
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                (0, Z.jsxs)(`section`, {
+                  style: {
+                    borderTop: `1px solid #cbd5e1`,
+                    paddingTop: `0.8rem`,
+                    marginTop: `0.2rem`,
+                  },
+                  children: [
+                    (0, Z.jsx)(`div`, {
+                      style: {
+                        fontSize: `0.825rem`,
+                        fontWeight: 700,
+                        color: `#0f172a`,
+                        marginBottom: `0.5rem`,
+                        textTransform: `uppercase`,
+                        letterSpacing: `-0.01em`,
+                      },
+                      children: `사내 기술 표준 개발 가이드북 이력 (31종 전체)`,
+                    }),
+                    (0, Z.jsx)(`div`, {
+                      style: {
+                        display: `grid`,
+                        gridTemplateColumns: `1fr 1fr`,
+                        gap: `3px 12px`,
+                        fontSize: `0.6rem`,
+                        color: `#475569`,
+                        lineHeight: 1.3,
+                      },
+                      children: o.map((e, t) =>
+                        (0, Z.jsxs)(
+                          `div`,
+                          {
+                            style: {
+                              whiteSpace: `nowrap`,
+                              overflow: `hidden`,
+                              textOverflow: `ellipsis`,
+                            },
+                            children: [
+                              (0, Z.jsxs)(`strong`, {
+                                style: { color: `#0f172a`, marginRight: `3px` },
+                                children: [`#`, e.id],
+                              }),
+                              ` `,
+                              e.name,
+                            ],
+                          },
+                          t,
+                        ),
+                      ),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            (0, Z.jsxs)(`footer`, {
+              style: u(5),
+              children: [
+                (0, Z.jsxs)(`span`, {
+                  children: [`웹사이트: https://heejun.store | 이력서 - `, e.name],
+                }),
+                (0, Z.jsx)(`span`, { style: { fontWeight: 700 }, children: `Page 5 / 5` }),
               ],
             }),
           ],
