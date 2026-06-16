@@ -353,3 +353,82 @@ h1, h2, h3, h4, h5, h6 {
     page-break-after: avoid;
   }
 }
+
+/* PDF Rendering Capture Styles (for html2canvas) */
+body.pdf-rendering {
+  background: #ffffff !important;
+  color: #111111 !important;
+  
+  /* html2canvas oklch 파싱 에러 우회를 위한 표준 HEX 컬러 대체 */
+  --ink: #1e293b !important;
+  --ink-strong: #0f172a !important;
+  --ink-soft: #475569 !important;
+  --accent-coral: #ef4444 !important;
+  --accent-gold: #fbbf24 !important;
+  --accent-mint: #10b981 !important;
+  --accent-cobalt: #3b82f6 !important;
+
+  --paper: #ffffff !important;
+  --surface: #ffffff !important;
+  --surface-glass: #ffffff !important;
+  --surface-glass-border: #cbd5e1 !important;
+  --raise: #f8fafc !important;
+  --line: #e2e8f0 !important;
+  --line-soft: #f1f5f9 !important;
+
+  --text-primary: #1e293b !important;
+  --text-secondary: #475569 !important;
+  --text-tertiary: #64748b !important;
+}
+
+body.pdf-rendering .canvas-bg,
+body.pdf-rendering nav,
+body.pdf-rendering footer,
+body.pdf-rendering button,
+body.pdf-rendering .no-print,
+body.pdf-rendering .search-tabs-row,
+body.pdf-rendering .interactive-hint {
+  display: none !important;
+}
+
+body.pdf-rendering #root {
+  min-height: auto !important;
+  display: block !important;
+}
+
+body.pdf-rendering main {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+body.pdf-rendering .glass-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  padding: 1rem !important;
+  margin-bottom: 1rem !important;
+  page-break-inside: avoid;
+}
+
+body.pdf-rendering * {
+  color-adjust: exact !important;
+  -webkit-print-color-adjust: exact !important;
+  color: #111111 !important;
+  text-shadow: none !important;
+}
+
+body.pdf-rendering h1, 
+body.pdf-rendering h2, 
+body.pdf-rendering h3, 
+body.pdf-rendering h4 {
+  color: #000000 !important;
+}
+
+body.pdf-rendering .snapshot-container {
+  border: 1px solid #cbd5e1 !important;
+  margin-bottom: 0.5rem !important;
+}
+
