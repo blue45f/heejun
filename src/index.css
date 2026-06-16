@@ -6,26 +6,26 @@
 :root {
   color-scheme: light dark;
   
-  /* Palette - Light Theme */
-  --ink: oklch(0.3 0.058 214);
-  --ink-strong: oklch(0.24 0.064 214);
-  --ink-soft: oklch(0.5 0.048 214);
-  --accent-coral: oklch(0.67 0.17 31);
-  --accent-gold: oklch(0.78 0.13 86);
-  --accent-mint: oklch(0.68 0.13 166);
-  --accent-cobalt: oklch(0.56 0.14 249);
+  /* Palette - Light Theme (standard HEX equivalents for html2canvas compatibility) */
+  --ink: #2d3748;
+  --ink-strong: #1a202c;
+  --ink-soft: #718096;
+  --accent-coral: #ef4444;
+  --accent-gold: #fbbf24;
+  --accent-mint: #10b981;
+  --accent-cobalt: #3b82f6;
 
-  --paper: oklch(0.982 0.006 210);
-  --surface: oklch(0.997 0.003 210);
+  --paper: #f8fafc;
+  --surface: #ffffff;
   --surface-glass: rgba(255, 255, 255, 0.75);
   --surface-glass-border: rgba(255, 255, 255, 0.4);
-  --raise: oklch(0.956 0.012 210);
-  --line: oklch(0.88 0.016 210);
-  --line-soft: oklch(0.93 0.012 210);
+  --raise: #f1f5f9;
+  --line: #cbd5e1;
+  --line-soft: #e2e8f0;
 
-  --text-primary: oklch(0.25 0.022 214);
-  --text-secondary: oklch(0.43 0.02 214);
-  --text-tertiary: oklch(0.58 0.018 214);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
 
   --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 8px 30px -4px rgba(0, 0, 0, 0.06);
@@ -49,25 +49,25 @@
 
 /* Dark theme overrides */
 :root[data-theme='dark'] {
-  --ink: oklch(0.78 0.08 214);
-  --ink-strong: oklch(0.88 0.07 214);
-  --ink-soft: oklch(0.69 0.06 214);
-  --accent-coral: oklch(0.73 0.16 31);
-  --accent-gold: oklch(0.82 0.12 86);
-  --accent-mint: oklch(0.74 0.12 166);
-  --accent-cobalt: oklch(0.68 0.13 249);
+  --ink: #cbd5e1;
+  --ink-strong: #f1f5f9;
+  --ink-soft: #94a3b8;
+  --accent-coral: #f87171;
+  --accent-gold: #f59e0b;
+  --accent-mint: #34d399;
+  --accent-cobalt: #60a5fa;
 
-  --paper: oklch(0.14 0.012 214);
-  --surface: oklch(0.17 0.014 214);
+  --paper: #0f172a;
+  --surface: #1e293b;
   --surface-glass: rgba(23, 24, 30, 0.75);
   --surface-glass-border: rgba(255, 255, 255, 0.06);
-  --raise: oklch(0.22 0.015 214);
-  --line: oklch(0.26 0.014 214);
-  --line-soft: oklch(0.2 0.012 214);
+  --raise: #334155;
+  --line: #475569;
+  --line-soft: #1e293b;
 
-  --text-primary: oklch(0.9 0.014 214);
-  --text-secondary: oklch(0.75 0.016 214);
-  --text-tertiary: oklch(0.62 0.015 214);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
 
   --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 30px -4px rgba(0, 0, 0, 0.4);

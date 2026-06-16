@@ -29154,7 +29154,7 @@ var Ha,
       return (
         K.DOMPurify
           ? Promise.resolve(K.DOMPurify)
-          : T(() => import(`./purify-miQPiynP.js`).then((e) => u(e.default)), [])
+          : T(() => import(`./purify-TwRo9SJ7.js`).then((e) => u(e.default)), [])
       )
         .catch(function (e) {
           return Promise.reject(Error(`Could not load dompurify: ` + e))
@@ -36211,7 +36211,7 @@ function no(e) {
   })(q),
   (function (e) {
     function t() {
-      return (K.canvg ? Promise.resolve(K.canvg) : T(() => import(`./index.es-Dc1U0vOv.js`), []))
+      return (K.canvg ? Promise.resolve(K.canvg) : T(() => import(`./index.es-DYgT3DWN.js`), []))
         .catch(function (e) {
           return Promise.reject(Error(`Could not load canvg: ` + e))
         })
@@ -38858,10 +38858,11 @@ var To = async (e, t = `resume.pdf`) => {
         infraConfig: ``,
         publishInfo: ``,
         links: [
+          { href: `/web-config-preset.html`, text: `Live Demo` },
           { href: `https://www.npmjs.com/package/@heejun/eslint-config`, text: `npm` },
           { href: `https://github.com/blue45f/web-config-preset`, text: `GitHub` },
         ],
-        image: null,
+        image: `/public/project-snapshots/web-config-preset.jpg`,
       },
       {
         title: `PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스`,
@@ -38887,7 +38888,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://promptmarket-web.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/PromptMarket`, text: `GitHub` },
         ],
-        image: `/project-snapshots/promptmarket.jpg`,
+        image: `/public/project-snapshots/promptmarket.jpg`,
       },
       {
         title: `ProtoLive · 바이브코딩 웹앱 공유 플랫폼`,
@@ -38912,7 +38913,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://proto-live.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/proto-live`, text: `GitHub` },
         ],
-        image: `/project-snapshots/proto-live.jpg`,
+        image: `/public/project-snapshots/proto-live.jpg`,
       },
       {
         title: `Multi-env Lab · 멀티 개발환경 레퍼런스`,
@@ -38936,7 +38937,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://multi-beta-guide.vercel.app/`, text: `Live Demo` },
           { href: `https://github.com/blue45f/multi-environment-setting`, text: `GitHub` },
         ],
-        image: `/project-snapshots/multi-beta-guide.jpg`,
+        image: `/public/project-snapshots/multi-beta-guide.jpg`,
       },
       {
         title: `ToonSpectrum · 웹툰·웹소설 통합 인덱스`,
@@ -38959,7 +38960,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://webtoon-index.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/toonspectrum`, text: `GitHub` },
         ],
-        image: `/project-snapshots/toonspectrum.jpg`,
+        image: `/public/project-snapshots/toonspectrum.jpg`,
       },
       {
         title: `이력서공방`,
@@ -38983,7 +38984,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://resume-gongbang.vercel.app/`, text: `Live Demo` },
           { href: `https://github.com/blue45f/resume`, text: `GitHub` },
         ],
-        image: `/project-snapshots/resume-gongbang.jpg`,
+        image: `/public/project-snapshots/resume-gongbang.jpg`,
       },
       {
         title: `Family Care Platform`,
@@ -39005,7 +39006,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://family-care-platform.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/family-care-platform`, text: `GitHub` },
         ],
-        image: `/project-snapshots/family-care-platform.jpg`,
+        image: `/public/project-snapshots/family-care-platform.jpg`,
       },
       {
         title: `RotiFolk · 로테이션 파티앱`,
@@ -39028,7 +39029,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://rotifolk.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/rotifolk`, text: `GitHub` },
         ],
-        image: `/project-snapshots/rotifolk.jpg`,
+        image: `/public/project-snapshots/rotifolk.jpg`,
       },
       {
         title: `Pettography`,
@@ -39052,7 +39053,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://pettography.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/pettography`, text: `GitHub` },
         ],
-        image: `/project-snapshots/pettography.jpg`,
+        image: `/public/project-snapshots/pettography.jpg`,
       },
       {
         title: `TermsDesk`,
@@ -39076,7 +39077,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://termsdesk.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/termsdesk`, text: `GitHub` },
         ],
-        image: `/project-snapshots/termsdesk.jpg`,
+        image: `/public/project-snapshots/termsdesk.jpg`,
       },
       {
         title: `Quote Match`,
@@ -39099,7 +39100,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://quote-match.vercel.app`, text: `Live Demo` },
           { href: `https://github.com/blue45f/quote-match`, text: `GitHub` },
         ],
-        image: `/project-snapshots/quote-match.jpg`,
+        image: `/public/project-snapshots/quote-match.jpg`,
       },
       {
         title: `Orbit UI`,
@@ -39122,7 +39123,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://orbit-ui-pink.vercel.app/`, text: `Demo` },
           { href: `https://github.com/blue45f/orbit-ui`, text: `GitHub` },
         ],
-        image: `/project-snapshots/orbit-ui.jpg`,
+        image: `/public/project-snapshots/orbit-ui.jpg`,
       },
       {
         title: `Remote DevTools`,
@@ -39149,7 +39150,7 @@ var To = async (e, t = `resume.pdf`) => {
             text: `Deploy Guide`,
           },
         ],
-        image: `/project-snapshots/remote-devtools.jpg`,
+        image: `/public/project-snapshots/remote-devtools.jpg`,
       },
       {
         title: `SPA SEO Gateway`,
@@ -39174,7 +39175,7 @@ var To = async (e, t = `resume.pdf`) => {
           { href: `https://github.com/blue45f/spa-seo-gateway`, text: `GitHub` },
           { href: `https://www.npmjs.com/package/@heejun/spa-seo-gateway-core`, text: `npm` },
         ],
-        image: `/project-snapshots/spa-seo-gateway.jpg`,
+        image: `/public/project-snapshots/spa-seo-gateway.jpg`,
       },
     ],
     leadership: [
@@ -39334,187 +39335,187 @@ var To = async (e, t = `resume.pdf`) => {
         id: `00`,
         name: `종합 가이드 목차`,
         filename: `00_종합_가이드_목차.html`,
-        path: `/개발가이드/00_종합_가이드_목차.html`,
+        path: `/public/개발가이드/00_종합_가이드_목차.html`,
       },
       {
         id: `01`,
         name: `TypeScript 심화 가이드`,
         filename: `01_TypeScript_심화_가이드.html`,
-        path: `/개발가이드/01_TypeScript_심화_가이드.html`,
+        path: `/public/개발가이드/01_TypeScript_심화_가이드.html`,
       },
       {
         id: `02`,
         name: `React19 실무 가이드`,
         filename: `02_React19_실무_가이드.html`,
-        path: `/개발가이드/02_React19_실무_가이드.html`,
+        path: `/public/개발가이드/02_React19_실무_가이드.html`,
       },
       {
         id: `03`,
         name: `상태관리 패턴 가이드`,
         filename: `03_상태관리_패턴_가이드.html`,
-        path: `/개발가이드/03_상태관리_패턴_가이드.html`,
+        path: `/public/개발가이드/03_상태관리_패턴_가이드.html`,
       },
       {
         id: `04`,
         name: `아키텍처 설계 패턴`,
         filename: `04_아키텍처_설계_패턴.html`,
-        path: `/개발가이드/04_아키텍처_설계_패턴.html`,
+        path: `/public/개발가이드/04_아키텍처_설계_패턴.html`,
       },
       {
         id: `05`,
         name: `API 통신 및 모킹 가이드`,
         filename: `05_API_통신_및_모킹_가이드.html`,
-        path: `/개발가이드/05_API_통신_및_모킹_가이드.html`,
+        path: `/public/개발가이드/05_API_통신_및_모킹_가이드.html`,
       },
       {
         id: `06`,
         name: `웹 보안 심화 가이드`,
         filename: `06_웹_보안_심화_가이드.html`,
-        path: `/개발가이드/06_웹_보안_심화_가이드.html`,
+        path: `/public/개발가이드/06_웹_보안_심화_가이드.html`,
       },
       {
         id: `07`,
         name: `테스팅 가이드`,
         filename: `07_테스팅_가이드.html`,
-        path: `/개발가이드/07_테스팅_가이드.html`,
+        path: `/public/개발가이드/07_테스팅_가이드.html`,
       },
       {
         id: `08`,
         name: `성능 최적화 가이드`,
         filename: `08_성능_최적화_가이드.html`,
-        path: `/개발가이드/08_성능_최적화_가이드.html`,
+        path: `/public/개발가이드/08_성능_최적화_가이드.html`,
       },
       {
         id: `09`,
         name: `장애 대응 및 관측성 표준`,
         filename: `09_장애_대응_및_관측성_표준.html`,
-        path: `/개발가이드/09_장애_대응_및_관측성_표준.html`,
+        path: `/public/개발가이드/09_장애_대응_및_관측성_표준.html`,
       },
       {
         id: `10`,
         name: `인프라 IaC 가이드`,
         filename: `10_인프라_IaC_가이드.html`,
-        path: `/개발가이드/10_인프라_IaC_가이드.html`,
+        path: `/public/개발가이드/10_인프라_IaC_가이드.html`,
       },
       {
         id: `11`,
         name: `CICD 파이프라인 표준`,
         filename: `11_CICD_파이프라인_표준.html`,
-        path: `/개발가이드/11_CICD_파이프라인_표준.html`,
+        path: `/public/개발가이드/11_CICD_파이프라인_표준.html`,
       },
       {
         id: `12`,
         name: `CDN 캐시 전략`,
         filename: `12_CDN_캐시_전략.html`,
-        path: `/개발가이드/12_CDN_캐시_전략.html`,
+        path: `/public/개발가이드/12_CDN_캐시_전략.html`,
       },
       {
         id: `13`,
         name: `브라우저 호환성 가이드`,
         filename: `13_브라우저_호환성_가이드.html`,
-        path: `/개발가이드/13_브라우저_호환성_가이드.html`,
+        path: `/public/개발가이드/13_브라우저_호환성_가이드.html`,
       },
       {
         id: `14`,
         name: `배포 프로세스 체크리스트`,
         filename: `14_배포_프로세스_체크리스트.html`,
-        path: `/개발가이드/14_배포_프로세스_체크리스트.html`,
+        path: `/public/개발가이드/14_배포_프로세스_체크리스트.html`,
       },
       {
         id: `15`,
         name: `RFC 의사결정 프로세스`,
         filename: `15_RFC_의사결정_프로세스.html`,
-        path: `/개발가이드/15_RFC_의사결정_프로세스.html`,
+        path: `/public/개발가이드/15_RFC_의사결정_프로세스.html`,
       },
       {
         id: `16`,
         name: `AI 협업 코드리뷰 가이드`,
         filename: `16_AI_협업_코드리뷰_가이드.html`,
-        path: `/개발가이드/16_AI_협업_코드리뷰_가이드.html`,
+        path: `/public/개발가이드/16_AI_협업_코드리뷰_가이드.html`,
       },
       {
         id: `17`,
         name: `신규 입사자 온보딩 가이드`,
         filename: `17_신규_입사자_온보딩_가이드.html`,
-        path: `/개발가이드/17_신규_입사자_온보딩_가이드.html`,
+        path: `/public/개발가이드/17_신규_입사자_온보딩_가이드.html`,
       },
       {
         id: `18`,
         name: `AI 개발 워크플로우 종합`,
         filename: `18_AI_개발_워크플로우_종합.html`,
-        path: `/개발가이드/18_AI_개발_워크플로우_종합.html`,
+        path: `/public/개발가이드/18_AI_개발_워크플로우_종합.html`,
       },
       {
         id: `19`,
         name: `웹 접근성 가이드`,
         filename: `19_웹_접근성_가이드.html`,
-        path: `/개발가이드/19_웹_접근성_가이드.html`,
+        path: `/public/개발가이드/19_웹_접근성_가이드.html`,
       },
       {
         id: `20`,
         name: `디자인 시스템 가이드`,
         filename: `20_디자인_시스템_가이드.html`,
-        path: `/개발가이드/20_디자인_시스템_가이드.html`,
+        path: `/public/개발가이드/20_디자인_시스템_가이드.html`,
       },
       {
         id: `21`,
         name: `마이크로 프론트엔드 가이드`,
         filename: `21_마이크로_프론트엔드_가이드.html`,
-        path: `/개발가이드/21_마이크로_프론트엔드_가이드.html`,
+        path: `/public/개발가이드/21_마이크로_프론트엔드_가이드.html`,
       },
       {
         id: `22`,
         name: `모노레포 운영 가이드`,
         filename: `22_모노레포_운영_가이드.html`,
-        path: `/개발가이드/22_모노레포_운영_가이드.html`,
+        path: `/public/개발가이드/22_모노레포_운영_가이드.html`,
       },
       {
         id: `23`,
         name: `국제화 가이드`,
         filename: `23_국제화_가이드.html`,
-        path: `/개발가이드/23_국제화_가이드.html`,
+        path: `/public/개발가이드/23_국제화_가이드.html`,
       },
       {
         id: `24`,
         name: `SEO 메타데이터 가이드`,
         filename: `24_SEO_메타데이터_가이드.html`,
-        path: `/개발가이드/24_SEO_메타데이터_가이드.html`,
+        path: `/public/개발가이드/24_SEO_메타데이터_가이드.html`,
       },
       {
         id: `25`,
         name: `웹 애니메이션 모션 가이드`,
         filename: `25_웹_애니메이션_모션_가이드.html`,
-        path: `/개발가이드/25_웹_애니메이션_모션_가이드.html`,
+        path: `/public/개발가이드/25_웹_애니메이션_모션_가이드.html`,
       },
       {
         id: `26`,
         name: `PWA 오프라인 전략 가이드`,
         filename: `26_PWA_오프라인_전략_가이드.html`,
-        path: `/개발가이드/26_PWA_오프라인_전략_가이드.html`,
+        path: `/public/개발가이드/26_PWA_오프라인_전략_가이드.html`,
       },
       {
         id: `27`,
         name: `다중 개발 서버 구축 가이드`,
         filename: `27_다중_개발_서버_구축_가이드.html`,
-        path: `/개발가이드/27_다중_개발_서버_구축_가이드.html`,
+        path: `/public/개발가이드/27_다중_개발_서버_구축_가이드.html`,
       },
       {
         id: `28`,
         name: `Sentry 모니터링 활용 가이드`,
         filename: `28_Sentry_모니터링_활용_가이드.html`,
-        path: `/개발가이드/28_Sentry_모니터링_활용_가이드.html`,
+        path: `/public/개발가이드/28_Sentry_모니터링_활용_가이드.html`,
       },
       {
         id: `29`,
         name: `표준 라이브러리 스택 가이드`,
         filename: `29_표준_라이브러리_스택_가이드.html`,
-        path: `/개발가이드/29_표준_라이브러리_스택_가이드.html`,
+        path: `/public/개발가이드/29_표준_라이브러리_스택_가이드.html`,
       },
       {
         id: `30`,
         name: `사례 전저장소 일관성 정렬 회고`,
         filename: `30_사례_전저장소_일관성_정렬_회고.html`,
-        path: `/개발가이드/30_사례_전저장소_일관성_정렬_회고.html`,
+        path: `/public/개발가이드/30_사례_전저장소_일관성_정렬_회고.html`,
       },
     ],
   },
