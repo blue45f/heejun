@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Sun, Moon, Download, Menu, X, FileText, Briefcase, Grid, BookOpen } from 'lucide-react'
 import { exportToPdf } from '../utils/exportPdf'
 import { resumeData } from '../data/resumeData'
+import { FullResumePdfTemplate } from './FullResumePdfTemplate'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -34,10 +35,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handlePdfDownload = async () => {
     setIsExporting(true)
-    await exportToPdf(
-      'resume-content',
-      `김희준_이력서_${location.pathname.replace('/', '') || 'main'}.pdf`,
-    )
+    await exportToPdf('full-resume-pdf-template', '김희준_이력서_통합본.pdf')
     setIsExporting(false)
   }
 
@@ -240,6 +238,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </footer>
 
       {/* Media query styling inline hacks or custom CSS blocks */}
+      {/* PDF 전용 통합 이력서 템플릿 */}
+      <div id="full-resume-pdf-template" className="pdf-only-content">
+        <FullResumePdfTemplate />
+      </div>
+
       <style>{`
         @media (min-width: 768px) {
           .md-flex { display: flex !important; }

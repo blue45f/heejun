@@ -391,8 +391,12 @@ body.pdf-rendering .interactive-hint {
   display: none !important;
 }
 
-body.pdf-rendering #root {
+body.pdf-rendering,
+body.pdf-rendering #root,
+body.pdf-rendering main {
+  height: auto !important;
   min-height: auto !important;
+  overflow: visible !important;
   display: block !important;
 }
 
@@ -430,5 +434,18 @@ body.pdf-rendering h4 {
 body.pdf-rendering .snapshot-container {
   border: 1px solid #cbd5e1 !important;
   margin-bottom: 0.5rem !important;
+}
+
+/* PDF Only Content Visibility Toggles */
+.pdf-only-content {
+  display: none !important;
+}
+
+body.pdf-rendering .pdf-only-content {
+  display: block !important;
+}
+
+body.pdf-rendering #resume-content {
+  display: none !important;
 }
 
