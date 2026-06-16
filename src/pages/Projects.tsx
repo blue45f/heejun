@@ -214,10 +214,51 @@ export const Projects: React.FC = () => {
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'between',
+                justifyContent: 'space-between',
               }}
             >
-              <div className="space-y-4">
+              <div
+                className="space-y-4"
+                style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}
+              >
+                {/* Project Image Snapshot (if available) */}
+                {project.image && (
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '160px',
+                      overflow: 'hidden',
+                      borderRadius: '8px',
+                      marginBottom: '0.75rem',
+                      border: '1px solid var(--surface-glass-border)',
+                      backgroundColor: 'var(--raise)',
+                      flexShrink: 0,
+                    }}
+                    className="snapshot-container"
+                  >
+                    <img
+                      src={project.image}
+                      alt={`${project.title} screenshot`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      className="project-snapshot-img"
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background:
+                          'linear-gradient(to bottom, transparent 50%, rgba(22, 36, 42, 0.4))',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                )}
                 {/* Header */}
                 <div
                   style={{
@@ -404,6 +445,9 @@ export const Projects: React.FC = () => {
         }
         .projects-grid {
           grid-template-columns: 1fr !important;
+        }
+        .snapshot-container:hover .project-snapshot-img {
+          transform: scale(1.05);
         }
         @media (min-width: 640px) {
           .search-tabs-row {
