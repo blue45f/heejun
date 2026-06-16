@@ -419,7 +419,21 @@ export const Projects: React.FC = () => {
                           e.currentTarget.style.borderColor = 'var(--surface-glass-border)'
                         }}
                       >
-                        <GitBranch size={10} style={{ color: 'var(--accent-cobalt)' }} />
+                        {(() => {
+                          const lower = link.text.toLowerCase()
+                          if (lower.includes('github')) {
+                            return <GitBranch size={10} style={{ color: 'var(--accent-cobalt)' }} />
+                          }
+                          if (lower.includes('npm')) {
+                            return <Terminal size={10} style={{ color: 'var(--accent-coral)' }} />
+                          }
+                          if (lower.includes('demo') || lower.includes('live')) {
+                            return <Globe size={10} style={{ color: 'var(--accent-mint)' }} />
+                          }
+                          return (
+                            <ExternalLink size={10} style={{ color: 'var(--text-tertiary)' }} />
+                          )
+                        })()}
                         <span>{link.text}</span>
                         <ExternalLink size={8} style={{ color: 'var(--text-tertiary)' }} />
                       </a>

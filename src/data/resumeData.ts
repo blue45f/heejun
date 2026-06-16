@@ -699,7 +699,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://www.npmjs.com/package/@heejun/eslint-config', text: 'npm' },
+        { href: 'https://github.com/blue45f/web-config-preset', text: 'GitHub' },
+      ],
       image: null,
     },
     {
@@ -722,7 +725,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://promptmarket-web.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/PromptMarket', text: 'GitHub' },
+      ],
       image: '/project-snapshots/promptmarket.jpg',
     },
     {
@@ -744,7 +750,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://proto-live.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/proto-live', text: 'GitHub' },
+      ],
       image: '/project-snapshots/proto-live.jpg',
     },
     {
@@ -765,7 +774,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://multi-beta-guide.vercel.app/', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/multi-environment-setting', text: 'GitHub' },
+      ],
       image: '/project-snapshots/multi-beta-guide.jpg',
     },
     {
@@ -785,7 +797,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://webtoon-index.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/toonspectrum', text: 'GitHub' },
+      ],
       image: '/project-snapshots/toonspectrum.jpg',
     },
     {
@@ -806,7 +821,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://resume-gongbang.vercel.app/', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/resume', text: 'GitHub' },
+      ],
       image: '/project-snapshots/resume-gongbang.jpg',
     },
     {
@@ -825,7 +843,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://family-care-platform.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/family-care-platform', text: 'GitHub' },
+      ],
       image: '/project-snapshots/family-care-platform.jpg',
     },
     {
@@ -845,7 +866,10 @@ export const resumeData: ResumeData = {
       techStack: 'TypeScript, React, Zustand, NestJS, JSON File Locking, Debouncing Engine',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://rotifolk.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/rotifolk', text: 'GitHub' },
+      ],
       image: '/project-snapshots/rotifolk.jpg',
     },
     {
@@ -866,7 +890,10 @@ export const resumeData: ResumeData = {
       techStack: 'TypeScript, React, Zustand, TanStack Query, Axios, NestJS Monolith',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://pettography.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/pettography', text: 'GitHub' },
+      ],
       image: '/project-snapshots/pettography.jpg',
     },
     {
@@ -887,7 +914,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://termsdesk.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/termsdesk', text: 'GitHub' },
+      ],
       image: '/project-snapshots/termsdesk.jpg',
     },
     {
@@ -907,7 +937,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://quote-match.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/quote-match', text: 'GitHub' },
+      ],
       image: '/project-snapshots/quote-match.jpg',
     },
     {
@@ -927,7 +960,10 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://orbit-ui-pink.vercel.app/', text: 'Demo' },
+        { href: 'https://github.com/blue45f/orbit-ui', text: 'GitHub' },
+      ],
       image: '/project-snapshots/orbit-ui.jpg',
     },
     {
@@ -947,7 +983,14 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://remote-devtools.vercel.app/', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/remote-devtools', text: 'GitHub' },
+        {
+          href: 'https://github.com/blue45f/remote-devtools/blob/main/docs/DEPLOY_DEMO.md',
+          text: 'Deploy Guide',
+        },
+      ],
       image: '/project-snapshots/remote-devtools.jpg',
     },
     {
@@ -968,7 +1011,11 @@ export const resumeData: ResumeData = {
       techStack: '',
       infraConfig: '',
       publishInfo: '',
-      links: [],
+      links: [
+        { href: 'https://spa-seo-gateway.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/spa-seo-gateway', text: 'GitHub' },
+        { href: 'https://www.npmjs.com/package/@heejun/spa-seo-gateway-core', text: 'npm' },
+      ],
       image: '/project-snapshots/spa-seo-gateway.jpg',
     },
   ],
