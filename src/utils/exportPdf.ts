@@ -1,10 +1,17 @@
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
-export const exportToPdf = async (elementId: string, filename: string = 'resume.pdf') => {
-  const element = document.getElementById(elementId)
-  if (!element) {
-    console.error(`Element with id ${elementId} not found`)
+export const exportToPdf = async (containerId: string, filename: string = 'resume.pdf') => {
+  const container = document.getElementById(containerId)
+  if (!container) {
+    console.error(`Container with id ${containerId} not found`)
+    return
+  }
+
+  // Find all individual pages inside the container
+  const pages = container.querySelectorAll('.pdf-page')
+  if (pages.length === 0) {
+    console.error('No elements with class .pdf-page found inside container')
     return
   }
 
@@ -23,51 +30,38 @@ export const exportToPdf = async (elementId: string, filename: string = 'resume.
   document.body.classList.add('pdf-rendering')
 
   // Wait a bit for CSS transitions and styles to apply
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 600))
 
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2, // Retain sharp text quality
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight,
-    })
-
-    console.log(`Canvas dimensions: ${canvas.width}x${canvas.height}`)
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95)
-
-    // Create PDF in A4 size
     const pdf = new jsPDF('p', 'mm', 'a4')
-    const imgWidth = 210 // A4 width in mm
-    const pageHeight = 295 // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    let heightLeft = imgHeight
-    let position = 0
-    let pageCount = 1
 
-    console.log(
-      `PDF calc - imgHeight: ${imgHeight}mm, pageHeight: ${pageHeight}mm, initial heightLeft: ${heightLeft}mm`,
-    )
+    for (let i = 0; i < pages.length; i++) {
+      const pageEl = pages[i] as HTMLElement
 
-    // First page
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
+      console.log(`Capturing page ${i + 1}/${pages.length}...`)
 
-    // Multi-page handling
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight // slide up
-      pdf.addPage()
-      pageCount++
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
+      const canvas = await html2canvas(pageEl, {
+        scale: 2.5, // Extra sharp output
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: pageEl.offsetWidth,
+        windowHeight: pageEl.offsetHeight,
+      })
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+
+      if (i > 0) {
+        pdf.addPage()
+      }
+
+      // Add image mapping exactly 1-to-1 with A4 paper size (210mm x 297mm)
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
     }
 
-    console.log(`PDF generation completed. Total pages: ${pageCount}`)
+    console.log(`PDF generation completed. Total pages: ${pages.length}`)
     pdf.save(filename)
   } catch (error) {
     console.error('PDF export failed:', error)

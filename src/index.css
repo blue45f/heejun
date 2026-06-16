@@ -449,3 +449,19 @@ body.pdf-rendering #resume-content {
   display: none !important;
 }
 
+/* Explicit A4 layout dimensions for html2canvas matching */
+.pdf-page {
+  width: 210mm !important;
+  height: 297mm !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+body.pdf-rendering .pdf-page * {
+  color-adjust: exact !important;
+  -webkit-print-color-adjust: exact !important;
+  text-shadow: none !important;
+}
+
