@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@heejun/* Web Config Preset - 공유 개발 설정 표준</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Outfit:wght@500;700;900&family=Fira+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b0f19;
+        --surface: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-coral: #ef4444;
+        --accent-purple: #8b5cf6;
+        --accent-blue: #3b82f6;
+        --accent-mint: #10b981;
+        --accent-amber: #f59e0b;
+        --font-sans: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+        --font-mono: 'Fira Code', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        min-height: 100vh;
+        overflow-x: hidden;
+        line-height: 1.6;
+        background-image:
+          radial-gradient(circle at 10% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 40%),
+          radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+      }
+
+      header {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 4rem 2rem 2rem 2rem;
+        text-align: center;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        color: var(--accent-coral);
+        font-weight: 800;
+        text-transform: uppercase;
+        border-radius: 99px;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        margin-bottom: 1.5rem;
+        font-family: 'Outfit', sans-serif;
+      }
+
+      h1 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, #fff 30%, #a5b4fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+      }
+
+      .subtitle {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+        max-width: 700px;
+        margin: 0 auto 2.5rem auto;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent-coral), var(--accent-purple));
+        color: white;
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(239, 68, 68, 0.4);
+      }
+
+      .btn-secondary {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        margin-bottom: 4rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        padding: 2rem;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .card-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .pkg-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .dot-eslint {
+        background-color: var(--accent-blue);
+      }
+      .dot-prettier {
+        background-color: var(--accent-purple);
+      }
+      .dot-ts {
+        background-color: var(--accent-mint);
+      }
+      .dot-tailwind {
+        background-color: var(--accent-coral);
+      }
+      .dot-vite {
+        background-color: var(--accent-amber);
+      }
+
+      .version-tag {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-secondary);
+      }
+
+      .card-desc {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .code-snippet {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: #e2e8f0;
+        overflow-x: auto;
+      }
+
+      .code-prefix {
+        color: #7f8ea3;
+        user-select: none;
+      }
+
+      .feature-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 3rem;
+        margin-bottom: 4rem;
+        backdrop-filter: blur(16px);
+      }
+
+      .feature-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .feature-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+      }
+
+      .feature-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .feature-item h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .feature-item p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      footer {
+        text-align: center;
+        padding: 4rem 2rem;
+        border-top: 1px solid var(--border);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      footer a {
+        color: var(--accent-coral);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge">npm preset package</span>
+      <h1>@heejun/* Web Config Preset</h1>
+      <p class="subtitle">
+        여러 저장소가 공유하는 프론트엔드 표준 설정을 모노레포로 관리하고 npm에 발행한
+        Presets입니다. 설정 불일치(Drifts)를 원천 차단하고 단일 표준으로 일관성을 정렬합니다.
+      </p>
+      <div class="actions">
+        <a
+          href="https://github.com/blue45f/web-config-preset"
+          class="btn btn-primary"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub 저장소</a
+        >
+        <a href="https://heejun.store" class="btn btn-secondary">포트폴리오 홈</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <!-- ESLint Config -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="pkg-dot dot-eslint"></span>@heejun/eslint-config
+            </h3>
+            <span class="version-tag">v1.2.0</span>
+          </div>
+          <p class="card-desc">
+            ESLint Flat Config 표준 규칙 프리셋. TypeScript, React 19, React Compiler 플러그인 탑재
+            및 계층 구조 경계 라이브러리 연동으로 아키텍처 규칙 강제.
+          </p>
+          <div class="code-snippet">
+            <span class="code-prefix">$</span> pnpm add -D @heejun/eslint-config
+          </div>
+        </div>
+
+        <!-- Prettier Config -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="pkg-dot dot-prettier"></span>@heejun/prettier-config
+            </h3>
+            <span class="version-tag">v1.0.5</span>
+          </div>
+          <p class="card-desc">
+            일관성 있는 코드 스타일 정렬을 위한 프리티어 글로벌 룰 프리셋. import 순서 정렬 및 탭
+            너비 설정.
+          </p>
+          <div class="code-snippet">
+            <span class="code-prefix">$</span> pnpm add -D @heejun/prettier-config
+          </div>
+        </div>
+
+        <!-- TypeScript Config -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="pkg-dot dot-ts"></span>@heejun/typescript-config
+            </h3>
+            <span class="version-tag">v2.0.1</span>
+          </div>
+          <p class="card-desc">
+            프로젝트 유형별 tsconfig 베이스 빌더. Base, React(SPA/Next), Node 사양의 엄격
+            모드(strict) 컴파일러 옵션 제공.
+          </p>
+          <div class="code-snippet">
+            <span class="code-prefix">$</span> pnpm add -D @heejun/typescript-config
+          </div>
+        </div>
+
+        <!-- Tailwind Config -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="pkg-dot dot-tailwind"></span>@heejun/tailwind-config
+            </h3>
+            <span class="version-tag">v4.0.0</span>
+          </div>
+          <p class="card-desc">
+            Tailwind CSS v4 최신 스펙 기반의 스타일 테마 및 디자인 시스템 토큰 통합 프리셋.
+            CSS-first @theme 명세 탑재.
+          </p>
+          <div class="code-snippet">
+            <span class="code-prefix">$</span> pnpm add -D @heejun/tailwind-config
+          </div>
+        </div>
+
+        <!-- Vite Config -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><span class="pkg-dot dot-vite"></span>@heejun/vite-config</h3>
+            <span class="version-tag">v1.1.2</span>
+          </div>
+          <p class="card-desc">
+            Vite 8 기반의 최적화 컴파일러 구성 세트. React Compiler 연동 최적화 및 빌드 타임 청크
+            분할 튜닝.
+          </p>
+          <div class="code-snippet">
+            <span class="code-prefix">$</span> pnpm add -D @heejun/vite-config
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Section -->
+      <div class="feature-section">
+        <h3 class="feature-title">핵심 운영 원칙 & 효과</h3>
+        <div class="feature-list">
+          <div class="feature-item">
+            <h4>설정 드리프트 방지</h4>
+            <p>
+              다수의 리포지토리 설정 일치 여부를 수동으로 비교할 필요 없이, npm 패키지 버전 관리
+              하나로 동기화합니다.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h4>Self-Dogfooding</h4>
+            <p>
+              모노레포의 최상위 빌드 환경에서 프리셋 자체를 즉시 활용하여 린터 및 포매터의 정합성을
+              스스로 검증합니다.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h4>일관성 정렬 회고</h4>
+            <p>
+              개발된 표준 프리셋을 전 사이드 프로젝트에 단계적 PR(Stack PR)로 적용해 전체 아키텍처
+              규칙을 통일했습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>© 2026 김희준. All rights reserved. <a href="https://heejun.store">포트폴리오 복귀</a></p>
+    </footer>
+  </body>
+</html>

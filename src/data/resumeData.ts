@@ -700,10 +700,11 @@ export const resumeData: ResumeData = {
       infraConfig: '',
       publishInfo: '',
       links: [
+        { href: '/web-config-preset.html', text: 'Live Demo' },
         { href: 'https://www.npmjs.com/package/@heejun/eslint-config', text: 'npm' },
         { href: 'https://github.com/blue45f/web-config-preset', text: 'GitHub' },
       ],
-      image: null,
+      image: '/project-snapshots/web-config-preset.jpg',
     },
     {
       title: 'PromptMarket · 프롬프트·스킬·에이전트 마켓플레이스',
