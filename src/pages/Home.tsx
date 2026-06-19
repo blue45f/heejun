@@ -1,228 +1,143 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { resumeData } from '../data/resumeData'
-import { Mail, Phone, Github, MapPin, Award, CheckCircle } from 'lucide-react'
+import { Mail, Phone, Github, MapPin, Award, CheckCircle, ArrowRight, BookOpen } from 'lucide-react'
+import { useMotionConfig, REVEAL_VIEWPORT } from '../lib/motion'
 
 export const Home: React.FC = () => {
   const { personalInfo, competencies, selfIntroduction } = resumeData
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 100,
-      },
-    },
-  }
+  const { container, item, itemLeft, reduced } = useMotionConfig()
 
   const getContactIcon = (type: string) => {
     switch (type) {
       case 'email':
-        return <Mail size={16} className="text-[var(--accent-coral)]" />
+        return <Mail size={16} className="text-[var(--accent-coral)]" aria-hidden="true" />
       case 'phone':
-        return <Phone size={16} className="text-[var(--accent-gold)]" />
+        return <Phone size={16} className="text-[var(--accent-gold)]" aria-hidden="true" />
       case 'github':
-        return <Github size={16} className="text-[var(--accent-cobalt)]" />
+        return <Github size={16} className="text-[var(--accent-cobalt)]" aria-hidden="true" />
       case 'location':
-        return <MapPin size={16} className="text-[var(--accent-mint)]" />
+        return <MapPin size={16} className="text-[var(--accent-mint)]" aria-hidden="true" />
       default:
-        return <Award size={16} className="text-[var(--text-tertiary)]" />
+        return <Award size={16} className="text-[var(--text-tertiary)]" aria-hidden="true" />
     }
   }
 
+  const emailContact = personalInfo.contact.find((c) => c.type === 'email')
+  const githubContact = personalInfo.contact.find((c) => c.type === 'github')
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-12"
-    >
-      {/* Hero Header Section */}
-      <section
-        className="glass-panel hero-section"
-        style={{
-          position: 'relative',
-          overflow: 'hidden',
-          padding: '2.5rem 2rem',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2rem',
-        }}
+    <motion.div variants={container} initial="hidden" animate="visible" className="space-y-12">
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <motion.section
+        variants={item}
+        className="glass-panel hero-shell hero-section"
+        aria-labelledby="hero-name"
       >
-        <div className="space-y-4" style={{ maxWidth: '650px' }}>
-          <motion.div
-            variants={itemVariants}
-            className="badge"
-            style={{
-              display: 'inline-block',
-              padding: '4px 12px',
-              backgroundColor: 'var(--raise)',
-              color: 'var(--accent-coral)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              borderRadius: '9999px',
-              border: '1px solid var(--surface-glass-border)',
-            }}
-          >
-            {personalInfo.jobTitle}
+        <div className="hero-aurora" aria-hidden="true" />
+
+        <div className="hero-copy">
+          <motion.div variants={item} className="hero-eyebrow">
+            <span className="pulse-dot" aria-hidden="true" />
+            <span>{personalInfo.jobTitle}</span>
           </motion.div>
-          <motion.h1
-            variants={itemVariants}
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              color: 'var(--text-primary)',
-              lineHeight: 1.1,
-            }}
-          >
+
+          <motion.h1 variants={item} id="hero-name" className="hero-name">
             {personalInfo.name}
           </motion.h1>
-          <motion.p
-            variants={itemVariants}
-            style={{
-              fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              lineHeight: 1.5,
-            }}
-          >
+
+          <motion.p variants={item} className="hero-role">
             {personalInfo.title}
           </motion.p>
+
+          {/* One clear primary CTA + supporting secondary actions */}
+          <motion.div variants={item} className="hero-actions">
+            <a className="btn-primary" href="/experience" aria-label="경력 자세히 보기">
+              <span>경력 살펴보기</span>
+              <ArrowRight size={15} aria-hidden="true" />
+            </a>
+            {githubContact?.href && (
+              <a
+                className="btn-secondary"
+                href={githubContact.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github size={15} aria-hidden="true" />
+                <span>GitHub</span>
+              </a>
+            )}
+            {emailContact?.href && (
+              <a className="btn-secondary" href={emailContact.href}>
+                <Mail size={15} aria-hidden="true" />
+                <span>연락하기</span>
+              </a>
+            )}
+          </motion.div>
         </div>
 
-        {/* 18 Years Glow Deco Badge */}
+        {/* Years badge with slow conic ring */}
         <motion.div
-          variants={itemVariants}
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          style={{
-            flexShrink: 0,
-            alignSelf: 'center',
-            width: '9rem',
-            height: '9rem',
-            borderRadius: '50%',
-            background:
-              'linear-gradient(135deg, var(--accent-coral), var(--accent-gold), var(--accent-cobalt))',
-            padding: '2px',
-            boxShadow: '0 10px 25px -5px rgba(217, 83, 79, 0.2)',
-          }}
+          variants={item}
+          className="hero-badge"
+          whileHover={reduced ? undefined : { scale: 1.04 }}
         >
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              backgroundColor: 'var(--surface)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '2.5rem',
-                fontWeight: 800,
-                color: 'var(--text-primary)',
-                lineHeight: 1,
-              }}
-            >
-              {personalInfo.experienceYears}
-            </span>
-            <span
-              style={{
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                marginTop: '4px',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Years Exp
-            </span>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Metrics Banner */}
-      <motion.section
-        variants={itemVariants}
-        className="metrics-grid"
-        style={{
-          display: 'grid',
-          gap: '1rem',
-        }}
-      >
-        {personalInfo.metrics.map((metric, idx) => (
-          <div
-            key={idx}
-            className="glass-card metric-pill"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-            }}
-          >
-            <div className="metric-value">{metric.value}</div>
-            <div
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                fontWeight: 500,
-                marginTop: '6px',
-              }}
-            >
-              {metric.label}
+          <div className="years-ring" aria-hidden="true">
+            <div className="years-ring__inner">
+              <span className="years-ring__num">{personalInfo.experienceYears}</span>
+              <span className="years-ring__cap">Years Exp</span>
             </div>
           </div>
+        </motion.div>
+      </motion.section>
+
+      {/* ── Metrics band ───────────────────────────────────────────────── */}
+      <motion.section
+        variants={container}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="metrics-grid"
+        aria-label="주요 성과 지표"
+      >
+        {personalInfo.metrics.map((metric) => (
+          <motion.div key={metric.label} variants={item} tabIndex={0} className="metric-tile">
+            <div className="metric-value">{metric.value}</div>
+            <div className="metric-label">{metric.label}</div>
+          </motion.div>
         ))}
       </motion.section>
 
-      {/* Grid Layout: Core Competencies & About Me */}
+      {/* ── Competencies + about ───────────────────────────────────────── */}
       <div className="home-main-grid" style={{ display: 'grid', gap: '2rem' }}>
-        {/* Core Competencies (2/3 width) */}
-        <motion.section variants={itemVariants} className="space-y-6">
-          <h2
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              borderBottom: '1px solid var(--line)',
-              paddingBottom: '0.5rem',
-            }}
+        {/* Core Competencies */}
+        <motion.section
+          variants={container}
+          initial="hidden"
+          whileInView="visible"
+          viewport={REVEAL_VIEWPORT}
+          className="space-y-6"
+          aria-labelledby="competencies-heading"
+        >
+          <motion.h2
+            variants={item}
+            id="competencies-heading"
+            className="section-heading"
+            style={{ fontSize: '1.5rem' }}
           >
             <span
-              style={{
-                width: '10px',
-                height: '1.5rem',
-                backgroundColor: 'var(--accent-coral)',
-                borderRadius: '4px',
-              }}
-            ></span>
+              className="section-heading__chip"
+              style={{ backgroundColor: 'var(--accent-coral)', color: 'var(--accent-coral)' }}
+              aria-hidden="true"
+            />
             <span>핵심 역량</span>
-          </h2>
+          </motion.h2>
 
           <div className="space-y-6">
-            {competencies.map((comp, idx) => (
-              <div
-                key={idx}
+            {competencies.map((comp) => (
+              <motion.div
+                key={comp.category}
+                variants={item}
                 className="glass-card"
                 style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
               >
@@ -238,8 +153,8 @@ export const Home: React.FC = () => {
                 >
                   <CheckCircle
                     size={18}
-                    className="text-[var(--accent-mint)]"
                     style={{ color: 'var(--accent-mint)' }}
+                    aria-hidden="true"
                   />
                   <span>{comp.category}</span>
                 </h3>
@@ -253,22 +168,33 @@ export const Home: React.FC = () => {
                 >
                   {comp.bullets.map((bullet, bIdx) => (
                     <li key={bIdx} style={{ paddingLeft: '1rem', position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: 0, color: 'var(--accent-coral)' }}>
+                      <span
+                        aria-hidden="true"
+                        style={{ position: 'absolute', left: 0, color: 'var(--accent-coral)' }}
+                      >
                         •
                       </span>
                       {bullet}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
             ))}
           </div>
         </motion.section>
 
-        {/* Info & Self Intro (1/3 width) */}
-        <motion.section variants={itemVariants} className="space-y-6">
+        {/* Info & Self Intro */}
+        <motion.section
+          variants={container}
+          initial="hidden"
+          whileInView="visible"
+          viewport={REVEAL_VIEWPORT}
+          className="space-y-6"
+          aria-label="연락처 및 자기소개"
+        >
           {/* Contact Proof Panel */}
-          <div
+          <motion.div
+            variants={itemLeft}
             className="glass-panel"
             style={{ padding: '1.5rem', borderRadius: 'var(--radius-md)' }}
           >
@@ -280,7 +206,7 @@ export const Home: React.FC = () => {
                 color: 'var(--text-primary)',
               }}
             >
-              Contact & Proof
+              Contact &amp; Proof
             </h3>
             <div className="space-y-3">
               {personalInfo.contact.map((c, idx) => (
@@ -295,12 +221,8 @@ export const Home: React.FC = () => {
                       href={c.href}
                       target={c.type === 'github' || c.type === 'study' ? '_blank' : undefined}
                       rel="noopener noreferrer"
-                      style={{
-                        color: 'var(--text-secondary)',
-                        wordBreak: 'break-all',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                      className="link-underline"
+                      style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}
                     >
                       {c.label}
                     </a>
@@ -310,76 +232,136 @@ export const Home: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Self Intro Panel */}
-          <div
+          <motion.div
+            variants={itemLeft}
             className="glass-card"
             style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
           >
-            <h2
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                borderBottom: '1px solid var(--line)',
-                paddingBottom: '0.5rem',
-              }}
-            >
+            <h2 className="section-heading" style={{ fontSize: '1.25rem' }}>
               <span
+                className="section-heading__chip"
                 style={{
-                  width: '8px',
-                  height: '1.25rem',
                   backgroundColor: 'var(--accent-cobalt)',
-                  borderRadius: '4px',
+                  color: 'var(--accent-cobalt)',
+                  height: '1.25rem',
                 }}
-              ></span>
+                aria-hidden="true"
+              />
               <span>자기소개</span>
             </h2>
             <p
+              className="prose-measure"
               style={{
                 fontSize: '0.875rem',
                 color: 'var(--text-secondary)',
-                lineHeight: 1.6,
+                lineHeight: 1.7,
                 whiteSpace: 'pre-line',
               }}
             >
               {selfIntroduction}
             </p>
-          </div>
+            <a
+              href="/guides"
+              className="link-underline"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--accent-cobalt)',
+                width: 'fit-content',
+              }}
+            >
+              <BookOpen size={15} aria-hidden="true" />
+              <span>개발 가이드 보기</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </a>
+          </motion.div>
         </motion.section>
       </div>
 
       <style>{`
-        .hero-section {
-          flex-direction: column !important;
+        .hero-shell {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+        .hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          width: fit-content;
+          padding: 5px 13px 5px 11px;
+          background: var(--raise);
+          color: var(--text-primary);
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          border-radius: 9999px;
+          border: 1px solid var(--surface-glass-border);
+        }
+        .hero-name {
+          margin-top: 1rem;
+          font-size: clamp(2.4rem, 6vw, 3.75rem);
+          font-weight: 900;
+          letter-spacing: -0.035em;
+          line-height: 1.05;
+          color: var(--text-primary);
+          text-wrap: balance;
+        }
+        .hero-role {
+          margin-top: 0.85rem;
+          max-width: 34ch;
+          font-size: clamp(1rem, 2.4vw, 1.2rem);
+          font-weight: 500;
+          line-height: 1.55;
+          color: var(--text-secondary);
+          text-wrap: pretty;
+        }
+        .hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.65rem;
+          margin-top: 1.6rem;
+        }
+        .hero-badge { align-self: center; }
+        .years-ring__num {
+          font-size: clamp(2.1rem, 4vw, 2.6rem);
+          font-weight: 800;
+          color: var(--text-primary);
+          line-height: 1;
+        }
+        .years-ring__cap {
+          margin-top: 5px;
+          font-size: 0.62rem;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-secondary);
         }
         .metrics-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          display: grid;
+          gap: 1rem;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        .home-main-grid {
-          grid-template-columns: 1fr !important;
-        }
+        .home-main-grid { grid-template-columns: 1fr; }
+        .prose-measure { max-width: 68ch; }
+
         @media (min-width: 768px) {
-          .hero-section {
-            flex-direction: row !important;
-            align-items: center !important;
-            justify-content: space-between !important;
+          .hero-shell {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2.5rem;
           }
-          .hero-section div:first-child {
-            max-width: 65% !important;
-          }
-          .hero-section div:last-child {
-            align-self: auto !important;
-          }
-          .metrics-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-          }
-          .home-main-grid {
-            grid-template-columns: 2fr 1fr !important;
-          }
+          .hero-copy { max-width: 60%; }
+          .hero-badge { align-self: auto; }
+          .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+          .home-main-grid { grid-template-columns: 2fr 1fr; }
         }
       `}</style>
     </motion.div>
