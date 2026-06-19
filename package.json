@@ -13,12 +13,14 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "audit:security": "pnpm audit --audit-level high --ignore GHSA-2p57-rm9w-gvfp",
+    "lint:security": "pnpm run lint && pnpm run audit:security",
     "prepare": "husky",
     "check:validators": "node --check scripts/validate-dev-guides.mjs && node --check scripts/validate-recommendation-templates.mjs",
     "validate:guides": "node scripts/validate-dev-guides.mjs",
     "validate:recommendations": "node scripts/validate-recommendation-templates.mjs",
     "verify": "pnpm run validate:architecture && pnpm run check:validators && pnpm run validate:guides && pnpm run validate:recommendations && pnpm run build",
-    "verify:push": "pnpm run verify",
+    "verify:push": "pnpm run verify && pnpm run lint:security",
     "ci": "pnpm run verify",
     "sonar": "sonar-scanner",
     "sonar:ci": "sonar-scanner -Dsonar.qualitygate.wait=true",
@@ -27,7 +29,7 @@
   "dependencies": {
     "framer-motion": "^11.18.2",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.475.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -54,7 +56,7 @@
     "puppeteer": "^25.1.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.16"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
