@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Sun, Moon, Download, Menu, X, FileText, Briefcase, Grid, BookOpen } from 'lucide-react'
+import {
+  Sun,
+  Moon,
+  Download,
+  Menu,
+  X,
+  FileText,
+  Briefcase,
+  Grid,
+  BookOpen,
+  Map,
+} from 'lucide-react'
 import { exportToPdf } from '../utils/exportPdf'
 import { resumeData } from '../data/resumeData'
 import { FullResumePdfTemplate } from './FullResumePdfTemplate'
@@ -44,6 +55,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/experience', label: '경력', icon: Briefcase },
     { path: '/projects', label: '프로젝트', icon: Grid },
     { path: '/guides', label: '가이드', icon: BookOpen },
+    { path: '/sitemap', label: '사이트맵', icon: Map },
   ]
 
   return (
@@ -64,6 +76,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <span style={{ color: 'var(--accent-coral)', fontWeight: 800 }}>&lt;</span>
             <span style={{ color: 'var(--text-primary)' }}>{resumeData.personalInfo.name}</span>
+            <span
+              style={{
+                border: '1px solid var(--accent-coral)',
+                borderRadius: '999px',
+                padding: '1px 6px',
+                color: 'var(--accent-coral)',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              BETA
+            </span>
             <span
               style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'normal' }}
             >
@@ -233,6 +258,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </p>
           <p style={{ marginTop: '4px' }}>
             Vite + React + TypeScript + Framer Motion 기반의 프리미엄 이력서 웹사이트
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            <Link to="/sitemap" style={{ color: 'var(--accent-coral)', fontWeight: 600 }}>
+              사이트맵
+            </Link>
           </p>
         </div>
       </footer>
