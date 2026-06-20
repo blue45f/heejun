@@ -29,7 +29,7 @@ export const FullResumePdfTemplate: React.FC = () => {
     lineHeight: 1.45,
   }
 
-  const sectionHeaderStyle = (_title: string): React.CSSProperties => ({
+  const sectionHeaderStyle = (): React.CSSProperties => ({
     fontSize: '1.05rem',
     fontWeight: 700,
     color: '#0f172a', // Slate 900
@@ -41,7 +41,7 @@ export const FullResumePdfTemplate: React.FC = () => {
     letterSpacing: '-0.01em',
   })
 
-  const footerStyle = (_pageNum?: number): React.CSSProperties => ({
+  const footerStyle = (): React.CSSProperties => ({
     fontSize: '0.65rem',
     color: '#94a3b8',
     display: 'flex',
@@ -136,7 +136,7 @@ export const FullResumePdfTemplate: React.FC = () => {
 
           {/* Key Competencies */}
           <section>
-            <div style={sectionHeaderStyle('핵심 역량')}></div>
+            <div style={sectionHeaderStyle()}></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {competencies.map((comp, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -165,7 +165,7 @@ export const FullResumePdfTemplate: React.FC = () => {
 
           {/* Technical Skills Overview */}
           <section>
-            <div style={sectionHeaderStyle('보유 기술 요약')}></div>
+            <div style={sectionHeaderStyle()}></div>
             <div
               style={{
                 display: 'flex',
@@ -194,7 +194,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         {/* Page Footer */}
-        <footer style={footerStyle(1)}>
+        <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
           <span style={{ fontWeight: 700 }}>Page 1 / 5</span>
         </footer>
@@ -203,7 +203,7 @@ export const FullResumePdfTemplate: React.FC = () => {
       {/* ==================== PAGE 2: Work Experience (Senior Positions) ==================== */}
       <div className="pdf-page" style={pageStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          <div style={sectionHeaderStyle('경력 사항 (시니어)')}></div>
+          <div style={sectionHeaderStyle()}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
             {/* 1. Jarvis & Villains */}
@@ -344,7 +344,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         {/* Page Footer */}
-        <footer style={footerStyle(2)}>
+        <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
           <span style={{ fontWeight: 700 }}>Page 2 / 5</span>
         </footer>
@@ -353,7 +353,7 @@ export const FullResumePdfTemplate: React.FC = () => {
       {/* ==================== PAGE 3: Work Experience (Mid-level) & Education & Leadership ==================== */}
       <div className="pdf-page" style={pageStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          <div style={sectionHeaderStyle('경력 사항 (기타) & 리더십 & 학력')}></div>
+          <div style={sectionHeaderStyle()}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
             {/* Mid-level Experiences (Flat list) */}
@@ -450,7 +450,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         {/* Page Footer */}
-        <footer style={footerStyle(3)}>
+        <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
           <span style={{ fontWeight: 700 }}>Page 3 / 5</span>
         </footer>
@@ -459,7 +459,7 @@ export const FullResumePdfTemplate: React.FC = () => {
       {/* ==================== PAGE 4: Project Ledger (Work Projects) ==================== */}
       <div className="pdf-page" style={pageStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          <div style={sectionHeaderStyle('실무 프로젝트 수행 이력')}></div>
+          <div style={sectionHeaderStyle()}></div>
 
           {/* Top 3 main projects detailed */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -567,7 +567,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         {/* Page Footer */}
-        <footer style={footerStyle(4)}>
+        <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
           <span style={{ fontWeight: 700 }}>Page 4 / 5</span>
         </footer>
@@ -578,7 +578,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           {/* Personal Projects Detail & List */}
           <section>
-            <div style={sectionHeaderStyle('개인 프로젝트 및 오픈소스')}></div>
+            <div style={sectionHeaderStyle()}></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               {personalProjects.slice(0, 2).map((proj, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
@@ -681,7 +681,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         {/* Page Footer */}
-        <footer style={footerStyle(5)}>
+        <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
           <span style={{ fontWeight: 700 }}>Page 5 / 5</span>
         </footer>

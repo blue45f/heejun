@@ -20,22 +20,25 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
+type Theme = 'light' | 'dark'
+
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light'
+
+  const saved = localStorage.getItem('theme')
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  return saved === 'dark' || (saved !== 'light' && systemPrefersDark) ? 'dark' : 'light'
+}
+
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const [isExporting, setIsExporting] = useState(false)
 
-  // Initialize theme from storage
   useEffect(() => {
-    const saved = localStorage.getItem('theme')
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const initialTheme =
-      saved === 'dark' || (saved !== 'light' && systemPrefersDark) ? 'dark' : 'light'
-
-    setTheme(initialTheme)
-    document.documentElement.setAttribute('data-theme', initialTheme)
-  }, [])
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
 
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light'
