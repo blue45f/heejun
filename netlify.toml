@@ -4,7 +4,7 @@
 
 [build]
   publish = "."
-  command = ""
+  command = "pnpm run build"
 
 [build.environment]
   NODE_VERSION = "24"
@@ -40,6 +40,14 @@
   from = "/project-snapshots/*"
   to = "/public/project-snapshots/:splat"
   status = 200
+
+# 해시된 빌드 asset이 누락되면 SPA fallback HTML을 JS/CSS로 반환하지 않고
+# 명확한 404를 반환한다. 기존 파일이 있으면 Netlify의 shadowing 규칙상
+# 정적 파일이 우선 서빙된다.
+[[redirects]]
+  from = "/assets/*"
+  to = "/404.html"
+  status = 404
 
 # SPA 클라이언트 사이드 라우팅 리다이렉트 폴백
 [[redirects]]

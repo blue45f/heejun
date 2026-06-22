@@ -30,3 +30,6 @@ dist/
 .claude/*.local.*
 .claude/_workspace/
 _workspace/
+
+# Netlify local cache/state
+.netlify/
