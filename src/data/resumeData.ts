@@ -696,8 +696,9 @@ export const resumeData: ResumeData = {
         '게이트(타입체크·테스트·빌드 통과)로 안전성을 확인한 뒤 스택형 PR로 단계적으로 반영해,',
         '설정·라이브러리·아키텍처 드리프트를 제거했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, ESLint 10 (flat config), Prettier 3, Tailwind CSS 4, Vite 8, tsup, Changesets, pnpm Workspaces',
+      infraConfig: 'npm registry (@heejun/*)',
       publishInfo: '',
       links: [
         { href: '/web-config-preset.html', text: 'Live Demo' },
@@ -723,8 +724,9 @@ export const resumeData: ResumeData = {
         '탑재하여 SQL 수준의 타입 안정성을 확보함과 동시에 SQLite 파일 기반의 가벼운 persistent',
         '스택을 운용합니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, React Hook Form, Radix UI, i18next, Storybook 10, NestJS 11, Prisma 7, Zod 4, React Compiler',
+      infraConfig: 'Vercel (frontend) + Render (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://promptmarket-web.vercel.app', text: 'Live Demo' },
@@ -748,8 +750,9 @@ export const resumeData: ResumeData = {
         'Render/Fly.io의 컨테이너 환경에서 운영되며, `/api/health` 헬스체크로 가동률을',
         '모니터링합니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Socket.IO, Radix UI, NestJS 11, Drizzle ORM, Firebase Auth, React Compiler',
+      infraConfig: 'Vercel (frontend) + Render (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://proto-live.vercel.app', text: 'Live Demo' },
@@ -772,8 +775,9 @@ export const resumeData: ResumeData = {
         '위험을 원천 차단하고 PR 병합 시 preview 격리 환경을 자동으로 생성하고 파괴하는',
         '수명주기(cleanup)를 구성했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Terraform (AWS), GitHub Actions OIDC, CloudFront, S3, Mermaid, React Compiler',
+      infraConfig: 'AWS S3 + CloudFront CDN + Terraform IaC + GitHub Actions OIDC WIF',
       publishInfo: '',
       links: [
         { href: 'https://multi-beta-guide.vercel.app/', text: 'Live Demo' },
@@ -795,8 +799,9 @@ export const resumeData: ResumeData = {
         'Serverless PostgreSQL을 도입하여 DB 인프라 운영 비용을 제로화하는 서버리스 최적화를',
         '완수했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Three.js (R3F), VRM/MediaPipe, Motion 12, Socket.IO, NestJS 11, Drizzle ORM, Neon PostgreSQL, Zod 4, React Compiler',
+      infraConfig: 'Vercel (frontend) + Render (backend API) + Neon Serverless PostgreSQL',
       publishInfo: '',
       links: [
         { href: 'https://webtoon-index.vercel.app', text: 'Live Demo' },
@@ -819,8 +824,9 @@ export const resumeData: ResumeData = {
         '유연히 대응합니다. WebRTC P2P 기반 화상 커피챗 기능은 1초 폴링 시그널링 큐를 통해',
         '별도의 서버 중계 비용 없이 운용됩니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Tiptap 3, Recharts, NestJS 11, Prisma 7, Anthropic AI (Claude), Sentry, i18next, Firebase Auth, React Compiler',
+      infraConfig: 'Vercel (frontend) + GCP (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://resume-gongbang.vercel.app/', text: 'Live Demo' },
@@ -841,8 +847,9 @@ export const resumeData: ResumeData = {
         '엔진으로 파일 입출력을 처리해 유지 비용을 극대화하여 절감했습니다. Docker Compose를',
         '구성해 web, api, mock 스토리지를 로컬에서 원클릭으로 구동할 수 있습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, React Hook Form, Radix UI, NestJS 11, Drizzle ORM, Firebase Auth, Zod 4, React Compiler',
+      infraConfig: 'Vercel (frontend) + Render (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://family-care-platform.vercel.app', text: 'Live Demo' },
@@ -864,8 +871,9 @@ export const resumeData: ResumeData = {
         '백엔드 내에 파일 스트림 읽기/쓰기를 직렬화하는 원자적 JSON 데이터 모듈(File-based',
         'State Storage)을 고안해 동시성 안전(Concurrency-safe) 처리를 완료했습니다.',
       ],
-      techStack: 'TypeScript, React, Zustand, NestJS, JSON File Locking, Debouncing Engine',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Motion 12, Socket.IO, Radix UI, Storybook 10, MSW, NestJS 11, Prisma 7, Passport JWT, React Compiler',
+      infraConfig: 'Vercel (frontend) + Render (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://rotifolk.vercel.app', text: 'Live Demo' },
@@ -888,8 +896,9 @@ export const resumeData: ResumeData = {
         '장착하고 백엔드 API 에러 응답(4xx/5xx)을 표준화하여 통일된 토스트 피드백으로 사용자',
         '경험을 보호합니다.',
       ],
-      techStack: 'TypeScript, React, Zustand, TanStack Query, Axios, NestJS Monolith',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, i18next, Storybook 10, Radix UI, NestJS 11, Drizzle ORM, Socket.IO, Firebase Auth, Zod 4, React Compiler, Toss 미니앱',
+      infraConfig: 'Vercel (frontend) + Render (backend API)',
       publishInfo: '',
       links: [
         { href: 'https://pettography.vercel.app', text: 'Live Demo' },
@@ -912,8 +921,9 @@ export const resumeData: ResumeData = {
         '클라이언트 사이드에서 즉각 문장/단어 수준으로 다차원 시각화해 주는 Diff 뷰어',
         '컴포넌트를 직접 내장했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, NestJS 11, SHA-256 Audit Trail, jsdiff, Zod 4',
+      infraConfig: 'Vercel (frontend) + DeskCloud Desk 통합',
       publishInfo: '',
       links: [
         { href: 'https://termsdesk.vercel.app', text: 'Live Demo' },
@@ -935,8 +945,9 @@ export const resumeData: ResumeData = {
         '타입 검증: 입력 양식의 단계별 무결성 검증을 위해 Zod 스키마 검증',
         '엔진을 통합하여 클라이언트 단계에서 불완전한 상태 전이를 엄격하게 방지합니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Three.js, Socket.IO, Radix UI, NestJS 11, Firebase Auth, Zod 4, React Compiler',
+      infraConfig: 'Vercel Serverless (API + Frontend)',
       publishInfo: '',
       links: [
         { href: 'https://quote-match.vercel.app', text: 'Live Demo' },
@@ -958,8 +969,9 @@ export const resumeData: ResumeData = {
         '쉐이킹(Tree Shaking) 효율을 극대화한 Dual-format(ESM/CJS) 컴포넌트 라이브러리를',
         '빌드합니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, React 18/19, Radix UI (14+ 프리미티브), Tailwind CSS 4, TanStack Table 8, Storybook 10, Vitest, CVA, Changesets, pnpm Monorepo',
+      infraConfig: 'Vercel (Storybook 데모)',
       publishInfo: '',
       links: [
         { href: 'https://orbit-ui-pink.vercel.app/', text: 'Demo' },
@@ -981,8 +993,9 @@ export const resumeData: ResumeData = {
         '위해 WebRTC Peer-to-Peer 시그널링 채널을 통과하는 경량 이미지/프레임 캡처 스트림 전송',
         '로직을 설계하고, 원격 세션 녹화 및 타임라인 재생(Playback) 엔진을 구현했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, NestJS 11, TypeORM, PostgreSQL, WebSockets, Stripe, AWS S3, Playwright, Sentry, Zod 4, PM2, Figma Plugin',
+      infraConfig: 'Vercel (frontend) + DeskCloud Desk 통합 + Render (standalone API)',
       publishInfo: '',
       links: [
         { href: 'https://remote-devtools.vercel.app/', text: 'Live Demo' },
@@ -1009,8 +1022,9 @@ export const resumeData: ResumeData = {
         '패키지(@heejun/spa-seo-gateway-core)로 분리하여 다수 서비스에 미들웨어 형태로 즉각',
         '통합될 수 있도록 고안했습니다.',
       ],
-      techStack: '',
-      infraConfig: '',
+      techStack:
+        'TypeScript 6, Fastify 5, Zod 4, Vitest 4, React (Admin UI), Storybook 10, Puppeteer, LRU Cache, pnpm Monorepo',
+      infraConfig: 'Vercel Serverless + DeskCloud Desk 통합 + npm (@heejun/spa-seo-gateway-core)',
       publishInfo: '',
       links: [
         { href: 'https://spa-seo-gateway.vercel.app', text: 'Live Demo' },
@@ -1018,6 +1032,131 @@ export const resumeData: ResumeData = {
         { href: 'https://www.npmjs.com/package/@heejun/spa-seo-gateway-core', text: 'npm' },
       ],
       image: '/public/project-snapshots/spa-seo-gateway.jpg',
+    },
+    {
+      title: 'DeskCloud · SaaS 플랫폼 모노레포',
+      period: 'Personal Project | Public repo: blue45f/deskcloud | npm: @heejun/deskcloud',
+      bullets: [
+        '17개 Desk 모듈을 하나의 코드베이스에서 통합 운영하는 멀티테넌트 SaaS 플랫폼입니다.',
+        '아키텍처 원리 (플러거블 Desk 아키텍처): platform/apps/web(React 19',
+        'SPA)과 platform/apps/api(NestJS 11 모놀리스)를 코어 플랫폼으로 두고, 독립적으로',
+        '개발·배포 가능한 17개 Desk 모듈(termsdesk, remote-devtools, seo-gateway,',
+        'aidigestdesk, chatdesk, authdesk, filedesk 등)을 desks/ 디렉터리에 플러그인 형태로',
+        '결합합니다. Turborepo 빌드 오케스트레이션으로 의존 그래프를 최적화합니다.',
+        '데이터 레이어 & 인프라: Drizzle ORM + Neon Serverless PostgreSQL로',
+        'Type-safe 쿼리와 서버리스 DB 오토스케일링을 동시에 확보하고, Firebase Auth로 멀티',
+        '테넌트 인증을 처리합니다. Sentry 통합 모니터링과 Swagger API 문서를 제공합니다.',
+        'SDK 발행: 외부 연동을 위한 @heejun/deskcloud npm SDK를 발행하여',
+        'DeskCloud API를 타입 안전하게 소비할 수 있는 공개 인터페이스를 제공합니다.',
+      ],
+      techStack:
+        'TypeScript, React 19, Vite 7, Tailwind CSS 4, Zustand 5, TanStack Query 5, Radix UI, NestJS 11, Drizzle ORM, Neon PostgreSQL, Firebase Auth, Sentry, Swagger, Turborepo',
+      infraConfig: 'Vercel (platform) + Docker Compose (self-hosted) + npm SDK (@heejun/deskcloud)',
+      publishInfo: '',
+      links: [
+        { href: 'https://desk-platform.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/deskcloud', text: 'GitHub' },
+        { href: 'https://www.npmjs.com/package/@heejun/deskcloud', text: 'npm' },
+      ],
+      image: '/public/project-snapshots/deskcloud.jpg',
+    },
+    {
+      title: 'AIDigestDesk · AI/LLM 큐레이션 포털',
+      period: 'Personal Project | Public repo: blue45f/aidigestdesk',
+      bullets: [
+        'GPT, Claude, Gemini, Grok, Manus 등 주요 상용 AI/LLM의 업데이트·벤치마크·기능',
+        '비교·사용법·강좌/도서 정보를 한국어로 큐레이션하는 포털입니다.',
+        '아키텍처 & 콘텐츠 엔진: pnpm workspace 기반 모노레포로 apps/web(React',
+        '19 SPA)과 packages/content(데이터·검색·감사 유틸 패키지)를 분리합니다. content',
+        '패키지는 tsup으로 빌드하여 모델 카탈로그, 벤치마크 데이터, 출처 메타데이터를 타입',
+        '안전하게 공급합니다.',
+        '운영 워크플로: 편집실(소스 모니터링 큐, 업데이트 후보 파이프라인, 품질',
+        '게이트), 모델 비용 계산기, 직군별 플레이북(개발자·PM·마케터·리서처), 주간 뉴스레터',
+        'Markdown 내보내기 등 운영 표면을 내장합니다.',
+        '데이터 검증: 공식 소스 스냅샷 크롤러로 원문 해시를 추적하고, 이벤트',
+        '스케줄 정합성 검증(중복·TECA 교차검증·날짜/상태 규칙)을 자동화합니다.',
+      ],
+      techStack:
+        'TypeScript, React 19, Vite 8, Tailwind CSS 4, Zustand 5, Recharts, Framer Motion, tsup, Playwright, Turborepo',
+      infraConfig: 'Vercel (production) + GitHub Pages (보조 정적 배포)',
+      publishInfo: '',
+      links: [
+        { href: 'https://aidigestdesk.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/aidigestdesk', text: 'GitHub' },
+      ],
+      image: '/public/project-snapshots/aidigestdesk.jpg',
+    },
+    {
+      title: 'Picky · 투표 SNS 플랫폼',
+      period: 'Personal Project | Public repo: blue45f/picky',
+      bullets: [
+        '까다로운 고민을 지인들에게 투표 링크로 빠르게 물어보는 투표 SNS 플랫폼입니다.',
+        '아키텍처 원리 (서버리스 풀스택): pnpm workspace 모노레포로',
+        'apps/web(React 19 SPA), apps/api(NestJS 11 — Vercel Serverless Functions 컴파일),',
+        'apps/toss(토스 앱 인 토스 미니앱), packages/shared(Zod 스키마)로 분리합니다. NestJS를',
+        'Vercel Serverless Functions로 컴파일하여 별도 서버 인프라 없이 API를 운영합니다.',
+        '데이터 & 스토리지: Drizzle ORM + Neon Serverless PostgreSQL로',
+        'Type-safe 쿼리를 작성하고, Vercel Blob으로 이미지를 저장하며, Vercel KV(Redis',
+        '호환)로 캐시/세션을 처리합니다. JWT 기반 인증을 구현했습니다.',
+        '슈퍼앱 연동: @apps-in-toss/web-framework 기반 토스 미니앱을 별도',
+        'apps/toss 패키지로 개발하여 토스 생태계 내 투표 공유를 지원합니다.',
+      ],
+      techStack:
+        'TypeScript, React 19, Vite 8, Radix UI, Zustand 5, NestJS 11, Drizzle ORM, Neon PostgreSQL, Vercel Blob, Vercel KV, JWT, Toss 미니앱',
+      infraConfig: 'Vercel Serverless (API + Frontend) + Neon PostgreSQL',
+      publishInfo: '',
+      links: [
+        { href: 'https://picky-olive.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/picky', text: 'GitHub' },
+      ],
+      image: '/public/project-snapshots/picky.jpg',
+    },
+    {
+      title: 'OffHours · 오프아워 공간 마켓플레이스',
+      period: 'Personal Project | Public repo: blue45f/offhours',
+      bullets: [
+        '카페·바·레스토랑의 비영업 시간(off-hours)을 파티·소모임·팝업 공간으로 중개하는',
+        '양면 마켓플레이스 플랫폼입니다.',
+        '아키텍처 원리 (양면 마켓 + 결제): pnpm workspace 모노레포로',
+        'apps/web(React 19 SPA), apps/api(NestJS 11 + Prisma 7), apps/toss(토스 미니앱),',
+        'packages/shared(Zod 스키마)를 분리합니다. 호스트 영업시간 기반 자동 슬롯 생성,',
+        '다이내믹 프라이싱(휴일 < 야간 < 주말 프리미엄), 클리닝 SLA 자동 매칭, BYOB/주류',
+        '정책 템플릿 등 마켓플레이스 핵심 로직을 구현했습니다.',
+        '인프라 & 결제: Prisma 7 + PostgreSQL로 데이터를 관리하고,',
+        '토스페이먼츠 결제 위젯 SDK를 연동했습니다. Docker Compose(Postgres + Redis)로',
+        '로컬 개발 환경을 구성하고, Playwright + MSW로 E2E 테스트를 수행합니다.',
+        '디자인 시스템: Radix UI 14개 이상의 프리미티브와 Embla Carousel을',
+        '결합한 "Quiet Luxury" 무드의 풀블리드 큐레이션 디자인 시스템을 구축했습니다.',
+      ],
+      techStack:
+        'TypeScript, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, Radix UI, Framer Motion, NestJS 11, Prisma 7, PostgreSQL, 토스페이먼츠, Toss 미니앱, Playwright, MSW',
+      infraConfig: 'Vercel (frontend) + Cloud Run (API) + Docker Compose (Postgres + Redis)',
+      publishInfo: '',
+      links: [
+        { href: 'https://offhours-nine.vercel.app', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/offhours', text: 'GitHub' },
+      ],
+      image: '/public/project-snapshots/offhours.jpg',
+    },
+    {
+      title: 'heejun.store · 프론트엔드 개발 가이드 & 포트폴리오',
+      period: 'Personal Project | Public repo: blue45f/heejun',
+      bullets: [
+        '프론트엔드 실무 아키텍처 의사결정 모델과 지식을 공유하는 정적 웹 기반 기술 가이드 및 포트폴리오 웹사이트입니다.',
+        '지식 지도 및 시각화: 29개의 심화 프론트엔드 개발 가이드(아키텍처, 성능, 테스팅 등)를 작성하고, 동작 방식 이해를 돕기 위한 300여 개의 Mermaid 다이어그램을 내장했습니다.',
+        '유지보수 및 검증: 변경된 가이드 문서의 유효성과 정합성을 체크하는 검증용 스크립트(validate-dev-guides, validate-recommendation-templates 등)를 자체 구축해 CI(verify)에 통합했습니다.',
+        '인쇄 및 내보내기: 화면 레이아웃 깨짐 없이 고품질 인쇄가 가능한 인쇄 전용 CSS 및 html2canvas + jspdf 기반 이력서 PDF 다운로드 기능을 탑재했습니다.',
+        '보안 튜닝: 정밀한 CSP(Content Security Policy)와 전역 보안 헤더(HSTS, X-Frame-Options 등)를 Netlify 배포 환경에 적용하여 정적 페이지 서빙 보안을 강화했습니다.',
+      ],
+      techStack:
+        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Framer Motion, html2canvas, jspdf, lucide-react, React Compiler, pnpm, Netlify',
+      infraConfig: 'Netlify (apex domain redirection + Custom Security Headers + HTTPS)',
+      publishInfo: '',
+      links: [
+        { href: 'https://heejun.store', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/heejun', text: 'GitHub' },
+      ],
+      image: '/public/project-snapshots/heejun.jpg',
     },
   ],
   leadership: [
@@ -1125,9 +1264,9 @@ export const resumeData: ResumeData = {
   ],
   activities: [
     '개인 프로젝트는 본문의 "개인 프로젝트" 섹션을 참고',
-    '(PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum, 이력서공방, Family Care Platform,',
-    'RotiFolk, Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools, SPA SEO',
-    'Gateway)',
+    '(web-config-preset, PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum, 이력서공방,',
+    'Family Care Platform, RotiFolk, Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools,',
+    'SPA SEO Gateway, DeskCloud, AIDigestDesk, Picky, OffHours, heejun.store)',
     'GitHub Study Group:',
     'https://github.com/develuv/study',
     '사내 디자인 시스템 TF 참여',
