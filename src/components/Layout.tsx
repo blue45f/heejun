@@ -257,7 +257,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <div className="max-width-container">
           <p>
-            © {new Date().getFullYear()} {resumeData.personalInfo.name}. All rights reserved.
+            © {new Date().getFullYear()} {resumeData.personalInfo.name} (Beta). All rights reserved.
           </p>
           <p style={{ marginTop: '4px' }}>
             Vite + React + TypeScript + Framer Motion 기반의 프리미엄 이력서 웹사이트

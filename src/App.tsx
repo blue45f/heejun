@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ParticleBackground } from './components/ParticleBackground'
+import { IntroSplashScreen } from './components/IntroSplashScreen'
 import { Home } from './pages/Home'
 import { Experience } from './pages/Experience'
 import { Projects } from './pages/Projects'
@@ -11,6 +12,7 @@ import { Design } from './pages/Design'
 function App() {
   return (
     <Router>
+      <IntroSplashScreen />
       <ParticleBackground />
       <Layout>
         <Routes>
