@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const TARGETS = [
   { slug: 'promptmarket', url: 'https://promptmarket-web.vercel.app' },
   { slug: 'proto-live', url: 'https://proto-live.vercel.app' },
-  // multi-beta-guide: Vercel deploy is gone (404, project deleted) — keep last good snapshot, omit from capture
+  { slug: 'multi-beta-guide', url: 'https://multi-beta-guide.vercel.app/' },
   { slug: 'toonspectrum', url: 'https://webtoon-index.vercel.app' },
   { slug: 'resume-gongbang', url: 'https://resume-gongbang.vercel.app/' },
   { slug: 'family-care-platform', url: 'https://family-care-platform.vercel.app' },
