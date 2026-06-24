@@ -779,7 +779,10 @@ export const resumeData: ResumeData = {
         'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Terraform (AWS), GitHub Actions OIDC, CloudFront, S3, Mermaid, React Compiler',
       infraConfig: 'AWS S3 + CloudFront CDN + Terraform IaC + GitHub Actions OIDC WIF',
       publishInfo: '',
-      links: [{ href: 'https://github.com/blue45f/multi-environment-setting', text: 'GitHub' }],
+      links: [
+        { href: 'https://multi-beta-guide.vercel.app/', text: 'Live Demo' },
+        { href: 'https://github.com/blue45f/multi-environment-setting', text: 'GitHub' },
+      ],
       image: '/public/project-snapshots/multi-beta-guide.jpg',
     },
     {
