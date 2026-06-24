@@ -5,13 +5,13 @@ import fs from 'node:fs';
 const TARGETS = [
   { slug: 'promptmarket', url: 'https://promptmarket-web.vercel.app' },
   { slug: 'proto-live', url: 'https://proto-live.vercel.app' },
-  { slug: 'multi-beta-guide', url: 'https://multi-beta-guide.vercel.app/' },
+  // multi-beta-guide: Vercel deploy is gone (404, project deleted) — keep last good snapshot, omit from capture
   { slug: 'toonspectrum', url: 'https://webtoon-index.vercel.app' },
   { slug: 'resume-gongbang', url: 'https://resume-gongbang.vercel.app/' },
   { slug: 'family-care-platform', url: 'https://family-care-platform.vercel.app' },
   { slug: 'rotifolk', url: 'https://rotifolk.vercel.app' },
   { slug: 'pettography', url: 'https://pettography.vercel.app' },
-  { slug: 'termsdesk', url: 'https://termsdesk.vercel.app' },
+  { slug: 'termsdesk', url: 'https://desk-platform.vercel.app/termsdesk/' },
   { slug: 'quote-match', url: 'https://quote-match.vercel.app' },
   { slug: 'orbit-ui', url: 'https://orbit-ui-pink.vercel.app/' },
   { slug: 'remote-devtools', url: 'https://remote-devtools.vercel.app/' },
@@ -29,7 +29,9 @@ async function capture() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  console.log('🚀 Starting snapshot capture...');
+  const only = (process.argv.find((a) => a.startsWith('--only=')) || '').split('=')[1];
+  const targets = only ? TARGETS.filter((t) => t.slug === only) : TARGETS;
+  console.log(`🚀 Starting snapshot capture${only ? ` (only: ${only})` : ''}...`);
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -38,7 +40,7 @@ async function capture() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
 
-  for (const target of TARGETS) {
+  for (const target of targets) {
     const outputPath = path.join(outputDir, `${target.slug}.jpg`);
     console.log(`\n📸 Capturing ${target.slug} from ${target.url}...`);
 
