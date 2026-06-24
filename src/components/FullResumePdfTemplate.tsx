@@ -52,6 +52,16 @@ export const FullResumePdfTemplate: React.FC = () => {
     marginTop: 'auto',
   })
 
+  const chunk = <T,>(arr: T[], size: number): T[][] => {
+    const out: T[][] = []
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+    return out
+  }
+  const PERSONAL_PER_PAGE = 4
+  const personalPages = chunk(personalProjects, PERSONAL_PER_PAGE)
+  // pages 1-3 (profile/experience) + 4 (work projects) + N personal gallery + 1 guides
+  const TOTAL_PAGES = 4 + personalPages.length + 1
+
   return (
     <div
       style={{ backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '20px' }}
@@ -196,7 +206,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         {/* Page Footer */}
         <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
-          <span style={{ fontWeight: 700 }}>Page 1 / 5</span>
+          <span style={{ fontWeight: 700 }}>Page 1 / {TOTAL_PAGES}</span>
         </footer>
       </div>
 
@@ -346,7 +356,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         {/* Page Footer */}
         <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
-          <span style={{ fontWeight: 700 }}>Page 2 / 5</span>
+          <span style={{ fontWeight: 700 }}>Page 2 / {TOTAL_PAGES}</span>
         </footer>
       </div>
 
@@ -452,7 +462,7 @@ export const FullResumePdfTemplate: React.FC = () => {
         {/* Page Footer */}
         <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
-          <span style={{ fontWeight: 700 }}>Page 3 / 5</span>
+          <span style={{ fontWeight: 700 }}>Page 3 / {TOTAL_PAGES}</span>
         </footer>
       </div>
 
@@ -569,121 +579,155 @@ export const FullResumePdfTemplate: React.FC = () => {
         {/* Page Footer */}
         <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
-          <span style={{ fontWeight: 700 }}>Page 4 / 5</span>
+          <span style={{ fontWeight: 700 }}>Page 4 / {TOTAL_PAGES}</span>
         </footer>
       </div>
 
-      {/* ==================== PAGE 5: Personal Projects & Guides List ==================== */}
-      <div className="pdf-page" style={pageStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          {/* Personal Projects Detail & List */}
-          <section>
-            <div style={sectionHeaderStyle()}></div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-              {personalProjects.slice(0, 2).map((proj, idx) => (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'baseline',
-                    }}
-                  >
-                    <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>
-                      ▪ {proj.title}
-                    </span>
-                    <span
-                      style={{ fontSize: '0.65rem', color: '#64748b', fontFamily: 'var(--mono)' }}
-                    >
-                      {proj.period}
-                    </span>
-                  </div>
-                  <ul
-                    style={{
-                      paddingLeft: '1.1rem',
-                      margin: '2px 0',
-                      fontSize: '0.675rem',
-                      color: '#475569',
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {proj.bullets.slice(0, 2).map((b, bIdx) => (
-                      <li key={bIdx}>{b}</li>
-                    ))}
-                  </ul>
-                  <div style={{ fontSize: '0.625rem', color: '#64748b', paddingLeft: '1.1rem' }}>
-                    <strong>Tech:</strong> {proj.techStack}
-                  </div>
-                </div>
-              ))}
-
-              {/* Compact table for remaining personal projects */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  fontSize: '0.625rem',
-                  color: '#475569',
-                  borderTop: '1px dashed #e2e8f0',
-                  paddingTop: '0.4rem',
-                  marginTop: '0.2rem',
-                }}
-              >
-                {personalProjects.slice(2).map((proj, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>• {proj.title}</span>
-                    <span style={{ color: '#64748b', fontFamily: 'var(--mono)' }}>
-                      {proj.period}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Developer Guide Books (31 Guides whole list) */}
-          <section
-            style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.8rem', marginTop: '0.2rem' }}
+      {/* ==================== PAGES 5..N: Personal Project Gallery (snapshots + detail) ==================== */}
+      {personalPages.map((group, pageIdx) => (
+        <div className="pdf-page" style={pageStyle} key={`pp-${pageIdx}`}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.9rem',
+              flex: 1,
+              minHeight: 0,
+            }}
           >
-            <div
-              style={{
-                fontSize: '0.825rem',
-                fontWeight: 700,
-                color: '#0f172a',
-                marginBottom: '0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              사내 기술 표준 개발 가이드북 이력 (31종 전체)
+            <div style={sectionHeaderStyle()}>
+              개인 프로젝트 · 오픈소스
+              {personalPages.length > 1 ? ` (${pageIdx + 1} / ${personalPages.length})` : ''}
             </div>
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '3px 12px',
-                fontSize: '0.6rem',
-                color: '#475569',
-                lineHeight: 1.3,
+                gridAutoRows: '1fr',
+                gap: '6mm 7mm',
+                flex: 1,
+                minHeight: 0,
               }}
             >
-              {guides.map((g, idx) => (
+              {group.map((proj, idx) => (
                 <div
                   key={idx}
-                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '7px',
+                    overflow: 'hidden',
+                  }}
                 >
-                  <strong style={{ color: '#0f172a', marginRight: '3px' }}>#{g.id}</strong> {g.name}
+                  {proj.image && (
+                    <img
+                      src={proj.image}
+                      alt={`${proj.title} 스냅샷`}
+                      style={{
+                        width: '100%',
+                        aspectRatio: '1280 / 800',
+                        objectFit: 'cover',
+                        objectPosition: 'top center',
+                        borderRadius: '4px',
+                        border: '1px solid #cbd5e1',
+                        display: 'block',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {proj.title}
+                  </div>
+                  <div style={{ fontSize: '0.56rem', color: '#64748b', fontFamily: 'var(--mono)' }}>
+                    {proj.period}
+                  </div>
+                  <ul
+                    style={{
+                      paddingLeft: '0.85rem',
+                      margin: '1px 0',
+                      fontSize: '0.6rem',
+                      color: '#475569',
+                      lineHeight: 1.32,
+                    }}
+                  >
+                    {proj.bullets.slice(0, 3).map((b, bIdx) => (
+                      <li key={bIdx}>{b}</li>
+                    ))}
+                  </ul>
+                  <div
+                    style={{
+                      fontSize: '0.55rem',
+                      color: '#64748b',
+                      marginTop: 'auto',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    <strong style={{ color: '#334155' }}>Tech:</strong> {proj.techStack}
+                  </div>
+                  {proj.links && proj.links.length > 0 && (
+                    <div style={{ fontSize: '0.55rem', color: '#2563eb', lineHeight: 1.3 }}>
+                      {proj.links.map((l, lIdx) => (
+                        <span key={lIdx}>
+                          {lIdx > 0 ? '  ·  ' : ''}
+                          {l.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </section>
+          </div>
+
+          <footer style={footerStyle()}>
+            <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+            <span style={{ fontWeight: 700 }}>
+              Page {4 + pageIdx + 1} / {TOTAL_PAGES}
+            </span>
+          </footer>
+        </div>
+      ))}
+
+      {/* ==================== LAST PAGE: Developer Guide Books ==================== */}
+      <div className="pdf-page" style={pageStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          <div style={sectionHeaderStyle()}>사내 기술 표준 개발 가이드북 이력 (31종 전체)</div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '4px 14px',
+              fontSize: '0.66rem',
+              color: '#475569',
+              lineHeight: 1.4,
+            }}
+          >
+            {guides.map((g, idx) => (
+              <div
+                key={idx}
+                style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                <strong style={{ color: '#0f172a', marginRight: '3px' }}>#{g.id}</strong> {g.name}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Page Footer */}
         <footer style={footerStyle()}>
           <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
-          <span style={{ fontWeight: 700 }}>Page 5 / 5</span>
+          <span style={{ fontWeight: 700 }}>
+            Page {TOTAL_PAGES} / {TOTAL_PAGES}
+          </span>
         </footer>
       </div>
     </div>

@@ -32,6 +32,20 @@ export const exportToPdf = async (containerId: string, filename: string = 'resum
   // Wait a bit for CSS transitions and styles to apply
   await new Promise((resolve) => setTimeout(resolve, 600))
 
+  // Ensure every snapshot image inside the pages is fully decoded before capture,
+  // otherwise html2canvas grabs them half-loaded and they render blank/broken in the PDF.
+  const images = Array.from(container.querySelectorAll('img'))
+  await Promise.all(
+    images.map((img) =>
+      img.complete && img.naturalWidth > 0
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            img.addEventListener('load', () => resolve(), { once: true })
+            img.addEventListener('error', () => resolve(), { once: true })
+          }),
+    ),
+  )
+
   try {
     const pdf = new jsPDF('p', 'mm', 'a4')
 
