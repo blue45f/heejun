@@ -15,7 +15,12 @@ const TARGETS = [
   { slug: 'quote-match', url: 'https://quote-match.vercel.app' },
   { slug: 'orbit-ui', url: 'https://orbit-ui-pink.vercel.app/' },
   { slug: 'remote-devtools', url: 'https://remote-devtools.vercel.app/' },
-  { slug: 'spa-seo-gateway', url: 'https://spa-seo-gateway.vercel.app' }
+  { slug: 'spa-seo-gateway', url: 'https://spa-seo-gateway.vercel.app' },
+  { slug: 'deskcloud', url: 'https://desk-platform.vercel.app' },
+  { slug: 'aidigestdesk', url: 'https://aidigestdesk.vercel.app' },
+  { slug: 'picky', url: 'https://picky-olive.vercel.app' },
+  { slug: 'offhours', url: 'https://offhours-nine.vercel.app' },
+  { slug: 'heejun', url: 'https://heejun.store' }
 ];
 
 async function capture() {
