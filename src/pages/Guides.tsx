@@ -23,8 +23,8 @@ export const Guides: React.FC = () => {
           Developer Guides
         </h1>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '500px' }}>
-          개발 표준 정립, 아키텍처 가이드라인, 인프라 운영체계 등 실무에서 직접 구축하고 전사 배포한
-          31종의 기술 가이드북입니다.
+          개발 표준, 아키텍처 가이드라인, 인프라 운영체계 등 18년 실무 경험을 바탕으로 개인적으로
+          정리하고 축적한 31종의 기술 가이드입니다.
         </p>
       </section>
 

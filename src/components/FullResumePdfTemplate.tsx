@@ -701,7 +701,7 @@ export const FullResumePdfTemplate: React.FC = () => {
       {/* ==================== LAST PAGE: Developer Guide Books ==================== */}
       <div className="pdf-page" style={pageStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          <div style={sectionHeaderStyle()}>사내 기술 표준 개발 가이드북 이력 (31종 전체)</div>
+          <div style={sectionHeaderStyle()}>직접 정리한 기술 개발 가이드북 (31종 전체)</div>
           <div
             style={{
               display: 'grid',
