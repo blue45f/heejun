@@ -199,19 +199,20 @@ export const resumeData: ResumeData = {
   ],
   experiences: [
     {
+      company: '에이치준랩스 | 대표 · 프론트엔드 아키텍처 컨설팅',
+      period: '2026.04 - 현재',
+      tasks: [
+        '에이치준랩스 설립 — 프론트엔드 아키텍처 설계 및 응용 SW 개발 컨설팅 사업 운영',
+        '18년 현업 경력 기반 프론트엔드 아키텍처·개발 표준 기술 컨설팅 제공',
+        '다수의 자체 웹 서비스·SaaS 제품 기획·개발·배포 (포트폴리오 참고)',
+      ],
+      achievements: [],
+      techStack: 'React, TypeScript, Next.js, NestJS, Vite, AWS, Vercel',
+    },
+    {
       company: '자비스앤빌런즈 | Tax그룹 FE 챕터 chapter lead',
       period: '2025.12.08 - 2026.02.24 (약 3개월)',
       tasks: ['삼쩜삼 서비스 운영 및 웹프론트엔드 고도화', '삼쩜삼 후결제 개편 프로젝트 참여'],
-      achievements: [],
-      techStack: '',
-    },
-    {
-      company: '개인사업자 창업 | 프론트엔드 프로젝트 수주/컨설팅',
-      period: '2026.04 - 현재',
-      tasks: [
-        '2025년 4월부터 개인사업자로 전환하여 프리랜서/창업 형태로 실무 컨설팅 및 프로젝트 수행',
-        '이력서 기반 프로젝트 및 기술 과제 기획·실행 지원',
-      ],
       achievements: [],
       techStack: '',
     },
