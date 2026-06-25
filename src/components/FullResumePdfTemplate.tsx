@@ -216,8 +216,8 @@ export const FullResumePdfTemplate: React.FC = () => {
           <div style={sectionHeaderStyle()}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            {/* 1. Jarvis & Villains */}
-            {experiences.slice(0, 1).map((exp, idx) => (
+            {/* Recent roles (compact): 에이치준랩스 (대표) + 자비스앤빌런즈 */}
+            {experiences.slice(0, 2).map((exp, idx) => (
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <div
                   style={{
@@ -248,8 +248,8 @@ export const FullResumePdfTemplate: React.FC = () => {
               </div>
             ))}
 
-            {/* 2. Woowahan Bros */}
-            {experiences.slice(1, 2).map((exp, idx) => (
+            {/* Flagship role (detailed): 우아한형제들 */}
+            {experiences.slice(2, 3).map((exp, idx) => (
               <div
                 key={idx}
                 style={{
@@ -366,9 +366,9 @@ export const FullResumePdfTemplate: React.FC = () => {
           <div style={sectionHeaderStyle()}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-            {/* Mid-level Experiences (Flat list) */}
+            {/* Mid-level experiences (flat list): 스마일게이트 · 엔씨 · 카카오 · 미래 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {experiences.slice(2, 6).map((exp, idx) => (
+              {experiences.slice(3, 7).map((exp, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                   <div
                     style={{
