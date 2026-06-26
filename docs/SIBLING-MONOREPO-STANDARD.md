@@ -107,6 +107,7 @@ shared  ←  client  ←  apps/{web,toss}
 - **`shared`** = "노드/브라우저 어디서나 도는 순수 로직". 백엔드도 쓴다. **표준 패키징 = raw-src 워크스페이스 레시피**(빌드 스텝 無): `package.json`의 main/module/types → `./src/index.ts`, `tsconfig moduleResolution: bundler`. 서브패스(`./server` 등)로 브라우저세이프/노드전용 분리. (레퍼런스: webtoon `@toonspectrum/core`. 현재 picky/rotifolk는 tsup 빌드 → raw-src 정렬은 선택사항, 강제 아님.)
 - **`client`** = "React가 필요하지만 디자인 시스템은 모르는" 코드. 웹(Tailwind)과 토스(TDS)가 **둘 다** 그대로 쓴다. 여기에 **뷰모델 훅**(데이터+상태+핸들러를 묶어 plain 객체로 반환)이 산다 → 이게 웹/토스 이원화 최소화의 핵심(§ 짝 문서).
 - 토스 `.ait` 번들러가 `workspace:*`를 못 풀므로, 토스는 `shared`/`client`를 **소스 경로 alias**로 참조(`packages/*/src`). picky의 `sync-toss-shared.mjs` + verify 게이트 패턴을 표준 채택.
+- **`PlatformBridge`(네이티브 능력)는 레포별 `client`에 두지 않고 공통 npm 패키지 [`@heejun/platform-bridge`](https://www.npmjs.com/package/@heejun/platform-bridge)로 외부화**(소스=`desk-platform/packages/platform-bridge`). `client`의 뷰모델 훅이 `usePlatform()`을 호출한다. 짝 문서 §4.
 
 레포별 현 위치 → 목표:
 

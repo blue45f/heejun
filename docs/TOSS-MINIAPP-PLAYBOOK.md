@@ -140,67 +140,46 @@ export default function PollDetailPage() {
 
 토스 네이티브 기능(`@apps-in-toss/web-framework`)은 웹에 없다. 코드 곳곳에서 `if (isToss)` 분기하지 말고 **단일 인터페이스 뒤로 숨긴다**.
 
-### `client`에 인터페이스 + 컨텍스트 정의 (공유)
+> **이건 직접 만들지 말고 공통 패키지 [`@heejun/platform-bridge`](https://www.npmjs.com/package/@heejun/platform-bridge)를 쓴다.** 소스=`desk-platform/packages/platform-bridge/`, 통합가이드=`desk-platform/docs/PLATFORM_BRIDGE_INTEGRATION.md`. `@heejun/deskcloud`와 동일하게 npm으로 배포되어 모든 형제 레포가 공통 소비한다. 인터페이스를 늘려야 하면 패키지를 고치고 minor 발행한다(레포마다 복제 금지).
 
-```ts
-// packages/client/src/platform/bridge.ts
-export interface PlatformBridge {
-  share(args: { url: string; text?: string }): Promise<void>
-  haptic(type: 'tick' | 'success' | 'error'): void
-  copyToClipboard(text: string): Promise<void>
-  getConsentedProfile(): Promise<ConsentedProfile | null> // 토스: 동의기반 / 웹: null
-  showAd?(slot: string): Promise<void> // 토스: 광고 / 웹: undefined
-  openExternal(url: string): void
-  getEntryRoute(): string | null // 토스: 딥링크 / 웹: URL
-}
-export const PlatformContext = createContext<PlatformBridge>(null!)
-export const usePlatform = () => useContext(PlatformContext)
-```
+패키지가 제공하는 것: `PlatformBridge` 인터페이스 · `PlatformContext` · `usePlatform()` · `webPlatformBridge`(웹 구현) · `copyTextToClipboard`, 그리고 `@heejun/platform-bridge/toss`의 `createTossPlatformBridge(options?)`(토스 구현, `@apps-in-toss/web-framework` optional peer).
 
-### 웹 구현 (`apps/web/src/platform/`)
-
-```ts
-export const webBridge: PlatformBridge = {
-  share: ({ url, text }) => navigator.share?.({ url, text }) ?? navigator.clipboard.writeText(url),
-  haptic: () => {}, // no-op
-  copyToClipboard: (t) => navigator.clipboard.writeText(t),
-  getConsentedProfile: async () => null,
-  openExternal: (u) => window.open(u, '_blank', 'noopener'),
-  getEntryRoute: () => null,
-  // showAd 생략 → 광고 없음
-}
-```
-
-### 토스 구현 (`apps/toss/src/platform/`)
-
-```ts
-import {
-  share,
-  generateHapticFeedback,
-  getClipboardText,
-  getConsentedUserData,
-} from '@apps-in-toss/web-framework'
-export const tossBridge: PlatformBridge = {
-  share: (a) => share({ message: `${a.text ?? ''} ${a.url}` }),
-  haptic: (t) => generateHapticFeedback({ type: t }),
-  copyToClipboard: writeClipboard,
-  getConsentedProfile: () => getConsentedUserData(['nickname']),
-  showAd: (slot) => showRewardedAd(slot),
-  openExternal: openInBrowser,
-  getEntryRoute: () => parseEntryRoute(),
-}
-```
-
-### 주입 — 각 앱 셸에서 한 번
+### 웹 앱 셸
 
 ```tsx
-// apps/web/src/app/App.tsx
-<PlatformContext.Provider value={webBridge}>…</PlatformContext.Provider>
-// apps/toss/src/app/App.tsx
-<PlatformContext.Provider value={tossBridge}>…</PlatformContext.Provider>
+import { PlatformContext, webPlatformBridge } from '@heejun/platform-bridge'
+;<PlatformContext.Provider value={webPlatformBridge}>
+  <App />
+</PlatformContext.Provider> // 웹은 추가 코드 0
 ```
 
-이후 모든 공유 코드(`client`)는 `usePlatform().share(...)`만 호출 → **네이티브 이원화가 브리지 한 파일로 격리**된다.
+### 토스 앱 셸
+
+```tsx
+import { PlatformContext } from '@heejun/platform-bridge'
+import { createTossPlatformBridge } from '@heejun/platform-bridge/toss'
+
+// 앱별 차이(음소거 연동·공유 문구)만 옵션으로 주입, 나머지는 표준.
+const bridge = createTossPlatformBridge({ hapticEnabled: () => !isSoundMuted() })
+
+;<TDSMobileAITProvider ...>
+  <PlatformContext.Provider value={bridge}>
+    <App />
+  </PlatformContext.Provider>
+</TDSMobileAITProvider>
+```
+
+### 공유 코드 / 뷰모델에서 사용
+
+```ts
+import { usePlatform } from '@heejun/platform-bridge'
+const platform = usePlatform()
+await platform.share({ title, text, url }) // 'shared' | 'copied' | 'dismissed' | 'unsupported'
+platform.haptic('confetti')
+platform.openExternal(url)
+```
+
+이후 모든 공유 코드는 `usePlatform()`만 호출 → **네이티브 이원화가 패키지 한 곳으로 격리**된다. `client`의 뷰모델 훅(§3)이 이 브리지를 호출하므로 웹/토스 뷰는 핸들러만 연결한다.
 
 ---
 
