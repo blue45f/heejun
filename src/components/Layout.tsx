@@ -126,6 +126,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 background: 'none',
                 border: 'none',
                 padding: '8px',
+                minWidth: '44px',
+                minHeight: '44px',
                 borderRadius: '50%',
                 cursor: 'pointer',
                 color: 'var(--text-primary)',
@@ -155,6 +157,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 background: 'none',
                 border: 'none',
                 padding: '8px',
+                minWidth: '44px',
+                minHeight: '44px',
                 borderRadius: '50%',
                 cursor: 'pointer',
                 color: 'var(--text-primary)',
@@ -164,6 +168,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               }}
               className="mobile-hamburger-btn"
               aria-label="메뉴 토글"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-nav-drawer"
             >
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -173,6 +179,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Mobile Navigation Drawer */}
         {menuOpen && (
           <div
+            id="mobile-nav-drawer"
             className="no-print"
             style={{
               position: 'absolute',
@@ -200,7 +207,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    padding: '8px 12px',
+                    padding: '11px 12px',
+                    minHeight: '44px',
                     borderRadius: 'var(--radius-sm)',
                     fontSize: '0.9rem',
                     color: isActive ? 'var(--accent-coral)' : 'var(--text-secondary)',

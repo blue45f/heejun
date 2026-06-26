@@ -268,7 +268,7 @@ export const Projects: React.FC = () => {
                     gap: '0.5rem',
                   }}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2" style={{ minWidth: 0 }}>
                     <span
                       style={{
                         display: 'inline-block',
@@ -297,6 +297,8 @@ export const Projects: React.FC = () => {
                   </div>
                   <span
                     style={{
+                      flexShrink: 0,
+                      maxWidth: '45%',
                       fontSize: '0.65rem',
                       fontWeight: 600,
                       color: 'var(--text-tertiary)',
@@ -304,7 +306,9 @@ export const Projects: React.FC = () => {
                       padding: '4px 8px',
                       borderRadius: '4px',
                       border: '1px solid var(--surface-glass-border)',
-                      whiteSpace: 'nowrap',
+                      textAlign: 'right',
+                      wordBreak: 'keep-all',
+                      lineHeight: 1.4,
                     }}
                   >
                     {project.period}
