@@ -1,11 +1,21 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { resumeData } from '../data/resumeData'
-import { Mail, Phone, Github, MapPin, Award, CheckCircle, ArrowRight, BookOpen } from 'lucide-react'
+import {
+  Mail,
+  Phone,
+  Github,
+  MapPin,
+  Award,
+  CheckCircle,
+  ArrowRight,
+  BookOpen,
+  MessageSquare,
+} from 'lucide-react'
 import { useMotionConfig, REVEAL_VIEWPORT } from '../lib/motion'
 
 export const Home: React.FC = () => {
-  const { personalInfo, competencies, selfIntroduction } = resumeData
+  const { personalInfo, competencies, selfIntroduction, interviewQnA } = resumeData
   const { container, item, itemLeft, reduced } = useMotionConfig()
 
   const getContactIcon = (type: string) => {
@@ -281,6 +291,58 @@ export const Home: React.FC = () => {
               <ArrowRight size={14} aria-hidden="true" />
             </a>
           </motion.div>
+
+          {/* Interview Q&A Panel */}
+          {interviewQnA && interviewQnA.length > 0 && (
+            <motion.div
+              variants={itemLeft}
+              className="glass-card"
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
+              <h2 className="section-heading" style={{ fontSize: '1.25rem' }}>
+                <span
+                  className="section-heading__chip"
+                  style={{
+                    backgroundColor: 'var(--accent-gold)',
+                    color: 'var(--accent-gold)',
+                    height: '1.25rem',
+                  }}
+                  aria-hidden="true"
+                />
+                <span>Interview Q&A</span>
+              </h2>
+              <div className="space-y-6">
+                {interviewQnA.map((qna, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <h3
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <MessageSquare size={16} className="text-[var(--accent-gold)]" />
+                      <span>{qna.question}</span>
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: '0.875rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.6,
+                        whiteSpace: 'pre-line',
+                        paddingLeft: '1.5rem',
+                        borderLeft: '2px solid var(--surface-glass-border)',
+                      }}
+                    >
+                      {qna.answer}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </motion.section>
       </div>
 
