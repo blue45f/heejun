@@ -10,6 +10,7 @@ import {
   Briefcase,
   Grid,
   BookOpen,
+  MessageSquare,
   Map,
 } from 'lucide-react'
 import { exportToPdf } from '../utils/exportPdf'
@@ -58,6 +59,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/experience', label: '경력', icon: Briefcase },
     { path: '/projects', label: '프로젝트', icon: Grid },
     { path: '/guides', label: '가이드', icon: BookOpen },
+    { path: '/interview', label: 'Q&A', icon: MessageSquare },
     { path: '/sitemap', label: '사이트맵', icon: Map },
   ]
 

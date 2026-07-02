@@ -273,76 +273,45 @@ export const Home: React.FC = () => {
             >
               {selfIntroduction}
             </p>
-            <a
-              href="/guides"
-              className="link-underline"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: 'var(--accent-cobalt)',
-                width: 'fit-content',
-              }}
-            >
-              <BookOpen size={15} aria-hidden="true" />
-              <span>개발 가이드 보기</span>
-              <ArrowRight size={14} aria-hidden="true" />
-            </a>
-          </motion.div>
-
-          {/* Interview Q&A Panel */}
-          {interviewQnA && interviewQnA.length > 0 && (
-            <motion.div
-              variants={itemLeft}
-              className="glass-card"
-              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-            >
-              <h2 className="section-heading" style={{ fontSize: '1.25rem' }}>
-                <span
-                  className="section-heading__chip"
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.25rem' }}>
+              <a
+                href="/guides"
+                className="link-underline"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--accent-cobalt)',
+                  width: 'fit-content',
+                }}
+              >
+                <BookOpen size={15} aria-hidden="true" />
+                <span>개발 가이드 보기</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </a>
+              {interviewQnA && interviewQnA.length > 0 && (
+                <a
+                  href="/interview"
+                  className="link-underline"
                   style={{
-                    backgroundColor: 'var(--accent-gold)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
                     color: 'var(--accent-gold)',
-                    height: '1.25rem',
+                    width: 'fit-content',
                   }}
-                  aria-hidden="true"
-                />
-                <span>Interview Q&A</span>
-              </h2>
-              <div className="space-y-6">
-                {interviewQnA.map((qna, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <h3
-                      style={{
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        gap: '0.5rem',
-                      }}
-                    >
-                      <MessageSquare size={16} className="text-[var(--accent-gold)]" />
-                      <span>{qna.question}</span>
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: '0.875rem',
-                        color: 'var(--text-secondary)',
-                        lineHeight: 1.6,
-                        whiteSpace: 'pre-line',
-                        paddingLeft: '1.5rem',
-                        borderLeft: '2px solid var(--surface-glass-border)',
-                      }}
-                    >
-                      {qna.answer}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
+                >
+                  <MessageSquare size={15} aria-hidden="true" />
+                  <span>Interview Q&A 보기 · {interviewQnA.length}문항</span>
+                  <ArrowRight size={14} aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          </motion.div>
         </motion.section>
       </div>
 

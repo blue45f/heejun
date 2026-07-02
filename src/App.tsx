@@ -6,6 +6,7 @@ import { Home } from './pages/Home'
 import { Experience } from './pages/Experience'
 import { Projects } from './pages/Projects'
 import { Guides } from './pages/Guides'
+import { InterviewQnA } from './pages/InterviewQnA'
 import { Sitemap } from './pages/Sitemap'
 import { Design } from './pages/Design'
 
@@ -20,6 +21,7 @@ function App() {
           <Route path="/experience" element={<Experience />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/guides" element={<Guides />} />
+          <Route path="/interview" element={<InterviewQnA />} />
           <Route path="/sitemap" element={<Sitemap />} />
           <Route path="/design" element={<Design />} />
         </Routes>

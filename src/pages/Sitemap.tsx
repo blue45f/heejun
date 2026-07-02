@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FileText, Briefcase, Grid, BookOpen, Palette } from 'lucide-react'
+import { FileText, Briefcase, Grid, BookOpen, MessageSquare, Palette } from 'lucide-react'
 
 const routes = [
   { path: '/', label: '소개', description: '프로필, 핵심 역량, 요약 이력', icon: FileText },
@@ -11,6 +11,12 @@ const routes = [
   },
   { path: '/projects', label: '프로젝트', description: '주요 포트폴리오와 기술 스택', icon: Grid },
   { path: '/guides', label: '가이드', description: '개발·협업·운영 기준 문서', icon: BookOpen },
+  {
+    path: '/interview',
+    label: 'Interview Q&A',
+    description: '기술 면접 핵심 질문과 답변',
+    icon: MessageSquare,
+  },
   {
     path: '/design',
     label: '디자인 시스템',
