@@ -203,12 +203,12 @@ export const resumeData: ResumeData = {
   ],
   experiences: [
     {
-      company: '에이치준랩스 | 대표 · 프론트엔드 아키텍처 컨설팅',
+      company: '에이치준랩스 | 1인 개발 창업',
       period: '2026.04 - 현재',
       tasks: [
-        '에이치준랩스 설립 — 프론트엔드 아키텍처 설계 및 응용 SW 개발 컨설팅 사업 운영',
-        '18년 현업 경력 기반 프론트엔드 아키텍처·개발 표준 기술 컨설팅 제공',
-        '다수의 자체 웹 서비스·SaaS 제품 기획·개발·배포 (포트폴리오 참고)',
+        '18년 현업 경력 기반 프론트엔드 아키텍처 설계·개발 표준 기술 컨설팅 수행',
+        'React 19 · Vite · NestJS 최신 스택으로 19개 웹 서비스·SaaS 기획·개발·배포 (포트폴리오 참고)',
+        '토스 앱인토스 미니앱 다수 정식 출시 등 신규 플랫폼 대응 역량 확보',
       ],
       achievements: [],
       techStack: 'React, TypeScript, Next.js, NestJS, Vite, AWS, Vercel',
