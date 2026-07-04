@@ -26,6 +26,7 @@ export interface Experience {
   tasks: string[]
   achievements: Achievement[]
   techStack: string
+  note?: string
 }
 
 export interface Education {
@@ -203,22 +204,12 @@ export const resumeData: ResumeData = {
   ],
   experiences: [
     {
-      company: '에이치준랩스 | 1인 개발 창업',
-      period: '2026.04 - 현재',
-      tasks: [
-        '18년 현업 경력 기반 프론트엔드 아키텍처 설계·개발 표준 기술 컨설팅 수행',
-        'React 19 · Vite · NestJS 최신 스택으로 19개 웹 서비스·SaaS 기획·개발·배포 (포트폴리오 참고)',
-        '토스 앱인토스 미니앱 다수 정식 출시 등 신규 플랫폼 대응 역량 확보',
-      ],
-      achievements: [],
-      techStack: 'React, TypeScript, Next.js, NestJS, Vite, AWS, Vercel',
-    },
-    {
       company: '자비스앤빌런즈 | Tax그룹 FE 챕터 chapter lead',
       period: '2025.12.08 - 2026.02.24 (약 3개월)',
       tasks: ['삼쩜삼 서비스 운영 및 웹프론트엔드 고도화', '삼쩜삼 후결제 개편 프로젝트 참여'],
       achievements: [],
       techStack: '',
+      note: '모친 대수술 후 갑작스러운 건강 악화로 간병을 위해 부득이하게 조기 퇴사',
     },
     {
       company: '우아한형제들 | 주문웹프론트개발팀',

@@ -177,6 +177,22 @@ export const Experience: React.FC = () => {
                   </div>
                 )}
 
+                {/* Resignation / gap note */}
+                {exp.note && (
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      fontStyle: 'italic',
+                      lineHeight: 1.5,
+                      paddingLeft: '10px',
+                      borderLeft: '2px solid var(--line-soft)',
+                    }}
+                  >
+                    ※ {exp.note}
+                  </div>
+                )}
+
                 {/* Key Achievements */}
                 {exp.achievements.length > 0 && (
                   <div className="space-y-3">
