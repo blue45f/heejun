@@ -30,7 +30,7 @@
 - 보안 헤더와 **Content-Security-Policy**는 `netlify.toml`의 `[[headers]]`에 정의됩니다.
   CSP는 `index.html`이 실제로 쓰는 출처만 허용합니다(스크립트: cdnjs·unpkg, 스타일·폰트: jsdelivr).
 - **새 외부 자원(CDN/폰트/스크립트)을 `index.html`에 추가하면 `netlify.toml`의 CSP directive를 반드시 함께 갱신**합니다. 누락 시 브라우저가 해당 자원을 차단합니다.
-- 배포 후 헤더 검증: `curl -sI https://heejun.store | grep -i content-security-policy`
+- 배포 후 헤더 검증: `curl -sI https://heejun.cloud | grep -i content-security-policy`
 
 ## PR 체크리스트
 

@@ -7,7 +7,7 @@ brand
 ## Users
 
 Recruiters, hiring managers, and technical interviewers (primarily at Korean tech
-companies — see the interview Q&A content referencing NHN Link, 우아한형제들)
+companies — see the interview Q&A content referencing 우아한형제들)
 evaluating a senior/staff-level frontend engineer. They skim quickly, often on
 mobile, deciding whether to advance the candidate. Secondarily, the site owner
 himself uses it to review and rehearse his own interview answers before a
@@ -15,7 +15,7 @@ real interview.
 
 ## Product Purpose
 
-A living resume/portfolio (heejun.store) that simultaneously (1) documents 18
+A living resume/portfolio (heejun.cloud) that simultaneously (1) documents 18
 years of frontend architecture experience — career history, quantified
 achievements, personal projects — and (2) functions as a proof-of-work: the
 page's own production quality is evidence of the candidate's frontend craft.

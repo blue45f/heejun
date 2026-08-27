@@ -9,23 +9,49 @@
 [build.environment]
   NODE_VERSION = "24"
 
-# www → apex 도메인으로 통일 (301 영구 리다이렉트)
+# 기존 도메인 → 새 기본 도메인으로 통일 (301 영구 리다이렉트)
+# heejun.store가 DNS에서 해제되기 전까지 기존 링크와 검색 유입을 보존한다.
+[[redirects]]
+  from = "https://heejun.store/*"
+  to = "https://heejun.cloud/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "https://www.heejun.store/*"
-  to = "https://heejun.store/:splat"
+  to = "https://heejun.cloud/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://heejun.store/*"
+  to = "https://heejun.cloud/:splat"
   status = 301
   force = true
 
 [[redirects]]
   from = "http://www.heejun.store/*"
-  to = "https://heejun.store/:splat"
+  to = "https://heejun.cloud/:splat"
+  status = 301
+  force = true
+
+# www → apex 도메인으로 통일 (301 영구 리다이렉트)
+[[redirects]]
+  from = "https://www.heejun.cloud/*"
+  to = "https://heejun.cloud/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.heejun.cloud/*"
+  to = "https://heejun.cloud/:splat"
   status = 301
   force = true
 
 # HTTP → HTTPS 강제
 [[redirects]]
-  from = "http://heejun.store/*"
-  to = "https://heejun.store/:splat"
+  from = "http://heejun.cloud/*"
+  to = "https://heejun.cloud/:splat"
   status = 301
   force = true
 

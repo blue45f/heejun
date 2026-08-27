@@ -155,6 +155,11 @@ export const resumeData: ResumeData = {
         type: 'location',
         label: '1981년 · 서울 송파구 방이동',
       },
+      {
+        type: 'website',
+        label: 'heejun.cloud',
+        href: 'https://heejun.cloud/',
+      },
     ],
   },
   competencies: [
@@ -815,7 +820,7 @@ export const resumeData: ResumeData = {
       infraConfig: 'Vercel (frontend) + Render (backend API) + Neon Serverless PostgreSQL',
       publishInfo: '',
       links: [
-        { href: 'https://toonspectrum.vercel.app/', text: 'Live Demo' },
+        { href: 'https://www.toonstudio.cloud/studio', text: 'Live Demo' },
         { href: 'intoss://toonspectrum', text: 'Toss 미니앱' },
         { href: 'https://github.com/blue45f/toonspectrum', text: 'GitHub' },
       ],
@@ -1163,7 +1168,7 @@ export const resumeData: ResumeData = {
       image: '/public/project-snapshots/offhours.jpg',
     },
     {
-      title: 'heejun.store · 프론트엔드 개발 가이드 & 포트폴리오',
+      title: 'heejun.cloud · 프론트엔드 개발 가이드 & 포트폴리오',
       period: 'Personal Project | Public repo: blue45f/heejun',
       bullets: [
         '프론트엔드 실무 아키텍처 의사결정 모델과 지식을 공유하는 정적 웹 기반 기술 가이드 및 포트폴리오 웹사이트입니다.',
@@ -1177,7 +1182,7 @@ export const resumeData: ResumeData = {
       infraConfig: 'Netlify (apex domain redirection + Custom Security Headers + HTTPS)',
       publishInfo: '',
       links: [
-        { href: 'https://heejun.store', text: 'Live Demo' },
+        { href: 'https://heejun.cloud/', text: 'Live Demo' },
         { href: 'https://github.com/blue45f/heejun', text: 'GitHub' },
       ],
       image: '/public/project-snapshots/heejun.jpg',
@@ -1290,7 +1295,7 @@ export const resumeData: ResumeData = {
     '개인 프로젝트는 본문의 "개인 프로젝트" 섹션을 참고',
     '(web-config-preset, PromptMarket, ProtoLive, Multi-env Lab, ToonSpectrum, 이력서공방,',
     'Family Care Platform, RotiFolk, Pettography, TermsDesk, Quote Match, Orbit UI, Remote DevTools,',
-    'SPA SEO Gateway, DeskCloud, AIDigestDesk, Picky, OffHours, heejun.store)',
+    'SPA SEO Gateway, DeskCloud, AIDigestDesk, Picky, OffHours, heejun.cloud)',
     'GitHub Study Group:',
     'https://github.com/develuv/study',
     '사내 디자인 시스템 TF 참여',
@@ -1311,7 +1316,7 @@ export const resumeData: ResumeData = {
 
 우아한형제들(배달의민족)에서 주문/결제 및 장바구니 서비스의 핵심 아키텍처를 설계하고 구현하며, 레거시 시스템을 React 기반의 모던 스택으로 성공적으로 전환했습니다. 이 과정에서 JavaScript 번들 크기를 70% 감소시키고 성능을 30% 개선하는 등 수치로 증명되는 성과를 거두었습니다. 또한, 국내 최초 애플페이 결제 연동 프로젝트를 성공적으로 리딩하며 기술적 도전 과제를 비즈니스 혁신으로 연결한 경험이 있습니다.
 
-저의 강점은 '기술적 탁월함'과 '조직적 기여'의 조화입니다. 전사 웹 표준 개발 환경 RFC 프로세스에 핵심 참여자로 활동하며 스캐폴딩 및 개발 패턴 표준화를 주도했고, Vitest 기반의 테스팅 인프라를 구축하여 품질 중심의 개발 문화를 정착시켰습니다. NHN Link에서도 이러한 시니어로서의 전문성과 리더십을 바탕으로, 사용자에게는 최고의 경험을, 동료들에게는 신뢰할 수 있는 기술적 이정표를 제시하고 싶습니다.`,
+저의 강점은 '기술적 탁월함'과 '조직적 기여'의 조화입니다. 전사 웹 표준 개발 환경 RFC 프로세스에 핵심 참여자로 활동하며 스캐폴딩 및 개발 패턴 표준화를 주도했고, Vitest 기반의 테스팅 인프라를 구축하여 품질 중심의 개발 문화를 정착시켰습니다. 토스에서도 이러한 시니어로서의 전문성과 리더십을 바탕으로, 사용자에게는 최고의 경험을, 동료들에게는 신뢰할 수 있는 기술적 이정표를 제시하고 싶습니다.`,
     },
     {
       question: '지금까지 힘들었던 프로젝트(개발 경험)와 그 이슈를 어떻게 해결했는지 기술하시오.',
@@ -1321,7 +1326,7 @@ export const resumeData: ResumeData = {
 
 저는 즉시 로그 분석과 네트워크 트래픽 모니터링을 병행하여, 신규 도입된 서버리스 아키텍처와 기존 레거시 API 간의 데이터 규격 불일치로 인한 병목 현상을 발견했습니다. 이를 해결하기 위해 긴급 핫픽스를 통해 데이터 변환 레이어를 추가하고, 향후 동일한 문제가 발생하지 않도록 '장애 포카요케(Poka-yoke)' 시스템을 2건 구축했습니다. 이 시스템은 배포 전 단계에서 API 규격 검증을 자동화하고, 이상 징후 발생 시 즉시 롤백을 수행하는 프로세스를 포함합니다.
 
-이 경험을 통해 기술적 위기 상황에서의 침착한 대응 능력뿐만 아니라, 장애를 시스템적으로 예방하는 구조적 해결책의 중요성을 깊이 깨달았습니다. NHN Link의 서비스에서도 이러한 안정성 중심의 개발 철학을 바탕으로 무중단 서비스를 실현하겠습니다.`,
+이 경험을 통해 기술적 위기 상황에서의 침착한 대응 능력뿐만 아니라, 장애를 시스템적으로 예방하는 구조적 해결책의 중요성을 깊이 깨달았습니다. 토스에서도 이러한 안정성 중심의 개발 철학을 바탕으로 신뢰할 수 있는 서비스를 만드는 데 기여하겠습니다.`,
     },
     {
       question: '대표적인 프로젝트 세 가지를 구체적으로 설명해 주세요.',

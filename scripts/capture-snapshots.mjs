@@ -6,7 +6,7 @@ const TARGETS = [
   { slug: 'promptmarket', url: 'https://promptmarket-web.vercel.app' },
   { slug: 'proto-live', url: 'https://proto-live.vercel.app' },
   { slug: 'multi-beta-guide', url: 'https://multi-beta-guide.vercel.app/' },
-  { slug: 'toonspectrum', url: 'https://webtoon-index.vercel.app' },
+  { slug: 'toonspectrum', url: 'https://www.toonstudio.cloud/studio' },
   { slug: 'resume-gongbang', url: 'https://resume-gongbang.vercel.app/' },
   { slug: 'family-care-platform', url: 'https://family-care-platform.vercel.app' },
   { slug: 'rotifolk', url: 'https://rotifolk.vercel.app' },
@@ -20,7 +20,7 @@ const TARGETS = [
   { slug: 'aidigestdesk', url: 'https://aidigestdesk.vercel.app' },
   { slug: 'picky', url: 'https://picky-olive.vercel.app' },
   { slug: 'offhours', url: 'https://offhours-nine.vercel.app' },
-  { slug: 'heejun', url: 'https://heejun.store' }
+  { slug: 'heejun', url: 'https://heejun.cloud/' }
 ];
 
 async function capture() {

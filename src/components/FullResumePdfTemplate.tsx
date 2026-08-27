@@ -13,6 +13,10 @@ export const FullResumePdfTemplate: React.FC = () => {
     leadership,
   } = resumeData
 
+  const portfolioUrl =
+    personalInfo.contact.find((contact) => contact.type === 'website')?.href?.replace(/\/$/, '') ??
+    'https://heejun.cloud'
+
   // Common A4 Page Styles - Clean minimalist print theme
   const pageStyle: React.CSSProperties = {
     width: '210mm',
@@ -110,9 +114,7 @@ export const FullResumePdfTemplate: React.FC = () => {
               <span>|</span>
               <span>🔗 {personalInfo.contact[2].label}</span>
               <span>|</span>
-              <span style={{ fontWeight: 700, color: '#1e3a8a' }}>
-                🌐 웹사이트: https://heejun.store
-              </span>
+              <span style={{ fontWeight: 700, color: '#1e3a8a' }}>🌐 웹사이트: {portfolioUrl}</span>
               <span>|</span>
               <span>📍 {personalInfo.contact[4].label}</span>
             </div>
@@ -205,7 +207,9 @@ export const FullResumePdfTemplate: React.FC = () => {
 
         {/* Page Footer */}
         <footer style={footerStyle()}>
-          <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+          <span>
+            웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+          </span>
           <span style={{ fontWeight: 700 }}>Page 1 / {TOTAL_PAGES}</span>
         </footer>
       </div>
@@ -368,7 +372,9 @@ export const FullResumePdfTemplate: React.FC = () => {
 
         {/* Page Footer */}
         <footer style={footerStyle()}>
-          <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+          <span>
+            웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+          </span>
           <span style={{ fontWeight: 700 }}>Page 2 / {TOTAL_PAGES}</span>
         </footer>
       </div>
@@ -379,9 +385,9 @@ export const FullResumePdfTemplate: React.FC = () => {
           <div style={sectionHeaderStyle()}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-            {/* Mid-level experiences (flat list): 스마일게이트 · 엔씨 · 카카오 · 미래 */}
+            {/* Earlier experiences (flat list): render every role not covered on page 2 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {experiences.slice(2, 6).map((exp, idx) => (
+              {experiences.slice(2).map((exp, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                   <div
                     style={{
@@ -464,7 +470,7 @@ export const FullResumePdfTemplate: React.FC = () => {
                   lineHeight: 1.45,
                 }}
               >
-                <li>충북대학교 컴퓨터공학과 학사 졸업 (2000.03 - 2007.02)</li>
+                <li>대진대학교 공과대학 컴퓨터공학과 학사 졸업 (1999.03 - 2007.02)</li>
                 <li>정보처리기사 취득 (한국산업인력공단, 2006.06)</li>
                 <li>SCJP (Sun Certified Java Programmer) 자격 취득</li>
               </ul>
@@ -474,7 +480,9 @@ export const FullResumePdfTemplate: React.FC = () => {
 
         {/* Page Footer */}
         <footer style={footerStyle()}>
-          <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+          <span>
+            웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+          </span>
           <span style={{ fontWeight: 700 }}>Page 3 / {TOTAL_PAGES}</span>
         </footer>
       </div>
@@ -591,7 +599,9 @@ export const FullResumePdfTemplate: React.FC = () => {
 
         {/* Page Footer */}
         <footer style={footerStyle()}>
-          <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+          <span>
+            웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+          </span>
           <span style={{ fontWeight: 700 }}>Page 4 / {TOTAL_PAGES}</span>
         </footer>
       </div>
@@ -703,7 +713,9 @@ export const FullResumePdfTemplate: React.FC = () => {
           </div>
 
           <footer style={footerStyle()}>
-            <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+            <span>
+              웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+            </span>
             <span style={{ fontWeight: 700 }}>
               Page {4 + pageIdx + 1} / {TOTAL_PAGES}
             </span>
@@ -737,7 +749,9 @@ export const FullResumePdfTemplate: React.FC = () => {
         </div>
 
         <footer style={footerStyle()}>
-          <span>웹사이트: https://heejun.store | 이력서 - {personalInfo.name}</span>
+          <span>
+            웹사이트: {portfolioUrl} | 이력서 - {personalInfo.name}
+          </span>
           <span style={{ fontWeight: 700 }}>
             Page {TOTAL_PAGES} / {TOTAL_PAGES}
           </span>

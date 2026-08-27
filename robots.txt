@@ -1,4 +1,4 @@
-# robots.txt — heejun.store
+# robots.txt — heejun.cloud
 # 정적 사이트(index.html + public/). 공개 가이드/참고자료만 크롤링 허용하고
 # 개인정보(PII)가 담긴 경로(경력증명서/연봉/자격증/졸업증명서/급여)는 차단한다.
 
@@ -17,4 +17,4 @@ Disallow: /public/연봉 협의/
 Disallow: /public/자격증/
 Disallow: /public/졸업증명서/
 
-Sitemap: https://heejun.store/sitemap.xml
+Sitemap: https://heejun.cloud/sitemap.xml
