@@ -700,7 +700,6 @@ body.pdf-rendering {
 
 body.pdf-rendering .canvas-bg,
 body.pdf-rendering nav,
-body.pdf-rendering footer,
 body.pdf-rendering button,
 body.pdf-rendering .no-print,
 body.pdf-rendering .search-tabs-row,
@@ -781,4 +780,3 @@ body.pdf-rendering .pdf-page * {
   -webkit-print-color-adjust: exact !important;
   text-shadow: none !important;
 }
-

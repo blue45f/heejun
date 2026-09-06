@@ -15,7 +15,7 @@
 
 | 티어           | 내용                                        | 호스팅                       |
 | -------------- | ------------------------------------------- | ---------------------------- |
-| Frontend(정적) | `index.html` + `public/**` (문서·증빙 자산) | **Netlify** (`heejun.store`) |
+| Frontend(정적) | `index.html` + `public/**` (문서·증빙 자산) | **Netlify** (`heejun.cloud`) |
 | Backend(API)   | **없음** — 서버/DB/런타임 없음              | 해당 없음                    |
 
 - 페이지는 손으로 작성한 단일 `index.html`이며, 외부 자원은 CDN에서만 로드합니다:
@@ -30,7 +30,7 @@ flowchart LR
   Dev["개발자"] -->|"main push"| GH["GitHub"]
   GH -->|"deploy-netlify.yml"| NF["Netlify (prod)"]
   GH -.->|"PR (Netlify 연동 시)"| Preview["Deploy Preview"]
-  NF -->|"heejun.store"| User["방문자"]
+  NF -->|"heejun.cloud"| User["방문자"]
   User -.->|"폰트/PDF lib"| CDN["jsdelivr · cdnjs · unpkg"]
 ```
 
@@ -109,7 +109,7 @@ pnpm run verify     # 배포 전 전체 게이트(아키텍처+검증기)
 
 | 구분     | 트리거                                   | 명령/효과                                          |
 | -------- | ---------------------------------------- | -------------------------------------------------- |
-| 프로덕션 | `main` push(콘텐츠 경로) · 수동 dispatch | `netlify deploy --prod --dir "."` → `heejun.store` |
+| 프로덕션 | `main` push(콘텐츠 경로) · 수동 dispatch | `netlify deploy --prod --dir "."` → `heejun.cloud` |
 | 프리뷰   | PR (Netlify Git 연동을 켠 경우)          | Netlify가 PR별 Deploy Preview URL 생성             |
 
 - 현재 GitHub Action은 **프로덕션 배포만** 수행합니다(`--prod`). PR 프리뷰는
@@ -127,12 +127,12 @@ CI 배포 스텝은 시크릿이 없으면 스킵되므로, 최초 1회는 수�
    - 연동형이면 `netlify.toml`의 `publish="."`·`command`가 자동 적용됩니다.
 2. **GitHub Secrets 등록**: 저장소 Settings → Secrets and variables → Actions →
    `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID` 추가. (등록 전까지 Action 배포는 스킵)
-3. **커스텀 도메인 / DNS**: Netlify에서 `heejun.store` 도메인 추가 후, 도메인
+3. **커스텀 도메인 / DNS**: Netlify에서 `heejun.cloud` 도메인 추가 후, 도메인
    레지스트라(가비아)에서 A 레코드를 `75.2.60.5`로, `www`는 `<site>.netlify.app`
    CNAME으로 지정. Let's Encrypt 인증서는 Netlify가 자동 발급합니다.
    - 점검: `bash scripts/check-dns-ssl.sh`
 4. **검증 루틴**: `workflow_dispatch`로 배포 실행 → 최근 실행에서 `Deploy production
-site` 스텝이 `skipped`가 아닌 `success`인지 확인 → `https://heejun.store` 로드 확인.
+site` 스텝이 `skipped`가 아닌 `success`인지 확인 → `https://heejun.cloud` 로드 확인.
 
 ---
 
@@ -159,5 +159,5 @@ CSP는 `index.html`이 실제로 사용하는 출처만 허용하도록 좁게 �
 배포 후 헤더 확인:
 
 ```bash
-curl -sI https://heejun.store | grep -i 'content-security-policy\|strict-transport'
+curl -sI https://heejun.cloud | grep -i 'content-security-policy\|strict-transport'
 ```

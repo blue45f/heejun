@@ -11,6 +11,7 @@ import {
   ArrowRight,
   BookOpen,
   MessageSquare,
+  Globe,
 } from 'lucide-react'
 import { useMotionConfig, REVEAL_VIEWPORT } from '../lib/motion'
 
@@ -28,6 +29,8 @@ export const Home: React.FC = () => {
         return <Github size={16} className="text-[var(--accent-cobalt)]" aria-hidden="true" />
       case 'location':
         return <MapPin size={16} className="text-[var(--accent-mint)]" aria-hidden="true" />
+      case 'website':
+        return <Globe size={16} className="text-[var(--accent-coral)]" aria-hidden="true" />
       default:
         return <Award size={16} className="text-[var(--text-tertiary)]" aria-hidden="true" />
     }
@@ -229,7 +232,11 @@ export const Home: React.FC = () => {
                   {c.href ? (
                     <a
                       href={c.href}
-                      target={c.type === 'github' || c.type === 'study' ? '_blank' : undefined}
+                      target={
+                        c.type === 'github' || c.type === 'study' || c.type === 'website'
+                          ? '_blank'
+                          : undefined
+                      }
                       rel="noopener noreferrer"
                       className="link-underline"
                       style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}

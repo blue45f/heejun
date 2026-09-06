@@ -36,14 +36,25 @@ export const exportToPdf = async (containerId: string, filename: string = 'resum
   // otherwise html2canvas grabs them half-loaded and they render blank/broken in the PDF.
   const images = Array.from(container.querySelectorAll('img'))
   await Promise.all(
-    images.map((img) =>
-      img.complete && img.naturalWidth > 0
-        ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-            img.addEventListener('load', () => resolve(), { once: true })
-            img.addEventListener('error', () => resolve(), { once: true })
-          }),
-    ),
+    images.map((img) => {
+      // A failed image may already be `complete` with naturalWidth === 0. In that
+      // state no later load/error event is emitted, so waiting for one blocks the
+      // whole PDF export forever.
+      if (img.complete) return Promise.resolve()
+
+      return new Promise<void>((resolve) => {
+        const finish = () => {
+          window.clearTimeout(timeoutId)
+          img.removeEventListener('load', finish)
+          img.removeEventListener('error', finish)
+          resolve()
+        }
+        const timeoutId = window.setTimeout(finish, 10_000)
+
+        img.addEventListener('load', finish, { once: true })
+        img.addEventListener('error', finish, { once: true })
+      })
+    }),
   )
 
   try {
@@ -51,28 +62,61 @@ export const exportToPdf = async (containerId: string, filename: string = 'resum
 
     for (let i = 0; i < pages.length; i++) {
       const pageEl = pages[i] as HTMLElement
+      const originalParent = pageEl.parentNode
+      const originalNextSibling = pageEl.nextSibling
+      const originalStyle = pageEl.getAttribute('style')
+
+      // html2canvas can clip elements that sit several viewport-heights below the
+      // current scroll position. Temporarily capture the real page at the viewport
+      // origin so every A4 page uses the same stable coordinate system.
+      Object.assign(pageEl.style, {
+        position: 'fixed',
+        top: '0',
+        right: 'auto',
+        bottom: 'auto',
+        left: '0',
+        margin: '0',
+        transform: 'none',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+      })
+      document.body.appendChild(pageEl)
 
       console.log(`Capturing page ${i + 1}/${pages.length}...`)
 
-      const canvas = await html2canvas(pageEl, {
-        scale: 2.5, // Extra sharp output
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: pageEl.offsetWidth,
-        windowHeight: pageEl.offsetHeight,
-      })
+      try {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+        const canvas = await html2canvas(pageEl, {
+          scale: 2.5, // Extra sharp output
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: pageEl.offsetWidth,
+          windowHeight: pageEl.offsetHeight,
+        })
 
-      if (i > 0) {
-        pdf.addPage()
+        const imgData = canvas.toDataURL('image/jpeg', 0.98)
+
+        if (i > 0) {
+          pdf.addPage()
+        }
+
+        // Add image mapping exactly 1-to-1 with A4 paper size (210mm x 297mm)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
+      } finally {
+        if (originalStyle === null) {
+          pageEl.removeAttribute('style')
+        } else {
+          pageEl.setAttribute('style', originalStyle)
+        }
+
+        if (originalParent) {
+          originalParent.insertBefore(pageEl, originalNextSibling)
+        }
       }
-
-      // Add image mapping exactly 1-to-1 with A4 paper size (210mm x 297mm)
-      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
     }
 
     console.log(`PDF generation completed. Total pages: ${pages.length}`)

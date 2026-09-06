@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# heejun.store DNS/SSL 적용 여부 점검 스크립트
+# heejun.cloud DNS/SSL 적용 여부 점검 스크립트
 # 가비아 DNS 변경 후 진행 상황 확인용
 #
 # 사용법:
@@ -8,11 +8,11 @@
 # 통과 조건:
 #   1) A 레코드가 75.2.60.5(Netlify) 로 변경됨
 #   2) www CNAME 이 *.netlify.app 으로 연결됨
-#   3) HTTPS 인증서 CN/SAN 에 heejun.store 포함
+#   3) HTTPS 인증서 CN/SAN 에 heejun.cloud 포함
 
 set -u
 
-DOMAIN="heejun.store"
+DOMAIN="heejun.cloud"
 # Netlify는 지역별 Edge IP가 다양함. 응답 헤더로 확인하는 게 가장 확실.
 PASS=0
 FAIL=0
@@ -21,7 +21,7 @@ ok()   { printf "  \033[32m✓\033[0m %s\n" "$1"; PASS=$((PASS+1)); }
 fail() { printf "  \033[31m✗\033[0m %s\n" "$1"; FAIL=$((FAIL+1)); }
 info() { printf "  \033[36mi\033[0m %s\n" "$1"; }
 
-echo "▶ heejun.store DNS/SSL 점검"
+echo "▶ heejun.cloud DNS/SSL 점검"
 echo ""
 
 # 1) Netlify 응답 확인 (Server 헤더로 판정)
