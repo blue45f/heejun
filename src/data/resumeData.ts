@@ -336,7 +336,7 @@ export const resumeData: ResumeData = {
     },
     {
       company: '미래아이엔텍 | SI 사업부 대리',
-      period: '2012.06.21 - 2012.12.31 (약 6개월)',
+      period: '2012.06.21 - 2014.02.28 (1년 9개월)',
       tasks: [
         'LG CNS 금융플랫폼팀 소속으로 SmartUI(웹접근성 준수 JS UI 프레임워크) 개발 및 프로젝트',
         '수행',
@@ -669,7 +669,7 @@ export const resumeData: ResumeData = {
     },
     {
       title: 'SmartUI 웹접근성 프레임워크 개발',
-      period: '미래아이엔텍 | 2012.05 - 2014.02',
+      period: '미래아이엔텍 | 2012.06 - 2014.02',
       bullets: [
         '웹접근성 준수 JavaScript UI 프레임워크 개발',
         'LG CNS 금융플랫폼 소속 프로젝트 지원 (교보생명, LIG 투자증권)',
