@@ -185,7 +185,7 @@ platform.openExternal(url)
 
 ## 5. 라우팅 표준 — 웹/토스 모두 React Router 7
 
-토스 웹뷰도 RR7이 정상 동작한다(webtoon·rotifolk 토스에서 검증). 따라서:
+토스 웹뷰도 RR7이 정상 동작한다(webtoon·rotation-app 토스에서 검증). 따라서:
 
 - **라우트 정의는 공유**: `path` + `meta`(title/seo) + 어떤 모델을 쓰는지. `shared` 또는 `client`에 배열로.
 - 각 앱은 **element만 자기 디자인시스템 뷰로 매핑**.
@@ -205,14 +205,14 @@ export const ROUTES = [
 // apps/toss: 동일하되 platforms 필터 + TOSS_VIEWS[r.id]
 ```
 
-- **금지**: aidigestdesk 웹의 수동 `pathname` 파싱, picky 토스의 RR6, rotifolk 토스의 커스텀 `router.ts` → 전부 RR7로 정렬(짝 문서 §5).
+- **금지**: content-portal 웹의 수동 `pathname` 파싱, polling-app 토스의 RR6, rotation-app 토스의 커스텀 `router.ts` → 전부 RR7로 정렬(짝 문서 §5).
 - 토스 **딥링크 진입**은 `platform.getEntryRoute()`로 받아 RR7 `navigate`에 연결.
 
 ---
 
 ## 6. 데이터 전략 — 정적/실시간 차이도 훅 뒤로 숨긴다
 
-앱마다 데이터 소스가 다르다(웹=API 또는 거대 catalog import / 토스=번들 JSON으로 700KB 회피 — aidigestdesk 사례). 이 차이를 **컴포넌트가 알면 안 된다**. `client`의 데이터 훅이 **DataSource 어댑터**를 주입받는다.
+앱마다 데이터 소스가 다르다(웹=API 또는 거대 catalog import / 토스=번들 JSON으로 700KB 회피 — content-portal 사례). 이 차이를 **컴포넌트가 알면 안 된다**. `client`의 데이터 훅이 **DataSource 어댑터**를 주입받는다.
 
 ```ts
 // packages/client/src/data/source.ts
@@ -231,8 +231,8 @@ export const useRankings = () =>
   useQuery({ queryKey: ['rankings'], queryFn: () => usePlatform().rankingSource.list() })
 ```
 
-- 실시간(rotifolk Socket.IO)도 동일: 연결 로직은 `client`, 토스에서 비활성/축소는 라우트·뷰 레벨에서만.
-- 토스 JSON 생성 스크립트(`generate-toss-*.mjs`)는 유지하되, 그 산출물을 **어댑터 뒤에** 둔다. drift 방지 = 빌드 prebuild 훅(aidigestdesk 패턴) + verify.
+- 실시간(rotation-app Socket.IO)도 동일: 연결 로직은 `client`, 토스에서 비활성/축소는 라우트·뷰 레벨에서만.
+- 토스 JSON 생성 스크립트(`generate-toss-*.mjs`)는 유지하되, 그 산출물을 **어댑터 뒤에** 둔다. drift 방지 = 빌드 prebuild 훅(content-portal 패턴) + verify.
 
 ---
 
@@ -241,13 +241,13 @@ export const useRankings = () =>
 | 함정                                                                                                                                                                         | 표준 처리                                                                                                                                                                                                                                                                                                            |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`ait build` 전체 실패** — granite collect-package-version 플러그인이 raw-src 워크스페이스 패키지(`@scope/*`) 심링크를 `packages/*`로 해석→`node_modules/<name>` 미스→throw | `pnpm patch @apps-in-toss/plugins@<ver>` → `dist/index.{cjs,js}`의 `extractPackagePath` throw를 `return null`로(버전수집만 스킵, 무해) → `pnpm-workspace` `patchedDependencies`. **토스가 공유 워크스페이스 패키지를 소비하면 필수.** (injected dep은 심링크 유지돼 무효 — 패치가 정답. webtoon 적용완료 `patches/`) |
-| `.ait` 번들러가 `workspace:*` 못 풂                                                                                                                                          | 토스 `vite.config`에서 `@<repo>/shared`,`@<repo>/client` → `packages/*/src` **소스 alias**. picky `scripts/sync-toss-shared.mjs` + `pnpm check:shared` verify 게이트.                                                                                                                                                |
+| `.ait` 번들러가 `workspace:*` 못 풂                                                                                                                                          | 토스 `vite.config`에서 `@<repo>/shared`,`@<repo>/client` → `packages/*/src` **소스 alias**. polling-app `scripts/sync-toss-shared.mjs` + `pnpm check:shared` verify 게이트.                                                                                                                                          |
 | 모노레포 React 중복(훅 깨짐)                                                                                                                                                 | 토스 `vite.config` `resolve.dedupe: ['react','react-dom']`                                                                                                                                                                                                                                                           |
 | TDS가 브라우저(비-AIT)에서 throw                                                                                                                                             | `tds-shim.tsx` + `PREVIEW_NO_TDS=1` alias 스텁(전 레포 보유)                                                                                                                                                                                                                                                         |
 | 비게임 미니앱 = TDS 필수                                                                                                                                                     | 토스 프레젠테이션은 **반드시 `@toss/tds-mobile`(+`-ait`)**. 임의 컴포넌트로 검토 통과 불가                                                                                                                                                                                                                           |
 | ESLint                                                                                                                                                                       | 토스 `apps/toss/**`는 `@heejun/eslint-config` 제외 유지(짝 문서 §4). 뷰만 얇게 두어 사각 최소화                                                                                                                                                                                                                      |
 | 익명 사용자 `email='' ` DB UNIQUE 충돌                                                                                                                                       | 메모리 배포 플레이북 참조                                                                                                                                                                                                                                                                                            |
-| 토스 정책 모듈(자금이동 등)                                                                                                                                                  | 결정만 기록, 실제 자금이동 X (메모리 `offhours-money-movement-boundary`)                                                                                                                                                                                                                                             |
+| 토스 정책 모듈(자금이동 등)                                                                                                                                                  | 결정만 기록, 실제 자금이동 X (메모리 `marketplace-app-money-movement-boundary`)                                                                                                                                                                                                                                      |
 
 > 콘솔 등록/검토요청/번들 업로드/Vercel/핀치줌/ERR_UPLOAD_FILE_CHANGED 등 **운영 함정은 메모리 `reference_toss-miniapp-deploy-playbook.md`** 가 정본. 코드와 운영을 분리해 본다.
 
@@ -270,7 +270,7 @@ export const useRankings = () =>
 
 ## 9. 안티패턴 (하지 말 것)
 
-- ❌ 토스에서 페이지를 통째로 복붙해 로직까지 재구현 (현 aidigestdesk/picky/rotifolk 토스의 `lib/` 중복) → `client`로 회수
+- ❌ 토스에서 페이지를 통째로 복붙해 로직까지 재구현 (현 content-portal/polling-app/rotation-app 토스의 `lib/` 중복) → `client`로 회수
 - ❌ 컴포넌트 안에서 `if (isTossEnv())` 분기로 네이티브 호출 → `PlatformBridge`로
 - ❌ 토스 전용 라우터·상태 라이브러리 도입 → RR7 + Zustand 공유
 - ❌ 도메인 계산·포맷 함수를 토스 `lib/`에 사본으로 → `shared`

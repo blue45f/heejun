@@ -277,11 +277,14 @@ CodeRabbit을 쓰는 저장소는 수동 실행용 `.github/workflows/branch-pro
 
 브랜치 보호 워크플로우는 저장소별 quality aggregator 이름을 정확히 사용해야 한다. required check 이름이 실제 job 이름과 다르면 GitHub가 영구 대기 상태로 남길 수 있다.
 
-| 저장소               | required status checks                                           |
-| :------------------- | :--------------------------------------------------------------- |
-| `spa-seo-gateway`    | `Quality gate`, `CodeRabbit review gate`                         |
-| `remote-devtools`    | `CI pass gate`, `enforce-pr-checklist`, `CodeRabbit review gate` |
-| `react-boilerplates` | `Verify`, `CodeRabbit review gate`                               |
+| 저장소                 | required status checks                                           |
+| :--------------------- | :--------------------------------------------------------------- |
+| `sample-app`           | `Quality gate`, `CodeRabbit review gate`                         |
+| `spa-seo-gateway`      | `Quality gate`, `CodeRabbit review gate`                         |
+| `sample-design-system` | `빌드 및 테스트`, `린트`, `CodeRabbit review gate`               |
+| `remote-devtools`      | `CI pass gate`, `enforce-pr-checklist`, `CodeRabbit review gate` |
+| `pettography`          | `Frontend verify`, `Backend verify`, `CodeRabbit review gate`    |
+| `react-boilerplates`   | `Verify`, `CodeRabbit review gate`                               |
 
 Dependabot 자동 머지는 아래 조건 중 하나만 만족할 때 auto-merge를 활성화한다.
 
