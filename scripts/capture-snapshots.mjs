@@ -3,23 +3,12 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const TARGETS = [
-  { slug: 'promptmarket', url: 'https://promptmarket-web.vercel.app' },
-  { slug: 'proto-live', url: 'https://proto-live.vercel.app' },
   { slug: 'multi-beta-guide', url: 'https://multi-beta-guide.vercel.app/' },
   { slug: 'toonspectrum', url: 'https://www.toonstudio.cloud/studio' },
-  { slug: 'resume-gongbang', url: 'https://resume-gongbang.vercel.app/' },
-  { slug: 'family-care-platform', url: 'https://family-care-platform.vercel.app' },
-  { slug: 'rotifolk', url: 'https://rotifolk.vercel.app' },
-  { slug: 'pettography', url: 'https://pettography.vercel.app' },
   { slug: 'termsdesk', url: 'https://desk-platform.vercel.app/termsdesk/' },
-  { slug: 'quote-match', url: 'https://quote-match.vercel.app' },
-  { slug: 'orbit-ui', url: 'https://orbit-ui-pink.vercel.app/' },
   { slug: 'remote-devtools', url: 'https://remote-devtools.vercel.app/' },
   { slug: 'spa-seo-gateway', url: 'https://spa-seo-gateway.vercel.app' },
   { slug: 'deskcloud', url: 'https://desk-platform.vercel.app' },
-  { slug: 'aidigestdesk', url: 'https://aidigestdesk.vercel.app' },
-  { slug: 'picky', url: 'https://picky-olive.vercel.app' },
-  { slug: 'offhours', url: 'https://offhours-nine.vercel.app' },
   { slug: 'heejun', url: 'https://heejun.cloud/' }
 ];
 
