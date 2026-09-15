@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const TARGETS = [
   { slug: 'multi-beta-guide', url: 'https://multi-beta-guide.vercel.app/' },
   { slug: 'toonspectrum', url: 'https://www.toonstudio.cloud/studio' },
+  { slug: 'pettography', url: 'https://pettography.vercel.app' },
   { slug: 'termsdesk', url: 'https://desk-platform.vercel.app/termsdesk/' },
   { slug: 'remote-devtools', url: 'https://remote-devtools.vercel.app/' },
   { slug: 'spa-seo-gateway', url: 'https://spa-seo-gateway.vercel.app' },
