@@ -774,34 +774,6 @@ export const resumeData: ResumeData = {
       image: '/public/project-snapshots/toonspectrum.jpg',
     },
     {
-      title: 'Pettography',
-      period: 'Personal Project | Public repo: blue45f/pettography',
-      bullets: [
-        '희귀 반려동물 돌봄 정보, 특수 동물병원, 용품점 및 커뮤니티를 연계한 웰니스 디렉터리',
-        '포털입니다.',
-        '아키텍처 원리 (3원 상태 동기화): 수십 개의 상세 필터 조합(지역,',
-        '동물종, 진료 항목 등)을 결합하여 탐색하는 UX 요구사항에 따라, URL Query',
-        'Parameter(공유성), Zustand 전역 상태(인터랙션 피드백), TanStack Query SWR 캐시(서버',
-        '데이터)를 유기적으로 연결하는 동기화 컨트롤러를 구현했습니다. 검색 조건 변경이',
-        '히스토리 백/포워드 시에도 완벽히 복원됩니다.',
-        '네트워크 및 예외 처리: Axios HTTP 클라이언트에 글로벌 인터셉터를',
-        '장착하고 백엔드 API 에러 응답(4xx/5xx)을 표준화하여 통일된 토스트 피드백으로 사용자',
-        '경험을 보호합니다.',
-        '토스 앱인토스 미니앱: @apps-in-toss/web-framework(v3) 기반 별도 apps/toss 패키지로',
-        '빌드해 홈·도감·종 비교·체크리스트·서재를 인앱에서 제공하고, TDS 디자인과 인앱 광고·핵심',
-        '지표를 연동했습니다. 앱 심사를 거쳐 정식 출시를 진행 중입니다. (딥링크: intoss://pettography)',
-      ],
-      techStack:
-        'TypeScript 6, React 19, Vite 8, Tailwind CSS 4, Zustand 5, TanStack Query 5, i18next, Storybook 10, Radix UI, NestJS 11, Drizzle ORM, Socket.IO, Firebase Auth, Zod 4, React Compiler, Toss 미니앱(앱인토스)',
-      infraConfig: 'Vercel (frontend) + Render (backend API)',
-      publishInfo: '',
-      links: [
-        { href: 'https://pettography.vercel.app', text: 'Live Demo' },
-        { href: 'https://github.com/blue45f/pettography', text: 'GitHub' },
-      ],
-      image: '/public/project-snapshots/pettography.jpg',
-    },
-    {
       title: 'TermsDesk',
       period: 'Personal Project | Public repo: blue45f/termsdesk',
       bullets: [
@@ -1034,7 +1006,7 @@ export const resumeData: ResumeData = {
   ],
   activities: [
     '개인 프로젝트는 본문의 "개인 프로젝트" 섹션을 참고',
-    '(web-config-preset, Multi-env Lab, ToonSpectrum, Pettography, TermsDesk, Remote DevTools,',
+    '(web-config-preset, Multi-env Lab, ToonSpectrum, TermsDesk, Remote DevTools,',
     'SPA SEO Gateway, DeskCloud, heejun.cloud)',
     'GitHub Study Group:',
     'https://github.com/develuv/study',
